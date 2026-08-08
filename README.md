@@ -52,17 +52,50 @@ Les changements sont pris en compte immédiatement, sans redémarrer l'extension
 ### Prérequis
 
 - Android Studio (ou le SDK Android en ligne de commande) et un JDK 17+.
-- Un jeton GitHub avec la portée `read:packages` : la bibliothèque `karoo-ext` est publiée sur
-  GitHub Packages, qui exige une authentification même pour les paquets publics.
+- Un jeton GitHub (voir ci-dessous) — nécessaire uniquement pour construire l'APK, pas pour
+  lancer les tests du module `:core`.
 
-Renseignez le jeton dans `local.properties` (non versionné) :
+### Le jeton GitHub (obligatoire)
+
+**Pourquoi.** La bibliothèque `io.hammerhead:karoo-ext` n'est publiée que sur **GitHub
+Packages**, dont le registre Maven refuse les requêtes anonymes — *même pour un paquet
+public*. C'est une contrainte de GitHub, pas de Hammerhead. Sans jeton, Gradle échoue avec
+`Could not resolve io.hammerhead:karoo-ext` (HTTP 401). Le dépôt Maven correspondant est
+déjà déclaré dans `settings.gradle.kts` ; il ne manque que vos identifiants.
+
+**Créer le jeton.**
+
+1. github.com → votre avatar → **Settings**
+2. tout en bas du menu de gauche → **Developer settings**
+3. **Personal access tokens → Tokens (classic)** → *Generate new token (classic)*
+4. cochez **uniquement la portée `read:packages`** — rien d'autre n'est utile ici
+5. choisissez une expiration (1 an par exemple) et notez la date : la compilation cassera le
+   jour où le jeton expirera
+6. copiez la valeur `ghp_…` affichée : GitHub ne la remontrera jamais
+
+> Les jetons **fine-grained** (l'autre onglet) ne conviennent pas : ils ne donnent pas accès
+> aux paquets d'une autre organisation, et `karoo-ext` appartient à `hammerheadnav`.
+> Il faut bien un jeton *classic*.
+
+**Où le déclarer.** Au choix, dans `local.properties` à la racine du projet (non versionné,
+déjà listé dans `.gitignore`) ou — de préférence — dans `~/.gradle/gradle.properties`, qui
+vit hors du dépôt et sert à tous vos projets :
 
 ```properties
 gpr.user=votre-login-github
 gpr.key=ghp_xxxxxxxxxxxxxxxxxxxx
 ```
 
-ou via les variables d'environnement `GITHUB_ACTOR` / `GITHUB_TOKEN`.
+À défaut, les variables d'environnement `GITHUB_ACTOR` / `GITHUB_TOKEN` sont utilisées :
+c'est ce mécanisme qu'emploie le workflow CI, via les secrets de dépôt `GPR_USER` / `GPR_KEY`
+(sans ces secrets, le job de construction de l'APK s'ignore de lui-même).
+
+**Si ça casse.** Un `401 Unauthorized` ou un `Could not resolve io.hammerhead:karoo-ext` au
+moment du *sync* signale un jeton absent, mal collé ou expiré. Régénérez-le, recollez-le,
+puis relancez avec `./gradlew --refresh-dependencies :app:assembleRelease`.
+
+Ne commitez jamais le jeton : GitHub révoque automatiquement ceux qu'il détecte dans un
+dépôt, mais mieux vaut ne pas en arriver là.
 
 ### Construire et installer
 
