@@ -95,8 +95,8 @@ object Guidance {
         lookbehind: Double = 0.0,
     ): ProfileWindow = window(
         route = route,
-        start = distanceAlongRoute - lookbehind,
-        end = distanceAlongRoute + lookahead,
+        from = distanceAlongRoute - lookbehind,
+        to = distanceAlongRoute + lookahead,
     )
 
     /**
