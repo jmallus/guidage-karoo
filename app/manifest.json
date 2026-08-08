@@ -1,0 +1,12 @@
+{
+  "label": "Guidage",
+  "packageName": "io.github.jmallus.guidage",
+  "iconUrl": "https://github.com/jmallus/guidage-karoo/releases/latest/download/guidage.png",
+  "latestApkUrl": "https://github.com/jmallus/guidage-karoo/releases/latest/download/guidage-karoo.apk",
+  "latestVersion": "1.0",
+  "latestVersionCode": 1,
+  "developer": "jmallus",
+  "description": "Guidage d'itinéraire pour Karoo : profil altimétrique à venir coloré selon la pente, prochaine côte (distance, pente, dénivelé), distance au prochain point d'intérêt et annonces avant les côtes, les sommets et les ravitaillements. Tout est calculé sur l'appareil, sans connexion.",
+  "releaseNotes": "Première version : champs Profil à venir, Prochaine côte, Prochain point d'intérêt et annonces in-ride.",
+  "tags": ["navigation"]
+}

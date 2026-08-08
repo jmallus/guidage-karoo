@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Guidage</string>
+    <string name="extension_name">Guidage</string>
+
+    <!-- Champs de données -->
+    <string name="field_profile_name">Profil à venir</string>
+    <string name="field_profile_description">Profil altimétrique de la portion d\'itinéraire devant vous, coloré selon la pente.</string>
+    <string name="field_climb_name">Prochaine côte</string>
+    <string name="field_climb_description">Distance jusqu\'à la prochaine côte, ou jusqu\'au sommet de celle en cours, avec pente et dénivelé.</string>
+    <string name="field_poi_name">Prochain point d\'intérêt</string>
+    <string name="field_poi_description">Distance jusqu\'au prochain point d\'intérêt de l\'itinéraire.</string>
+
+    <string name="field_no_route">Pas d\'itinéraire</string>
+    <string name="field_no_climb_ahead">Aucune côte devant</string>
+    <string name="field_climb_in_progress">En cours</string>
+    <string name="field_climb_number">Côte %1$d/%2$d</string>
+
+    <!-- Alertes -->
+    <string name="alert_climb_title">Côte dans %1$s</string>
+    <string name="alert_climb_detail">%1$s à %2$s • +%3$s</string>
+    <string name="alert_summit_title">Sommet dans %1$s</string>
+    <string name="alert_summit_detail">Encore +%1$s</string>
+    <string name="alert_poi_detail">Dans %1$s</string>
+    <string name="action_next_climb">Annoncer la prochaine côte</string>
+
+    <!-- Points d\'intérêt -->
+    <string name="poi_generic">Point d\'intérêt</string>
+    <string name="poi_water">Point d\'eau</string>
+    <string name="poi_food">Ravitaillement</string>
+    <string name="poi_coffee">Café</string>
+    <string name="poi_store">Commerce</string>
+    <string name="poi_gas_station">Station-service</string>
+    <string name="poi_aid_station">Poste de ravitaillement</string>
+    <string name="poi_first_aid">Secours</string>
+    <string name="poi_bike_shop">Vélociste</string>
+    <string name="poi_caution">Prudence</string>
+    <string name="poi_control">Contrôle</string>
+    <string name="poi_parking">Parking</string>
+    <string name="poi_rest_stop">Halte</string>
+    <string name="poi_restroom">Toilettes</string>
+    <string name="poi_summit">Sommet</string>
+    <string name="poi_viewpoint">Point de vue</string>
+
+    <!-- Écran de configuration -->
+    <string name="status_connected">Connecté au Karoo</string>
+    <string name="status_disconnected">Connexion au Karoo…</string>
+    <string name="status_no_route">Aucun itinéraire chargé</string>
+    <string name="status_remaining">Restant : %1$s</string>
+    <string name="status_climb_current">Sommet dans %1$s (+%2$s)</string>
+    <string name="status_climb_next">Prochaine côte dans %1$s : %2$s à %3$s</string>
+    <string name="status_next_poi">Prochain point : %1$s dans %2$s</string>
+
+    <string name="settings_title">Réglages</string>
+    <string name="settings_lookahead">Portée du profil : %1$s</string>
+    <string name="settings_color_by_grade">Colorer le profil selon la pente</string>
+    <string name="settings_climb_alerts">Annoncer les côtes</string>
+    <string name="settings_climb_distance">Annonce avant la côte : %1$s</string>
+    <string name="settings_summit_alerts">Annoncer les sommets</string>
+    <string name="settings_summit_distance">Annonce avant le sommet : %1$s</string>
+    <string name="settings_poi_alerts">Annoncer les points d\'intérêt</string>
+    <string name="settings_poi_distance">Annonce avant le point : %1$s</string>
+</resources>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Déclaration des capacités de l'extension auprès de Karoo OS.
+  L'attribut id doit correspondre à GuidageExtension.EXTENSION_ID,
+  et chaque typeId à celui du DataTypeImpl correspondant.
+-->
+<ExtensionInfo
+    id="guidage"
+    displayName="@string/extension_name"
+    icon="@drawable/ic_guidage"
+    scansDevices="false">
+
+    <DataType
+        typeId="profil"
+        displayName="@string/field_profile_name"
+        description="@string/field_profile_description"
+        graphical="true"
+        icon="@drawable/ic_profile" />
+
+    <DataType
+        typeId="cote"
+        displayName="@string/field_climb_name"
+        description="@string/field_climb_description"
+        graphical="true"
+        icon="@drawable/ic_climb" />
+
+    <DataType
+        typeId="poi"
+        displayName="@string/field_poi_name"
+        description="@string/field_poi_description"
+        graphical="false"
+        icon="@drawable/ic_poi" />
+
+    <BonusAction
+        actionId="prochaine-cote"
+        displayName="@string/action_next_climb" />
+</ExtensionInfo>
