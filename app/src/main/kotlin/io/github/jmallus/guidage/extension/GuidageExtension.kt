@@ -7,6 +7,7 @@ import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
+import io.github.jmallus.guidage.karoo.RideDataProvider
 import io.github.jmallus.guidage.karoo.consumerFlow
 import io.github.jmallus.guidage.settings.SettingsRepository
 import io.hammerhead.karooext.KarooSystemService
@@ -33,10 +34,12 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
     private lateinit var karooSystem: KarooSystemService
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var provider: GuidanceProvider
+    private lateinit var rideDataProvider: RideDataProvider
     private lateinit var alertPresenter: AlertPresenter
 
     override val types: List<DataTypeImpl> by lazy {
         listOf(
+            DashboardDataType(provider, rideDataProvider, settingsRepository, extension),
             ProfileDataType(provider, settingsRepository, extension),
             ClimbDataType(provider, extension),
             PoiDataType(provider, extension),
@@ -48,6 +51,7 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
         karooSystem = KarooSystemService(this)
         settingsRepository = SettingsRepository(this)
         provider = GuidanceProvider(karooSystem, scope)
+        rideDataProvider = RideDataProvider(karooSystem, scope)
         alertPresenter = AlertPresenter(this)
 
         karooSystem.connect { connected ->

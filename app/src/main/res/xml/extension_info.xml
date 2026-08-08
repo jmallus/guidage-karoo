@@ -11,6 +11,13 @@
     scansDevices="false">
 
     <DataType
+        typeId="tableau"
+        displayName="@string/field_dashboard_name"
+        description="@string/field_dashboard_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
         typeId="profil"
         displayName="@string/field_profile_name"
         description="@string/field_profile_description"

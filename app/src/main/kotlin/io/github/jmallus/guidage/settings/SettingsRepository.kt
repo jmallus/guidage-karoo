@@ -3,6 +3,9 @@ package io.github.jmallus.guidage.settings
 import android.content.Context
 import android.content.SharedPreferences
 import io.github.jmallus.guidage.core.AlertSettings
+import io.github.jmallus.guidage.core.GraphZoom
+import io.github.jmallus.guidage.core.GuidanceZoneType
+import io.github.jmallus.guidage.core.MapRange
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -15,6 +18,12 @@ data class GuidageSettings(
     /** Colorer le profil selon la pente. */
     val colorByGrade: Boolean = true,
     val alerts: AlertSettings = AlertSettings(),
+    /** Ce que le tableau de bord montre en haut : carte ou profil. */
+    val guidanceZone: GuidanceZoneType = GuidanceZoneType.MAP,
+    /** Portée de la minicarte, changée par appui sur le champ. */
+    val mapRange: MapRange = MapRange.AHEAD_2KM,
+    /** Portée du profil en portrait, changée par appui sur le champ. */
+    val graphZoom: GraphZoom = GraphZoom.AHEAD_20KM,
 )
 
 /**
@@ -40,6 +49,9 @@ class SettingsRepository(context: Context) {
         return GuidageSettings(
             lookaheadMeters = prefs.getFloat(KEY_LOOKAHEAD, defaults.lookaheadMeters.toFloat()).toDouble(),
             colorByGrade = prefs.getBoolean(KEY_COLOR_BY_GRADE, defaults.colorByGrade),
+            guidanceZone = GuidanceZoneType.fromName(prefs.getString(KEY_GUIDANCE_ZONE, null)),
+            mapRange = MapRange.fromOrdinal(prefs.getInt(KEY_MAP_RANGE, defaults.mapRange.ordinal)),
+            graphZoom = GraphZoom.fromOrdinal(prefs.getInt(KEY_GRAPH_ZOOM, defaults.graphZoom.ordinal)),
             alerts = AlertSettings(
                 climbEnabled = prefs.getBoolean(KEY_CLIMB_ENABLED, defaults.alerts.climbEnabled),
                 climbDistance = prefs.getFloat(KEY_CLIMB_DISTANCE, defaults.alerts.climbDistance.toFloat()).toDouble(),
@@ -56,6 +68,9 @@ class SettingsRepository(context: Context) {
         prefs.edit()
             .putFloat(KEY_LOOKAHEAD, settings.lookaheadMeters.toFloat())
             .putBoolean(KEY_COLOR_BY_GRADE, settings.colorByGrade)
+            .putString(KEY_GUIDANCE_ZONE, settings.guidanceZone.name)
+            .putInt(KEY_MAP_RANGE, settings.mapRange.ordinal)
+            .putInt(KEY_GRAPH_ZOOM, settings.graphZoom.ordinal)
             .putBoolean(KEY_CLIMB_ENABLED, settings.alerts.climbEnabled)
             .putFloat(KEY_CLIMB_DISTANCE, settings.alerts.climbDistance.toFloat())
             .putBoolean(KEY_SUMMIT_ENABLED, settings.alerts.summitEnabled)
@@ -69,6 +84,9 @@ class SettingsRepository(context: Context) {
         const val PREFS_NAME = "guidage-settings"
         const val KEY_LOOKAHEAD = "lookahead_meters"
         const val KEY_COLOR_BY_GRADE = "color_by_grade"
+        const val KEY_GUIDANCE_ZONE = "guidance_zone"
+        const val KEY_MAP_RANGE = "map_range"
+        const val KEY_GRAPH_ZOOM = "graph_zoom"
         const val KEY_CLIMB_ENABLED = "climb_alerts"
         const val KEY_CLIMB_DISTANCE = "climb_alert_distance"
         const val KEY_SUMMIT_ENABLED = "summit_alerts"

@@ -11,7 +11,23 @@
     <string name="field_poi_name">Prochain point d\'intérêt</string>
     <string name="field_poi_description">Distance jusqu\'au prochain point d\'intérêt de l\'itinéraire.</string>
 
+    <string name="field_dashboard_name">Tableau de bord</string>
+    <string name="field_dashboard_description">Champ plein écran : minicarte du parcours orientée sens de la marche, vitesse, puissance, fréquence cardiaque, cadence, distance restante et heure d\'arrivée. Appuyer sur le champ change l\'échelle.</string>
+
+    <string name="tile_speed">Vitesse 3s</string>
+    <string name="tile_power">Puissance 3s</string>
+    <string name="tile_heart_rate">Fréq. cardiaque</string>
+    <string name="tile_cadence">Cadence 3s</string>
+    <string name="tile_distance_remaining">Restant</string>
+    <string name="tile_arrival">Arrivée</string>
+    <string name="unit_watt">W</string>
+    <string name="unit_bpm">bpm</string>
+    <string name="unit_rpm">tr/min</string>
+    <string name="dashboard_zoom_whole_route">Parcours</string>
+    <string name="settings_guidance_map">Minicarte plutôt que profil (tableau de bord)</string>
+
     <string name="field_no_route">Pas d\'itinéraire</string>
+    <string name="field_waiting_for_position">Recherche de position…</string>
     <string name="field_no_climb_ahead">Aucune côte devant</string>
     <string name="field_climb_in_progress">En cours</string>
     <string name="field_climb_number">Côte %1$d/%2$d</string>

@@ -1,15 +1,19 @@
 package io.github.jmallus.guidage.karoo
 
 import io.github.jmallus.guidage.core.ElevationProfile
+import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.GuidanceState
+import io.github.jmallus.guidage.core.Polyline
 import io.github.jmallus.guidage.core.Route
 import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
 import io.github.jmallus.guidage.core.Units
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
+import io.hammerhead.karooext.models.OnLocationChanged
 import io.hammerhead.karooext.models.OnNavigationState
 import io.hammerhead.karooext.models.OnNavigationState.NavigationState
+import io.hammerhead.karooext.models.Symbol
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -21,10 +25,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 
+/** Position et cap du coureur, tels que rapportés par le Karoo. */
+data class RiderLocation(
+    val position: GeoPoint,
+    /** Cap en degrés (0 = nord), null quand il n'est pas encore connu. */
+    val heading: Double?,
+)
+
 /** État de guidage accompagné du système d'unités choisi par le coureur. */
 data class GuidanceSnapshot(
     val state: GuidanceState = GuidanceState.IDLE,
     val units: Units = Units.METRIC,
+    val location: RiderLocation? = null,
 )
 
 /**
@@ -54,9 +66,24 @@ class GuidanceProvider(
         val units = karooSystem.consumerFlow<UserProfile>()
             .map { it.preferredUnit.distance.toUnits() }
             .onStart { emit(Units.METRIC) }
+        val location = karooSystem.consumerFlow<OnLocationChanged>()
+            .map<OnLocationChanged, RiderLocation?> {
+                RiderLocation(GeoPoint(it.lat, it.lng), it.orientation)
+            }
+            .onStart { emit(null) }
 
-        return combine(navigation, remaining, grade, units) { nav, distanceRemaining, currentGrade, unitSystem ->
-            GuidanceSnapshot(buildState(nav, distanceRemaining, currentGrade), unitSystem)
+        return combine(
+            navigation,
+            remaining,
+            grade,
+            units,
+            location,
+        ) { nav, distanceRemaining, currentGrade, unitSystem, riderLocation ->
+            GuidanceSnapshot(
+                state = buildState(nav, distanceRemaining, currentGrade),
+                units = unitSystem,
+                location = riderLocation,
+            )
         }.distinctUntilChanged()
     }
 
@@ -91,16 +118,8 @@ class GuidanceProvider(
                 totalDistance = routeDistance,
                 profile = ElevationProfile.fromEncoded(routeElevationPolyline),
                 climbs = climbs.map { it.toRouteClimb() },
-                pois = pois.flatMap { poi ->
-                    poi.distancesAlongRoute.mapIndexed { index, distance ->
-                        RoutePoi(
-                            id = if (index == 0) poi.id else "${poi.id}#$index",
-                            name = poi.name,
-                            type = poi.type,
-                            distanceAlongRoute = distance,
-                        )
-                    }
-                },
+                pois = pois.flatMap { poi -> poi.toRoutePois() },
+                path = decodePath(routePolyline),
             )
 
             is NavigationState.NavigatingToDestination -> {
@@ -119,11 +138,34 @@ class GuidanceProvider(
                             name = destination.name,
                             type = destination.type,
                             distanceAlongRoute = total,
+                            position = GeoPoint(destination.lat, destination.lng),
                         ),
                     ),
+                    path = decodePath(polyline),
                 )
             }
         }
+
+        /**
+         * Un même POI peut être rencontré plusieurs fois sur un parcours en boucle :
+         * il devient alors un point par passage, avec un identifiant distinct.
+         */
+        private fun Symbol.POI.toRoutePois(): List<RoutePoi> =
+            distancesAlongRoute.mapIndexed { index, distance ->
+                RoutePoi(
+                    id = if (index == 0) id else "$id#$index",
+                    name = name,
+                    type = type,
+                    distanceAlongRoute = distance,
+                    position = GeoPoint(lat, lng),
+                )
+            }
+
+        /** Le tracé est encodé en polyligne Google de précision 5. */
+        private fun decodePath(encoded: String): List<GeoPoint> =
+            Polyline.decode(encoded, PATH_PRECISION).map { GeoPoint(it.first, it.second) }
+
+        private const val PATH_PRECISION = 5
 
         private fun NavigationState.Climb.toRouteClimb() = RouteClimb(
             startDistance = startDistance,

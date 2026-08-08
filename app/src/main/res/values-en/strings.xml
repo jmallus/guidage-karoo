@@ -11,7 +11,23 @@
     <string name="field_poi_name">Next point of interest</string>
     <string name="field_poi_description">Distance to the next point of interest on the route.</string>
 
+    <string name="field_dashboard_name">Dashboard</string>
+    <string name="field_dashboard_description">Full-screen field: route minimap oriented track-up, speed, power, heart rate, cadence, distance remaining and arrival time. Tap the field to change the scale.</string>
+
+    <string name="tile_speed">Speed 3s</string>
+    <string name="tile_power">Power 3s</string>
+    <string name="tile_heart_rate">Heart rate</string>
+    <string name="tile_cadence">Cadence 3s</string>
+    <string name="tile_distance_remaining">Remaining</string>
+    <string name="tile_arrival">Arrival</string>
+    <string name="unit_watt">W</string>
+    <string name="unit_bpm">bpm</string>
+    <string name="unit_rpm">rpm</string>
+    <string name="dashboard_zoom_whole_route">Route</string>
+    <string name="settings_guidance_map">Minimap instead of profile (dashboard)</string>
+
     <string name="field_no_route">No route</string>
+    <string name="field_waiting_for_position">Waiting for position…</string>
     <string name="field_no_climb_ahead">No climb ahead</string>
     <string name="field_climb_in_progress">Climbing</string>
     <string name="field_climb_number">Climb %1$d/%2$d</string>

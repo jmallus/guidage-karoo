@@ -21,6 +21,8 @@ data class RoutePoi(
     val type: String,
     /** Distance du POI depuis le départ de l'itinéraire (m). */
     val distanceAlongRoute: Double,
+    /** Position géographique, quand elle est connue — pour le placer sur la carte. */
+    val position: GeoPoint? = null,
 )
 
 /**
@@ -33,6 +35,8 @@ data class Route(
     val profile: ElevationProfile?,
     val climbs: List<RouteClimb> = emptyList(),
     val pois: List<RoutePoi> = emptyList(),
+    /** Tracé de l'itinéraire, pour la minicarte. */
+    val path: List<GeoPoint> = emptyList(),
 )
 
 /** État d'une côte relativement à la position courante. */

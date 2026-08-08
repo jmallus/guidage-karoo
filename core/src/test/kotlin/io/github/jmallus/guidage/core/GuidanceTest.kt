@@ -134,4 +134,30 @@ class GuidanceTest {
 
         assertTrue(window.isEmpty)
     }
+
+    @Test
+    fun `route graph window covers the whole route without lookahead`() {
+        val window = Guidance.routeGraphWindow(route, 3_000.0, null)
+
+        assertEquals(0.0, window.start, 1e-6)
+        assertEquals(10_000.0, window.end, 1e-6)
+        assertEquals(100.0, window.minElevation, 1e-6)
+        assertEquals(300.0, window.maxElevation, 1e-6)
+    }
+
+    @Test
+    fun `route graph window with a zoom starts at the current position`() {
+        val window = Guidance.routeGraphWindow(route, 3_000.0, 2_000.0)
+
+        assertEquals(3_000.0, window.start, 1e-6)
+        assertEquals(5_000.0, window.end, 1e-6)
+    }
+
+    @Test
+    fun `route graph window is clamped at the end of the route`() {
+        val window = Guidance.routeGraphWindow(route, 9_000.0, 20_000.0)
+
+        assertEquals(9_000.0, window.start, 1e-6)
+        assertEquals(10_000.0, window.end, 1e-6)
+    }
 }

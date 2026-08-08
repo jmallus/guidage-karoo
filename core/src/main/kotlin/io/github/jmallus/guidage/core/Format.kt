@@ -1,5 +1,7 @@
 package io.github.jmallus.guidage.core
 
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -60,6 +62,33 @@ object Format {
 
     /** Pente sans décimale, pour les petites surfaces : « 7 % ». */
     fun shortGrade(percent: Double): String = "${percent.roundToInt()} %"
+
+    /**
+     * Vitesse, à partir des m/s fournis par le Karoo : « 27,4 ».
+     * L'unité est retournée séparément par [speedUnit], pour l'afficher en plus petit.
+     */
+    fun speed(metersPerSecond: Double, units: Units, locale: Locale = Locale.getDefault()): String {
+        val value = when (units) {
+            Units.METRIC -> metersPerSecond * 3.6
+            Units.IMPERIAL -> metersPerSecond * 3600 / METERS_PER_MILE
+        }
+        return String.format(locale, "%.1f", value)
+    }
+
+    fun speedUnit(units: Units): String = when (units) {
+        Units.METRIC -> "km/h"
+        Units.IMPERIAL -> "mph"
+    }
+
+    /**
+     * Heure d'horloge à partir d'un instant Unix en millisecondes : « 16:48 ».
+     *
+     * Le Karoo exprime l'heure d'arrivée estimée de cette façon.
+     */
+    fun clock(epochMilliseconds: Double, zone: ZoneId = ZoneId.systemDefault()): String {
+        val time = Instant.ofEpochMilli(epochMilliseconds.toLong()).atZone(zone)
+        return String.format(Locale.ROOT, "%02d:%02d", time.hour, time.minute)
+    }
 
     private fun roundTo(value: Double, step: Int): Double {
         return (value / step).roundToInt().toDouble() * step

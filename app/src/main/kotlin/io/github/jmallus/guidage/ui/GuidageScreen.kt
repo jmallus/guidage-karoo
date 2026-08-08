@@ -25,6 +25,7 @@ import io.github.jmallus.guidage.MainViewModel
 import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
+import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
@@ -147,6 +148,18 @@ private fun SettingsCard(
                 range = 1_000f..15_000f,
                 steps = 13,
                 onValueChange = { onChange(settings.copy(lookaheadMeters = it.toDouble())) },
+            )
+
+            SwitchRow(
+                label = stringResource(R.string.settings_guidance_map),
+                checked = settings.guidanceZone == GuidanceZoneType.MAP,
+                onCheckedChange = { useMap ->
+                    onChange(
+                        settings.copy(
+                            guidanceZone = if (useMap) GuidanceZoneType.MAP else GuidanceZoneType.PROFILE,
+                        ),
+                    )
+                },
             )
 
             SwitchRow(

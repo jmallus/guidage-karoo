@@ -93,12 +93,34 @@ object Guidance {
         distanceAlongRoute: Double,
         lookahead: Double,
         lookbehind: Double = 0.0,
-    ): ProfileWindow {
+    ): ProfileWindow = window(
+        route = route,
+        start = distanceAlongRoute - lookbehind,
+        end = distanceAlongRoute + lookahead,
+    )
+
+    /**
+     * Fenêtre du graphe de parcours : la totalité de l'itinéraire quand [lookahead] est null,
+     * sinon la portion à venir sur la distance demandée.
+     *
+     * Contrairement à [profileWindow], la position courante n'est pas forcément au bord gauche :
+     * sur le parcours entier elle se trouve quelque part au milieu, et c'est au rendu de la placer.
+     */
+    fun routeGraphWindow(route: Route, distanceAlongRoute: Double, lookahead: Double?): ProfileWindow {
+        return if (lookahead == null) {
+            window(route, 0.0, routeLength(route))
+        } else {
+            window(route, distanceAlongRoute, distanceAlongRoute + lookahead)
+        }
+    }
+
+    private fun routeLength(route: Route): Double =
+        maxOf(route.totalDistance, route.profile?.totalDistance ?: 0.0)
+
+    private fun window(route: Route, from: Double, to: Double): ProfileWindow {
         val profile = route.profile
-        val start = (distanceAlongRoute - lookbehind).coerceAtLeast(0.0)
-        val end = (distanceAlongRoute + lookahead).coerceAtMost(
-            maxOf(route.totalDistance, profile?.totalDistance ?: 0.0),
-        )
+        val start = from.coerceAtLeast(0.0)
+        val end = to.coerceAtMost(routeLength(route))
         if (profile == null || profile.isEmpty || end <= start) {
             return ProfileWindow(emptyList(), start, maxOf(end, start), 0.0, 0.0)
         }
