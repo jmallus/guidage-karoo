@@ -33,7 +33,13 @@ data class ClimbFieldModel(
  */
 object ClimbRenderer {
 
-    fun render(width: Int, height: Int, model: ClimbFieldModel, alignment: ViewConfig.Alignment): Bitmap {
+    fun render(
+        width: Int,
+        height: Int,
+        model: ClimbFieldModel,
+        alignment: ViewConfig.Alignment,
+        palette: Palette,
+    ): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
@@ -48,13 +54,13 @@ object ClimbRenderer {
         val contentBottom = height - padding - if (barHeight > 0) barHeight * 1.6f else 0f
 
         model.header?.let {
-            val paint = textPaint(headerSize, FieldPalette.TEXT_SECONDARY, Paint.Align.LEFT)
+            val paint = textPaint(headerSize, palette.textSecondary, Paint.Align.LEFT)
             canvas.drawText(it, left, padding + headerSize, paint)
         }
 
         val secondarySize = (height * 0.19f).coerceIn(10f, 24f)
         var secondaryWidth = 0f
-        val secondaryPaint = textPaint(secondarySize, FieldPalette.TEXT_PRIMARY, Paint.Align.RIGHT)
+        val secondaryPaint = textPaint(secondarySize, palette.textPrimary, Paint.Align.RIGHT)
         val secondaries = listOfNotNull(model.secondaryTop, model.secondaryBottom)
         if (secondaries.isNotEmpty()) {
             secondaryWidth = secondaries.maxOf { secondaryPaint.measureText(it) } + padding
@@ -70,7 +76,7 @@ object ClimbRenderer {
             maxWidth = (right - left - secondaryWidth).coerceAtLeast(1f),
             preferredSize = (contentBottom - contentTop) * 0.72f,
         )
-        val primaryPaint = textPaint(primarySize, FieldPalette.TEXT_PRIMARY, Paint.Align.LEFT, bold = true)
+        val primaryPaint = textPaint(primarySize, palette.textPrimary, Paint.Align.LEFT, bold = true)
         val primaryY = (contentTop + contentBottom) / 2f - (primaryPaint.descent() + primaryPaint.ascent()) / 2f
         val primaryX = when (alignment) {
             ViewConfig.Alignment.LEFT -> left
@@ -80,13 +86,13 @@ object ClimbRenderer {
         canvas.drawText(model.primary, primaryX.coerceAtLeast(left), primaryY, primaryPaint)
 
         model.caption?.let {
-            val paint = textPaint((height * 0.15f).coerceIn(9f, 18f), FieldPalette.TEXT_SECONDARY, Paint.Align.LEFT)
+            val paint = textPaint((height * 0.15f).coerceIn(9f, 18f), palette.textSecondary, Paint.Align.LEFT)
             canvas.drawText(it, left, contentBottom, paint)
         }
 
         model.progress?.let { progress ->
             val barTop = height - padding - barHeight
-            val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = FieldPalette.TRACK }
+            val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = palette.track }
             val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = accent }
             val radius = barHeight / 2f
             canvas.drawRoundRect(RectF(left, barTop, right, barTop + barHeight), radius, radius, track)

@@ -33,7 +33,7 @@ enum class MapRange(val meters: Double) {
     fun next(): MapRange = entries[(ordinal + 1) % entries.size]
 
     companion object {
-        fun fromOrdinal(ordinal: Int): MapRange = entries.getOrElse(ordinal) { AHEAD_2KM }
+        fun fromOrdinal(ordinal: Int): MapRange = entries.getOrElse(ordinal) { AHEAD_1KM }
     }
 }
 

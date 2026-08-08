@@ -15,6 +15,7 @@ import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.settings.SettingsRepository
 import io.github.jmallus.guidage.ui.BitmapField
+import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileFieldModel
 import io.github.jmallus.guidage.ui.ProfileRenderer
@@ -52,7 +53,7 @@ class ProfileDataType(
                 .distinctUntilChanged()
                 .map { model ->
                     val (width, height) = FieldSize.of(config)
-                    ProfileRenderer.render(width, height, model)
+                    ProfileRenderer.render(width, height, model, FieldPalette.of(context))
                 }
                 .collect { bitmap ->
                     val composed = glance.compose(context, DpSize.Unspecified) { BitmapField(bitmap) }

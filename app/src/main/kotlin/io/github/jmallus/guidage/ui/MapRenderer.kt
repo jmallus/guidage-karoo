@@ -22,7 +22,7 @@ data class MapModel(
     val heading: Double? = null,
     val pois: List<MapPoi> = emptyList(),
     /** Distance visible devant le coureur (m). */
-    val rangeMeters: Double = 2_000.0,
+    val rangeMeters: Double = 1_000.0,
     val emptyMessage: String? = null,
 )
 
@@ -36,12 +36,12 @@ data class MapModel(
 object MapRenderer {
 
     /** Part de la hauteur laissée devant le coureur. */
-    private const val AHEAD_FRACTION = 0.78f
+    private const val AHEAD_FRACTION = 0.80f
 
-    fun draw(canvas: Canvas, area: RectF, model: MapModel) {
+    fun draw(canvas: Canvas, area: RectF, model: MapModel, palette: Palette) {
         val origin = model.position
         if (origin == null || area.width() <= 0 || area.height() <= 0) {
-            drawMessage(canvas, area, model.emptyMessage)
+            drawMessage(canvas, area, model.emptyMessage, palette)
             return
         }
 
@@ -50,16 +50,15 @@ object MapRenderer {
         val metersToPixels =
             ((area.height() * AHEAD_FRACTION) / model.rangeMeters.coerceAtLeast(1.0)).toFloat()
         val heading = model.heading ?: 0.0
-
         val projection = Projection(origin, heading, riderX, riderY, metersToPixels)
 
         canvas.save()
         canvas.clipRect(area)
 
-        drawPath(canvas, model, projection)
-        drawPois(canvas, area, model, projection)
-        drawRider(canvas, riderX, riderY, area.height())
-        drawScaleBar(canvas, area, model.rangeMeters, metersToPixels)
+        drawPath(canvas, model, projection, palette)
+        drawPois(canvas, area, model, projection, palette)
+        drawRider(canvas, riderX, riderY, area.height(), palette)
+        drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
 
         canvas.restore()
     }
@@ -81,18 +80,18 @@ object MapRenderer {
         }
     }
 
-    private fun drawPath(canvas: Canvas, model: MapModel, projection: Projection) {
+    private fun drawPath(canvas: Canvas, model: MapModel, projection: Projection, palette: Palette) {
         if (model.path.size < 2) return
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 6f
+            strokeWidth = 7f
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
-            color = ROUTE_COLOR
+            color = palette.routeLine
         }
-        val outline = Paint(paint).apply {
-            strokeWidth = 9f
-            color = ROUTE_OUTLINE_COLOR
+        val outline = Paint(line).apply {
+            strokeWidth = 11f
+            color = palette.routeOutline
         }
 
         val path = Path()
@@ -105,7 +104,7 @@ object MapRenderer {
             }
         }
         canvas.drawPath(path, outline)
-        canvas.drawPath(path, paint)
+        canvas.drawPath(path, line)
     }
 
     private fun drawPois(
@@ -113,19 +112,16 @@ object MapRenderer {
         area: RectF,
         model: MapModel,
         projection: Projection,
+        palette: Palette,
     ) {
         if (model.pois.isEmpty()) return
-        val labelSize = (area.height() * 0.07f).coerceIn(10f, 18f)
+        val labelSize = (area.height() * 0.05f).coerceIn(10f, 16f)
         val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.POSITION
-            style = Paint.Style.FILL
-        }
-        val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFFFFFFF.toInt()
+            color = palette.position
             style = Paint.Style.FILL
         }
         val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_PRIMARY
+            color = palette.textPrimary
             textSize = labelSize
             typeface = Typeface.DEFAULT_BOLD
         }
@@ -135,49 +131,50 @@ object MapRenderer {
             val x = screen.x.toFloat()
             val y = screen.y.toFloat()
             if (x < area.left - 20 || x > area.right + 20 || y < area.top - 20 || y > area.bottom + 20) return@forEach
-            canvas.drawCircle(x, y, 7f, halo)
             canvas.drawCircle(x, y, 5f, dot)
-            canvas.drawText(poi.label, x + 9f, y + labelSize * 0.35f, text)
+            canvas.drawText(poi.label, x + 8f, y + labelSize * 0.35f, text)
         }
     }
 
-    private fun drawRider(canvas: Canvas, x: Float, y: Float, height: Float) {
-        val size = (height * 0.06f).coerceIn(8f, 18f)
-        val body = Path().apply {
+    /**
+     * Flèche de position dans l'esprit de celle du Karoo : un chevron plein, pointé vers
+     * l'avant, à base concave — sans contour, pour rester net sur fond sombre.
+     */
+    private fun drawRider(canvas: Canvas, x: Float, y: Float, height: Float, palette: Palette) {
+        val size = (height * 0.055f).coerceIn(10f, 20f)
+        val arrow = Path().apply {
             moveTo(x, y - size)
-            lineTo(x + size * 0.75f, y + size * 0.7f)
-            lineTo(x, y + size * 0.3f)
-            lineTo(x - size * 0.75f, y + size * 0.7f)
+            lineTo(x + size * 0.68f, y + size * 0.78f)
+            lineTo(x, y + size * 0.34f)
+            lineTo(x - size * 0.68f, y + size * 0.78f)
             close()
         }
         canvas.drawPath(
-            body,
+            arrow,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = RIDER_COLOR
+                color = palette.position
                 style = Paint.Style.FILL
-            },
-        )
-        canvas.drawPath(
-            body,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = FieldPalette.OUTLINE
-                style = Paint.Style.STROKE
-                strokeWidth = 2f
             },
         )
     }
 
-    private fun drawScaleBar(canvas: Canvas, area: RectF, rangeMeters: Double, metersToPixels: Float) {
+    private fun drawScaleBar(
+        canvas: Canvas,
+        area: RectF,
+        rangeMeters: Double,
+        metersToPixels: Float,
+        palette: Palette,
+    ) {
         val scaleMeters = Geo.niceScale(rangeMeters / 2)
-        val barWidth = (scaleMeters * metersToPixels).toFloat()
+        val barWidth = scaleMeters.toFloat() * metersToPixels
         if (barWidth < 10f || barWidth > area.width()) return
 
-        val labelSize = (area.height() * 0.07f).coerceIn(9f, 16f)
-        val y = area.bottom - labelSize * 0.6f
+        val labelSize = (area.height() * 0.045f).coerceIn(9f, 15f)
+        val y = area.bottom - labelSize * 0.5f
         val left = area.left + 6f
 
         val bar = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_PRIMARY
+            color = palette.textSecondary
             strokeWidth = 3f
         }
         canvas.drawLine(left, y, left + barWidth, y, bar)
@@ -190,17 +187,17 @@ object MapRenderer {
             left,
             y - 6f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = FieldPalette.TEXT_PRIMARY
+                color = palette.textSecondary
                 textSize = labelSize
                 typeface = Typeface.DEFAULT_BOLD
             },
         )
     }
 
-    private fun drawMessage(canvas: Canvas, area: RectF, message: String?) {
+    private fun drawMessage(canvas: Canvas, area: RectF, message: String?, palette: Palette) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_SECONDARY
-            textSize = (area.height() * 0.16f).coerceIn(10f, 26f)
+            color = palette.textSecondary
+            textSize = (area.height() * 0.1f).coerceIn(10f, 22f)
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
         }
@@ -211,8 +208,4 @@ object MapRenderer {
             paint,
         )
     }
-
-    private const val ROUTE_COLOR = 0xFFFFD400.toInt()
-    private const val ROUTE_OUTLINE_COLOR = 0xFF4E4300.toInt()
-    private const val RIDER_COLOR = 0xFF1565C0.toInt()
 }

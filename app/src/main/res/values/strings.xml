@@ -24,6 +24,7 @@
     <string name="unit_bpm">bpm</string>
     <string name="unit_rpm">tr/min</string>
     <string name="dashboard_zoom_whole_route">Parcours</string>
+    <string name="dashboard_climb_title">Côte %1$d/%2$d — %3$s à %4$s</string>
     <string name="settings_guidance_map">Minicarte plutôt que profil (tableau de bord)</string>
 
     <string name="field_no_route">Pas d\'itinéraire</string>

@@ -24,6 +24,7 @@
     <string name="unit_bpm">bpm</string>
     <string name="unit_rpm">rpm</string>
     <string name="dashboard_zoom_whole_route">Route</string>
+    <string name="dashboard_climb_title">Climb %1$d/%2$d — %3$s at %4$s</string>
     <string name="settings_guidance_map">Minimap instead of profile (dashboard)</string>
 
     <string name="field_no_route">No route</string>

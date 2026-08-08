@@ -21,7 +21,7 @@ data class GuidageSettings(
     /** Ce que le tableau de bord montre en haut : carte ou profil. */
     val guidanceZone: GuidanceZoneType = GuidanceZoneType.MAP,
     /** Portée de la minicarte, changée par appui sur le champ. */
-    val mapRange: MapRange = MapRange.AHEAD_2KM,
+    val mapRange: MapRange = MapRange.AHEAD_1KM,
     /** Portée du profil en portrait, changée par appui sur le champ. */
     val graphZoom: GraphZoom = GraphZoom.AHEAD_20KM,
 )

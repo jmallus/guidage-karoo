@@ -15,6 +15,7 @@ import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.ui.BitmapField
 import io.github.jmallus.guidage.ui.ClimbFieldModel
 import io.github.jmallus.guidage.ui.ClimbRenderer
+import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.PreviewData
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.Emitter
@@ -77,7 +78,7 @@ class ClimbDataType(
                 .distinctUntilChanged()
                 .map { model ->
                     val (width, height) = FieldSize.of(config)
-                    ClimbRenderer.render(width, height, model, config.alignment)
+                    ClimbRenderer.render(width, height, model, config.alignment, FieldPalette.of(context))
                 }
                 .collect { bitmap ->
                     val composed = glance.compose(context, DpSize.Unspecified) { BitmapField(bitmap) }

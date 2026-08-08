@@ -6,12 +6,13 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
 import kotlin.math.max
 import kotlin.math.min
 
-/** Un point d'intérêt à marquer sur le graphe. */
+/** Un point d'intérêt à marquer sur le graphe de parcours. */
 data class GraphPoi(val distance: Double, val label: String)
 
 /** Graphe de parcours en portrait : la distance monte, l'altitude se lit horizontalement. */
@@ -21,94 +22,216 @@ data class RouteGraphModel(
     val position: Double,
     val climbs: List<RouteClimb> = emptyList(),
     val pois: List<GraphPoi> = emptyList(),
-    /** Étiquette du zoom courant, ex. « Parcours » ou « 20 km ». */
     val zoomLabel: String? = null,
     val emptyMessage: String? = null,
     val colorByGrade: Boolean = true,
 )
 
-/** Une case de chiffres du tableau de bord. */
+/** Graphe de la montée en cours (ou à venir), en bandeau horizontal. */
+data class ClimbGraphModel(
+    val points: List<ProfilePoint> = emptyList(),
+    /** Position courante (m depuis le départ de l'itinéraire). */
+    val position: Double = 0.0,
+    /** Titre du bandeau, ex. « Côte 2/5 — 1,8 km à 6,5 % ». */
+    val title: String? = null,
+    /** Message affiché quand il n'y a pas de montée à montrer. */
+    val emptyMessage: String? = null,
+    val colorByGrade: Boolean = true,
+)
+
+/** Une case de chiffres. */
 data class Tile(val label: String, val value: String, val unit: String? = null)
 
-/** Ce qu'on affiche dans la zone de guidage, en haut de l'écran. */
+/** Ce qu'on affiche dans la colonne de guidage, à droite des mesures. */
 sealed interface GuidanceZone {
-    /** Minicarte orientée cap en haut. */
     data class Map(val model: MapModel) : GuidanceZone
 
-    /** Profil altimétrique en portrait, la distance montant vers le haut. */
     data class Profile(val model: RouteGraphModel) : GuidanceZone
 }
 
 /**
- * Le tableau de bord complet : la zone de guidage occupe le haut sur la hauteur de deux
- * champs, les valeurs chiffrées se répartissent dessous, deux par ligne.
+ * Le champ plein écran.
+ *
+ * Colonne gauche : les quatre mesures de l'effort empilées. Colonne droite, sur la même
+ * hauteur : le guidage. Sous les deux : distance restante et heure d'arrivée. Tout en bas,
+ * sur toute la largeur : le graphe de la montée.
  */
 data class DashboardModel(
     val guidance: GuidanceZone,
+    /** Vitesse, puissance, fréquence cardiaque, cadence. */
     val tiles: List<Tile>,
+    /** Distance restante et heure d'arrivée. */
+    val footerTiles: List<Tile>,
+    val climbGraph: ClimbGraphModel,
+    val palette: Palette,
 )
 
-/**
- * Dessine le champ plein écran : le graphe de parcours en portrait occupe la colonne de
- * gauche sur toute la hauteur, les valeurs chiffrées s'empilent à droite.
- */
 object DashboardRenderer {
 
-    /**
-     * Part de la hauteur réservée au guidage : deux champs sur les quatre lignes
-     * d'une page Karoo, les six valeurs se partageant le reste.
-     */
-    private const val GUIDANCE_HEIGHT_FRACTION = 0.46f
+    /** Largeur de la colonne des mesures. */
+    private const val TILE_COLUMN_FRACTION = 0.44f
 
-    /** Nombre de cases par ligne dans la grille de chiffres. */
-    private const val TILE_COLUMNS = 2
+    /** Hauteur occupée par les mesures et le guidage. */
+    private const val MAIN_HEIGHT_FRACTION = 0.60f
+
+    /** Hauteur de la ligne « restant / arrivée ». */
+    private const val FOOTER_HEIGHT_FRACTION = 0.17f
 
     fun render(width: Int, height: Int, model: DashboardModel): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        val padding = (min(width, height) * 0.02f).coerceIn(2f, 8f)
-        val guidanceBottom = height * GUIDANCE_HEIGHT_FRACTION
-        val guidanceArea = RectF(padding, padding, width - padding, guidanceBottom - padding / 2)
+        val padding = (min(width, height) * 0.015f).coerceIn(2f, 6f)
+        val columnSplit = width * TILE_COLUMN_FRACTION
+        val mainBottom = height * MAIN_HEIGHT_FRACTION
+        val footerBottom = mainBottom + height * FOOTER_HEIGHT_FRACTION
 
+        // Colonne gauche : les quatre mesures.
+        val rowHeight = (mainBottom - padding) / model.tiles.size.coerceAtLeast(1)
+        model.tiles.forEachIndexed { index, tile ->
+            val top = padding + index * rowHeight
+            drawTile(
+                canvas,
+                RectF(padding, top, columnSplit, top + rowHeight),
+                tile,
+                model.palette,
+            )
+        }
+
+        // Colonne droite : le guidage, sur toute la hauteur des mesures.
+        val guidanceArea = RectF(columnSplit, padding, width - padding, mainBottom)
         when (val guidance = model.guidance) {
-            is GuidanceZone.Map -> MapRenderer.draw(canvas, guidanceArea, guidance.model)
-            is GuidanceZone.Profile -> drawGraph(canvas, guidanceArea, guidance.model)
+            is GuidanceZone.Map -> MapRenderer.draw(canvas, guidanceArea, guidance.model, model.palette)
+            is GuidanceZone.Profile -> drawRouteGraph(canvas, guidanceArea, guidance.model, model.palette)
         }
 
-        val separator = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TRACK
-            strokeWidth = 2f
+        // Ligne du bas : restant et arrivée.
+        val footerWidth = (width - 2 * padding) / model.footerTiles.size.coerceAtLeast(1)
+        model.footerTiles.forEachIndexed { index, tile ->
+            val left = padding + index * footerWidth
+            drawTile(
+                canvas,
+                RectF(left, mainBottom, left + footerWidth, footerBottom),
+                tile,
+                model.palette,
+            )
         }
-        canvas.drawLine(padding, guidanceBottom, width - padding, guidanceBottom, separator)
 
-        drawTiles(
+        drawClimbGraph(
             canvas,
-            RectF(padding, guidanceBottom, width - padding, height - padding),
-            model.tiles,
-            separator,
+            RectF(padding, footerBottom, width - padding, height - padding),
+            model.climbGraph,
+            model.palette,
         )
         return bitmap
     }
 
-    // --- Colonne de gauche : le graphe -------------------------------------------------
+    // --- Cases de chiffres ---------------------------------------------------------------
 
-    private fun drawGraph(canvas: Canvas, area: RectF, model: RouteGraphModel) {
-        val labelSize = (area.height() * 0.025f).coerceIn(9f, 16f)
+    private fun drawTile(canvas: Canvas, bounds: RectF, tile: Tile, palette: Palette) {
+        val labelSize = (bounds.height() * 0.22f).coerceIn(10f, 20f)
+        canvas.drawText(
+            tile.label,
+            bounds.left + 4f,
+            bounds.top + labelSize,
+            paint(labelSize, palette.textSecondary),
+        )
+
+        val unitSize = labelSize * 1.05f
+        val unitPaint = paint(unitSize, palette.textSecondary)
+        val unitWidth = tile.unit?.let { unitPaint.measureText(it) + 6f } ?: 0f
+
+        val valuePaint = paint(
+            size = fitTextSize(
+                text = tile.value,
+                maxWidth = bounds.width() - 10f - unitWidth,
+                preferredSize = (bounds.height() - labelSize) * 0.85f,
+            ),
+            color = palette.textPrimary,
+        )
+        val baseline = bounds.bottom - bounds.height() * 0.1f
+        canvas.drawText(tile.value, bounds.left + 4f, baseline, valuePaint)
+
+        tile.unit?.let {
+            canvas.drawText(it, bounds.left + 4f + valuePaint.measureText(tile.value) + 6f, baseline, unitPaint)
+        }
+    }
+
+    // --- Bandeau du bas : la montée ------------------------------------------------------
+
+    private fun drawClimbGraph(canvas: Canvas, area: RectF, model: ClimbGraphModel, palette: Palette) {
+        val titleSize = (area.height() * 0.24f).coerceIn(10f, 20f)
+        if (model.points.size < 2 || area.width() <= 0 || area.height() <= 0) {
+            drawCentered(canvas, area, model.emptyMessage ?: "—", titleSize, palette)
+            return
+        }
+
+        val top = area.top + titleSize * 1.2f
+        val bottom = area.bottom
+        val start = model.points.first().distance
+        val end = model.points.last().distance
+        val distanceSpan = (end - start).takeIf { it > 0 } ?: return
+        val minElevation = model.points.minOf { it.elevation }
+        val elevationSpan = (model.points.maxOf { it.elevation } - minElevation).coerceAtLeast(10.0)
+
+        fun x(distance: Double) = area.left + ((distance - start) / distanceSpan * area.width()).toFloat()
+        fun y(elevation: Double) = bottom - ((elevation - minElevation) / elevationSpan * (bottom - top)).toFloat()
+
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        for (index in 1 until model.points.size) {
+            val previous = model.points[index - 1]
+            val current = model.points[index]
+            val length = current.distance - previous.distance
+            if (length <= 0) continue
+            val grade = (current.elevation - previous.elevation) / length * 100.0
+            fill.color = if (model.colorByGrade) FieldPalette.gradeColor(grade) else FieldPalette.NEUTRAL
+            canvas.drawPath(
+                Path().apply {
+                    moveTo(x(previous.distance), y(previous.elevation))
+                    lineTo(x(current.distance), y(current.elevation))
+                    lineTo(x(current.distance), bottom)
+                    lineTo(x(previous.distance), bottom)
+                    close()
+                },
+                fill,
+            )
+        }
+
+        // Repère de progression dans la montée.
+        if (model.position in start..end) {
+            canvas.drawLine(
+                x(model.position),
+                top,
+                x(model.position),
+                bottom,
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = palette.position
+                    strokeWidth = 3f
+                },
+            )
+        }
+
+        model.title?.let {
+            canvas.drawText(it, area.left, area.top + titleSize, paint(titleSize, palette.textSecondary))
+        }
+    }
+
+    // --- Colonne de guidage en mode profil ------------------------------------------------
+
+    private fun drawRouteGraph(canvas: Canvas, area: RectF, model: RouteGraphModel, palette: Palette) {
+        val labelSize = (area.height() * 0.05f).coerceIn(9f, 16f)
         val window = model.window
         if (window.isEmpty || area.width() <= 0 || area.height() <= 0) {
-            drawCentered(canvas, area, model.emptyMessage ?: "—", labelSize * 1.3f)
+            drawCentered(canvas, area, model.emptyMessage ?: "—", labelSize * 1.3f, palette)
             return
         }
 
         val top = area.top + labelSize * 1.4f
-        val bottom = area.bottom - labelSize * 1.4f
+        val bottom = area.bottom - labelSize * 0.4f
         val distanceSpan = window.distanceSpan.takeIf { it > 0 } ?: return
         val elevationSpan = window.elevationSpan.takeIf { it > 0 } ?: return
-
-        // La distance monte : le bas de la colonne est le début de la fenêtre.
         val axis = VerticalAxis(top, bottom, window.start, distanceSpan)
-        fun y(distance: Double) = axis.y(distance)
+
         fun x(elevation: Double) =
             area.left + ((elevation - window.minElevation) / elevationSpan * area.width()).toFloat()
 
@@ -123,39 +246,41 @@ object DashboardRenderer {
             fill.color = if (model.colorByGrade) FieldPalette.gradeColor(grade) else FieldPalette.NEUTRAL
             canvas.drawPath(
                 Path().apply {
-                    moveTo(area.left, y(previous.distance))
-                    lineTo(x(previous.elevation), y(previous.distance))
-                    lineTo(x(current.elevation), y(current.distance))
-                    lineTo(area.left, y(current.distance))
+                    moveTo(area.left, axis.y(previous.distance))
+                    lineTo(x(previous.elevation), axis.y(previous.distance))
+                    lineTo(x(current.elevation), axis.y(current.distance))
+                    lineTo(area.left, axis.y(current.distance))
                     close()
                 },
                 fill,
             )
         }
 
-        val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 2f
-            color = FieldPalette.OUTLINE
-        }
-        val line = Path()
-        points.forEachIndexed { index, point ->
-            val px = x(point.elevation)
-            val py = y(point.distance)
-            if (index == 0) line.moveTo(px, py) else line.lineTo(px, py)
-        }
-        canvas.drawPath(line, outline)
+        model.pois
+            .filter { it.distance in window.start..window.end }
+            .forEach { poi ->
+                val poiY = axis.y(poi.distance)
+                canvas.drawCircle(area.right - 5f, poiY, 4f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = palette.position
+                })
+            }
 
-        drawClimbBands(canvas, area, model, window, axis)
-        drawPois(canvas, area, model, window, labelSize, axis)
-        drawPosition(canvas, area, model, window, axis)
-
-        val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_SECONDARY
-            textSize = labelSize
-            typeface = Typeface.DEFAULT_BOLD
+        if (model.position in window.start..window.end) {
+            canvas.drawLine(
+                area.left,
+                axis.y(model.position),
+                area.right,
+                axis.y(model.position),
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = palette.position
+                    strokeWidth = 3f
+                },
+            )
         }
-        model.zoomLabel?.let { canvas.drawText(it, area.left, area.top + labelSize, label) }
+
+        model.zoomLabel?.let {
+            canvas.drawText(it, area.left + 4f, area.top + labelSize, paint(labelSize, palette.textSecondary))
+        }
     }
 
     /** Conversion distance → ordonnée, le début de la fenêtre étant en bas. */
@@ -168,165 +293,26 @@ object DashboardRenderer {
         fun y(distance: Double): Float = bottom - ((distance - start) / span * (bottom - top)).toFloat()
     }
 
-    private fun drawClimbBands(
-        canvas: Canvas,
-        area: RectF,
-        model: RouteGraphModel,
-        window: ProfileWindow,
-        axis: VerticalAxis,
-    ) {
-        val band = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-        model.climbs
-            .filter { it.endDistance > window.start && it.startDistance < window.end }
-            .forEach { climb ->
-                val topY = axis.y(min(climb.endDistance, window.end))
-                val bottomY = axis.y(max(climb.startDistance, window.start))
-                if (bottomY - topY < 2f) return@forEach
-                band.color = FieldPalette.translucent(FieldPalette.gradeColor(climb.grade), 45)
-                canvas.drawRect(area.left, topY, area.right, bottomY, band)
-            }
+    // --- Utilitaires ----------------------------------------------------------------------
+
+    private fun paint(size: Float, color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = color
+        textSize = size
+        typeface = Typeface.DEFAULT_BOLD
     }
 
-    private fun drawPois(
-        canvas: Canvas,
-        area: RectF,
-        model: RouteGraphModel,
-        window: ProfileWindow,
-        labelSize: Float,
-        axis: VerticalAxis,
-    ) {
-        val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.POSITION
-            style = Paint.Style.FILL
-        }
-        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_PRIMARY
-            textSize = labelSize
-            textAlign = Paint.Align.RIGHT
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        var lastLabelY = Float.MAX_VALUE
-        model.pois
-            .filter { it.distance in window.start..window.end }
-            .sortedBy { it.distance }
-            .forEach { poi ->
-                val poiY = axis.y(poi.distance)
-                canvas.drawCircle(area.right - 4f, poiY, 4f, dot)
-                // On saute les libellés qui se chevaucheraient.
-                if (lastLabelY - poiY > labelSize * 1.2f || lastLabelY == Float.MAX_VALUE) {
-                    canvas.drawText(poi.label, area.right - 10f, poiY - 3f, text)
-                    lastLabelY = poiY
-                }
-            }
-    }
-
-    private fun drawPosition(
-        canvas: Canvas,
-        area: RectF,
-        model: RouteGraphModel,
-        window: ProfileWindow,
-        axis: VerticalAxis,
-    ) {
-        if (model.position < window.start || model.position > window.end) return
-        val positionY = axis.y(model.position)
-        canvas.drawLine(
-            area.left,
-            positionY,
-            area.right,
-            positionY,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = FieldPalette.POSITION
-                strokeWidth = 3f
-            },
+    private fun drawCentered(canvas: Canvas, area: RectF, message: String, size: Float, palette: Palette) {
+        val paint = paint(size, palette.textSecondary).apply { textAlign = Paint.Align.CENTER }
+        canvas.drawText(
+            message,
+            area.centerX(),
+            area.centerY() - (paint.descent() + paint.ascent()) / 2f,
+            paint,
         )
-        canvas.drawPath(
-            Path().apply {
-                moveTo(area.left, positionY)
-                lineTo(area.left + 7f, positionY - 5f)
-                lineTo(area.left + 7f, positionY + 5f)
-                close()
-            },
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = FieldPalette.POSITION
-                style = Paint.Style.FILL
-            },
-        )
-    }
-
-    // --- Colonne de droite : les chiffres ----------------------------------------------
-
-    private fun drawTiles(canvas: Canvas, area: RectF, tiles: List<Tile>, separator: Paint) {
-        if (tiles.isEmpty()) return
-        val rows = (tiles.size + TILE_COLUMNS - 1) / TILE_COLUMNS
-        val rowHeight = area.height() / rows
-        val columnWidth = area.width() / TILE_COLUMNS
-
-        tiles.forEachIndexed { index, tile ->
-            val row = index / TILE_COLUMNS
-            val column = index % TILE_COLUMNS
-            val left = area.left + column * columnWidth
-            val top = area.top + row * rowHeight
-            drawTile(canvas, RectF(left, top, left + columnWidth, top + rowHeight), tile)
-
-            if (column > 0) canvas.drawLine(left, top, left, top + rowHeight, separator)
-            if (row > 0) canvas.drawLine(area.left, top, area.right, top, separator)
-        }
-    }
-
-    private fun drawTile(canvas: Canvas, bounds: RectF, tile: Tile) {
-        val labelSize = (bounds.height() * 0.2f).coerceIn(9f, 18f)
-        val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_SECONDARY
-            textSize = labelSize
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        canvas.drawText(tile.label, bounds.left + 6f, bounds.top + labelSize * 1.1f, label)
-
-        val unitSize = labelSize * 1.1f
-        val unitPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_SECONDARY
-            textSize = unitSize
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val unitWidth = tile.unit?.let { unitPaint.measureText(it) + 6f } ?: 0f
-
-        val valuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_PRIMARY
-            typeface = Typeface.DEFAULT_BOLD
-            textSize = fitTextSize(
-                text = tile.value,
-                maxWidth = bounds.width() - 12f - unitWidth,
-                preferredSize = bounds.height() * 0.55f,
-            )
-        }
-        val baseline = bounds.bottom - (bounds.height() - labelSize) * 0.16f
-        canvas.drawText(tile.value, bounds.left + 6f, baseline, valuePaint)
-
-        tile.unit?.let {
-            canvas.drawText(
-                it,
-                bounds.left + 6f + valuePaint.measureText(tile.value) + 6f,
-                baseline,
-                unitPaint,
-            )
-        }
-    }
-
-    // --- Utilitaires --------------------------------------------------------------------
-
-    private fun drawCentered(canvas: Canvas, area: RectF, message: String, size: Float) {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_SECONDARY
-            textSize = size
-            textAlign = Paint.Align.CENTER
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val centerY = area.centerY() - (paint.descent() + paint.ascent()) / 2f
-        canvas.drawText(message, area.centerX(), centerY, paint)
     }
 
     private fun fitTextSize(text: String, maxWidth: Float, preferredSize: Float): Float {
-        val size = preferredSize.coerceIn(12f, 120f)
+        val size = preferredSize.coerceIn(12f, 140f)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize = size
             typeface = Typeface.DEFAULT_BOLD

@@ -27,8 +27,10 @@ import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RideDataProvider
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.settings.SettingsRepository
+import io.github.jmallus.guidage.ui.ClimbGraphModel
 import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
+import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.GraphPoi
 import io.github.jmallus.guidage.ui.GuidanceZone
 import io.github.jmallus.guidage.ui.MapModel
@@ -116,12 +118,16 @@ class DashboardDataType(
             snapshot.state
         }
 
+        val units = snapshot.units
         return DashboardModel(
             guidance = when (settings.guidanceZone) {
                 GuidanceZoneType.MAP -> GuidanceZone.Map(mapModel(context, snapshot, state, settings, preview))
                 GuidanceZoneType.PROFILE -> GuidanceZone.Profile(profileModel(context, state, settings))
             },
-            tiles = tiles(context, snapshot, rideData),
+            tiles = effortTiles(context, units, rideData),
+            footerTiles = footerTiles(context, units, rideData),
+            climbGraph = climbGraph(context, state, units, settings),
+            palette = FieldPalette.of(context),
         )
     }
 
@@ -182,42 +188,76 @@ class DashboardDataType(
         return "${(lookahead / 1_000).toInt()} km"
     }
 
+    /** Colonne de gauche : les quatre mesures de l'effort, dans l'ordre demandé. */
+    private fun effortTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
+        Tile(
+            label = context.getString(R.string.tile_speed),
+            value = rideData.speed?.let { Format.speed(it, units) } ?: PLACEHOLDER,
+            unit = Format.speedUnit(units),
+        ),
+        Tile(
+            label = context.getString(R.string.tile_power),
+            value = rideData.power?.toInt()?.toString() ?: PLACEHOLDER,
+            unit = context.getString(R.string.unit_watt),
+        ),
+        Tile(
+            label = context.getString(R.string.tile_heart_rate),
+            value = rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
+            unit = context.getString(R.string.unit_bpm),
+        ),
+        Tile(
+            label = context.getString(R.string.tile_cadence),
+            value = rideData.cadence?.toInt()?.toString() ?: PLACEHOLDER,
+            unit = context.getString(R.string.unit_rpm),
+        ),
+    )
+
+    /** Ligne du bas : ce qu'il reste à parcourir. */
+    private fun footerTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
+        Tile(
+            label = context.getString(R.string.tile_distance_remaining),
+            value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
+            unit = remainingUnit(units),
+        ),
+        Tile(
+            label = context.getString(R.string.tile_arrival),
+            value = rideData.arrivalTime?.let { Format.clock(it) } ?: PLACEHOLDER,
+        ),
+    )
+
     /**
-     * Les six valeurs, dans l'ordre de lecture : les quatre mesures de l'effort d'abord,
-     * puis ce qui reste à parcourir.
+     * Bandeau du bas : le profil de la côte en cours, ou de la prochaine si elle est devant.
      */
-    private fun tiles(context: Context, snapshot: GuidanceSnapshot, rideData: RideData): List<Tile> {
-        val units = snapshot.units
-        return listOf(
-            Tile(
-                label = context.getString(R.string.tile_speed),
-                value = rideData.speed?.let { Format.speed(it, units) } ?: PLACEHOLDER,
-                unit = Format.speedUnit(units),
+    private fun climbGraph(
+        context: Context,
+        state: GuidanceState,
+        units: Units,
+        settings: GuidageSettings,
+    ): ClimbGraphModel {
+        val route = state.route
+        val along = state.distanceAlongRoute
+        val profile = route?.profile
+        val climb = if (route != null && along != null) Guidance.climbStatus(route, along) else null
+        if (route == null || along == null || profile == null || climb == null) {
+            return ClimbGraphModel(
+                emptyMessage = context.getString(
+                    if (route == null) R.string.field_no_route else R.string.field_no_climb_ahead,
+                ),
+                colorByGrade = settings.colorByGrade,
+            )
+        }
+
+        return ClimbGraphModel(
+            points = profile.slice(climb.climb.startDistance, climb.climb.endDistance),
+            position = along,
+            title = context.getString(
+                R.string.dashboard_climb_title,
+                climb.number,
+                climb.totalClimbs,
+                Format.distance(climb.climb.length, units),
+                Format.grade(climb.climb.grade),
             ),
-            Tile(
-                label = context.getString(R.string.tile_power),
-                value = rideData.power?.toInt()?.toString() ?: PLACEHOLDER,
-                unit = context.getString(R.string.unit_watt),
-            ),
-            Tile(
-                label = context.getString(R.string.tile_heart_rate),
-                value = rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
-                unit = context.getString(R.string.unit_bpm),
-            ),
-            Tile(
-                label = context.getString(R.string.tile_cadence),
-                value = rideData.cadence?.toInt()?.toString() ?: PLACEHOLDER,
-                unit = context.getString(R.string.unit_rpm),
-            ),
-            Tile(
-                label = context.getString(R.string.tile_distance_remaining),
-                value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-                unit = remainingUnit(units),
-            ),
-            Tile(
-                label = context.getString(R.string.tile_arrival),
-                value = rideData.arrivalTime?.let { Format.clock(it) } ?: PLACEHOLDER,
-            ),
+            colorByGrade = settings.colorByGrade,
         )
     }
 

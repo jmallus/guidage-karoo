@@ -1,20 +1,57 @@
 package io.github.jmallus.guidage.ui
 
+import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Color
 
 /**
- * Palette commune aux champs de données dessinés (profil et côte).
+ * Couleurs des champs dessinés.
  *
- * Les champs Karoo sont affichés sur fond clair : le texte est sombre et les aplats
- * de pente reprennent le code couleur habituel des profils cyclistes.
+ * Le Karoo bascule entre thème clair et sombre ; un texte presque noir devient invisible
+ * sur fond noir. Les teintes de texte et de trait sont donc choisies d'après le mode
+ * courant, seules les couleurs de pente restant identiques dans les deux cas.
  */
+data class Palette(
+    val textPrimary: Int,
+    val textSecondary: Int,
+    val outline: Int,
+    val track: Int,
+    val position: Int,
+    val routeLine: Int,
+    val routeOutline: Int,
+)
+
 object FieldPalette {
 
-    const val TEXT_PRIMARY = 0xFF11181C.toInt()
-    const val TEXT_SECONDARY = 0xFF5F6A6F.toInt()
-    const val OUTLINE = 0xFF37474F.toInt()
-    const val TRACK = 0xFFE0E4E6.toInt()
-    const val POSITION = 0xFF1565C0.toInt()
+    private val LIGHT = Palette(
+        textPrimary = 0xFF11181C.toInt(),
+        textSecondary = 0xFF5F6A6F.toInt(),
+        outline = 0xFF37474F.toInt(),
+        track = 0xFFE0E4E6.toInt(),
+        position = 0xFF1565C0.toInt(),
+        routeLine = 0xFFF9A825.toInt(),
+        routeOutline = 0xFF4E4300.toInt(),
+    )
+
+    private val DARK = Palette(
+        textPrimary = 0xFFFFFFFF.toInt(),
+        textSecondary = 0xFFB0BEC5.toInt(),
+        outline = 0xFFECEFF1.toInt(),
+        track = 0xFF37474F.toInt(),
+        position = 0xFF64B5F6.toInt(),
+        routeLine = 0xFFFFD400.toInt(),
+        routeOutline = 0xFF33302A.toInt(),
+    )
+
+    /**
+     * Palette adaptée au thème courant du Karoo.
+     *
+     * En cas de doute, le sombre est retenu : c'est le thème utilisé en sortie.
+     */
+    fun of(context: Context): Palette {
+        val nightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return if (nightMode == Configuration.UI_MODE_NIGHT_NO) LIGHT else DARK
+    }
 
     private const val DOWNHILL = 0xFF4FA3D1.toInt()
     private const val FLAT = 0xFF9AA7AD.toInt()

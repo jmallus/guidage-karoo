@@ -33,7 +33,7 @@ data class ProfileFieldModel(
  */
 object ProfileRenderer {
 
-    fun render(width: Int, height: Int, model: ProfileFieldModel): Bitmap {
+    fun render(width: Int, height: Int, model: ProfileFieldModel, palette: Palette): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
@@ -45,14 +45,14 @@ object ProfileRenderer {
         val right = width - padding
 
         if (model.window.isEmpty || bottom <= top || right <= left) {
-            drawEmpty(canvas, width, height, model.emptyMessage)
+            drawEmpty(canvas, width, height, model.emptyMessage, palette)
             return bitmap
         }
 
-        drawProfile(canvas, model, left, top, right, bottom)
-        drawClimbMarkers(canvas, model, left, top, right, bottom, labelSize)
-        drawPositionMarker(canvas, left, top, bottom)
-        drawLabels(canvas, model, left, right, padding + labelSize, labelSize)
+        drawProfile(canvas, model, left, top, right, bottom, palette)
+        drawClimbMarkers(canvas, model, left, top, right, bottom, labelSize, palette)
+        drawPositionMarker(canvas, left, top, bottom, palette)
+        drawLabels(canvas, model, left, right, padding + labelSize, labelSize, palette)
         return bitmap
     }
 
@@ -63,6 +63,7 @@ object ProfileRenderer {
         top: Float,
         right: Float,
         bottom: Float,
+        palette: Palette,
     ) {
         val window = model.window
         val points = window.points
@@ -94,7 +95,7 @@ object ProfileRenderer {
         val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = 2f
-            color = FieldPalette.OUTLINE
+            color = palette.outline
         }
         val line = Path()
         points.forEachIndexed { index, point ->
@@ -112,6 +113,7 @@ object ProfileRenderer {
         right: Float,
         bottom: Float,
         labelSize: Float,
+        palette: Palette,
     ) {
         val window = model.window
         val distanceSpan = window.distanceSpan.takeIf { it > 0 } ?: return
@@ -119,7 +121,7 @@ object ProfileRenderer {
 
         val overlay = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
         val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_PRIMARY
+            color = palette.textPrimary
             textSize = labelSize * 0.9f
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
@@ -146,9 +148,9 @@ object ProfileRenderer {
             }
     }
 
-    private fun drawPositionMarker(canvas: Canvas, left: Float, top: Float, bottom: Float) {
+    private fun drawPositionMarker(canvas: Canvas, left: Float, top: Float, bottom: Float, palette: Palette) {
         val marker = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.POSITION
+            color = palette.position
             strokeWidth = 3f
             style = Paint.Style.STROKE
         }
@@ -163,7 +165,7 @@ object ProfileRenderer {
         canvas.drawPath(
             triangle,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = FieldPalette.POSITION
+                color = palette.position
                 style = Paint.Style.FILL
             },
         )
@@ -176,9 +178,10 @@ object ProfileRenderer {
         right: Float,
         baseline: Float,
         labelSize: Float,
+        palette: Palette,
     ) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_SECONDARY
+            color = palette.textSecondary
             textSize = labelSize
             typeface = Typeface.DEFAULT_BOLD
         }
@@ -192,9 +195,9 @@ object ProfileRenderer {
         }
     }
 
-    private fun drawEmpty(canvas: Canvas, width: Int, height: Int, message: String?) {
+    private fun drawEmpty(canvas: Canvas, width: Int, height: Int, message: String?, palette: Palette) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = FieldPalette.TEXT_SECONDARY
+            color = palette.textSecondary
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
             textSize = (height * 0.22f).coerceIn(10f, 26f)
