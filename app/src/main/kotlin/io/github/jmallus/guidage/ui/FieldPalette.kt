@@ -29,8 +29,8 @@ object FieldPalette {
         outline = 0xFF37474F.toInt(),
         track = 0xFFE0E4E6.toInt(),
         position = 0xFF1565C0.toInt(),
-        routeLine = 0xFFF9A825.toInt(),
-        routeOutline = 0xFF4E4300.toInt(),
+        routeLine = 0xFFE6E24C.toInt(),
+        routeOutline = 0xFF1A1A1A.toInt(),
     )
 
     private val DARK = Palette(
@@ -39,8 +39,8 @@ object FieldPalette {
         outline = 0xFFECEFF1.toInt(),
         track = 0xFF37474F.toInt(),
         position = 0xFF64B5F6.toInt(),
-        routeLine = 0xFFFFD400.toInt(),
-        routeOutline = 0xFF33302A.toInt(),
+        routeLine = 0xFFE6E24C.toInt(),
+        routeOutline = 0xFF1A1A1A.toInt(),
     )
 
     /**

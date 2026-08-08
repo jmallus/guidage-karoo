@@ -8,6 +8,7 @@ import android.graphics.Typeface
 import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.PlanePoint
+import kotlin.math.hypot
 
 /** Un point d'intérêt à poser sur la carte. */
 data class MapPoi(val position: GeoPoint, val label: String)
@@ -84,27 +85,85 @@ object MapRenderer {
         if (model.path.size < 2) return
         val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 7f
+            strokeWidth = 9f
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             color = palette.routeLine
         }
         val outline = Paint(line).apply {
-            strokeWidth = 11f
+            strokeWidth = 13f
             color = palette.routeOutline
         }
 
+        val screenPoints = model.path.map { projection.toScreen(it) }
         val path = Path()
-        model.path.forEachIndexed { index, point ->
-            val screen = projection.toScreen(point)
+        screenPoints.forEachIndexed { index, point ->
             if (index == 0) {
-                path.moveTo(screen.x.toFloat(), screen.y.toFloat())
+                path.moveTo(point.x.toFloat(), point.y.toFloat())
             } else {
-                path.lineTo(screen.x.toFloat(), screen.y.toFloat())
+                path.lineTo(point.x.toFloat(), point.y.toFloat())
             }
         }
         canvas.drawPath(path, outline)
         canvas.drawPath(path, line)
+        drawDirectionChevrons(canvas, screenPoints, palette)
+    }
+
+    /**
+     * Chevrons semés le long du tracé pour indiquer le sens de la marche, comme sur la
+     * carte native du Karoo.
+     */
+    private fun drawDirectionChevrons(canvas: Canvas, points: List<PlanePoint>, palette: Palette) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 3f
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            color = palette.routeOutline
+        }
+
+        var carry = 0f
+        for (index in 1 until points.size) {
+            val from = points[index - 1]
+            val to = points[index]
+            val dx = (to.x - from.x).toFloat()
+            val dy = (to.y - from.y).toFloat()
+            val length = hypot(dx, dy)
+            if (length < 0.01f) continue
+
+            val ux = dx / length
+            val uy = dy / length
+            var position = CHEVRON_SPACING - carry
+            while (position <= length) {
+                drawChevron(
+                    canvas = canvas,
+                    x = from.x.toFloat() + ux * position,
+                    y = from.y.toFloat() + uy * position,
+                    ux = ux,
+                    uy = uy,
+                    paint = paint,
+                )
+                position += CHEVRON_SPACING
+            }
+            carry = (carry + length) % CHEVRON_SPACING
+        }
+    }
+
+    private fun drawChevron(canvas: Canvas, x: Float, y: Float, ux: Float, uy: Float, paint: Paint) {
+        val size = CHEVRON_SIZE
+        // Perpendiculaire à la direction de marche.
+        val px = -uy
+        val py = ux
+        val tipX = x + ux * size
+        val tipY = y + uy * size
+        canvas.drawPath(
+            Path().apply {
+                moveTo(tipX - ux * size * 1.6f + px * size * 0.9f, tipY - uy * size * 1.6f + py * size * 0.9f)
+                lineTo(tipX, tipY)
+                lineTo(tipX - ux * size * 1.6f - px * size * 0.9f, tipY - uy * size * 1.6f - py * size * 0.9f)
+            },
+            paint,
+        )
     }
 
     private fun drawPois(
@@ -169,6 +228,10 @@ object MapRenderer {
 
     private const val ARROW_COLOR = 0xFF2979FF.toInt()
     private const val ARROW_BORDER_COLOR = 0xFFFFFFFF.toInt()
+
+    /** Espacement des chevrons de direction, en pixels. */
+    private const val CHEVRON_SPACING = 42f
+    private const val CHEVRON_SIZE = 4.5f
 
     private fun drawScaleBar(
         canvas: Canvas,
