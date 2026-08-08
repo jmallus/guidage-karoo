@@ -54,7 +54,7 @@ class FormatTest {
     @Test
     fun `clock formats a unix instant as hours and minutes`() {
         // 2026-08-08T16:48:30Z
-        val epochMs = 1_786_265_310_000.0
+        val epochMs = 1_786_207_710_000.0
 
         assertEquals("16:48", Format.clock(epochMs, ZoneId.of("UTC")))
         assertEquals("18:48", Format.clock(epochMs, ZoneId.of("Europe/Paris")))
