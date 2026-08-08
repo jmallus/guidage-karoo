@@ -77,14 +77,23 @@ déjà déclaré dans `settings.gradle.kts` ; il ne manque que vos identifiants.
 > aux paquets d'une autre organisation, et `karoo-ext` appartient à `hammerheadnav`.
 > Il faut bien un jeton *classic*.
 
-**Où le déclarer.** Au choix, dans `local.properties` à la racine du projet (non versionné,
-déjà listé dans `.gitignore`) ou — de préférence — dans `~/.gradle/gradle.properties`, qui
-vit hors du dépôt et sert à tous vos projets :
+**Où le déclarer.** Deux emplacements possibles, avec les mêmes deux lignes :
 
 ```properties
 gpr.user=votre-login-github
 gpr.key=ghp_xxxxxxxxxxxxxxxxxxxx
 ```
+
+- `local.properties`, à la racine du projet — non versionné, déjà listé dans `.gitignore` ;
+- `~/.gradle/gradle.properties` — **le plus sûr** : le fichier vit hors du dépôt, il ne *peut*
+  structurellement pas partir dans un commit, et il sert à tous vos projets.
+
+> ⛔ **Jamais dans le `gradle.properties` du projet.** Ce fichier-là est versionné : le jeton
+> se retrouverait publié au premier `git push`. Le nom ressemble à celui du fichier
+> utilisateur, c'est le piège classique — s'il est à la racine du dépôt, ce n'est pas le bon.
+>
+> Si ça arrive : révoquez immédiatement le jeton sur GitHub (le supprimer du dépôt ne suffit
+> pas, il reste consultable dans l'historique), puis regénérez-en un.
 
 À défaut, les variables d'environnement `GITHUB_ACTOR` / `GITHUB_TOKEN` sont utilisées :
 c'est ce mécanisme qu'emploie le workflow CI, via les secrets de dépôt `GPR_USER` / `GPR_KEY`
