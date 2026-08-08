@@ -47,7 +47,8 @@ object MapRenderer {
 
         val riderX = area.centerX()
         val riderY = area.top + area.height() * AHEAD_FRACTION
-        val metersToPixels = (area.height() * AHEAD_FRACTION) / model.rangeMeters.coerceAtLeast(1.0)
+        val metersToPixels =
+            ((area.height() * AHEAD_FRACTION) / model.rangeMeters.coerceAtLeast(1.0)).toFloat()
         val heading = model.heading ?: 0.0
 
         val projection = Projection(origin, heading, riderX, riderY, metersToPixels)
