@@ -4,6 +4,10 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Chaque construction CI porte un numéro de version supérieur au précédent : sans cela,
+// Android refuse d'installer une mise à jour par-dessus une version de même numéro.
+val buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "0").toIntOrNull() ?: 0
+
 android {
     namespace = "io.github.jmallus.guidage"
     compileSdk = 35
@@ -12,8 +16,8 @@ android {
         applicationId = "io.github.jmallus.guidage"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 1 + buildNumber
+        versionName = "1.0.$buildNumber"
     }
 
     buildTypes {
