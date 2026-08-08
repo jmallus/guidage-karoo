@@ -26,27 +26,8 @@ data class RouteGraphModel(
     val colorByGrade: Boolean = true,
 )
 
-/**
- * Bandeau de la côte en cours, alimenté par les données de côte du Karoo :
- * le même découpage que le champ natif, pas un calcul parallèle.
- */
-data class ClimbGraphModel(
-    /** Avancement dans la côte, de 0 à 1. Null quand aucune côte n'est en cours. */
-    val progress: Float? = null,
-    /** Pente moyenne de la côte (%), pour la couleur. */
-    val grade: Double? = null,
-    /** Ex. « Côte 2/5 ». */
-    val title: String? = null,
-    /** Distance restante jusqu'au sommet, déjà formatée. */
-    val distanceToTop: String? = null,
-    /** Dénivelé restant jusqu'au sommet, déjà formaté. */
-    val elevationToTop: String? = null,
-    val emptyMessage: String? = null,
-    val colorByGrade: Boolean = true,
-)
-
-/** Une case de chiffres. */
-data class Tile(val label: String, val value: String, val unit: String? = null)
+/** Une case de chiffres : la valeur et son unité, sans libellé. */
+data class Tile(val value: String, val unit: String? = null)
 
 /** Ce qu'on affiche dans la colonne de guidage, à droite des mesures. */
 sealed interface GuidanceZone {
@@ -59,8 +40,7 @@ sealed interface GuidanceZone {
  * Le champ plein écran.
  *
  * Colonne gauche : les quatre mesures de l'effort empilées. Colonne droite, sur la même
- * hauteur : le guidage. Sous les deux : distance restante et heure d'arrivée. Tout en bas,
- * sur toute la largeur : le graphe de la montée.
+ * hauteur : le guidage. Sous les deux : distance restante et heure d'arrivée.
  */
 data class DashboardModel(
     val guidance: GuidanceZone,
@@ -68,7 +48,6 @@ data class DashboardModel(
     val tiles: List<Tile>,
     /** Distance restante et heure d'arrivée. */
     val footerTiles: List<Tile>,
-    val climbGraph: ClimbGraphModel,
     val palette: Palette,
 )
 
@@ -77,11 +56,8 @@ object DashboardRenderer {
     /** Largeur de la colonne des mesures. */
     private const val TILE_COLUMN_FRACTION = 0.5f
 
-    /** Hauteur occupée par les mesures et le guidage. */
-    private const val MAIN_HEIGHT_FRACTION = 0.60f
-
-    /** Hauteur de la ligne « restant / arrivée ». */
-    private const val FOOTER_HEIGHT_FRACTION = 0.17f
+    /** Hauteur occupée par les mesures et le guidage ; le reste va à la dernière ligne. */
+    private const val MAIN_HEIGHT_FRACTION = 0.74f
 
     fun render(width: Int, height: Int, model: DashboardModel): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
@@ -90,7 +66,6 @@ object DashboardRenderer {
         val padding = (min(width, height) * 0.015f).coerceIn(2f, 6f)
         val columnSplit = width * TILE_COLUMN_FRACTION
         val mainBottom = height * MAIN_HEIGHT_FRACTION
-        val footerBottom = mainBottom + height * FOOTER_HEIGHT_FRACTION
 
         // Colonne gauche : les quatre mesures.
         val rowHeight = (mainBottom - padding) / model.tiles.size.coerceAtLeast(1)
@@ -117,119 +92,41 @@ object DashboardRenderer {
             val left = padding + index * footerWidth
             drawTile(
                 canvas,
-                RectF(left, mainBottom, left + footerWidth, footerBottom),
+                RectF(left, mainBottom, left + footerWidth, height - padding),
                 tile,
                 model.palette,
             )
         }
-
-        drawClimbGraph(
-            canvas,
-            RectF(padding, footerBottom, width - padding, height - padding),
-            model.climbGraph,
-            model.palette,
-        )
         return bitmap
     }
 
     // --- Cases de chiffres ---------------------------------------------------------------
 
     /**
-     * Une case sans bordure : libellé et valeur sont centrés dans l'espace qui leur revient,
-     * seul repère visuel une fois les traits de séparation retirés.
+     * Une case sans bordure ni libellé : la valeur, suivie de son unité en plus petit,
+     * centrée dans l'espace qui lui revient.
      */
     private fun drawTile(canvas: Canvas, bounds: RectF, tile: Tile, palette: Palette) {
-        val labelSize = (bounds.height() * 0.2f).coerceIn(10f, 20f)
-        canvas.drawText(
-            tile.label,
-            bounds.centerX(),
-            bounds.top + labelSize,
-            paint(labelSize, palette.textSecondary).apply { textAlign = Paint.Align.CENTER },
-        )
-
-        val unitSize = labelSize * 1.05f
+        val unitSize = (bounds.height() * 0.24f).coerceIn(10f, 26f)
         val unitPaint = paint(unitSize, palette.textSecondary)
-        val unitWidth = tile.unit?.let { unitPaint.measureText(it) + 6f } ?: 0f
+        val unitWidth = tile.unit?.let { unitPaint.measureText(it) + 8f } ?: 0f
 
         val valuePaint = paint(
             size = fitTextSize(
                 text = tile.value,
                 maxWidth = bounds.width() - 12f - unitWidth,
-                preferredSize = (bounds.height() - labelSize) * 0.8f,
+                preferredSize = bounds.height() * 0.82f,
             ),
             color = palette.textPrimary,
         )
 
-        // Valeur et unité forment un bloc, centré d'un seul tenant.
         val valueWidth = valuePaint.measureText(tile.value)
         val blockLeft = bounds.centerX() - (valueWidth + unitWidth) / 2f
-        val available = bounds.bottom - (bounds.top + labelSize)
-        val baseline = bounds.top + labelSize + available / 2f -
-            (valuePaint.descent() + valuePaint.ascent()) / 2f
+        val baseline = bounds.centerY() - (valuePaint.descent() + valuePaint.ascent()) / 2f
 
         canvas.drawText(tile.value, blockLeft, baseline, valuePaint)
         tile.unit?.let {
-            canvas.drawText(it, blockLeft + valueWidth + 6f, baseline, unitPaint)
-        }
-    }
-
-    // --- Bandeau du bas : la montée ------------------------------------------------------
-
-    private fun drawClimbGraph(canvas: Canvas, area: RectF, model: ClimbGraphModel, palette: Palette) {
-        val labelSize = (area.height() * 0.26f).coerceIn(10f, 20f)
-        val progress = model.progress
-        if (progress == null || area.width() <= 0 || area.height() <= 0) {
-            drawCentered(canvas, area, model.emptyMessage ?: "—", labelSize, palette)
-            return
-        }
-
-        val top = area.top + labelSize * 1.3f
-        val bottom = area.bottom
-        val color = if (model.colorByGrade && model.grade != null) {
-            FieldPalette.gradeColor(model.grade)
-        } else {
-            FieldPalette.NEUTRAL
-        }
-
-        // La côte est figurée par une rampe montant vers le sommet, à droite.
-        val ramp = Path().apply {
-            moveTo(area.left, bottom)
-            lineTo(area.right, top)
-            lineTo(area.right, bottom)
-            close()
-        }
-        canvas.drawPath(
-            ramp,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = FieldPalette.translucent(color, 70)
-                style = Paint.Style.FILL
-            },
-        )
-
-        // Portion déjà gravie, en teinte pleine.
-        canvas.save()
-        canvas.clipRect(area.left, top, area.left + area.width() * progress.coerceIn(0f, 1f), bottom)
-        canvas.drawPath(
-            ramp,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = color
-                style = Paint.Style.FILL
-            },
-        )
-        canvas.restore()
-
-        model.title?.let {
-            canvas.drawText(it, area.left, area.top + labelSize, paint(labelSize, palette.textSecondary))
-        }
-
-        val remaining = listOfNotNull(model.distanceToTop, model.elevationToTop).joinToString("  ")
-        if (remaining.isNotEmpty()) {
-            canvas.drawText(
-                remaining,
-                area.right,
-                area.top + labelSize,
-                paint(labelSize, palette.textPrimary).apply { textAlign = Paint.Align.RIGHT },
-            )
+            canvas.drawText(it, blockLeft + valueWidth + 8f, baseline, unitPaint)
         }
     }
 

@@ -23,6 +23,7 @@ enum class GraphZoom(val lookaheadMeters: Double?) {
 
 /** Distance visible devant le coureur sur la minicarte. */
 enum class MapRange(val meters: Double) {
+    AHEAD_200M(200.0),
     AHEAD_500M(500.0),
     AHEAD_1KM(1_000.0),
     AHEAD_2KM(2_000.0),
@@ -33,7 +34,7 @@ enum class MapRange(val meters: Double) {
     fun next(): MapRange = entries[(ordinal + 1) % entries.size]
 
     companion object {
-        fun fromOrdinal(ordinal: Int): MapRange = entries.getOrElse(ordinal) { AHEAD_1KM }
+        fun fromOrdinal(ordinal: Int): MapRange = entries.getOrElse(ordinal) { AHEAD_200M }
     }
 }
 

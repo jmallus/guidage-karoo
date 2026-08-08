@@ -137,26 +137,38 @@ object MapRenderer {
     }
 
     /**
-     * Flèche de position dans l'esprit de celle du Karoo : un chevron plein, pointé vers
-     * l'avant, à base concave — sans contour, pour rester net sur fond sombre.
+     * Flèche de position reprenant celle de la navigation Karoo : un chevron élancé,
+     * franchement pointé vers l'avant, cerné de blanc pour rester lisible au-dessus du tracé.
      */
     private fun drawRider(canvas: Canvas, x: Float, y: Float, height: Float, palette: Palette) {
-        val size = (height * 0.055f).coerceIn(10f, 20f)
+        val size = (height * 0.085f).coerceIn(14f, 30f)
         val arrow = Path().apply {
             moveTo(x, y - size)
-            lineTo(x + size * 0.68f, y + size * 0.78f)
-            lineTo(x, y + size * 0.34f)
-            lineTo(x - size * 0.68f, y + size * 0.78f)
+            lineTo(x + size * 0.62f, y + size * 0.72f)
+            lineTo(x, y + size * 0.16f)
+            lineTo(x - size * 0.62f, y + size * 0.72f)
             close()
         }
         canvas.drawPath(
             arrow,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = palette.position
+                color = ARROW_COLOR
                 style = Paint.Style.FILL
             },
         )
+        canvas.drawPath(
+            arrow,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = ARROW_BORDER_COLOR
+                style = Paint.Style.STROKE
+                strokeWidth = 2.5f
+                strokeJoin = Paint.Join.ROUND
+            },
+        )
     }
+
+    private const val ARROW_COLOR = 0xFF2979FF.toInt()
+    private const val ARROW_BORDER_COLOR = 0xFFFFFFFF.toInt()
 
     private fun drawScaleBar(
         canvas: Canvas,

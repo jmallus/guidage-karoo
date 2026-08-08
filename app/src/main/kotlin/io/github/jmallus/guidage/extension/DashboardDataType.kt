@@ -28,7 +28,6 @@ import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RideDataProvider
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.settings.SettingsRepository
-import io.github.jmallus.guidage.ui.ClimbGraphModel
 import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
@@ -127,7 +126,6 @@ class DashboardDataType(
             },
             tiles = effortTiles(context, units, rideData),
             footerTiles = footerTiles(context, units, rideData),
-            climbGraph = climbGraph(context, rideData, units, settings),
             palette = FieldPalette.of(context),
         )
     }
@@ -189,25 +187,24 @@ class DashboardDataType(
         return "${(lookahead / 1_000).toInt()} km"
     }
 
-    /** Colonne de gauche : les quatre mesures de l'effort, dans l'ordre demandé. */
+    /**
+     * Colonne de gauche : les quatre mesures de l'effort, dans l'ordre demandé.
+     * Sans libellé — l'unité suffit à identifier la valeur, et les chiffres y gagnent.
+     */
     private fun effortTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
         Tile(
-            label = context.getString(R.string.tile_speed),
             value = rideData.speed?.let { Format.speed(it, units) } ?: PLACEHOLDER,
             unit = Format.speedUnit(units),
         ),
         Tile(
-            label = context.getString(R.string.tile_power),
             value = rideData.power?.toInt()?.toString() ?: PLACEHOLDER,
             unit = context.getString(R.string.unit_watt),
         ),
         Tile(
-            label = context.getString(R.string.tile_heart_rate),
             value = rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
             unit = context.getString(R.string.unit_bpm),
         ),
         Tile(
-            label = context.getString(R.string.tile_cadence),
             value = rideData.cadence?.toInt()?.toString() ?: PLACEHOLDER,
             unit = context.getString(R.string.unit_rpm),
         ),
@@ -216,48 +213,13 @@ class DashboardDataType(
     /** Ligne du bas : ce qu'il reste à parcourir. */
     private fun footerTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
         Tile(
-            label = context.getString(R.string.tile_distance_remaining),
             value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
             unit = remainingUnit(units),
         ),
         Tile(
-            label = context.getString(R.string.tile_arrival),
             value = rideData.arrivalTime?.let { Format.clock(it) } ?: PLACEHOLDER,
         ),
     )
-
-    /**
-     * Bandeau du bas : la côte telle que le Karoo la détecte, avec la progression,
-     * la pente moyenne et ce qu'il reste à grimper.
-     */
-    private fun climbGraph(
-        context: Context,
-        rideData: RideData,
-        units: Units,
-        settings: GuidageSettings,
-    ): ClimbGraphModel {
-        val climb = rideData.climb
-        if (!climb.active) {
-            return ClimbGraphModel(
-                emptyMessage = context.getString(R.string.field_no_climb_ahead),
-                colorByGrade = settings.colorByGrade,
-            )
-        }
-
-        val title = when {
-            climb.number != null && climb.totalClimbs != null ->
-                context.getString(R.string.field_climb_number, climb.number, climb.totalClimbs)
-            else -> context.getString(R.string.field_climb_in_progress)
-        }
-        return ClimbGraphModel(
-            progress = climb.progress,
-            grade = climb.grade,
-            title = title,
-            distanceToTop = climb.distanceToTop?.let { Format.distance(it, units) },
-            elevationToTop = climb.elevationToTop?.let { "+${Format.elevation(it, units)}" },
-            colorByGrade = settings.colorByGrade,
-        )
-    }
 
     /**
      * Distance restante sans son unité. Au-delà de 100, la décimale est abandonnée :

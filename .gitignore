@@ -9,4 +9,4 @@ captures/
 .cxx/
 *.apk
 *.keystore
-!debug.keystore
+!app/guidage.keystore

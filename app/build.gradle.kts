@@ -20,11 +20,21 @@ android {
         versionName = "1.0.$buildNumber"
     }
 
+    signingConfigs {
+        // Clé de signature stable, versionnée avec le projet : la clé de debug est
+        // régénérée à chaque exécution du CI, et Android refuse alors la mise à jour
+        // par-dessus une version signée différemment.
+        create("guidage") {
+            storeFile = file("guidage.keystore")
+            storePassword = "guidage"
+            keyAlias = "guidage"
+            keyPassword = "guidage"
+        }
+    }
+
     buildTypes {
         release {
-            // Signé avec la clé de debug pour pouvoir installer l'APK directement sur le Karoo.
-            // Remplacer par une vraie signature pour une diffusion publique.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("guidage")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
