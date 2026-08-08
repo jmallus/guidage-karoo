@@ -3,8 +3,7 @@ name: build
 on:
   push:
     branches: ["**"]
-    # Un tag vX.Y publie une Release avec l'APK attaché, téléchargeable par lien direct
-    # (c'est ce lien que l'app Hammerhead Companion sait envoyer vers le Karoo).
+    # Un tag vX.Y publie une Release versionnée avec l'APK attaché.
     tags: ["v*"]
   pull_request:
   # Permet de relancer la construction à la main depuis l'onglet Actions,
@@ -52,18 +51,38 @@ jobs:
         with:
           name: guidage-karoo-apk
           path: app/build/outputs/apk/release/*.apk
-      - name: Publier la Release sur un tag
-        if: steps.creds.outputs.available == 'true' && startsWith(github.ref, 'refs/tags/v')
+
+      # Un artefact d'Actions n'est téléchargeable que connecté, et sous forme d'archive :
+      # l'app Hammerhead Companion ne peut pas l'envoyer au Karoo. Une Release, si —
+      # elle expose un lien direct vers le .apk.
+      - name: Publier l'APK en Release
+        if: steps.creds.outputs.available == 'true' && github.event_name != 'pull_request'
         run: |
           cp app/build/outputs/apk/release/app-release.apk guidage-karoo.apk
-          gh release create "$GITHUB_REF_NAME" guidage-karoo.apk \
-            --title "Guidage $GITHUB_REF_NAME" \
-            --notes "Extension de guidage d'itinéraire pour Hammerhead Karoo.
+          cat > notes.md <<'NOTES'
+          Extension de guidage d'itinéraire pour Hammerhead Karoo — profil à venir,
+          prochaine côte, prochain point d'intérêt et annonces in-ride.
 
-          **Installation sur le Karoo 3**, depuis votre téléphone : ouvrez cette page dans le navigateur du téléphone, appuyez longuement sur le lien \`guidage-karoo.apk\` ci-dessous, puis partagez-le vers l'application Hammerhead Companion. L'écran d'installation apparaît alors sur le Karoo.
+          **Installation sur le Karoo 3**, depuis le téléphone : ouvrir cette page dans le
+          navigateur du téléphone, appuyer longuement sur le lien `guidage-karoo.apk`
+          ci-dessous, puis le partager vers l'application Hammerhead Companion.
+          L'écran d'installation s'affiche ensuite sur le Karoo.
 
-          Une fois installée, ajoutez les champs via Profils → une page → ajouter un champ de données → Guidage."
+          Une fois installée : Profils → une page → ajouter un champ de données → Guidage.
+          NOTES
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            gh release create "$GITHUB_REF_NAME" guidage-karoo.apk \
+              --title "Guidage $GITHUB_REF_NAME" --notes-file notes.md \
+              || gh release upload "$GITHUB_REF_NAME" guidage-karoo.apk --clobber
+          else
+            # Release « latest » recréée à chaque construction : le lien ne change jamais.
+            gh release delete latest --yes --cleanup-tag || true
+            gh release create latest guidage-karoo.apk \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "Guidage — dernière construction" --notes-file notes.md
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
+
       - if: steps.creds.outputs.available != 'true'
         run: echo "Secrets GPR_USER / GPR_KEY absents — construction de l'APK ignorée."
