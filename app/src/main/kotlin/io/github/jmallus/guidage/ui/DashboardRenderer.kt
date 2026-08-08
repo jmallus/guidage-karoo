@@ -128,13 +128,17 @@ object DashboardRenderer {
 
     // --- Cases de chiffres ---------------------------------------------------------------
 
+    /**
+     * Une case sans bordure : libellé et valeur sont centrés dans l'espace qui leur revient,
+     * seul repère visuel une fois les traits de séparation retirés.
+     */
     private fun drawTile(canvas: Canvas, bounds: RectF, tile: Tile, palette: Palette) {
-        val labelSize = (bounds.height() * 0.22f).coerceIn(10f, 20f)
+        val labelSize = (bounds.height() * 0.2f).coerceIn(10f, 20f)
         canvas.drawText(
             tile.label,
-            bounds.left + 4f,
+            bounds.centerX(),
             bounds.top + labelSize,
-            paint(labelSize, palette.textSecondary),
+            paint(labelSize, palette.textSecondary).apply { textAlign = Paint.Align.CENTER },
         )
 
         val unitSize = labelSize * 1.05f
@@ -144,16 +148,22 @@ object DashboardRenderer {
         val valuePaint = paint(
             size = fitTextSize(
                 text = tile.value,
-                maxWidth = bounds.width() - 10f - unitWidth,
-                preferredSize = (bounds.height() - labelSize) * 0.85f,
+                maxWidth = bounds.width() - 12f - unitWidth,
+                preferredSize = (bounds.height() - labelSize) * 0.8f,
             ),
             color = palette.textPrimary,
         )
-        val baseline = bounds.bottom - bounds.height() * 0.1f
-        canvas.drawText(tile.value, bounds.left + 4f, baseline, valuePaint)
 
+        // Valeur et unité forment un bloc, centré d'un seul tenant.
+        val valueWidth = valuePaint.measureText(tile.value)
+        val blockLeft = bounds.centerX() - (valueWidth + unitWidth) / 2f
+        val available = bounds.bottom - (bounds.top + labelSize)
+        val baseline = bounds.top + labelSize + available / 2f -
+            (valuePaint.descent() + valuePaint.ascent()) / 2f
+
+        canvas.drawText(tile.value, blockLeft, baseline, valuePaint)
         tile.unit?.let {
-            canvas.drawText(it, bounds.left + 4f + valuePaint.measureText(tile.value) + 6f, baseline, unitPaint)
+            canvas.drawText(it, blockLeft + valueWidth + 6f, baseline, unitPaint)
         }
     }
 
