@@ -31,3 +31,12 @@ inline fun <reified T : KarooEvent> KarooSystemService.consumerFlow(): Flow<T> =
 /** Valeur numérique d'un type de donnée, ou null quand la donnée n'est pas disponible. */
 fun KarooSystemService.streamValueFlow(dataTypeId: String): Flow<Double?> =
     streamDataFlow(dataTypeId).map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
+
+/**
+ * Tous les champs d'un type de donnée, pour les types qui en portent plusieurs
+ * (les données de côte, par exemple, arrivent groupées dans un seul point).
+ */
+fun KarooSystemService.streamFieldsFlow(dataTypeId: String): Flow<Map<String, Double>> =
+    streamDataFlow(dataTypeId).map {
+        (it as? StreamState.Streaming)?.dataPoint?.values ?: emptyMap()
+    }

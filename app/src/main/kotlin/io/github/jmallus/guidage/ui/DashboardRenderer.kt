@@ -6,7 +6,6 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
-import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
 import kotlin.math.max
@@ -27,14 +26,21 @@ data class RouteGraphModel(
     val colorByGrade: Boolean = true,
 )
 
-/** Graphe de la montée en cours (ou à venir), en bandeau horizontal. */
+/**
+ * Bandeau de la côte en cours, alimenté par les données de côte du Karoo :
+ * le même découpage que le champ natif, pas un calcul parallèle.
+ */
 data class ClimbGraphModel(
-    val points: List<ProfilePoint> = emptyList(),
-    /** Position courante (m depuis le départ de l'itinéraire). */
-    val position: Double = 0.0,
-    /** Titre du bandeau, ex. « Côte 2/5 — 1,8 km à 6,5 % ». */
+    /** Avancement dans la côte, de 0 à 1. Null quand aucune côte n'est en cours. */
+    val progress: Float? = null,
+    /** Pente moyenne de la côte (%), pour la couleur. */
+    val grade: Double? = null,
+    /** Ex. « Côte 2/5 ». */
     val title: String? = null,
-    /** Message affiché quand il n'y a pas de montée à montrer. */
+    /** Distance restante jusqu'au sommet, déjà formatée. */
+    val distanceToTop: String? = null,
+    /** Dénivelé restant jusqu'au sommet, déjà formaté. */
+    val elevationToTop: String? = null,
     val emptyMessage: String? = null,
     val colorByGrade: Boolean = true,
 )
@@ -69,7 +75,7 @@ data class DashboardModel(
 object DashboardRenderer {
 
     /** Largeur de la colonne des mesures. */
-    private const val TILE_COLUMN_FRACTION = 0.44f
+    private const val TILE_COLUMN_FRACTION = 0.5f
 
     /** Hauteur occupée par les mesures et le guidage. */
     private const val MAIN_HEIGHT_FRACTION = 0.60f
@@ -170,59 +176,60 @@ object DashboardRenderer {
     // --- Bandeau du bas : la montée ------------------------------------------------------
 
     private fun drawClimbGraph(canvas: Canvas, area: RectF, model: ClimbGraphModel, palette: Palette) {
-        val titleSize = (area.height() * 0.24f).coerceIn(10f, 20f)
-        if (model.points.size < 2 || area.width() <= 0 || area.height() <= 0) {
-            drawCentered(canvas, area, model.emptyMessage ?: "—", titleSize, palette)
+        val labelSize = (area.height() * 0.26f).coerceIn(10f, 20f)
+        val progress = model.progress
+        if (progress == null || area.width() <= 0 || area.height() <= 0) {
+            drawCentered(canvas, area, model.emptyMessage ?: "—", labelSize, palette)
             return
         }
 
-        val top = area.top + titleSize * 1.2f
+        val top = area.top + labelSize * 1.3f
         val bottom = area.bottom
-        val start = model.points.first().distance
-        val end = model.points.last().distance
-        val distanceSpan = (end - start).takeIf { it > 0 } ?: return
-        val minElevation = model.points.minOf { it.elevation }
-        val elevationSpan = (model.points.maxOf { it.elevation } - minElevation).coerceAtLeast(10.0)
-
-        fun x(distance: Double) = area.left + ((distance - start) / distanceSpan * area.width()).toFloat()
-        fun y(elevation: Double) = bottom - ((elevation - minElevation) / elevationSpan * (bottom - top)).toFloat()
-
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-        for (index in 1 until model.points.size) {
-            val previous = model.points[index - 1]
-            val current = model.points[index]
-            val length = current.distance - previous.distance
-            if (length <= 0) continue
-            val grade = (current.elevation - previous.elevation) / length * 100.0
-            fill.color = if (model.colorByGrade) FieldPalette.gradeColor(grade) else FieldPalette.NEUTRAL
-            canvas.drawPath(
-                Path().apply {
-                    moveTo(x(previous.distance), y(previous.elevation))
-                    lineTo(x(current.distance), y(current.elevation))
-                    lineTo(x(current.distance), bottom)
-                    lineTo(x(previous.distance), bottom)
-                    close()
-                },
-                fill,
-            )
+        val color = if (model.colorByGrade && model.grade != null) {
+            FieldPalette.gradeColor(model.grade)
+        } else {
+            FieldPalette.NEUTRAL
         }
 
-        // Repère de progression dans la montée.
-        if (model.position in start..end) {
-            canvas.drawLine(
-                x(model.position),
-                top,
-                x(model.position),
-                bottom,
-                Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = palette.position
-                    strokeWidth = 3f
-                },
-            )
+        // La côte est figurée par une rampe montant vers le sommet, à droite.
+        val ramp = Path().apply {
+            moveTo(area.left, bottom)
+            lineTo(area.right, top)
+            lineTo(area.right, bottom)
+            close()
         }
+        canvas.drawPath(
+            ramp,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.color = FieldPalette.translucent(color, 70)
+                style = Paint.Style.FILL
+            },
+        )
+
+        // Portion déjà gravie, en teinte pleine.
+        canvas.save()
+        canvas.clipRect(area.left, top, area.left + area.width() * progress.coerceIn(0f, 1f), bottom)
+        canvas.drawPath(
+            ramp,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.color = color
+                style = Paint.Style.FILL
+            },
+        )
+        canvas.restore()
 
         model.title?.let {
-            canvas.drawText(it, area.left, area.top + titleSize, paint(titleSize, palette.textSecondary))
+            canvas.drawText(it, area.left, area.top + labelSize, paint(labelSize, palette.textSecondary))
+        }
+
+        val remaining = listOfNotNull(model.distanceToTop, model.elevationToTop).joinToString("  ")
+        if (remaining.isNotEmpty()) {
+            canvas.drawText(
+                remaining,
+                area.right,
+                area.top + labelSize,
+                paint(labelSize, palette.textPrimary).apply { textAlign = Paint.Align.RIGHT },
+            )
         }
     }
 

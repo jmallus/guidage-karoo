@@ -21,6 +21,7 @@ import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.Units
+import kotlin.math.roundToInt
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
@@ -126,7 +127,7 @@ class DashboardDataType(
             },
             tiles = effortTiles(context, units, rideData),
             footerTiles = footerTiles(context, units, rideData),
-            climbGraph = climbGraph(context, state, units, settings),
+            climbGraph = climbGraph(context, rideData, units, settings),
             palette = FieldPalette.of(context),
         )
     }
@@ -226,43 +227,53 @@ class DashboardDataType(
     )
 
     /**
-     * Bandeau du bas : le profil de la côte en cours, ou de la prochaine si elle est devant.
+     * Bandeau du bas : la côte telle que le Karoo la détecte, avec la progression,
+     * la pente moyenne et ce qu'il reste à grimper.
      */
     private fun climbGraph(
         context: Context,
-        state: GuidanceState,
+        rideData: RideData,
         units: Units,
         settings: GuidageSettings,
     ): ClimbGraphModel {
-        val route = state.route
-        val along = state.distanceAlongRoute
-        val profile = route?.profile
-        val climb = if (route != null && along != null) Guidance.climbStatus(route, along) else null
-        if (route == null || along == null || profile == null || climb == null) {
+        val climb = rideData.climb
+        if (!climb.active) {
             return ClimbGraphModel(
-                emptyMessage = context.getString(
-                    if (route == null) R.string.field_no_route else R.string.field_no_climb_ahead,
-                ),
+                emptyMessage = context.getString(R.string.field_no_climb_ahead),
                 colorByGrade = settings.colorByGrade,
             )
         }
 
+        val title = when {
+            climb.number != null && climb.totalClimbs != null ->
+                context.getString(R.string.field_climb_number, climb.number, climb.totalClimbs)
+            else -> context.getString(R.string.field_climb_in_progress)
+        }
         return ClimbGraphModel(
-            points = profile.slice(climb.climb.startDistance, climb.climb.endDistance),
-            position = along,
-            title = context.getString(
-                R.string.dashboard_climb_title,
-                climb.number,
-                climb.totalClimbs,
-                Format.distance(climb.climb.length, units),
-                Format.grade(climb.climb.grade),
-            ),
+            progress = climb.progress,
+            grade = climb.grade,
+            title = title,
+            distanceToTop = climb.distanceToTop?.let { Format.distance(it, units) },
+            elevationToTop = climb.elevationToTop?.let { "+${Format.elevation(it, units)}" },
             colorByGrade = settings.colorByGrade,
         )
     }
 
-    private fun remainingValue(meters: Double, units: Units): String =
-        Format.longDistance(meters, units).substringBefore(' ')
+    /**
+     * Distance restante sans son unité. Au-delà de 100, la décimale est abandonnée :
+     * « 123 » tient dans la case là où « 123,4 » obligerait à rapetisser les chiffres.
+     */
+    private fun remainingValue(meters: Double, units: Units): String {
+        val value = when (units) {
+            Units.METRIC -> meters / 1_000
+            Units.IMPERIAL -> meters / METERS_PER_MILE
+        }
+        return if (value >= 100) {
+            value.roundToInt().toString()
+        } else {
+            Format.longDistance(meters, units).substringBefore(' ')
+        }
+    }
 
     private fun remainingUnit(units: Units): String = when (units) {
         Units.METRIC -> "km"
@@ -272,5 +283,6 @@ class DashboardDataType(
     companion object {
         const val TYPE_ID = "tableau"
         private const val PLACEHOLDER = "--"
+        private const val METERS_PER_MILE = 1609.344
     }
 }
