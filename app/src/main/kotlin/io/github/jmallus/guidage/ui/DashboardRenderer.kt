@@ -1,15 +1,20 @@
 package io.github.jmallus.guidage.ui
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import androidx.annotation.DrawableRes
+import androidx.core.content.ContextCompat
+import io.github.jmallus.guidage.core.Contrast
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /** Un point d'intérêt à marquer sur le graphe de parcours. */
 data class GraphPoi(val distance: Double, val label: String)
@@ -26,8 +31,21 @@ data class RouteGraphModel(
     val colorByGrade: Boolean = true,
 )
 
-/** Une case de chiffres : la valeur et son unité, sans libellé. */
-data class Tile(val value: String, val unit: String? = null)
+/**
+ * Une case du tableau de bord : un libellé surmontant une valeur.
+ *
+ * [suffix] est la fin de la valeur écrite en plus petit — la décimale, le signe pour cent.
+ * Les chiffres qui comptent gardent ainsi leur pleine hauteur sans que la case déborde.
+ */
+data class Tile(
+    val label: String,
+    val value: String,
+    val suffix: String? = null,
+    /** Aplat de fond, ou null pour laisser le fond de l'écran. */
+    val background: Int? = null,
+    /** Icône posée devant le libellé. */
+    @DrawableRes val icon: Int? = null,
+)
 
 /** Ce qu'on affiche dans la colonne de guidage, à droite des mesures. */
 sealed interface GuidanceZone {
@@ -39,13 +57,16 @@ sealed interface GuidanceZone {
 /**
  * Le champ plein écran.
  *
- * Colonne gauche : les quatre mesures de l'effort empilées. Colonne droite, sur la même
- * hauteur : le guidage. Sous les deux : distance restante et heure d'arrivée.
+ * Colonne gauche : quatre mesures de l'effort empilées. Colonne droite : le guidage sur
+ * trois de ces quatre hauteurs, la quatrième revenant à la pente. Sous les deux colonnes :
+ * distance restante et heure d'arrivée.
  */
 data class DashboardModel(
     val guidance: GuidanceZone,
     /** Vitesse, puissance, fréquence cardiaque, cadence. */
     val tiles: List<Tile>,
+    /** Case sous le guidage : la pente. */
+    val sideTile: Tile?,
     /** Distance restante et heure d'arrivée. */
     val footerTiles: List<Tile>,
     val palette: Palette,
@@ -59,25 +80,30 @@ object DashboardRenderer {
     /** Hauteur occupée par les mesures et le guidage ; le reste va à la dernière ligne. */
     private const val MAIN_HEIGHT_FRACTION = 0.84f
 
-    /** Hauteur des chiffres, en part de la hauteur de la case. */
-    private const val VALUE_HEIGHT_FRACTION = 0.61f
-    private const val FOOTER_VALUE_HEIGHT_FRACTION = 0.57f
+    /** Nombre de hauteurs de case occupées par le guidage. */
+    private const val GUIDANCE_ROWS = 3
 
-    /** Hauteur de l'unité, écrite sous la valeur. */
-    private const val UNIT_HEIGHT_FRACTION = 0.15f
-    private const val FOOTER_UNIT_HEIGHT_FRACTION = 0.17f
+    /** Proportions relevées sur la maquette, exprimées en part de la hauteur de case. */
+    private const val VALUE_HEIGHT_FRACTION = 0.614f
+    private const val LABEL_HEIGHT_FRACTION = 0.147f
+    private const val FOOTER_VALUE_HEIGHT_FRACTION = 0.569f
+    private const val FOOTER_LABEL_HEIGHT_FRACTION = 0.165f
 
-    fun render(width: Int, height: Int, model: DashboardModel): Bitmap {
+    /** Taille du suffixe, en part de celle de la valeur. */
+    private const val SUFFIX_RATIO = 0.52f
+
+    fun render(context: Context, width: Int, height: Int, model: DashboardModel): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
         val padding = (min(width, height) * 0.015f).coerceIn(2f, 6f)
         val columnSplit = width * TILE_COLUMN_FRACTION
         val mainBottom = height * MAIN_HEIGHT_FRACTION
+        val rowHeight = (mainBottom - padding) / model.tiles.size.coerceAtLeast(1)
 
         // Colonne gauche : les quatre mesures.
-        val rowHeight = (mainBottom - padding) / model.tiles.size.coerceAtLeast(1)
         drawTiles(
+            context = context,
             canvas = canvas,
             bounds = model.tiles.indices.map { index ->
                 val top = padding + index * rowHeight
@@ -86,19 +112,34 @@ object DashboardRenderer {
             tiles = model.tiles,
             palette = model.palette,
             valueFraction = VALUE_HEIGHT_FRACTION,
-            unitFraction = UNIT_HEIGHT_FRACTION,
+            labelFraction = LABEL_HEIGHT_FRACTION,
         )
 
-        // Colonne droite : le guidage, sur toute la hauteur des mesures.
-        val guidanceArea = RectF(columnSplit, padding, width - padding, mainBottom)
+        // Colonne droite : le guidage sur trois hauteurs de case…
+        val guidanceBottom = padding + GUIDANCE_ROWS * rowHeight
+        val guidanceArea = RectF(columnSplit, padding, width - padding, guidanceBottom)
         when (val guidance = model.guidance) {
             is GuidanceZone.Map -> MapRenderer.draw(canvas, guidanceArea, guidance.model, model.palette)
             is GuidanceZone.Profile -> drawRouteGraph(canvas, guidanceArea, guidance.model, model.palette)
         }
 
+        // … et la pente sur la quatrième.
+        model.sideTile?.let { tile ->
+            drawTiles(
+                context = context,
+                canvas = canvas,
+                bounds = listOf(RectF(columnSplit, guidanceBottom, width - padding, mainBottom)),
+                tiles = listOf(tile),
+                palette = model.palette,
+                valueFraction = VALUE_HEIGHT_FRACTION,
+                labelFraction = LABEL_HEIGHT_FRACTION,
+            )
+        }
+
         // Ligne du bas : restant et arrivée.
         val footerWidth = (width - 2 * padding) / model.footerTiles.size.coerceAtLeast(1)
         drawTiles(
+            context = context,
             canvas = canvas,
             bounds = model.footerTiles.indices.map { index ->
                 val left = padding + index * footerWidth
@@ -107,7 +148,7 @@ object DashboardRenderer {
             tiles = model.footerTiles,
             palette = model.palette,
             valueFraction = FOOTER_VALUE_HEIGHT_FRACTION,
-            unitFraction = FOOTER_UNIT_HEIGHT_FRACTION,
+            labelFraction = FOOTER_LABEL_HEIGHT_FRACTION,
         )
         return bitmap
     }
@@ -122,52 +163,121 @@ object DashboardRenderer {
      * que « 245 » et l'œil ne saurait plus quelle valeur est laquelle.
      */
     private fun drawTiles(
+        context: Context,
         canvas: Canvas,
         bounds: List<RectF>,
         tiles: List<Tile>,
         palette: Palette,
         valueFraction: Float,
-        unitFraction: Float,
+        labelFraction: Float,
     ) {
         if (tiles.isEmpty() || bounds.isEmpty()) return
         val cellHeight = bounds.first().height()
-        val unitSize = (cellHeight * unitFraction).coerceIn(9f, 26f)
+        val labelSize = (cellHeight * labelFraction).coerceIn(9f, 26f)
         val preferred = cellHeight * valueFraction
         val valueSize = tiles.zip(bounds).minOf { (tile, box) ->
-            fitTextSize(tile.value, box.width() - 12f, preferred)
+            fitValueSize(tile, box.width() - 12f, preferred)
         }
 
         tiles.zip(bounds).forEach { (tile, box) ->
-            drawTile(canvas, box, tile, palette, valueSize, unitSize)
+            drawTile(context, canvas, box, tile, palette, valueSize, labelSize)
         }
     }
 
     /**
-     * Une case sans bordure ni libellé : la valeur, et son unité en plus petit juste dessous.
+     * Une case : son libellé précédé d'une icône, la valeur en dessous, le tout centré.
      *
-     * L'unité sous la valeur plutôt qu'à côté libère toute la largeur de la case pour les
-     * chiffres, qui sont ce qu'on lit en roulant.
+     * Sur un aplat de couleur, l'encre passe au noir ou reste au blanc selon ce qui se lit
+     * le mieux — le jaune de la zone 3 réclame du noir là où le rouge de la zone 6 non.
      */
     private fun drawTile(
+        context: Context,
         canvas: Canvas,
         bounds: RectF,
         tile: Tile,
         palette: Palette,
         valueSize: Float,
-        unitSize: Float,
+        labelSize: Float,
     ) {
-        val valuePaint = paint(valueSize, palette.textPrimary).apply { textAlign = Paint.Align.CENTER }
-        val unitPaint = paint(unitSize, palette.textSecondary).apply { textAlign = Paint.Align.CENTER }
-
-        val valueHeight = valuePaint.descent() - valuePaint.ascent()
-        val unitHeight = if (tile.unit == null) 0f else unitPaint.descent() - unitPaint.ascent()
-        val top = bounds.centerY() - (valueHeight + unitHeight) / 2f
-
-        canvas.drawText(tile.value, bounds.centerX(), top - valuePaint.ascent(), valuePaint)
-        tile.unit?.let {
-            canvas.drawText(it, bounds.centerX(), top + valueHeight - unitPaint.ascent(), unitPaint)
+        val ink = tile.background?.let { Contrast.bestTextColor(it) } ?: palette.textPrimary
+        val labelInk = if (tile.background == null) {
+            palette.textSecondary
+        } else {
+            translucent(ink, LABEL_ALPHA)
         }
+
+        tile.background?.let { canvas.drawRect(bounds, Paint().apply { color = it }) }
+
+        val labelPaint = paint(labelSize, labelInk, Typeface.DEFAULT_BOLD)
+        val valuePaint = paint(valueSize, ink, LIGHT_TYPEFACE)
+        val suffixPaint = paint(valueSize * SUFFIX_RATIO, ink, LIGHT_TYPEFACE)
+
+        val labelHeight = labelPaint.descent() - labelPaint.ascent()
+        val valueHeight = valuePaint.descent() - valuePaint.ascent()
+        val top = bounds.centerY() - (labelHeight + valueHeight) / 2f
+
+        drawLabelRow(context, canvas, bounds, tile, labelPaint, labelInk, top, labelSize)
+
+        // La valeur et son suffixe forment un bloc unique, centré et posé sur une base commune.
+        val valueWidth = valuePaint.measureText(tile.value)
+        val suffixWidth = tile.suffix?.let { suffixPaint.measureText(it) } ?: 0f
+        val left = bounds.centerX() - (valueWidth + suffixWidth) / 2f
+        val baseline = top + labelHeight - valuePaint.ascent()
+
+        canvas.drawText(tile.value, left, baseline, valuePaint)
+        tile.suffix?.let { canvas.drawText(it, left + valueWidth, baseline, suffixPaint) }
     }
+
+    /** Le libellé, précédé de son icône, centrés ensemble en haut de la case. */
+    private fun drawLabelRow(
+        context: Context,
+        canvas: Canvas,
+        bounds: RectF,
+        tile: Tile,
+        labelPaint: Paint,
+        labelInk: Int,
+        top: Float,
+        labelSize: Float,
+    ) {
+        val iconSize = labelSize * ICON_RATIO
+        val labelWidth = labelPaint.measureText(tile.label)
+        val iconWidth = if (tile.icon == null) 0f else iconSize + ICON_GAP
+        var left = bounds.centerX() - (labelWidth + iconWidth) / 2f
+
+        tile.icon?.let { resource ->
+            val drawable = ContextCompat.getDrawable(context, resource)
+            if (drawable != null) {
+                val iconTop = top + (labelPaint.descent() - labelPaint.ascent() - iconSize) / 2f
+                drawable.setTint(labelInk)
+                drawable.setBounds(
+                    left.roundToInt(),
+                    iconTop.roundToInt(),
+                    (left + iconSize).roundToInt(),
+                    (iconTop + iconSize).roundToInt(),
+                )
+                drawable.draw(canvas)
+            }
+            left += iconWidth
+        }
+
+        canvas.drawText(tile.label, left, top - labelPaint.ascent(), labelPaint)
+    }
+
+    /** Plus grande taille de valeur tenant dans la largeur, suffixe compris. */
+    private fun fitValueSize(tile: Tile, maxWidth: Float, preferredSize: Float): Float {
+        val size = preferredSize.coerceIn(12f, 140f)
+        val measured = paint(size, 0, LIGHT_TYPEFACE).measureText(tile.value) +
+            (tile.suffix?.let { paint(size * SUFFIX_RATIO, 0, LIGHT_TYPEFACE).measureText(it) } ?: 0f)
+        if (measured <= maxWidth || measured <= 0f) return size
+        return (size * maxWidth / measured).coerceAtLeast(10f)
+    }
+
+    private fun translucent(color: Int, alpha: Int): Int = (color and 0x00FFFFFF) or (alpha shl 24)
+
+    private const val LABEL_ALPHA = 0xCC
+    private const val ICON_RATIO = 1.15f
+    private const val ICON_GAP = 6f
+    private val LIGHT_TYPEFACE: Typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
 
     // --- Colonne de guidage en mode profil ------------------------------------------------
 
@@ -232,7 +342,12 @@ object DashboardRenderer {
         }
 
         model.zoomLabel?.let {
-            canvas.drawText(it, area.left + 4f, area.top + labelSize, paint(labelSize, palette.textSecondary))
+            canvas.drawText(
+                it,
+                area.left + 4f,
+                area.top + labelSize,
+                paint(labelSize, palette.textSecondary, Typeface.DEFAULT_BOLD),
+            )
         }
     }
 
@@ -248,30 +363,20 @@ object DashboardRenderer {
 
     // --- Utilitaires ----------------------------------------------------------------------
 
-    private fun paint(size: Float, color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private fun paint(size: Float, color: Int, face: Typeface) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = color
         textSize = size
-        typeface = Typeface.DEFAULT_BOLD
+        typeface = face
     }
 
     private fun drawCentered(canvas: Canvas, area: RectF, message: String, size: Float, palette: Palette) {
-        val paint = paint(size, palette.textSecondary).apply { textAlign = Paint.Align.CENTER }
+        val paint = paint(size, palette.textSecondary, Typeface.DEFAULT_BOLD)
+            .apply { textAlign = Paint.Align.CENTER }
         canvas.drawText(
             message,
             area.centerX(),
             area.centerY() - (paint.descent() + paint.ascent()) / 2f,
             paint,
         )
-    }
-
-    private fun fitTextSize(text: String, maxWidth: Float, preferredSize: Float): Float {
-        val size = preferredSize.coerceIn(12f, 140f)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = size
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val measured = paint.measureText(text)
-        if (measured <= maxWidth || measured <= 0f) return size
-        return (size * maxWidth / measured).coerceAtLeast(10f)
     }
 }

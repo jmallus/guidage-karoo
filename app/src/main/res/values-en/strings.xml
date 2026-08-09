@@ -12,19 +12,16 @@
     <string name="field_poi_description">Distance to the next point of interest on the route.</string>
 
     <string name="field_dashboard_name">Dashboard</string>
-    <string name="field_dashboard_description">Full-screen field: route minimap oriented track-up, speed, power, heart rate, cadence, distance remaining and arrival time. Tap the field to change the scale.</string>
+    <string name="field_dashboard_description">Full-screen field: route minimap oriented track-up, speed, power, heart rate, cadence, grade, distance remaining and arrival time. Speed, power and heart rate take their zone colour. Tap the field to change the scale.</string>
 
-    <string name="tile_speed">Speed 3s</string>
-    <string name="tile_power">Power 3s</string>
-    <string name="tile_heart_rate">Heart rate</string>
-    <string name="tile_cadence">Cadence 3s</string>
-    <string name="tile_distance_remaining">Remaining</string>
-    <string name="tile_arrival">Arrival</string>
-    <string name="unit_watt">W</string>
-    <string name="unit_bpm">bpm</string>
-    <string name="unit_rpm">rpm</string>
-    <string name="dashboard_remaining_unit">%1$s to go</string>
-    <string name="dashboard_arrival_unit">arrival</string>
+    <!-- Dashboard cell labels, set in capitals -->
+    <string name="dashboard_label_speed">SPEED 3S</string>
+    <string name="dashboard_label_power">POWER 3S</string>
+    <string name="dashboard_label_heart_rate">HR</string>
+    <string name="dashboard_label_cadence">CADENCE</string>
+    <string name="dashboard_label_grade">GRADE</string>
+    <string name="dashboard_label_remaining">%1$s TO GO</string>
+    <string name="dashboard_label_arrival">ARRIVAL</string>
     <string name="dashboard_zoom_whole_route">Route</string>
     <string name="dashboard_climb_title">Climb %1$d/%2$d — %3$s at %4$s</string>
     <string name="settings_guidance_map">Minimap instead of profile (dashboard)</string>

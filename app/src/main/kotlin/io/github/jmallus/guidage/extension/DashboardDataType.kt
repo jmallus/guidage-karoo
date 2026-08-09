@@ -21,6 +21,7 @@ import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.Units
+import io.github.jmallus.guidage.core.Zones
 import kotlin.math.roundToInt
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
@@ -78,7 +79,7 @@ class DashboardDataType(
                 .distinctUntilChanged()
                 .collect { model ->
                     val (width, height) = FieldSize.of(config)
-                    val bitmap = DashboardRenderer.render(width, height, model)
+                    val bitmap = DashboardRenderer.render(context, width, height, model)
                     val composed = glance.compose(context, DpSize.Unspecified) {
                         Dashboard(bitmap, clickable = !config.preview)
                     }
@@ -125,6 +126,7 @@ class DashboardDataType(
                 GuidanceZoneType.PROFILE -> GuidanceZone.Profile(profileModel(context, state, settings))
             },
             tiles = effortTiles(context, units, rideData),
+            sideTile = gradeTile(context, rideData),
             footerTiles = footerTiles(context, units, rideData),
             palette = FieldPalette.of(context),
         )
@@ -189,38 +191,73 @@ class DashboardDataType(
 
     /**
      * Colonne de gauche : les quatre mesures de l'effort, dans l'ordre demandé.
-     * Sans libellé — l'unité suffit à identifier la valeur, et les chiffres y gagnent.
+     *
+     * Vitesse, puissance et fréquence cardiaque reçoivent un aplat de fond qui situe
+     * l'effort d'un coup d'œil : vert ou rouge selon la moyenne pour la vitesse, couleur de
+     * zone Karoo pour les deux autres. La cadence n'a pas de zones et reste sur fond noir.
      */
     private fun effortTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
         Tile(
+            label = context.getString(R.string.dashboard_label_speed),
             value = rideData.speed?.let { Format.speed(it, units) } ?: PLACEHOLDER,
-            unit = Format.speedUnit(units),
-        ),
+            background = rideData.speed?.let { Zones.speedColor(it, rideData.averageSpeed) },
+            icon = R.drawable.ic_speed,
+        ).splitDecimal(),
         Tile(
+            label = context.getString(R.string.dashboard_label_power),
             value = rideData.power?.toInt()?.toString() ?: PLACEHOLDER,
-            unit = context.getString(R.string.unit_watt),
+            background = rideData.power?.let { Zones.powerColor(it, rideData.powerZones) },
+            icon = R.drawable.ic_power,
         ),
         Tile(
+            label = context.getString(R.string.dashboard_label_heart_rate),
             value = rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
-            unit = context.getString(R.string.unit_bpm),
+            background = rideData.heartRate?.let { Zones.heartRateColor(it, rideData.heartRateZones) },
+            icon = R.drawable.ic_heart_rate,
         ),
         Tile(
+            label = context.getString(R.string.dashboard_label_cadence),
             value = rideData.cadence?.toInt()?.toString() ?: PLACEHOLDER,
-            unit = context.getString(R.string.unit_rpm),
+            icon = R.drawable.ic_cadence,
         ),
+    )
+
+    /** Case sous le guidage : la pente instantanée. */
+    private fun gradeTile(context: Context, rideData: RideData): Tile = Tile(
+        label = context.getString(R.string.dashboard_label_grade),
+        value = rideData.grade?.roundToInt()?.toString() ?: PLACEHOLDER,
+        suffix = "%",
+        icon = R.drawable.ic_grade,
     )
 
     /** Ligne du bas : ce qu'il reste à parcourir. */
     private fun footerTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
         Tile(
+            label = context.getString(
+                R.string.dashboard_label_remaining,
+                remainingUnit(units).uppercase(),
+            ),
             value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-            unit = context.getString(R.string.dashboard_remaining_unit, remainingUnit(units)),
-        ),
+            icon = R.drawable.ic_distance_remaining,
+        ).splitDecimal(),
         Tile(
+            label = context.getString(R.string.dashboard_label_arrival),
             value = rideData.arrivalTime?.let { Format.clock(it) } ?: PLACEHOLDER,
-            unit = context.getString(R.string.dashboard_arrival_unit),
+            icon = R.drawable.ic_arrival,
         ),
     )
+
+    /**
+     * Renvoie la décimale au suffixe, écrit en plus petit.
+     *
+     * « 38,5 » devient « 38, » et « 5 » : les chiffres qui portent l'information gardent
+     * leur pleine hauteur, la décimale suit sans manger la case.
+     */
+    private fun Tile.splitDecimal(): Tile {
+        val separator = value.indexOfLast { it == '.' || it == ',' }
+        if (separator < 0 || separator == value.lastIndex) return this
+        return copy(value = value.substring(0, separator + 1), suffix = value.substring(separator + 1))
+    }
 
     /**
      * Distance restante sans son unité. Au-delà de 100, la décimale est abandonnée :

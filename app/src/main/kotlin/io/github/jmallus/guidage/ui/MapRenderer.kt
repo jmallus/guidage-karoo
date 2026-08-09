@@ -197,37 +197,52 @@ object MapRenderer {
 
     /**
      * Flèche de position reprenant celle de la navigation Karoo : un chevron élancé,
-     * franchement pointé vers l'avant, cerné de blanc pour rester lisible au-dessus du tracé.
+     * franchement pointé vers l'avant, cerné de sombre pour rester lisible au-dessus du tracé.
+     *
+     * Les angles sont adoucis en épaississant le contour au lieu d'arrondir le tracé point
+     * par point : une jointure ronde d'épaisseur *r* arrondit d'un rayon *r* les quatre
+     * sommets d'un coup. Le contour étant tracé vers l'extérieur, la silhouette est calculée
+     * en retrait d'autant pour que la flèche garde sa taille.
      */
     private fun drawRider(canvas: Canvas, x: Float, y: Float, height: Float, palette: Palette) {
         val size = (height * 0.085f).coerceIn(14f, 30f)
+        val radius = size * CORNER_RATIO
+        val body = size - radius
         val arrow = Path().apply {
-            moveTo(x, y - size)
-            lineTo(x + size * 0.62f, y + size * 0.72f)
-            lineTo(x, y + size * 0.16f)
-            lineTo(x - size * 0.62f, y + size * 0.72f)
+            moveTo(x, y - body)
+            lineTo(x + body * 0.62f, y + body * 0.72f)
+            lineTo(x, y + body * 0.16f)
+            lineTo(x - body * 0.62f, y + body * 0.72f)
             close()
         }
         canvas.drawPath(
             arrow,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = ARROW_COLOR
-                style = Paint.Style.FILL
+                color = ARROW_BORDER_COLOR
+                style = Paint.Style.STROKE
+                strokeWidth = radius * 2 + ARROW_BORDER_WIDTH * 2
+                strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.ROUND
             },
         )
         canvas.drawPath(
             arrow,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = ARROW_BORDER_COLOR
-                style = Paint.Style.STROKE
-                strokeWidth = 2.5f
+                color = ARROW_COLOR
+                style = Paint.Style.FILL_AND_STROKE
+                strokeWidth = radius * 2
                 strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.ROUND
             },
         )
     }
 
-    private const val ARROW_COLOR = 0xFF2979FF.toInt()
-    private const val ARROW_BORDER_COLOR = 0xFFFFFFFF.toInt()
+    private const val ARROW_COLOR = 0xFFE6E24C.toInt()
+    private const val ARROW_BORDER_COLOR = 0xFF1E1E1E.toInt()
+    private const val ARROW_BORDER_WIDTH = 2.5f
+
+    /** Rayon d'arrondi des sommets de la flèche, en part de sa taille. */
+    private const val CORNER_RATIO = 0.22f
 
     /** Espacement des chevrons de direction, en pixels. */
     private const val CHEVRON_SPACING = 42f
