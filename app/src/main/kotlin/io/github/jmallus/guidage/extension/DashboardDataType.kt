@@ -214,10 +214,11 @@ class DashboardDataType(
     private fun footerTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
         Tile(
             value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-            unit = remainingUnit(units),
+            unit = context.getString(R.string.dashboard_remaining_unit, remainingUnit(units)),
         ),
         Tile(
             value = rideData.arrivalTime?.let { Format.clock(it) } ?: PLACEHOLDER,
+            unit = context.getString(R.string.dashboard_arrival_unit),
         ),
     )
 

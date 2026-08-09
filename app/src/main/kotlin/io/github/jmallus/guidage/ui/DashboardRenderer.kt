@@ -57,7 +57,15 @@ object DashboardRenderer {
     private const val TILE_COLUMN_FRACTION = 0.5f
 
     /** Hauteur occupée par les mesures et le guidage ; le reste va à la dernière ligne. */
-    private const val MAIN_HEIGHT_FRACTION = 0.74f
+    private const val MAIN_HEIGHT_FRACTION = 0.84f
+
+    /** Hauteur des chiffres, en part de la hauteur de la case. */
+    private const val VALUE_HEIGHT_FRACTION = 0.61f
+    private const val FOOTER_VALUE_HEIGHT_FRACTION = 0.57f
+
+    /** Hauteur de l'unité, écrite sous la valeur. */
+    private const val UNIT_HEIGHT_FRACTION = 0.15f
+    private const val FOOTER_UNIT_HEIGHT_FRACTION = 0.17f
 
     fun render(width: Int, height: Int, model: DashboardModel): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
@@ -69,15 +77,17 @@ object DashboardRenderer {
 
         // Colonne gauche : les quatre mesures.
         val rowHeight = (mainBottom - padding) / model.tiles.size.coerceAtLeast(1)
-        model.tiles.forEachIndexed { index, tile ->
-            val top = padding + index * rowHeight
-            drawTile(
-                canvas,
-                RectF(padding, top, columnSplit, top + rowHeight),
-                tile,
-                model.palette,
-            )
-        }
+        drawTiles(
+            canvas = canvas,
+            bounds = model.tiles.indices.map { index ->
+                val top = padding + index * rowHeight
+                RectF(padding, top, columnSplit, top + rowHeight)
+            },
+            tiles = model.tiles,
+            palette = model.palette,
+            valueFraction = VALUE_HEIGHT_FRACTION,
+            unitFraction = UNIT_HEIGHT_FRACTION,
+        )
 
         // Colonne droite : le guidage, sur toute la hauteur des mesures.
         val guidanceArea = RectF(columnSplit, padding, width - padding, mainBottom)
@@ -88,45 +98,74 @@ object DashboardRenderer {
 
         // Ligne du bas : restant et arrivée.
         val footerWidth = (width - 2 * padding) / model.footerTiles.size.coerceAtLeast(1)
-        model.footerTiles.forEachIndexed { index, tile ->
-            val left = padding + index * footerWidth
-            drawTile(
-                canvas,
-                RectF(left, mainBottom, left + footerWidth, height - padding),
-                tile,
-                model.palette,
-            )
-        }
+        drawTiles(
+            canvas = canvas,
+            bounds = model.footerTiles.indices.map { index ->
+                val left = padding + index * footerWidth
+                RectF(left, mainBottom, left + footerWidth, height - padding)
+            },
+            tiles = model.footerTiles,
+            palette = model.palette,
+            valueFraction = FOOTER_VALUE_HEIGHT_FRACTION,
+            unitFraction = FOOTER_UNIT_HEIGHT_FRACTION,
+        )
         return bitmap
     }
 
     // --- Cases de chiffres ---------------------------------------------------------------
 
     /**
-     * Une case sans bordure ni libellé : la valeur, suivie de son unité en plus petit,
-     * centrée dans l'espace qui lui revient.
+     * Dessine un groupe de cases avec une seule et même taille de chiffres.
+     *
+     * La taille retenue est la plus grande qui convienne à *toutes* les valeurs du groupe :
+     * si on ajustait chaque case indépendamment, « 38,5 » serait écrit nettement plus petit
+     * que « 245 » et l'œil ne saurait plus quelle valeur est laquelle.
      */
-    private fun drawTile(canvas: Canvas, bounds: RectF, tile: Tile, palette: Palette) {
-        val unitSize = (bounds.height() * 0.24f).coerceIn(10f, 26f)
-        val unitPaint = paint(unitSize, palette.textSecondary)
-        val unitWidth = tile.unit?.let { unitPaint.measureText(it) + 8f } ?: 0f
+    private fun drawTiles(
+        canvas: Canvas,
+        bounds: List<RectF>,
+        tiles: List<Tile>,
+        palette: Palette,
+        valueFraction: Float,
+        unitFraction: Float,
+    ) {
+        if (tiles.isEmpty() || bounds.isEmpty()) return
+        val cellHeight = bounds.first().height()
+        val unitSize = (cellHeight * unitFraction).coerceIn(9f, 26f)
+        val preferred = cellHeight * valueFraction
+        val valueSize = tiles.zip(bounds).minOf { (tile, box) ->
+            fitTextSize(tile.value, box.width() - 12f, preferred)
+        }
 
-        val valuePaint = paint(
-            size = fitTextSize(
-                text = tile.value,
-                maxWidth = bounds.width() - 12f - unitWidth,
-                preferredSize = bounds.height() * 0.82f,
-            ),
-            color = palette.textPrimary,
-        )
+        tiles.zip(bounds).forEach { (tile, box) ->
+            drawTile(canvas, box, tile, palette, valueSize, unitSize)
+        }
+    }
 
-        val valueWidth = valuePaint.measureText(tile.value)
-        val blockLeft = bounds.centerX() - (valueWidth + unitWidth) / 2f
-        val baseline = bounds.centerY() - (valuePaint.descent() + valuePaint.ascent()) / 2f
+    /**
+     * Une case sans bordure ni libellé : la valeur, et son unité en plus petit juste dessous.
+     *
+     * L'unité sous la valeur plutôt qu'à côté libère toute la largeur de la case pour les
+     * chiffres, qui sont ce qu'on lit en roulant.
+     */
+    private fun drawTile(
+        canvas: Canvas,
+        bounds: RectF,
+        tile: Tile,
+        palette: Palette,
+        valueSize: Float,
+        unitSize: Float,
+    ) {
+        val valuePaint = paint(valueSize, palette.textPrimary).apply { textAlign = Paint.Align.CENTER }
+        val unitPaint = paint(unitSize, palette.textSecondary).apply { textAlign = Paint.Align.CENTER }
 
-        canvas.drawText(tile.value, blockLeft, baseline, valuePaint)
+        val valueHeight = valuePaint.descent() - valuePaint.ascent()
+        val unitHeight = if (tile.unit == null) 0f else unitPaint.descent() - unitPaint.ascent()
+        val top = bounds.centerY() - (valueHeight + unitHeight) / 2f
+
+        canvas.drawText(tile.value, bounds.centerX(), top - valuePaint.ascent(), valuePaint)
         tile.unit?.let {
-            canvas.drawText(it, blockLeft + valueWidth + 8f, baseline, unitPaint)
+            canvas.drawText(it, bounds.centerX(), top + valueHeight - unitPaint.ascent(), unitPaint)
         }
     }
 
