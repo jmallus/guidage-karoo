@@ -28,9 +28,23 @@ inline fun <reified T : KarooEvent> KarooSystemService.consumerFlow(): Flow<T> =
     awaitClose { removeConsumer(listenerId) }
 }
 
-/** Valeur numérique d'un type de donnée, ou null quand la donnée n'est pas disponible. */
+/**
+ * Valeur numérique d'un type de donnée qui n'en porte qu'une, ou null quand la donnée
+ * n'est pas disponible.
+ *
+ * À réserver aux types à champ unique : `singleValue` renvoie la première entrée de la
+ * table des champs, dont l'ordre n'est pas garanti. Pour un type qui en porte plusieurs
+ * — `DISTANCE_TO_DESTINATION` transporte aussi l'état de navigation et le fait d'être sur
+ * l'itinéraire — c'est un tirage au sort. Utiliser [streamFieldFlow] dans ce cas.
+ */
 fun KarooSystemService.streamValueFlow(dataTypeId: String): Flow<Double?> =
     streamDataFlow(dataTypeId).map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
+
+/** Valeur d'un champ nommé, pour les types de donnée qui en portent plusieurs. */
+fun KarooSystemService.streamFieldFlow(dataTypeId: String, fieldId: String): Flow<Double?> =
+    streamDataFlow(dataTypeId).map {
+        (it as? StreamState.Streaming)?.dataPoint?.values?.get(fieldId)
+    }
 
 /**
  * Tous les champs d'un type de donnée, pour les types qui en portent plusieurs

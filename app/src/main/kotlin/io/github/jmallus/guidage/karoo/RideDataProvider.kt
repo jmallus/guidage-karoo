@@ -65,7 +65,8 @@ class RideDataProvider(
             value(DataType.Type.HEART_RATE),
             value(DataType.Type.SMOOTHED_3S_AVERAGE_CADENCE),
             value(DataType.Type.ELEVATION_GRADE),
-            value(DataType.Type.DISTANCE_TO_DESTINATION),
+            // Ce type porte aussi l'état de navigation : il faut nommer le champ voulu.
+            field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.DISTANCE_TO_DESTINATION),
             value(DataType.Type.TIME_OF_ARRIVAL),
         ),
     ) { it }
@@ -80,6 +81,9 @@ class RideDataProvider(
 
     private fun value(dataTypeId: String) =
         karooSystem.streamValueFlow(dataTypeId).onStart { emit(null) }
+
+    private fun field(dataTypeId: String, fieldId: String) =
+        karooSystem.streamFieldFlow(dataTypeId, fieldId).onStart { emit(null) }
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

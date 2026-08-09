@@ -59,8 +59,12 @@ class GuidanceProvider(
         val navigation = karooSystem.consumerFlow<OnNavigationState>()
             .map { it.state }
             .onStart { emit(NavigationState.Idle) }
-        val remaining = karooSystem.streamValueFlow(DataType.Type.DISTANCE_TO_DESTINATION)
-            .onStart { emit(null) }
+        // Ce type porte quatre champs (distance, état de navigation, reroutage, sur
+        // l'itinéraire) : il faut nommer celui qu'on veut, sans quoi on lit l'un des autres.
+        val remaining = karooSystem.streamFieldFlow(
+            DataType.Type.DISTANCE_TO_DESTINATION,
+            DataType.Field.DISTANCE_TO_DESTINATION,
+        ).onStart { emit(null) }
         val grade = karooSystem.streamValueFlow(DataType.Type.ELEVATION_GRADE)
             .onStart { emit(null) }
         val units = karooSystem.consumerFlow<UserProfile>()
