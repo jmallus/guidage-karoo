@@ -24,6 +24,13 @@ data class MapModel(
     val pois: List<MapPoi> = emptyList(),
     /** Distance visible devant le coureur (m). */
     val rangeMeters: Double = 1_000.0,
+    /**
+     * Distance jusqu'au prochain virage, déjà mise en forme.
+     *
+     * Le Karoo n'expose pas la nature de la manœuvre — ni le sens, ni le nom de la rue —
+     * seulement la distance. La pastille se lit donc « le prochain virage est à tant ».
+     */
+    val nextTurnLabel: String? = null,
     val emptyMessage: String? = null,
 )
 
@@ -60,6 +67,7 @@ object MapRenderer {
         drawPois(canvas, area, model, projection, palette)
         drawRider(canvas, riderX, riderY, area.height(), palette)
         drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
+        drawNextTurn(canvas, area, model.nextTurnLabel, palette)
 
         canvas.restore()
     }
@@ -247,6 +255,48 @@ object MapRenderer {
     /** Espacement des chevrons de direction, en pixels. */
     private const val CHEVRON_SPACING = 42f
     private const val CHEVRON_SIZE = 4.5f
+
+    /**
+     * Distance jusqu'au prochain virage, en pastille au bas de la carte.
+     *
+     * Elle est posée derrière le coureur, là où la carte n'apprend plus rien — la portion
+     * déjà parcourue — plutôt que d'entamer la vue vers l'avant.
+     */
+    private fun drawNextTurn(canvas: Canvas, area: RectF, label: String?, palette: Palette) {
+        if (label.isNullOrEmpty()) return
+
+        val textSize = (area.height() * 0.075f).coerceIn(14f, 28f)
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = palette.textPrimary
+            this.textSize = textSize
+            typeface = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.CENTER
+        }
+
+        val padding = textSize * 0.45f
+        val width = text.measureText(label) + padding * 2
+        val height = (text.descent() - text.ascent()) + padding
+        val right = area.right - 6f
+        val bottom = area.bottom - 6f
+        val pill = RectF(right - width, bottom - height, right, bottom)
+
+        canvas.drawRoundRect(
+            pill,
+            height / 2f,
+            height / 2f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = FieldPalette.translucent(palette.routeOutline, PILL_ALPHA)
+            },
+        )
+        canvas.drawText(
+            label,
+            pill.centerX(),
+            pill.centerY() - (text.descent() + text.ascent()) / 2f,
+            text,
+        )
+    }
+
+    private const val PILL_ALPHA = 0xD0
 
     private fun drawScaleBar(
         canvas: Canvas,

@@ -122,7 +122,8 @@ class DashboardDataType(
         val units = snapshot.units
         return DashboardModel(
             guidance = when (settings.guidanceZone) {
-                GuidanceZoneType.MAP -> GuidanceZone.Map(mapModel(context, snapshot, state, settings, preview))
+                GuidanceZoneType.MAP ->
+                    GuidanceZone.Map(mapModel(context, snapshot, state, settings, preview, rideData))
                 GuidanceZoneType.PROFILE -> GuidanceZone.Profile(profileModel(context, state, settings))
             },
             tiles = effortTiles(context, units, rideData),
@@ -138,10 +139,14 @@ class DashboardDataType(
         state: GuidanceState,
         settings: GuidageSettings,
         preview: Boolean,
+        rideData: RideData,
     ): MapModel {
         val route = state.route
         val location = if (preview) PreviewData.location else snapshot.location
         return MapModel(
+            nextTurnLabel = rideData.distanceToNextTurn?.let {
+                Format.distance(it, snapshot.units)
+            },
             path = route?.path.orEmpty(),
             position = location?.position,
             heading = location?.heading,
