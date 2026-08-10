@@ -94,9 +94,13 @@ jobs:
           Contient les routes **et** les chemins — \`track\`, \`path\`, \`bridleway\`,
           \`cycleway\` — avec leur revêtement quand OpenStreetMap le renseigne.
           NOTES
-          gh release delete carte --yes --cleanup-tag || true
-          gh release create carte "${{ github.event.inputs.nom }}.gkmap" \
-            --target "$GITHUB_SHA" --prerelease \
-            --title "Fond de carte" --notes-file notes.md
+          if gh release view carte >/dev/null 2>&1; then
+            gh release upload carte "${{ github.event.inputs.nom }}.gkmap" --clobber
+            gh release edit carte --notes-file notes.md
+          else
+            gh release create carte "${{ github.event.inputs.nom }}.gkmap" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "Fond de carte" --notes-file notes.md
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
