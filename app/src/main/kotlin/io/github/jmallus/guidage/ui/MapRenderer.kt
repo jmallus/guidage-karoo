@@ -253,7 +253,7 @@ object MapRenderer {
     private const val CORNER_RATIO = 0.22f
 
     /** Épaisseur du tracé et de son cerne, en pixels. */
-    private const val ROUTE_WIDTH = 18f
+    private const val ROUTE_WIDTH = 14f
     private const val ROUTE_OUTLINE_WIDTH = 4f
 
     /**

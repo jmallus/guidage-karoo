@@ -349,7 +349,19 @@ object DashboardRenderer {
             translucent(ink, LABEL_ALPHA)
         }
 
-        tile.background?.let { canvas.drawRect(bounds, Paint().apply { color = it }) }
+        // L'aplat est cerné de noir : sans cela deux cases colorées voisines se touchent et
+        // leurs couleurs se contaminent à l'œil.
+        tile.background?.let { background ->
+            canvas.drawRect(bounds, Paint().apply { color = background })
+            canvas.drawRect(
+                bounds,
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = TILE_BORDER
+                    style = Paint.Style.STROKE
+                    strokeWidth = TILE_BORDER_WIDTH
+                },
+            )
+        }
 
         // Sur fond neutre l'icône est verte ; sur un aplat de zone elle suit l'encre, le
         // vert n'ayant aucune raison d'être lisible sur les sept couleurs de la palette.
@@ -422,6 +434,10 @@ object DashboardRenderer {
     private fun translucent(color: Int, alpha: Int): Int = (color and 0x00FFFFFF) or (alpha shl 24)
 
     private const val LABEL_ALPHA = 0xCC
+
+    /** Cerne des cases colorées. */
+    private const val TILE_BORDER = 0xFF000000.toInt()
+    private const val TILE_BORDER_WIDTH = 3f
     private const val ICON_RATIO = 1.15f
     private const val ICON_GAP = 6f
     private val LIGHT_TYPEFACE: Typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
