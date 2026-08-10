@@ -49,4 +49,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "guidage-karoo"
-include(":app", ":core")
+include(":app", ":core", ":tools")
