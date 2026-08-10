@@ -39,6 +39,9 @@ tasks.register<JavaExec>("convertRoadMap") {
     description = "Convertit des voies OpenStreetMap en fond de carte"
     mainClass.set("io.github.jmallus.guidage.tools.ConvertRoadMapKt")
     classpath = sourceSets["main"].runtimeClasspath
+    // Sans cela, Gradle lance le processus depuis tools/ et les chemins relatifs passés
+    // en argument se résolvent une marche trop bas.
+    workingDir = rootProject.projectDir
     // Une région entière tient en mémoire le temps de l'indexation.
     maxHeapSize = "6g"
 }
