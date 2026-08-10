@@ -12,7 +12,8 @@ on:
 
 jobs:
   core-tests:
-    # La logique de guidage se teste sans karoo-ext : ces tests tournent toujours.
+    # La logique de guidage et l'outillage se testent sans karoo-ext ni SDK Android :
+    # ces tests tournent toujours.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,7 +22,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew :core:test
+      - run: ./gradlew :core:test :tools:test
 
   apk:
     # La construction de l'APK requiert un jeton avec read:packages pour GitHub Packages,
