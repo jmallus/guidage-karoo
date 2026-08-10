@@ -9,6 +9,7 @@ import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.PlanePoint
 import kotlin.math.hypot
+import kotlin.math.ln
 
 /** Un point d'intérêt à poser sur la carte. */
 data class MapPoi(val position: GeoPoint, val label: String)
@@ -63,7 +64,7 @@ object MapRenderer {
         canvas.save()
         canvas.clipRect(area)
 
-        drawPath(canvas, model, projection, palette)
+        drawPath(canvas, model, projection, palette, routeWidth(model.rangeMeters))
         drawPois(canvas, area, model, projection, palette)
         drawRider(canvas, riderX, riderY, area.height(), palette)
         drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
@@ -89,17 +90,23 @@ object MapRenderer {
         }
     }
 
-    private fun drawPath(canvas: Canvas, model: MapModel, projection: Projection, palette: Palette) {
+    private fun drawPath(
+        canvas: Canvas,
+        model: MapModel,
+        projection: Projection,
+        palette: Palette,
+        width: Float,
+    ) {
         if (model.path.size < 2) return
         val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = ROUTE_WIDTH
+            strokeWidth = width
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             color = palette.routeLine
         }
         val outline = Paint(line).apply {
-            strokeWidth = ROUTE_WIDTH + ROUTE_OUTLINE_WIDTH * 2
+            strokeWidth = width + ROUTE_OUTLINE_WIDTH * 2
             color = palette.routeOutline
         }
 
@@ -114,17 +121,41 @@ object MapRenderer {
         }
         canvas.drawPath(path, outline)
         canvas.drawPath(path, line)
-        drawDirectionChevrons(canvas, screenPoints, palette)
+        drawDirectionChevrons(canvas, screenPoints, palette, width)
+    }
+
+    /**
+     * Épaisseur du tracé, décroissante avec la portée affichée.
+     *
+     * Une épaisseur fixe ne peut pas convenir aux deux bouts de la plage : à 200 m elle
+     * représente un ruban de quelques mètres, à 10 km une bande de plusieurs centaines. La
+     * décroissance suit le logarithme de la portée plutôt que la portée elle-même — sinon
+     * le trait s'effondrerait dès le premier cran et resterait filiforme sur toute la
+     * moitié haute de la plage.
+     */
+    private fun routeWidth(rangeMeters: Double): Float {
+        val range = rangeMeters.coerceIn(MIN_RANGE, MAX_RANGE)
+        val ratio = ln(range / MIN_RANGE) / ln(MAX_RANGE / MIN_RANGE)
+        return (ROUTE_WIDTH_NEAR - (ROUTE_WIDTH_NEAR - ROUTE_WIDTH_FAR) * ratio).toFloat()
     }
 
     /**
      * Chevrons semés le long du tracé pour indiquer le sens de la marche, comme sur la
      * carte native du Karoo.
      */
-    private fun drawDirectionChevrons(canvas: Canvas, points: List<PlanePoint>, palette: Palette) {
+    private fun drawDirectionChevrons(
+        canvas: Canvas,
+        points: List<PlanePoint>,
+        palette: Palette,
+        routeWidth: Float,
+    ) {
+        // Les chevrons sont posés sur le tracé : ils suivent son épaisseur, sinon ils
+        // disparaissent dessous à faible portée et le débordent à grande portée.
+        val size = routeWidth * CHEVRON_SIZE_RATIO
+        val spacing = routeWidth * CHEVRON_SPACING_RATIO
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 6f
+            strokeWidth = routeWidth * CHEVRON_STROKE_RATIO
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             color = palette.routeOutline
@@ -141,7 +172,7 @@ object MapRenderer {
 
             val ux = dx / length
             val uy = dy / length
-            var position = CHEVRON_SPACING - carry
+            var position = spacing - carry
             while (position <= length) {
                 drawChevron(
                     canvas = canvas,
@@ -149,16 +180,24 @@ object MapRenderer {
                     y = from.y.toFloat() + uy * position,
                     ux = ux,
                     uy = uy,
+                    size = size,
                     paint = paint,
                 )
-                position += CHEVRON_SPACING
+                position += spacing
             }
-            carry = (carry + length) % CHEVRON_SPACING
+            carry = (carry + length) % spacing
         }
     }
 
-    private fun drawChevron(canvas: Canvas, x: Float, y: Float, ux: Float, uy: Float, paint: Paint) {
-        val size = CHEVRON_SIZE
+    private fun drawChevron(
+        canvas: Canvas,
+        x: Float,
+        y: Float,
+        ux: Float,
+        uy: Float,
+        size: Float,
+        paint: Paint,
+    ) {
         // Perpendiculaire à la direction de marche.
         val px = -uy
         val py = ux
@@ -252,18 +291,19 @@ object MapRenderer {
     /** Rayon d'arrondi des sommets de la flèche, en part de sa taille. */
     private const val CORNER_RATIO = 0.22f
 
-    /** Épaisseur du tracé et de son cerne, en pixels. */
-    private const val ROUTE_WIDTH = 14f
+    /** Épaisseur du tracé aux deux bouts de la plage de portées, et cerne. */
+    private const val ROUTE_WIDTH_NEAR = 14.0
+    private const val ROUTE_WIDTH_FAR = 6.0
     private const val ROUTE_OUTLINE_WIDTH = 4f
 
-    /**
-     * Espacement et taille des chevrons de direction.
-     *
-     * Ils suivent l'épaisseur du tracé : posés dessus, ils disparaîtraient sous un trait
-     * deux fois plus large s'ils gardaient leur taille d'origine.
-     */
-    private const val CHEVRON_SPACING = 60f
-    private const val CHEVRON_SIZE = 9f
+    /** Bornes de la plage de portées, reprises de ZoomLevels. */
+    private const val MIN_RANGE = 200.0
+    private const val MAX_RANGE = 10_000.0
+
+    /** Chevrons de direction, exprimés en part de l'épaisseur du tracé. */
+    private const val CHEVRON_SPACING_RATIO = 4.3f
+    private const val CHEVRON_SIZE_RATIO = 0.64f
+    private const val CHEVRON_STROKE_RATIO = 0.43f
 
     /**
      * Distance jusqu'au prochain virage, en pastille au bas de la carte.
