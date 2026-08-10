@@ -27,6 +27,7 @@ import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RideDataProvider
+import io.github.jmallus.guidage.karoo.RoadMapRepository
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.settings.SettingsRepository
 import io.github.jmallus.guidage.ui.ClimbBandModel
@@ -64,6 +65,7 @@ class DashboardDataType(
     private val guidanceProvider: GuidanceProvider,
     private val rideDataProvider: RideDataProvider,
     private val settingsRepository: SettingsRepository,
+    private val roadMapRepository: RoadMapRepository,
     extension: String,
 ) : DataTypeImpl(extension, TYPE_ID) {
 
@@ -189,10 +191,16 @@ class DashboardDataType(
     ): MapModel {
         val route = state.route
         val location = if (preview) PreviewData.location else snapshot.location
+        val position = location?.position
         return MapModel(
             nextTurnLabel = rideData.distanceToNextTurn?.let {
                 Format.distance(it, snapshot.units)
             },
+            // On lit un peu au-delà du cadre : en cap en haut, la fenêtre tourne avec le
+            // coureur et ses coins balaient plus loin que la portée annoncée.
+            roads = position?.let {
+                roadMapRepository.roadsAround(it, settings.mapRange.meters * ROADS_RADIUS_FACTOR)
+            }.orEmpty(),
             path = route?.path.orEmpty(),
             position = location?.position,
             heading = location?.heading,
@@ -346,5 +354,8 @@ class DashboardDataType(
 
         /** Distance au pied à partir de laquelle le bandeau de montée apparaît (m). */
         private const val CLIMB_BAND_LOOKAHEAD = 5_000.0
+
+        /** Rayon de lecture du fond de carte, en multiples de la portée affichée. */
+        private const val ROADS_RADIUS_FACTOR = 1.6
     }
 }

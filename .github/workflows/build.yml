@@ -50,6 +50,22 @@ jobs:
           java-version: "17"
       - if: steps.creds.outputs.available == 'true'
         uses: gradle/actions/setup-gradle@v4
+      # Le fond de carte voyage dans l'APK : le coureur n'a ainsi rien à copier sur
+      # l'appareil. Il vient de la Release « carte », fabriquée à part par le workflow
+      # fond-de-carte, et n'entre jamais dans l'historique Git.
+      - name: Embarquer le fond de carte
+        if: steps.creds.outputs.available == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/assets
+          if gh release download carte --pattern '*.gkmap' --output app/src/main/assets/carte.gkmap --clobber; then
+            ls -lh app/src/main/assets/carte.gkmap
+          else
+            echo "Pas de Release « carte » : l'APK sera construit sans fond de carte."
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - if: steps.creds.outputs.available == 'true'
         run: ./gradlew :app:assembleRelease
         env:

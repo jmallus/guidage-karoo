@@ -1,6 +1,7 @@
 package io.github.jmallus.guidage.ui
 
 import android.graphics.Canvas
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -8,6 +9,8 @@ import android.graphics.Typeface
 import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.PlanePoint
+import io.github.jmallus.guidage.core.map.RoadSegment
+import io.github.jmallus.guidage.core.map.fromMicroDegrees
 import kotlin.math.hypot
 import kotlin.math.ln
 
@@ -23,6 +26,8 @@ data class MapModel(
     /** Cap en degrés (0 = nord). Null quand il est inconnu : la carte reste alors nord en haut. */
     val heading: Double? = null,
     val pois: List<MapPoi> = emptyList(),
+    /** Voies du fond de carte, quand un fond est installé. */
+    val roads: List<RoadSegment> = emptyList(),
     /** Distance visible devant le coureur (m). */
     val rangeMeters: Double = 1_000.0,
     /**
@@ -64,6 +69,10 @@ object MapRenderer {
         canvas.save()
         canvas.clipRect(area)
 
+        if (model.roads.isNotEmpty()) {
+            canvas.drawRect(area, Paint().apply { color = RoadStyle.BACKGROUND })
+            drawRoads(canvas, model.roads, projection, metersToPixels)
+        }
         drawPath(canvas, model, projection, palette, routeWidth(model.rangeMeters))
         drawPois(canvas, area, model, projection, palette)
         drawRider(canvas, riderX, riderY, area.height(), palette)
@@ -88,7 +97,68 @@ object MapRenderer {
                 y = riderY - plane.y * metersToPixels,
             )
         }
+
+        /** Abscisse écran, sans allouer de point intermédiaire. */
+        fun screenX(latitude: Double, longitude: Double): Float {
+            val plane = Geo.toTrackUpPlane(origin, heading, GeoPoint(latitude, longitude))
+            return (riderX + plane.x * metersToPixels).toFloat()
+        }
+
+        fun screenY(latitude: Double, longitude: Double): Float {
+            val plane = Geo.toTrackUpPlane(origin, heading, GeoPoint(latitude, longitude))
+            return (riderY - plane.y * metersToPixels).toFloat()
+        }
     }
+
+    /**
+     * Voies du fond de carte, sous le tracé.
+     *
+     * Elles sont dessinées de la plus fine à la plus large, de sorte qu'une nationale
+     * passe par-dessus le chemin qui la longe et non l'inverse. Chaque famille est tracée
+     * d'un seul tenant : changer de pinceau coûte plus cher que de dessiner.
+     */
+    private fun drawRoads(
+        canvas: Canvas,
+        roads: List<RoadSegment>,
+        projection: Projection,
+        metersToPixels: Float,
+    ) {
+        roads
+            .groupBy { Triple(it.kind, it.surface, RoadStyle.isDashed(it.kind, it.surface)) }
+            .entries
+            .sortedBy { RoadStyle.widthMeters(it.key.first) }
+            .forEach { (style, segments) ->
+                val (kind, surface, dashed) = style
+                val width = (RoadStyle.widthMeters(kind) * metersToPixels)
+                    .coerceIn(MIN_ROAD_WIDTH, MAX_ROAD_WIDTH)
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    this.style = Paint.Style.STROKE
+                    strokeWidth = width
+                    strokeCap = Paint.Cap.ROUND
+                    strokeJoin = Paint.Join.ROUND
+                    color = RoadStyle.color(kind, surface)
+                    if (dashed) {
+                        val dash = (width * 2.5f).coerceAtLeast(4f)
+                        pathEffect = DashPathEffect(floatArrayOf(dash, dash * 0.8f), 0f)
+                    }
+                }
+
+                val path = Path()
+                segments.forEach { segment ->
+                    for (index in 0 until segment.size) {
+                        val latitude = segment.latitudes[index].fromMicroDegrees()
+                        val longitude = segment.longitudes[index].fromMicroDegrees()
+                        val x = projection.screenX(latitude, longitude)
+                        val y = projection.screenY(latitude, longitude)
+                        if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                    }
+                }
+                canvas.drawPath(path, paint)
+            }
+    }
+
+    private const val MIN_ROAD_WIDTH = 1f
+    private const val MAX_ROAD_WIDTH = 26f
 
     private fun drawPath(
         canvas: Canvas,

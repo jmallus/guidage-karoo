@@ -19,3 +19,6 @@ captures/
 *.map
 *.mbtiles
 *.pmtiles
+
+# Le fond de carte est déposé dans les assets par la construction, jamais versionné.
+app/src/main/assets/carte.gkmap

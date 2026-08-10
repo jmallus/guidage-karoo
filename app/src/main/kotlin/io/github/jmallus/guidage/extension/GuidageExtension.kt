@@ -8,6 +8,7 @@ import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideDataProvider
+import io.github.jmallus.guidage.karoo.RoadMapRepository
 import io.github.jmallus.guidage.karoo.consumerFlow
 import io.github.jmallus.guidage.settings.SettingsRepository
 import io.hammerhead.karooext.KarooSystemService
@@ -36,10 +37,11 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
     private lateinit var provider: GuidanceProvider
     private lateinit var rideDataProvider: RideDataProvider
     private lateinit var alertPresenter: AlertPresenter
+    private lateinit var roadMapRepository: RoadMapRepository
 
     override val types: List<DataTypeImpl> by lazy {
         listOf(
-            DashboardDataType(provider, rideDataProvider, settingsRepository, extension),
+            DashboardDataType(provider, rideDataProvider, settingsRepository, roadMapRepository, extension),
             ProfileDataType(provider, settingsRepository, extension),
             ClimbDataType(provider, extension),
             PoiDataType(provider, extension),
@@ -53,6 +55,11 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
         provider = GuidanceProvider(karooSystem, scope)
         rideDataProvider = RideDataProvider(karooSystem, scope)
         alertPresenter = AlertPresenter(this)
+        roadMapRepository = RoadMapRepository(this)
+
+        // Le déballage de la carte lit et réécrit une trentaine de méga-octets : hors du
+        // fil principal, et une seule fois dans la vie de l'installation.
+        scope.launch { roadMapRepository.unpackIfNeeded() }
 
         karooSystem.connect { connected ->
             Log.i(TAG, "Karoo system connected: $connected")
