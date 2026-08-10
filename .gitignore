@@ -10,3 +10,12 @@ captures/
 *.apk
 *.keystore
 !app/guidage.keystore
+
+# Données cartographiques : elles se comptent en centaines de méga-octets et n'ont
+# rien à faire dans l'historique. Elles se téléchargent chez Geofabrik et se copient
+# directement sur l'appareil.
+*.pbf
+*.osm
+*.map
+*.mbtiles
+*.pmtiles
