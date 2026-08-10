@@ -29,6 +29,7 @@ import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RideDataProvider
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.settings.SettingsRepository
+import io.github.jmallus.guidage.ui.ClimbBandModel
 import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
@@ -149,7 +150,32 @@ class DashboardDataType(
             tiles = effortTiles(context, units, rideData),
             sideTile = gradeTile(context, rideData),
             footerTiles = footerTiles(context, units, rideData),
+            climbBand = climbBand(state),
             palette = FieldPalette.of(context),
+        )
+    }
+
+    /**
+     * Profil de la côte en cours, ou de la prochaine quand elle approche.
+     *
+     * Les côtes sont celles que le Karoo a lui-même identifiées sur l'itinéraire ; on ne
+     * cherche pas à en détecter d'autres. Au-delà de [CLIMB_BAND_LOOKAHEAD] le bandeau
+     * disparaît : une côte à trente kilomètres n'a pas à prendre de la place à l'écran.
+     */
+    private fun climbBand(state: GuidanceState): ClimbBandModel? {
+        val route = state.route ?: return null
+        val along = state.distanceAlongRoute ?: return null
+        val status = Guidance.climbStatus(route, along) ?: return null
+        if (!status.onClimb && status.distanceToStart > CLIMB_BAND_LOOKAHEAD) return null
+
+        val climb = status.climb
+        val window = Guidance.profileWindow(route, climb.startDistance, lookahead = climb.length)
+        if (window.isEmpty) return null
+
+        return ClimbBandModel(
+            window = window,
+            position = along,
+            positionElevation = route.profile?.elevationAt(along),
         )
     }
 
@@ -317,5 +343,8 @@ class DashboardDataType(
          * relevés seraient produits pour rien, et l'œil n'aurait pas le temps de lire.
          */
         private const val PREVIEW_INTERVAL_MS = 2_000L
+
+        /** Distance au pied à partir de laquelle le bandeau de montée apparaît (m). */
+        private const val CLIMB_BAND_LOOKAHEAD = 5_000.0
     }
 }

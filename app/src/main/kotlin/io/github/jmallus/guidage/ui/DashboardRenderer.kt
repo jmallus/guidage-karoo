@@ -10,6 +10,7 @@ import android.graphics.Typeface
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import io.github.jmallus.guidage.core.Contrast
+import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
 import kotlin.math.max
@@ -47,6 +48,20 @@ data class Tile(
     @DrawableRes val icon: Int? = null,
 )
 
+/**
+ * Bandeau de montée : le profil de la côte en cours ou toute proche.
+ *
+ * Il n'apparaît que lorsque le Karoo a identifié une côte ; le reste du temps la place
+ * revient aux autres champs.
+ */
+data class ClimbBandModel(
+    val window: ProfileWindow,
+    /** Position courante sur l'itinéraire (m), pour placer le repère du coureur. */
+    val position: Double,
+    /** Altitude à cette position (m) ; sans elle le repère se pose sur le profil. */
+    val positionElevation: Double?,
+)
+
 /** Ce qu'on affiche dans la colonne de guidage, à droite des mesures. */
 sealed interface GuidanceZone {
     data class Map(val model: MapModel) : GuidanceZone
@@ -69,6 +84,8 @@ data class DashboardModel(
     val sideTile: Tile?,
     /** Distance restante et heure d'arrivée. */
     val footerTiles: List<Tile>,
+    /** Profil de la côte, sous la dernière ligne, quand il y en a une. */
+    val climbBand: ClimbBandModel? = null,
     val palette: Palette,
 )
 
@@ -92,13 +109,20 @@ object DashboardRenderer {
     /** Taille du suffixe, en part de celle de la valeur. */
     private const val SUFFIX_RATIO = 0.52f
 
+    /** Hauteur du bandeau de montée, quand il y en a un. */
+    private const val CLIMB_BAND_FRACTION = 0.10f
+
     fun render(context: Context, width: Int, height: Int, model: DashboardModel): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
         val padding = (min(width, height) * 0.015f).coerceIn(2f, 6f)
         val columnSplit = width * TILE_COLUMN_FRACTION
-        val mainBottom = height * MAIN_HEIGHT_FRACTION
+
+        // Le bandeau de montée mange le bas de l'écran ; tout le reste se serre au-dessus.
+        val bandHeight = if (model.climbBand == null) 0f else height * CLIMB_BAND_FRACTION
+        val contentHeight = height - bandHeight
+        val mainBottom = contentHeight * MAIN_HEIGHT_FRACTION
         val rowHeight = (mainBottom - padding) / model.tiles.size.coerceAtLeast(1)
 
         // Colonne gauche : les quatre mesures.
@@ -143,15 +167,134 @@ object DashboardRenderer {
             canvas = canvas,
             bounds = model.footerTiles.indices.map { index ->
                 val left = padding + index * footerWidth
-                RectF(left, mainBottom, left + footerWidth, height - padding)
+                RectF(left, mainBottom, left + footerWidth, contentHeight - padding)
             },
             tiles = model.footerTiles,
             palette = model.palette,
             valueFraction = FOOTER_VALUE_HEIGHT_FRACTION,
             labelFraction = FOOTER_LABEL_HEIGHT_FRACTION,
         )
+
+        // Tout en bas : le profil de la côte, sur toute la largeur.
+        model.climbBand?.let { band ->
+            drawClimbBand(
+                canvas = canvas,
+                area = RectF(padding, contentHeight, width - padding, height.toFloat()),
+                model = band,
+                palette = model.palette,
+            )
+        }
         return bitmap
     }
+
+    // --- Bandeau de montée -----------------------------------------------------------------
+
+    /**
+     * Profil de la côte : une silhouette colorée par la pente, surmontée d'un filet, avec
+     * un repère à la position du coureur et un autre au sommet.
+     *
+     * La couleur est portée par la silhouette plutôt que par une courbe : c'est ce qui se
+     * lit d'un coup d'œil sur une bande de quelques dizaines de pixels de haut.
+     */
+    private fun drawClimbBand(canvas: Canvas, area: RectF, model: ClimbBandModel, palette: Palette) {
+        val window = model.window
+        if (window.isEmpty || area.width() <= 0 || area.height() <= 0) return
+        val distanceSpan = window.distanceSpan.takeIf { it > 0 } ?: return
+        val elevationSpan = window.elevationSpan.takeIf { it > 0 } ?: return
+
+        fun x(distance: Double) =
+            area.left + ((distance - window.start) / distanceSpan * area.width()).toFloat()
+
+        fun y(elevation: Double) =
+            area.bottom - ((elevation - window.minElevation) / elevationSpan * area.height()).toFloat()
+
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        val points = window.points
+        for (index in 1 until points.size) {
+            val previous = points[index - 1]
+            val current = points[index]
+            val length = current.distance - previous.distance
+            if (length <= 0) continue
+            val grade = (current.elevation - previous.elevation) / length * 100.0
+            fill.color = FieldPalette.gradeColor(grade)
+            canvas.drawPath(
+                Path().apply {
+                    moveTo(x(previous.distance), area.bottom)
+                    lineTo(x(previous.distance), y(previous.elevation))
+                    lineTo(x(current.distance), y(current.elevation))
+                    lineTo(x(current.distance), area.bottom)
+                    close()
+                },
+                fill,
+            )
+        }
+
+        val ridge = Path()
+        points.forEachIndexed { index, point ->
+            if (index == 0) {
+                ridge.moveTo(x(point.distance), y(point.elevation))
+            } else {
+                ridge.lineTo(x(point.distance), y(point.elevation))
+            }
+        }
+        canvas.drawPath(
+            ridge,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 2.5f
+                strokeJoin = Paint.Join.ROUND
+                color = palette.position
+            },
+        )
+
+        val markerRadius = (area.height() * 0.13f).coerceIn(4f, 9f)
+        points.lastOrNull()?.let { summit ->
+            drawMarker(canvas, x(summit.distance), y(summit.elevation), markerRadius, SUMMIT_MARKER)
+        }
+        if (model.position in window.start..window.end) {
+            val elevation = model.positionElevation ?: elevationAt(points, model.position)
+            drawMarker(canvas, x(model.position), y(elevation), markerRadius, RIDER_MARKER)
+        }
+    }
+
+    /** Repère circulaire cerné de sombre, pour rester visible sur toutes les pentes. */
+    private fun drawMarker(canvas: Canvas, x: Float, y: Float, radius: Float, color: Int) {
+        canvas.drawCircle(
+            x,
+            y,
+            radius,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.color = color
+                style = Paint.Style.FILL
+            },
+        )
+        canvas.drawCircle(
+            x,
+            y,
+            radius,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.color = MARKER_BORDER
+                style = Paint.Style.STROKE
+                strokeWidth = 1.5f
+            },
+        )
+    }
+
+    /** Altitude interpolée sur les points de la fenêtre, faute de mesure directe. */
+    private fun elevationAt(points: List<ProfilePoint>, distance: Double): Double {
+        val next = points.indexOfFirst { it.distance >= distance }
+        if (next <= 0) return points.first().elevation
+        val before = points[next - 1]
+        val after = points[next]
+        val span = after.distance - before.distance
+        if (span <= 0) return after.elevation
+        val ratio = (distance - before.distance) / span
+        return before.elevation + (after.elevation - before.elevation) * ratio
+    }
+
+    private const val RIDER_MARKER = 0xFFF2C037.toInt()
+    private const val SUMMIT_MARKER = 0xFFFFFFFF.toInt()
+    private const val MARKER_BORDER = 0xFF1A1A1A.toInt()
 
     // --- Cases de chiffres ---------------------------------------------------------------
 
