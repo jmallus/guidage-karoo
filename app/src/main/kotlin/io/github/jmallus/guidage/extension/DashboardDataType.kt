@@ -45,8 +45,11 @@ import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.ViewConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
 /**
@@ -71,7 +74,7 @@ class DashboardDataType(
 
             combine(
                 guidanceProvider.snapshot,
-                rideDataProvider.data,
+                if (config.preview) previewRide() else rideDataProvider.data,
                 settingsRepository.settings,
             ) { snapshot, rideData, settings ->
                 buildModel(context, snapshot, rideData, settings, config)
@@ -87,6 +90,23 @@ class DashboardDataType(
                 }
         }
         emitter.setCancellable { job.cancel() }
+    }
+
+    /**
+     * Valeurs qui défilent dans le sélecteur de champs.
+     *
+     * Un champ figé sur « -- » ne dit rien de ce qu'il donnera en roulant : en faisant
+     * tourner quelques relevés plausibles, le coureur voit la mise en page réelle et la
+     * coloration par zone avant de poser le champ sur une page.
+     */
+    private fun previewRide(): Flow<RideData> = flow {
+        val samples = PreviewData.rideSamples(System.currentTimeMillis())
+        var index = 0
+        while (true) {
+            emit(samples[index % samples.size])
+            index++
+            delay(PREVIEW_INTERVAL_MS)
+        }
     }
 
     @Composable
@@ -289,5 +309,13 @@ class DashboardDataType(
         const val TYPE_ID = "tableau"
         private const val PLACEHOLDER = "--"
         private const val METERS_PER_MILE = 1609.344
+
+        /**
+         * Cadence de défilement de l'aperçu.
+         *
+         * Le système ne rafraîchit une vue qu'environ une fois par seconde : en deçà, des
+         * relevés seraient produits pour rien, et l'œil n'aurait pas le temps de lire.
+         */
+        private const val PREVIEW_INTERVAL_MS = 2_000L
     }
 }

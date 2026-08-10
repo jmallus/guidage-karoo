@@ -208,6 +208,10 @@ object DashboardRenderer {
 
         tile.background?.let { canvas.drawRect(bounds, Paint().apply { color = it }) }
 
+        // Sur fond neutre l'icône est verte ; sur un aplat de zone elle suit l'encre, le
+        // vert n'ayant aucune raison d'être lisible sur les sept couleurs de la palette.
+        val iconInk = if (tile.background == null) palette.iconTint else labelInk
+
         val labelPaint = paint(labelSize, labelInk, Typeface.DEFAULT_BOLD)
         val valuePaint = paint(valueSize, ink, LIGHT_TYPEFACE)
         val suffixPaint = paint(valueSize * SUFFIX_RATIO, ink, LIGHT_TYPEFACE)
@@ -216,7 +220,7 @@ object DashboardRenderer {
         val valueHeight = valuePaint.descent() - valuePaint.ascent()
         val top = bounds.centerY() - (labelHeight + valueHeight) / 2f
 
-        drawLabelRow(context, canvas, bounds, tile, labelPaint, labelInk, top, labelSize)
+        drawLabelRow(context, canvas, bounds, tile, labelPaint, iconInk, top, labelSize)
 
         // La valeur et son suffixe forment un bloc unique, centré et posé sur une base commune.
         val valueWidth = valuePaint.measureText(tile.value)
@@ -235,7 +239,7 @@ object DashboardRenderer {
         bounds: RectF,
         tile: Tile,
         labelPaint: Paint,
-        labelInk: Int,
+        iconInk: Int,
         top: Float,
         labelSize: Float,
     ) {
@@ -248,7 +252,7 @@ object DashboardRenderer {
             val drawable = ContextCompat.getDrawable(context, resource)
             if (drawable != null) {
                 val iconTop = top + (labelPaint.descent() - labelPaint.ascent() - iconSize) / 2f
-                drawable.setTint(labelInk)
+                drawable.setTint(iconInk)
                 drawable.setBounds(
                     left.roundToInt(),
                     iconTop.roundToInt(),

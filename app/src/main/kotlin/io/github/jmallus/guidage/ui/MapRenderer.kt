@@ -93,13 +93,13 @@ object MapRenderer {
         if (model.path.size < 2) return
         val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 9f
+            strokeWidth = ROUTE_WIDTH
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             color = palette.routeLine
         }
         val outline = Paint(line).apply {
-            strokeWidth = 13f
+            strokeWidth = ROUTE_WIDTH + ROUTE_OUTLINE_WIDTH * 2
             color = palette.routeOutline
         }
 
@@ -124,7 +124,7 @@ object MapRenderer {
     private fun drawDirectionChevrons(canvas: Canvas, points: List<PlanePoint>, palette: Palette) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 3f
+            strokeWidth = 6f
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             color = palette.routeOutline
@@ -252,9 +252,18 @@ object MapRenderer {
     /** Rayon d'arrondi des sommets de la flèche, en part de sa taille. */
     private const val CORNER_RATIO = 0.22f
 
-    /** Espacement des chevrons de direction, en pixels. */
-    private const val CHEVRON_SPACING = 42f
-    private const val CHEVRON_SIZE = 4.5f
+    /** Épaisseur du tracé et de son cerne, en pixels. */
+    private const val ROUTE_WIDTH = 18f
+    private const val ROUTE_OUTLINE_WIDTH = 4f
+
+    /**
+     * Espacement et taille des chevrons de direction.
+     *
+     * Ils suivent l'épaisseur du tracé : posés dessus, ils disparaîtraient sous un trait
+     * deux fois plus large s'ils gardaient leur taille d'origine.
+     */
+    private const val CHEVRON_SPACING = 60f
+    private const val CHEVRON_SIZE = 9f
 
     /**
      * Distance jusqu'au prochain virage, en pastille au bas de la carte.

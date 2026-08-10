@@ -19,6 +19,8 @@ data class Palette(
     val position: Int,
     val routeLine: Int,
     val routeOutline: Int,
+    /** Teinte des icônes de champ, sur fond neutre. */
+    val iconTint: Int,
 )
 
 object FieldPalette {
@@ -31,6 +33,7 @@ object FieldPalette {
         position = 0xFF1565C0.toInt(),
         routeLine = 0xFFE6E24C.toInt(),
         routeOutline = 0xFF1A1A1A.toInt(),
+        iconTint = ICON_TINT,
     )
 
     private val DARK = Palette(
@@ -41,7 +44,16 @@ object FieldPalette {
         position = 0xFF64B5F6.toInt(),
         routeLine = 0xFFE6E24C.toInt(),
         routeOutline = 0xFF1A1A1A.toInt(),
+        iconTint = ICON_TINT,
     )
+
+    /**
+     * Vert des icônes de champ, repris de Barberfish.
+     *
+     * Il reste le même en thème clair comme en sombre : assez soutenu pour tenir sur du
+     * blanc, assez lumineux pour tenir sur du noir.
+     */
+    private const val ICON_TINT = 0xFF31E09A.toInt()
 
     /**
      * Palette adaptée au thème courant du Karoo.
