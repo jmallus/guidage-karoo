@@ -10,6 +10,14 @@ on:
   # par exemple après avoir ajouté les secrets GPR_USER / GPR_KEY.
   workflow_dispatch:
 
+# Une poussée déclenche deux constructions — l'une pour la branche, l'autre pour la PR —
+# et plusieurs poussées rapprochées les empilent. Toutes publient la même Release, ce qui
+# finit par se voir : GitHub refuse la rafale d'écritures et renvoie un 403. Une seule
+# construction par référence à la fois, les précédentes cédant la place.
+concurrency:
+  group: construction-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   core-tests:
     # La logique de guidage et l'outillage se testent sans karoo-ext ni SDK Android :
@@ -76,11 +84,17 @@ jobs:
               --title "Guidage $GITHUB_REF_NAME" --notes-file notes.md \
               || gh release upload "$GITHUB_REF_NAME" guidage-karoo.apk --clobber
           else
-            # Release « latest » recréée à chaque construction : le lien ne change jamais.
-            gh release delete latest --yes --cleanup-tag || true
-            gh release create latest guidage-karoo.apk \
-              --target "$GITHUB_SHA" --prerelease \
-              --title "Guidage — dernière construction" --notes-file notes.md
+            # Release « latest » mise à jour en place : le lien ne change jamais, et on
+            # évite le couple supprimer/recréer, qui détruisait le lien le temps de la
+            # reconstruction et doublait les écritures.
+            if gh release view latest >/dev/null 2>&1; then
+              gh release upload latest guidage-karoo.apk --clobber
+              gh release edit latest --notes-file notes.md
+            else
+              gh release create latest guidage-karoo.apk \
+                --target "$GITHUB_SHA" --prerelease \
+                --title "Guidage — dernière construction" --notes-file notes.md
+            fi
           fi
         env:
           GH_TOKEN: ${{ github.token }}
