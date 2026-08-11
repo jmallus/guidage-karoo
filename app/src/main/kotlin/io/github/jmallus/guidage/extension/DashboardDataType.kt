@@ -146,7 +146,7 @@ class DashboardDataType(
         return DashboardModel(
             guidance = when (settings.guidanceZone) {
                 GuidanceZoneType.MAP ->
-                    GuidanceZone.Map(mapModel(context, snapshot, state, settings, preview, rideData))
+                    GuidanceZone.Map(mapModel(context, snapshot, state, settings, preview))
                 GuidanceZoneType.PROFILE -> GuidanceZone.Profile(profileModel(context, state, settings))
             },
             tiles = effortTiles(context, units, rideData),
@@ -187,15 +187,11 @@ class DashboardDataType(
         state: GuidanceState,
         settings: GuidageSettings,
         preview: Boolean,
-        rideData: RideData,
     ): MapModel {
         val route = state.route
         val location = if (preview) PreviewData.location else snapshot.location
         val position = location?.position
         return MapModel(
-            nextTurnLabel = rideData.distanceToNextTurn?.let {
-                Format.distance(it, snapshot.units)
-            },
             // On lit un peu au-delà du cadre : en cap en haut, la fenêtre tourne avec le
             // coureur et ses coins balaient plus loin que la portée annoncée.
             roads = position?.let {

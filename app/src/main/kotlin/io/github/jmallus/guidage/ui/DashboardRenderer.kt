@@ -319,7 +319,7 @@ object DashboardRenderer {
         val labelSize = (cellHeight * labelFraction).coerceIn(9f, 26f)
         val preferred = cellHeight * valueFraction
         val valueSize = tiles.zip(bounds).minOf { (tile, box) ->
-            fitValueSize(tile, box.width() - 12f, preferred)
+            fitValueSize(tile, box.width() - EDGE_INSET * 2, preferred)
         }
 
         tiles.zip(bounds).forEach { (tile, box) ->
@@ -328,7 +328,11 @@ object DashboardRenderer {
     }
 
     /**
-     * Une case : son libellé précédé d'une icône, la valeur en dessous, le tout centré.
+     * Une case : l'icône calée à gauche, le libellé et la valeur alignés à droite.
+     *
+     * L'alignement à droite fait tomber les unités et les chiffres des poids faibles sur
+     * une même verticale d'une case à l'autre : l'œil compare alors les valeurs sans avoir
+     * à les recentrer lui-même, ce que le centrage lui imposait.
      *
      * Sur un aplat de couleur, l'encre passe au noir ou reste au blanc selon ce qui se lit
      * le mieux — le jaune de la zone 3 réclame du noir là où le rouge de la zone 6 non.
@@ -373,25 +377,33 @@ object DashboardRenderer {
 
         val labelHeight = labelPaint.descent() - labelPaint.ascent()
         val valueHeight = valuePaint.descent() - valuePaint.ascent()
-        val top = bounds.centerY() - (labelHeight + valueHeight) / 2f
+        // Le bloc est descendu d'une fraction de sa hauteur de libellé : centré au pixel près,
+        // il paraissait haut dans la case, les chiffres n'ayant pas de jambages pour occuper
+        // le bas de leur ligne.
+        val drop = (labelHeight * BLOCK_DROP_RATIO)
+            .coerceAtMost((bounds.height() - labelHeight - valueHeight) / 2f)
+            .coerceAtLeast(0f)
+        val top = bounds.centerY() - (labelHeight + valueHeight) / 2f + drop
+        val right = bounds.right - EDGE_INSET
 
-        drawLabelRow(context, canvas, bounds, tile, labelPaint, iconInk, top, labelSize)
+        drawLabelRow(context, canvas, bounds, right, tile, labelPaint, iconInk, top, labelSize)
 
-        // La valeur et son suffixe forment un bloc unique, centré et posé sur une base commune.
+        // La valeur et son suffixe forment un bloc unique, aligné à droite sur une base commune.
         val valueWidth = valuePaint.measureText(tile.value)
         val suffixWidth = tile.suffix?.let { suffixPaint.measureText(it) } ?: 0f
-        val left = bounds.centerX() - (valueWidth + suffixWidth) / 2f
+        val left = right - (valueWidth + suffixWidth)
         val baseline = top + labelHeight - valuePaint.ascent()
 
         canvas.drawText(tile.value, left, baseline, valuePaint)
         tile.suffix?.let { canvas.drawText(it, left + valueWidth, baseline, suffixPaint) }
     }
 
-    /** Le libellé, précédé de son icône, centrés ensemble en haut de la case. */
+    /** L'icône contre le bord gauche de la case, le libellé aligné à droite comme la valeur. */
     private fun drawLabelRow(
         context: Context,
         canvas: Canvas,
         bounds: RectF,
+        right: Float,
         tile: Tile,
         labelPaint: Paint,
         iconInk: Int,
@@ -400,12 +412,13 @@ object DashboardRenderer {
     ) {
         val iconSize = labelSize * ICON_RATIO
         val labelWidth = labelPaint.measureText(tile.label)
-        val iconWidth = if (tile.icon == null) 0f else iconSize + ICON_GAP
-        var left = bounds.centerX() - (labelWidth + iconWidth) / 2f
 
         tile.icon?.let { resource ->
             val drawable = ContextCompat.getDrawable(context, resource)
             if (drawable != null) {
+                // L'icône est plus grande que le libellé et se pose sur la même ligne médiane :
+                // à gauche de la case, elle sert de repère avant même qu'on lise le mot.
+                val left = bounds.left + EDGE_INSET
                 val iconTop = top + (labelPaint.descent() - labelPaint.ascent() - iconSize) / 2f
                 drawable.setTint(iconInk)
                 drawable.setBounds(
@@ -416,10 +429,9 @@ object DashboardRenderer {
                 )
                 drawable.draw(canvas)
             }
-            left += iconWidth
         }
 
-        canvas.drawText(tile.label, left, top - labelPaint.ascent(), labelPaint)
+        canvas.drawText(tile.label, right - labelWidth, top - labelPaint.ascent(), labelPaint)
     }
 
     /** Plus grande taille de valeur tenant dans la largeur, suffixe compris. */
@@ -439,7 +451,12 @@ object DashboardRenderer {
     private const val TILE_BORDER = 0xFF000000.toInt()
     private const val TILE_BORDER_WIDTH = 3f
     private const val ICON_RATIO = 1.15f
-    private const val ICON_GAP = 6f
+
+    /** Marge entre le bord de la case et ce qu'elle contient. */
+    private const val EDGE_INSET = 8f
+
+    /** Descente du bloc libellé + valeur, en part de la hauteur du libellé. */
+    private const val BLOCK_DROP_RATIO = 0.45f
     private val LIGHT_TYPEFACE: Typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
 
     // --- Colonne de guidage en mode profil ------------------------------------------------

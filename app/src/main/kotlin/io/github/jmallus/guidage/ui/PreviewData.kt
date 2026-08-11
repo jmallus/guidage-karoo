@@ -121,7 +121,6 @@ object PreviewData {
         heartRate = heartRate,
         cadence = cadence,
         grade = grade,
-        distanceToNextTurn = 240.0,
         distanceRemaining = distanceRemaining,
         arrivalTime = (nowMilliseconds + minutesToArrival * 60_000L).toDouble(),
         powerZones = previewPowerZones,

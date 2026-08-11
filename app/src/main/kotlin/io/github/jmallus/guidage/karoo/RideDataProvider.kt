@@ -23,8 +23,6 @@ data class RideData(
     val heartRate: Double? = null,
     val cadence: Double? = null,
     val grade: Double? = null,
-    /** Distance jusqu'au prochain virage ; le Karoo n'en expose pas la nature. */
-    val distanceToNextTurn: Double? = null,
     val distanceRemaining: Double? = null,
     val arrivalTime: Double? = null,
     /** Zones réglées sur l'appareil, qui donnent leur couleur aux cases. */
@@ -50,9 +48,8 @@ class RideDataProvider(
             heartRate = values[3],
             cadence = values[4],
             grade = values[5],
-            distanceToNextTurn = values[6],
-            distanceRemaining = values[7],
-            arrivalTime = values[8],
+            distanceRemaining = values[6],
+            arrivalTime = values[7],
             powerZones = profile.first,
             heartRateZones = profile.second,
         )
@@ -68,8 +65,7 @@ class RideDataProvider(
             value(DataType.Type.HEART_RATE),
             value(DataType.Type.SMOOTHED_3S_AVERAGE_CADENCE),
             value(DataType.Type.ELEVATION_GRADE),
-            // Ces deux types portent aussi l'état de navigation : il faut nommer le champ voulu.
-            field(DataType.Type.DISTANCE_TO_NEXT_TURN, DataType.Field.DISTANCE_TO_NEXT_TURN),
+            // Ce type porte aussi l'état de navigation : il faut nommer le champ voulu.
             field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.DISTANCE_TO_DESTINATION),
             value(DataType.Type.TIME_OF_ARRIVAL),
         ),
