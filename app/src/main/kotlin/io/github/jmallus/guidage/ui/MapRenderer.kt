@@ -216,14 +216,18 @@ object MapRenderer {
         palette: Palette,
         routeWidth: Float,
     ) {
-        // Les chevrons sont posés sur le tracé : ils suivent son épaisseur, sinon ils
-        // disparaissent dessous à faible portée et le débordent à grande portée.
-        val size = routeWidth * CHEVRON_SIZE_RATIO
+        // Les chevrons débordent le ruban de part et d'autre, cerne compris : c'est ce
+        // débord qui les fait lire comme des pointes posées dessus. Contenus dans la
+        // largeur du tracé, ils s'y noieraient — le tracé est jaune comme eux.
         val spacing = routeWidth * CHEVRON_SPACING_RATIO
         val stroke = routeWidth * CHEVRON_STROKE_RATIO
+        val borderWidth = stroke + (stroke * CHEVRON_BORDER_RATIO).coerceAtLeast(1.6f) * 2
+        val halfSpan =
+            routeWidth / 2 + ROUTE_OUTLINE_WIDTH + routeWidth * CHEVRON_OVERHANG_RATIO
+        val size = ((halfSpan - borderWidth / 2) / CHEVRON_ARM).coerceAtLeast(routeWidth * 0.4f)
         val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = stroke + (stroke * CHEVRON_BORDER_RATIO).coerceAtLeast(1.6f) * 2
+            strokeWidth = borderWidth
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             color = ARROW_BORDER_COLOR
@@ -360,8 +364,14 @@ object MapRenderer {
     private const val ARROW_BORDER_COLOR = 0xFF1E1E1E.toInt()
     private const val ARROW_BORDER_WIDTH = 2.5f
 
-    /** Rayon d'arrondi des sommets de la flèche, en part de sa taille. */
-    private const val CORNER_RATIO = 0.22f
+    /**
+     * Rayon d'arrondi des sommets de la flèche, en part de sa taille.
+     *
+     * Juste de quoi ôter l'agressivité des pointes : au-delà, la flèche s'émousse et perd
+     * la franchise de direction qui fait tout son intérêt. Sa taille hors tout n'en dépend
+     * pas — la silhouette est calculée en retrait du rayon.
+     */
+    private const val CORNER_RATIO = 0.10f
 
     /**
      * Silhouette de la flèche, en part de sa demi-hauteur : demi-largeur, ordonnée des
@@ -383,8 +393,10 @@ object MapRenderer {
 
     /** Chevrons de direction, exprimés en part de l'épaisseur du tracé. */
     private const val CHEVRON_SPACING_RATIO = 4.3f
-    private const val CHEVRON_SIZE_RATIO = 0.58f
     private const val CHEVRON_STROKE_RATIO = 0.43f
+
+    /** Débord du chevron au-delà du bord du tracé, cerne du tracé compris. */
+    private const val CHEVRON_OVERHANG_RATIO = 0.35f
 
     /** Cerne du chevron, en part de son propre trait. */
     private const val CHEVRON_BORDER_RATIO = 0.35f

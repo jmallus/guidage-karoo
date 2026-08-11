@@ -60,6 +60,8 @@ data class ClimbBandModel(
     val position: Double,
     /** Altitude à cette position (m) ; sans elle le repère se pose sur le profil. */
     val positionElevation: Double?,
+    /** Rang de la côte sur l'itinéraire, façon « 1/5 ». */
+    val label: String? = null,
 )
 
 /** Ce qu'on affiche dans la colonne de guidage, à droite des mesures. */
@@ -191,7 +193,7 @@ object DashboardRenderer {
 
     /**
      * Profil de la côte : une silhouette colorée par la pente, surmontée d'un filet, avec
-     * un repère à la position du coureur et un autre au sommet.
+     * un repère à la position du coureur et le rang de la côte sur l'itinéraire.
      *
      * La couleur est portée par la silhouette plutôt que par une courbe : c'est ce qui se
      * lit d'un coup d'œil sur une bande de quelques dizaines de pixels de haut.
@@ -248,12 +250,28 @@ object DashboardRenderer {
         )
 
         val markerRadius = (area.height() * 0.13f).coerceIn(4f, 9f)
-        points.lastOrNull()?.let { summit ->
-            drawMarker(canvas, x(summit.distance), y(summit.elevation), markerRadius, SUMMIT_MARKER)
-        }
         if (model.position in window.start..window.end) {
             val elevation = model.positionElevation ?: elevationAt(points, model.position)
             drawMarker(canvas, x(model.position), y(elevation), markerRadius, RIDER_MARKER)
+        }
+
+        // Le rang de la côte se pose en haut à gauche : le profil part du bas de la bande à
+        // gauche pour monter vers la droite, ce coin est donc toujours vide.
+        model.label?.let { label ->
+            val size = (area.height() * 0.42f).coerceIn(11f, 22f)
+            val x = area.left + 4f
+            val baseline = area.top + size
+            canvas.drawText(
+                label,
+                x,
+                baseline,
+                paint(size, MARKER_BORDER, Typeface.DEFAULT_BOLD).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = size * 0.22f
+                    strokeJoin = Paint.Join.ROUND
+                },
+            )
+            canvas.drawText(label, x, baseline, paint(size, palette.textPrimary, Typeface.DEFAULT_BOLD))
         }
     }
 
@@ -293,7 +311,6 @@ object DashboardRenderer {
     }
 
     private const val RIDER_MARKER = 0xFFF2C037.toInt()
-    private const val SUMMIT_MARKER = 0xFFFFFFFF.toInt()
     private const val MARKER_BORDER = 0xFF1A1A1A.toInt()
 
     // --- Cases de chiffres ---------------------------------------------------------------

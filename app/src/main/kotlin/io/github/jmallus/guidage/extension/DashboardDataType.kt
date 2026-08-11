@@ -178,6 +178,7 @@ class DashboardDataType(
             window = window,
             position = along,
             positionElevation = route.profile?.elevationAt(along),
+            label = "${status.number}/${status.totalClimbs}",
         )
     }
 
