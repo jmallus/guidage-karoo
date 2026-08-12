@@ -10,7 +10,13 @@ import io.github.jmallus.guidage.core.map.RoadSurface
  * départementale reste une départementale à toutes les échelles, et qu'en dézoomant le
  * réseau s'affine au lieu de s'épaissir en bouillie.
  *
- * L'ensemble reste volontairement sourd. Le fond n'est pas là pour être regardé mais pour
+ * Le fond est clair, comme une carte papier, et non sombre. L'écran du Karoo est
+ * transflectif : en plein soleil il ne s'éclaire pas davantage, il **réfléchit**. Un fond
+ * noir n'y renvoie rien et l'écran devient un miroir ; un fond clair renvoie la lumière du
+ * jour et se lit d'autant mieux qu'il y en a. C'est l'inverse de ce qu'on attend d'un écran
+ * de téléphone, et c'est pour cela que toutes les cartes de compteur sont sur fond clair.
+ *
+ * Les voies restent sourdes malgré tout : le fond n'est pas là pour être regardé mais pour
  * situer le tracé, qui doit rester la chose la plus visible de l'écran.
  */
 object RoadStyle {
@@ -58,12 +64,15 @@ object RoadStyle {
         else -> false
     }
 
-    /** Fond de la carte quand elle porte des voies : un noir légèrement adouci. */
-    const val BACKGROUND = 0xFF12161A.toInt()
+    /** Fond de la carte : le blanc cassé des cartes d'état-major, qui ne brûle pas les yeux. */
+    const val BACKGROUND = 0xFFF2EFE8.toInt()
 
-    private const val MAJOR = 0xFF4E585D.toInt()
-    private const val MINOR = 0xFF3C454B.toInt()
-    private const val SERVICE = 0xFF333B41.toInt()
-    private const val TRAIL = 0xFF5F5646.toInt()
-    private const val FAINT = 0xFF242A2F.toInt()
+    /** Encre des mentions portées sur la carte — échelle, messages — sur ce fond clair. */
+    const val INK = 0xFF2A2F33.toInt()
+
+    private const val MAJOR = 0xFF5A6167.toInt()
+    private const val MINOR = 0xFF868D93.toInt()
+    private const val SERVICE = 0xFFAAB0B5.toInt()
+    private const val TRAIL = 0xFF9A6B33.toInt()
+    private const val FAINT = 0xFFD3CEC4.toInt()
 }

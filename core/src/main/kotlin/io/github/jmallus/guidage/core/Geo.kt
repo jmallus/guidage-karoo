@@ -1,5 +1,6 @@
 package io.github.jmallus.guidage.core
 
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -52,6 +53,27 @@ object Geo {
     /** Projette puis oriente d'un seul geste. */
     fun toTrackUpPlane(origin: GeoPoint, headingDegrees: Double, point: GeoPoint): PlanePoint =
         rotateToHeading(project(origin, point), headingDegrees)
+
+    /**
+     * Avance une position de [meters] dans la direction [headingDegrees] (0° = nord).
+     *
+     * Sert à rattraper le retard du point GPS : le Karoo rapporte une position déjà vieille
+     * de quelques secondes, ce qui, à trente kilomètres à l'heure, place le coureur une
+     * bonne vingtaine de mètres derrière lui-même. On prolonge donc son mouvement en ligne
+     * droite depuis le dernier point connu, ce qui est exact tant qu'il ne tourne pas et
+     * reste bien meilleur que l'attendre.
+     */
+    fun advance(origin: GeoPoint, headingDegrees: Double, meters: Double): GeoPoint {
+        if (meters == 0.0) return origin
+        val heading = Math.toRadians(headingDegrees)
+        val north = meters * cos(heading)
+        val east = meters * sin(heading)
+        val cosine = cos(Math.toRadians(origin.lat)).let { if (abs(it) < 0.01) 0.01 else it }
+        return GeoPoint(
+            lat = origin.lat + north / METERS_PER_DEGREE_LATITUDE,
+            lng = origin.lng + east / (METERS_PER_DEGREE_LONGITUDE * cosine),
+        )
+    }
 
     /** Distance approchée entre deux positions (m). */
     fun distance(from: GeoPoint, to: GeoPoint): Double {

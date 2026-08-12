@@ -1,5 +1,6 @@
 package io.github.jmallus.guidage.karoo
 
+import io.github.jmallus.guidage.core.Drivetrain
 import io.github.jmallus.guidage.core.ZoneRange
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
@@ -23,8 +24,12 @@ data class RideData(
     val heartRate: Double? = null,
     val cadence: Double? = null,
     val grade: Double? = null,
+    /** Distance parcourue depuis le départ (m). */
+    val distance: Double? = null,
     val distanceRemaining: Double? = null,
     val arrivalTime: Double? = null,
+    /** Rapport engagé, quand le groupe le rapporte. */
+    val drivetrain: Drivetrain = Drivetrain.UNKNOWN,
     /** Zones réglées sur l'appareil, qui donnent leur couleur aux cases. */
     val powerZones: List<ZoneRange> = emptyList(),
     val heartRateZones: List<ZoneRange> = emptyList(),
@@ -40,7 +45,7 @@ class RideDataProvider(
     private val karooSystem: KarooSystemService,
     scope: CoroutineScope,
 ) {
-    val data: StateFlow<RideData> = combine(metrics(), zones()) { values, profile ->
+    val data: StateFlow<RideData> = combine(metrics(), zones(), gears()) { values, profile, drivetrain ->
         RideData(
             speed = values[0],
             averageSpeed = values[1],
@@ -48,8 +53,10 @@ class RideDataProvider(
             heartRate = values[3],
             cadence = values[4],
             grade = values[5],
-            distanceRemaining = values[6],
-            arrivalTime = values[7],
+            distance = values[6],
+            distanceRemaining = values[7],
+            arrivalTime = values[8],
+            drivetrain = drivetrain,
             powerZones = profile.first,
             heartRateZones = profile.second,
         )
@@ -65,6 +72,7 @@ class RideDataProvider(
             value(DataType.Type.HEART_RATE),
             value(DataType.Type.SMOOTHED_3S_AVERAGE_CADENCE),
             value(DataType.Type.ELEVATION_GRADE),
+            value(DataType.Type.DISTANCE),
             // Ce type porte aussi l'état de navigation : il faut nommer le champ voulu.
             field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.DISTANCE_TO_DESTINATION),
             value(DataType.Type.TIME_OF_ARRIVAL),
@@ -78,6 +86,27 @@ class RideDataProvider(
                 profile.powerZones.map { it.toRange() } to profile.heartRateZones.map { it.toRange() }
             }
             .onStart { emit(emptyList<ZoneRange>() to emptyList()) }
+
+    /**
+     * Rapport engagé, lu d'un seul flux.
+     *
+     * Les six champs — plateau, pignon, leur nombre et leurs dentures — voyagent dans le
+     * même point de donnée : les lire séparément multiplierait les abonnements pour rien,
+     * et rien ne garantirait qu'ils décrivent le même instant.
+     */
+    private fun gears(): Flow<Drivetrain> =
+        karooSystem.streamFieldsFlow(DataType.Type.SHIFTING_GEARS)
+            .map { fields ->
+                Drivetrain(
+                    front = fields[DataType.Field.SHIFTING_FRONT_GEAR]?.toInt(),
+                    frontCount = fields[DataType.Field.SHIFTING_FRONT_GEAR_MAX]?.toInt(),
+                    frontTeeth = fields[DataType.Field.SHIFTING_FRONT_GEAR_TEETH]?.toInt(),
+                    rear = fields[DataType.Field.SHIFTING_REAR_GEAR]?.toInt(),
+                    rearCount = fields[DataType.Field.SHIFTING_REAR_GEAR_MAX]?.toInt(),
+                    rearTeeth = fields[DataType.Field.SHIFTING_REAR_GEAR_TEETH]?.toInt(),
+                )
+            }
+            .onStart { emit(Drivetrain.UNKNOWN) }
 
     private fun value(dataTypeId: String) =
         karooSystem.streamValueFlow(dataTypeId).onStart { emit(null) }

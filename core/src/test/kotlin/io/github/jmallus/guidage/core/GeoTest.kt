@@ -8,6 +8,22 @@ class GeoTest {
     private val origin = GeoPoint(45.0, 5.0)
 
     @Test
+    fun `advance moves along the heading`() {
+        val north = Geo.advance(origin, 0.0, 100.0)
+        assertEquals(100.0, Geo.distance(origin, north), 0.5)
+        assertEquals(origin.lng, north.lng, 1e-9)
+        assertEquals(true, north.lat > origin.lat)
+
+        val east = Geo.advance(origin, 90.0, 100.0)
+        assertEquals(100.0, Geo.distance(origin, east), 0.5)
+        assertEquals(origin.lat, east.lat, 1e-9)
+        assertEquals(true, east.lng > origin.lng)
+
+        // Une avance nulle laisse la position intacte.
+        assertEquals(origin, Geo.advance(origin, 42.0, 0.0))
+    }
+
+    @Test
     fun `projection places north and east correctly`() {
         val north = Geo.project(origin, GeoPoint(45.001, 5.0))
         assertEquals(0.0, north.x, 1e-6)

@@ -1,5 +1,6 @@
 package io.github.jmallus.guidage.ui
 
+import io.github.jmallus.guidage.core.Drivetrain
 import io.github.jmallus.guidage.core.ElevationProfile
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.ProfilePoint
@@ -121,7 +122,16 @@ object PreviewData {
         heartRate = heartRate,
         cadence = cadence,
         grade = grade,
+        distance = 120_000.0 - distanceRemaining,
         distanceRemaining = distanceRemaining,
+        drivetrain = Drivetrain(
+            front = 2,
+            frontCount = 2,
+            frontTeeth = 50,
+            rear = minutesToArrival % 11 + 1,
+            rearCount = 11,
+            rearTeeth = 17,
+        ),
         arrivalTime = (nowMilliseconds + minutesToArrival * 60_000L).toDouble(),
         powerZones = previewPowerZones,
         heartRateZones = previewHeartRateZones,

@@ -20,6 +20,8 @@
     <string name="dashboard_label_heart_rate">FC</string>
     <string name="dashboard_label_cadence">CADENCE</string>
     <string name="dashboard_label_grade">PENTE</string>
+    <string name="dashboard_label_gears">VITESSE</string>
+    <string name="dashboard_label_distance">DISTANCE</string>
     <string name="dashboard_label_remaining">RESTANT %1$s</string>
     <string name="dashboard_label_arrival">ARRIVÉE</string>
     <string name="dashboard_zoom_whole_route">Parcours</string>

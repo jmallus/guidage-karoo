@@ -19,10 +19,10 @@ import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
+import io.github.jmallus.guidage.core.MAP_RANGE_METERS
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.Zones
-import kotlin.math.roundToInt
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
@@ -33,6 +33,7 @@ import io.github.jmallus.guidage.settings.SettingsRepository
 import io.github.jmallus.guidage.ui.ClimbBandModel
 import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
+import io.github.jmallus.guidage.ui.DrivetrainModel
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.GraphPoi
 import io.github.jmallus.guidage.ui.GuidanceZone
@@ -45,6 +46,7 @@ import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
 import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.ViewConfig
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -146,11 +148,13 @@ class DashboardDataType(
         return DashboardModel(
             guidance = when (settings.guidanceZone) {
                 GuidanceZoneType.MAP ->
-                    GuidanceZone.Map(mapModel(context, snapshot, state, settings, preview))
+                    GuidanceZone.Map(mapModel(context, snapshot, state, preview, rideData))
                 GuidanceZoneType.PROFILE -> GuidanceZone.Profile(profileModel(context, state, settings))
             },
-            tiles = effortTiles(context, units, rideData),
-            sideTile = gradeTile(context, rideData),
+            topTiles = effortTiles(context, units, rideData),
+            drivetrain = drivetrainModel(context, rideData),
+            heartRateTile = heartRateTile(context, rideData),
+            midTiles = midTiles(context, units, rideData),
             footerTiles = footerTiles(context, units, rideData),
             climbBand = climbBand(state),
             palette = FieldPalette.of(context),
@@ -186,25 +190,28 @@ class DashboardDataType(
         context: Context,
         snapshot: GuidanceSnapshot,
         state: GuidanceState,
-        settings: GuidageSettings,
         preview: Boolean,
+        rideData: RideData,
     ): MapModel {
         val route = state.route
         val location = if (preview) PreviewData.location else snapshot.location
-        val position = location?.position
+        // Le point rapporté par le Karoo a déjà quelques secondes ; on le prolonge à la
+        // vitesse courante, sans quoi le coureur se voit derrière lui-même à l'approche
+        // du carrefour, là précisément où il regarde la carte.
+        val position = location?.extrapolated(System.currentTimeMillis(), rideData.speed)
         return MapModel(
             // On lit un peu au-delà du cadre : en cap en haut, la fenêtre tourne avec le
             // coureur et ses coins balaient plus loin que la portée annoncée.
             roads = position?.let {
-                roadMapRepository.roadsAround(it, settings.mapRange.meters * ROADS_RADIUS_FACTOR)
+                roadMapRepository.roadsAround(it, MAP_RANGE_METERS * ROADS_RADIUS_FACTOR)
             }.orEmpty(),
             path = route?.path.orEmpty(),
-            position = location?.position,
+            position = position,
             heading = location?.heading,
             pois = route?.pois.orEmpty().mapNotNull { poi ->
                 poi.position?.let { MapPoi(it, PoiLabels.label(context, poi)) }
             },
-            rangeMeters = settings.mapRange.meters,
+            rangeMeters = MAP_RANGE_METERS,
             emptyMessage = context.getString(
                 if (route == null) R.string.field_no_route else R.string.field_waiting_for_position,
             ),
@@ -246,11 +253,11 @@ class DashboardDataType(
     }
 
     /**
-     * Colonne de gauche : les quatre mesures de l'effort, dans l'ordre demandé.
+     * Bandeau du haut : l'effort instantané, vitesse, cadence, puissance.
      *
-     * Vitesse, puissance et fréquence cardiaque reçoivent un aplat de fond qui situe
-     * l'effort d'un coup d'œil : vert ou rouge selon la moyenne pour la vitesse, couleur de
-     * zone Karoo pour les deux autres. La cadence n'a pas de zones et reste sur fond noir.
+     * Vitesse et puissance reçoivent un aplat de fond qui les situe d'un coup d'œil : vert
+     * ou rouge selon la moyenne de la sortie pour la première, couleur de zone Karoo pour
+     * la seconde. La cadence n'a pas de zones et reste sur fond noir.
      */
     private fun effortTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
         Tile(
@@ -260,30 +267,51 @@ class DashboardDataType(
             icon = R.drawable.ic_speed,
         ).splitDecimal(),
         Tile(
+            label = context.getString(R.string.dashboard_label_cadence),
+            value = rideData.cadence?.toInt()?.toString() ?: PLACEHOLDER,
+            icon = R.drawable.ic_cadence,
+        ),
+        Tile(
             label = context.getString(R.string.dashboard_label_power),
             value = rideData.power?.toInt()?.toString() ?: PLACEHOLDER,
             background = rideData.power?.let { Zones.powerColor(it, rideData.powerZones) },
             icon = R.drawable.ic_power,
         ),
-        Tile(
-            label = context.getString(R.string.dashboard_label_heart_rate),
-            value = rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
-            background = rideData.heartRate?.let { Zones.heartRateColor(it, rideData.heartRateZones) },
-            icon = R.drawable.ic_heart_rate,
-        ),
-        Tile(
-            label = context.getString(R.string.dashboard_label_cadence),
-            value = rideData.cadence?.toInt()?.toString() ?: PLACEHOLDER,
-            icon = R.drawable.ic_cadence,
-        ),
     )
 
-    /** Case sous le guidage : la pente instantanée. */
-    private fun gradeTile(context: Context, rideData: RideData): Tile = Tile(
-        label = context.getString(R.string.dashboard_label_grade),
-        value = rideData.grade?.roundToInt()?.toString() ?: PLACEHOLDER,
-        suffix = "%",
-        icon = R.drawable.ic_grade,
+    /** Case de gauche sous la transmission : la fréquence cardiaque, à sa couleur de zone. */
+    private fun heartRateTile(context: Context, rideData: RideData): Tile = Tile(
+        label = context.getString(R.string.dashboard_label_heart_rate),
+        value = rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
+        background = rideData.heartRate?.let { Zones.heartRateColor(it, rideData.heartRateZones) },
+        icon = R.drawable.ic_heart_rate,
+    )
+
+    /** La transmission, telle que la rapporte le groupe — vide s'il ne rapporte rien. */
+    private fun drivetrainModel(context: Context, rideData: RideData) = DrivetrainModel(
+        label = context.getString(R.string.dashboard_label_gears),
+        front = rideData.drivetrain.front,
+        frontCount = rideData.drivetrain.frontCount,
+        frontTeeth = rideData.drivetrain.frontTeeth,
+        rear = rideData.drivetrain.rear,
+        rearCount = rideData.drivetrain.rearCount,
+        rearTeeth = rideData.drivetrain.rearTeeth,
+        icon = R.drawable.ic_gears,
+    )
+
+    /** Rang sous la carte : distance parcourue à gauche, pente instantanée à droite. */
+    private fun midTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
+        Tile(
+            label = context.getString(R.string.dashboard_label_distance),
+            value = rideData.distance?.let { remainingValue(it, units) } ?: PLACEHOLDER,
+            icon = R.drawable.ic_distance,
+        ).splitDecimal(),
+        Tile(
+            label = context.getString(R.string.dashboard_label_grade),
+            value = rideData.grade?.roundToInt()?.toString() ?: PLACEHOLDER,
+            suffix = "%",
+            icon = R.drawable.ic_grade,
+        ),
     )
 
     /** Ligne du bas : ce qu'il reste à parcourir. */
@@ -304,15 +332,16 @@ class DashboardDataType(
     )
 
     /**
-     * Renvoie la décimale au suffixe, écrit en plus petit.
+     * Détache la décimale, écrite ensuite en exposant et sans séparateur.
      *
-     * « 38,5 » devient « 38, » et « 5 » : les chiffres qui portent l'information gardent
-     * leur pleine hauteur, la décimale suit sans manger la case.
+     * « 38,5 » devient « 38 » et « 5 » : les chiffres qui portent l'information gardent leur
+     * pleine hauteur, et la virgule cesse d'occuper la largeur d'un chiffre pour ne rien
+     * dire — la décimale se reconnaît déjà à sa taille et à sa position.
      */
     private fun Tile.splitDecimal(): Tile {
         val separator = value.indexOfLast { it == '.' || it == ',' }
         if (separator < 0 || separator == value.lastIndex) return this
-        return copy(value = value.substring(0, separator + 1), suffix = value.substring(separator + 1))
+        return copy(value = value.substring(0, separator), decimal = value.substring(separator + 1))
     }
 
     /**
@@ -349,8 +378,13 @@ class DashboardDataType(
          */
         private const val PREVIEW_INTERVAL_MS = 2_000L
 
-        /** Distance au pied à partir de laquelle le bandeau de montée apparaît (m). */
-        private const val CLIMB_BAND_LOOKAHEAD = 5_000.0
+        /**
+         * Distance au pied à partir de laquelle le bandeau de montée apparaît (m).
+         *
+         * Trois cents mètres : de quoi choisir son braquet et se placer, pas de quoi
+         * occuper le bas de l'écran pendant un quart d'heure.
+         */
+        private const val CLIMB_BAND_LOOKAHEAD = 300.0
 
         /** Rayon de lecture du fond de carte, en multiples de la portée affichée. */
         private const val ROADS_RADIUS_FACTOR = 1.6

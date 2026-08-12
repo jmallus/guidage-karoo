@@ -1,6 +1,8 @@
 package io.github.jmallus.guidage.karoo
 
+import io.github.jmallus.guidage.core.ClimbHistory
 import io.github.jmallus.guidage.core.ElevationProfile
+import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.Polyline
@@ -30,7 +32,29 @@ data class RiderLocation(
     val position: GeoPoint,
     /** Cap en degrés (0 = nord), null quand il n'est pas encore connu. */
     val heading: Double?,
-)
+    /** Instant de réception du point, pour rattraper le retard de la chaîne GPS. */
+    val receivedAtMillis: Long = 0L,
+) {
+    /**
+     * Position prolongée jusqu'à [nowMillis], à la vitesse donnée.
+     *
+     * Le point rapporté par le Karoo a déjà quelques secondes : affiché tel quel, le coureur
+     * se voit derrière lui-même, ce qui est franchement gênant à l'approche d'un carrefour.
+     * On prolonge donc son mouvement en ligne droite, dans la limite de [MAX_EXTRAPOLATION_MS] :
+     * au-delà, c'est que le point ne se rafraîchit plus, et inventer une trajectoire serait
+     * pire que d'avouer l'immobilité.
+     */
+    fun extrapolated(nowMillis: Long, speedMetersPerSecond: Double?): GeoPoint {
+        if (heading == null || speedMetersPerSecond == null || speedMetersPerSecond <= 0.0) return position
+        if (receivedAtMillis <= 0L) return position
+        val elapsed = (nowMillis - receivedAtMillis).coerceIn(0L, MAX_EXTRAPOLATION_MS)
+        return Geo.advance(position, heading, speedMetersPerSecond * elapsed / 1_000.0)
+    }
+
+    private companion object {
+        const val MAX_EXTRAPOLATION_MS = 4_000L
+    }
+}
 
 /** État de guidage accompagné du système d'unités choisi par le coureur. */
 data class GuidanceSnapshot(
@@ -52,6 +76,14 @@ class GuidanceProvider(
     private val karooSystem: KarooSystemService,
     scope: CoroutineScope,
 ) {
+    /**
+     * Les côtes déjà rencontrées sur l'itinéraire en cours.
+     *
+     * Le Karoo ne rapporte que celles qui restent : sans cette mémoire, la numérotation
+     * recule et la côte s'efface au moment où on l'attaque.
+     */
+    private val climbHistory = ClimbHistory()
+
     val snapshot: StateFlow<GuidanceSnapshot> = build()
         .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GuidanceSnapshot())
 
@@ -72,7 +104,11 @@ class GuidanceProvider(
             .onStart { emit(Units.METRIC) }
         val location = karooSystem.consumerFlow<OnLocationChanged>()
             .map<OnLocationChanged, RiderLocation?> {
-                RiderLocation(GeoPoint(it.lat, it.lng), it.orientation)
+                RiderLocation(
+                    position = GeoPoint(it.lat, it.lng),
+                    heading = it.orientation,
+                    receivedAtMillis = System.currentTimeMillis(),
+                )
             }
             .onStart { emit(null) }
 
@@ -84,7 +120,7 @@ class GuidanceProvider(
             location,
         ) { nav, distanceRemaining, currentGrade, unitSystem, riderLocation ->
             GuidanceSnapshot(
-                state = buildState(nav, distanceRemaining, currentGrade),
+                state = buildState(nav, distanceRemaining, currentGrade, climbHistory),
                 units = unitSystem,
                 location = riderLocation,
             )
@@ -98,8 +134,10 @@ class GuidanceProvider(
             navigation: NavigationState,
             distanceRemaining: Double?,
             currentGrade: Double?,
+            climbHistory: ClimbHistory? = null,
         ): GuidanceState {
-            val route = navigation.toRoute() ?: return GuidanceState.IDLE
+            val reported = navigation.toRoute() ?: return GuidanceState.IDLE
+            val route = climbHistory?.remember(reported) ?: reported
             val along = distanceAlongRoute(route.totalDistance, distanceRemaining)
             return GuidanceState(
                 route = route,

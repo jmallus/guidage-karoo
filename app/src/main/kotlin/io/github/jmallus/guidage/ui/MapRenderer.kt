@@ -62,8 +62,10 @@ object MapRenderer {
         canvas.save()
         canvas.clipRect(area)
 
+        // Le fond clair est posé même sans voies : c'est lui qui rend la carte lisible au
+        // soleil, l'écran du Karoo réfléchissant la lumière au lieu de lutter contre elle.
+        canvas.drawRect(area, Paint().apply { color = RoadStyle.BACKGROUND })
         if (model.roads.isNotEmpty()) {
-            canvas.drawRect(area, Paint().apply { color = RoadStyle.BACKGROUND })
             drawRoads(canvas, model.roads, projection, metersToPixels)
         }
         drawPath(canvas, model, projection, palette, routeWidth(model.rangeMeters))
@@ -294,11 +296,11 @@ object MapRenderer {
         if (model.pois.isEmpty()) return
         val labelSize = (area.height() * 0.05f).coerceIn(10f, 16f)
         val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.position
+            color = POI_COLOR
             style = Paint.Style.FILL
         }
         val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.textPrimary
+            color = RoadStyle.INK
             textSize = labelSize
             typeface = Typeface.DEFAULT_BOLD
         }
@@ -359,6 +361,9 @@ object MapRenderer {
             },
         )
     }
+
+    /** Point d'intérêt : un bleu soutenu, seule couleur froide de la carte. */
+    private const val POI_COLOR = 0xFF1B5E9A.toInt()
 
     private const val ARROW_COLOR = 0xFFE6E24C.toInt()
     private const val ARROW_BORDER_COLOR = 0xFF1E1E1E.toInt()
@@ -421,7 +426,7 @@ object MapRenderer {
         val left = area.left + 6f
 
         val bar = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.textSecondary
+            color = RoadStyle.INK
             strokeWidth = 3f
         }
         canvas.drawLine(left, y, left + barWidth, y, bar)
@@ -434,7 +439,7 @@ object MapRenderer {
             left,
             y - 6f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = palette.textSecondary
+                color = RoadStyle.INK
                 textSize = labelSize
                 typeface = Typeface.DEFAULT_BOLD
             },
@@ -442,8 +447,9 @@ object MapRenderer {
     }
 
     private fun drawMessage(canvas: Canvas, area: RectF, message: String?, palette: Palette) {
+        canvas.drawRect(area, Paint().apply { color = RoadStyle.BACKGROUND })
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.textSecondary
+            color = RoadStyle.INK
             textSize = (area.height() * 0.1f).coerceIn(10f, 22f)
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
