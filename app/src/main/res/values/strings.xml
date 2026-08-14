@@ -16,11 +16,11 @@
 
     <!-- Libellés des cases du tableau de bord, en capitales -->
     <string name="dashboard_label_speed">VITESSE 3S</string>
-    <string name="dashboard_label_power">PUISSANCE 3S</string>
+    <string name="dashboard_label_power">POWER 3S</string>
     <string name="dashboard_label_heart_rate">FC</string>
     <string name="dashboard_label_cadence">CADENCE</string>
     <string name="dashboard_label_grade">PENTE</string>
-    <string name="dashboard_label_gears">VITESSE</string>
+    <string name="dashboard_label_gears">TRANSMISSION</string>
     <string name="dashboard_label_distance">DISTANCE</string>
     <string name="dashboard_label_remaining">RESTANT %1$s</string>
     <string name="dashboard_label_arrival">ARRIVÉE</string>

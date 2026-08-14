@@ -32,6 +32,8 @@ data class MapModel(
     val roads: List<RoadSegment> = emptyList(),
     /** Distance visible devant le coureur (m). */
     val rangeMeters: Double = 1_000.0,
+    /** Longueur de tracé, devant le coureur, sur laquelle les chevrons sont semés (m). */
+    val chevronRangeMeters: Double = 300.0,
     /** Vrai quand le Karoo estime qu'on a quitté l'itinéraire. */
     val offRoute: Boolean = false,
     val emptyMessage: String? = null,
@@ -74,7 +76,16 @@ object MapRenderer {
             drawAreas(canvas, areas, projection)
             drawRoads(canvas, lines, projection, metersToPixels)
         }
-        drawPath(canvas, model, projection, palette, routeWidth(model.rangeMeters), riderX, riderY)
+        drawPath(
+            canvas = canvas,
+            model = model,
+            projection = projection,
+            palette = palette,
+            width = routeWidth(model.rangeMeters),
+            riderX = riderX,
+            riderY = riderY,
+            metersToPixels = metersToPixels,
+        )
         drawPois(canvas, area, model, projection, palette)
         drawRider(canvas, riderX, riderY, area.height(), palette)
         drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
@@ -203,7 +214,13 @@ object MapRenderer {
      *
      * Ce qui est fait passe en sourdine, ce qui reste garde sa pleine couleur. C'est ce qui
      * permet de s'y retrouver quand l'itinéraire se recroise : au carrefour, la branche
-     * éteinte est celle qu'on a déjà prise, et les chevrons ne courent que sur la suite.
+     * éteinte est celle qu'on a déjà prise.
+     *
+     * Les chevrons ne courent pas jusqu'au bout de ce qui reste, mais seulement sur les
+     * quelques centaines de mètres qui viennent. Sur une boucle qui repasse par son départ,
+     * la branche du retour est là, à quelques mètres, et elle appartient bien à « ce qui
+     * reste » : ses chevrons désignaient donc une direction qui n'était pas celle du moment.
+     * Bornés, ils ne montrent plus qu'un chemin à la fois.
      *
      * Hors itinéraire, tout le tracé passe au rouge : mieux vaut le voir tout de suite que
      * de le découvrir au bout de deux kilomètres.
@@ -216,6 +233,7 @@ object MapRenderer {
         width: Float,
         riderX: Float,
         riderY: Float,
+        metersToPixels: Float,
     ) {
         if (model.path.size < 2) return
         val ahead = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -247,6 +265,7 @@ object MapRenderer {
             points = screenPoints.subList(here.coerceAtMost(screenPoints.lastIndex), screenPoints.size),
             palette = palette,
             routeWidth = width,
+            limitPixels = (model.chevronRangeMeters * metersToPixels).toFloat(),
         )
     }
 
@@ -307,7 +326,9 @@ object MapRenderer {
         points: List<PlanePoint>,
         palette: Palette,
         routeWidth: Float,
+        limitPixels: Float,
     ) {
+        if (limitPixels <= 0f) return
         // Les chevrons débordent le ruban de part et d'autre, cerne compris : c'est ce
         // débord qui les fait lire comme des pointes posées dessus. Contenus dans la
         // largeur du tracé, ils s'y noieraient — le tracé est jaune comme eux.
@@ -336,7 +357,12 @@ object MapRenderer {
         // chevron suivant viendrait mordre le jaune du précédent quand ils se serrent.
         val chevrons = Path()
         var carry = 0f
+        // Distance parcourue le long du tracé depuis le coureur : c'est elle qui borne les
+        // chevrons, et non la distance à vol d'oiseau, sans quoi une épingle en aurait
+        // encore là où le tracé est déjà reparti dans l'autre sens.
+        var travelled = 0f
         for (index in 1 until points.size) {
+            if (travelled >= limitPixels) break
             val from = points[index - 1]
             val to = points[index]
             val dx = (to.x - from.x).toFloat()
@@ -346,8 +372,9 @@ object MapRenderer {
 
             val ux = dx / length
             val uy = dy / length
+            val reach = minOf(length, limitPixels - travelled)
             var position = spacing - carry
-            while (position <= length) {
+            while (position <= reach) {
                 addChevron(
                     path = chevrons,
                     x = from.x.toFloat() + ux * position,
@@ -359,6 +386,7 @@ object MapRenderer {
                 position += spacing
             }
             carry = (carry + length) % spacing
+            travelled += length
         }
         canvas.drawPath(chevrons, border)
         canvas.drawPath(chevrons, fill)

@@ -8,17 +8,22 @@ import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.settings.SettingsRepository
 
 /**
- * Appui sur le tableau de bord : fait défiler les portées du profil altimétrique.
+ * Appui sur le tableau de bord : fait défiler les portées de la zone de guidage.
  *
- * La minicarte, elle, ne bouge plus : elle est figée sur la seule portée qui se soit
- * révélée utile en roulant, cent cinquante mètres.
+ * L'appui agit sur ce qui est affiché — les portées de la minicarte, ou celles du profil
+ * altimétrique — plutôt que sur les deux à la fois : changer la portée de ce qu'on ne voit
+ * pas ne s'apprend qu'en basculant l'affichage, ce qui est le contraire d'une commande.
  */
 class ChangeGuidanceZoomAction : ActionCallback {
 
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val repository = SettingsRepository(context)
         val settings = repository.read()
-        if (settings.guidanceZone != GuidanceZoneType.PROFILE) return
-        repository.write(settings.copy(graphZoom = settings.graphZoom.next()))
+        repository.write(
+            when (settings.guidanceZone) {
+                GuidanceZoneType.MAP -> settings.copy(mapZoom = settings.mapZoom.next())
+                GuidanceZoneType.PROFILE -> settings.copy(graphZoom = settings.graphZoom.next())
+            },
+        )
     }
 }

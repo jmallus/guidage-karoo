@@ -8,6 +8,10 @@ import io.github.jmallus.guidage.core.Route
 import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
 import io.github.jmallus.guidage.core.ZoneRange
+import io.github.jmallus.guidage.core.map.RoadKind
+import io.github.jmallus.guidage.core.map.RoadSegment
+import io.github.jmallus.guidage.core.map.RoadSurface
+import io.github.jmallus.guidage.core.map.toMicroDegrees
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RiderLocation
 import kotlin.math.cos
@@ -73,6 +77,68 @@ object PreviewData {
             path = previewPath,
         )
     }
+
+    /**
+     * Fond de carte fictif, dessiné autour de [location].
+     *
+     * L'aperçu du sélecteur de champs ne peut pas lire le vrai fond : il n'a pas de position,
+     * et le coureur qui hésite à poser le champ est chez lui, pas sur son parcours. Sans
+     * décor, la minicarte s'y montrait comme un trait jaune sur du vide, ce qui ne dit rien
+     * de ce qu'elle donne en roulant.
+     *
+     * Le décor est composé pour montrer la palette entière — les classes de voies, les
+     * revêtements, les quatre familles de surfaces — en un seul coup d'œil : c'est là, et
+     * nulle part ailleurs, qu'on peut juger des couleurs avant de sortir.
+     */
+    val roads: List<RoadSegment> by lazy {
+        listOf(
+            // Les surfaces d'abord : la campagne au sud, le village au nord-ouest, le bois
+            // au nord-est, l'étang au milieu.
+            area(RoadKind.FARMLAND, listOf(-460 to -460, 460 to -460, 460 to 130, -460 to 130)),
+            area(RoadKind.BUILT_UP, listOf(-460 to 150, -140 to 150, -140 to 460, -460 to 460)),
+            area(RoadKind.FOREST, listOf(140 to 140, 460 to 170, 460 to 460, 190 to 460)),
+            area(RoadKind.WATER, listOf(-40 to 250, 60 to 240, 90 to 320, -20 to 340)),
+            // Le ruisseau qui alimente l'étang, puis en ressort.
+            line(RoadKind.STREAM, listOf(-460 to 200, -180 to 230, -40 to 280)),
+            line(RoadKind.STREAM, listOf(90 to 300, 260 to 350, 460 to 380)),
+            // Les voies, de la plus roulante à la plus discrète.
+            line(RoadKind.MOTORWAY, listOf(-460 to 430, 460 to 400)),
+            line(RoadKind.PRIMARY, listOf(-460 to -30, -120 to 10, 180 to -10, 460 to 30)),
+            line(RoadKind.SECONDARY, listOf(-230 to -460, -200 to -20, -180 to 230, -160 to 460)),
+            line(RoadKind.RESIDENTIAL, listOf(-420 to 250, -220 to 260, -170 to 380)),
+            line(RoadKind.SERVICE, listOf(-300 to 255, -290 to 130)),
+            line(RoadKind.CYCLEWAY, listOf(-460 to -70, -110 to -30, 200 to -50)),
+            line(RoadKind.TRACK, listOf(-100 to 0, 60 to -180, 300 to -280), RoadSurface.UNPAVED),
+            line(RoadKind.PATH, listOf(180 to 0, 260 to 160, 320 to 330), RoadSurface.UNPAVED),
+            line(RoadKind.FOOTWAY, listOf(-160 to 340, -60 to 300, 0 to 250)),
+        )
+    }
+
+    /** Une voie, donnée en mètres à l'est et au nord de [location]. */
+    private fun line(
+        kind: RoadKind,
+        points: List<Pair<Int, Int>>,
+        surface: RoadSurface = RoadSurface.UNKNOWN,
+    ) = RoadSegment(
+        kind = kind,
+        surface = surface,
+        latitudes = points.map { latitudeOf(it.second) }.toIntArray(),
+        longitudes = points.map { longitudeOf(it.first) }.toIntArray(),
+    )
+
+    /** Un contour, même convention. Il se referme de lui-même. */
+    private fun area(kind: RoadKind, points: List<Pair<Int, Int>>) =
+        line(kind, points, RoadSurface.UNKNOWN)
+
+    private fun latitudeOf(metersNorth: Int): Int =
+        (location.position.lat + metersNorth / METERS_PER_DEGREE_LATITUDE).toMicroDegrees()
+
+    private fun longitudeOf(metersEast: Int): Int {
+        val perDegree = METERS_PER_DEGREE_LATITUDE * cos(Math.toRadians(location.position.lat))
+        return (location.position.lng + metersEast / perDegree).toMicroDegrees()
+    }
+
+    private const val METERS_PER_DEGREE_LATITUDE = 110_540.0
 
     /**
      * Zones fictives, pour que l'aperçu montre la coloration par zone même chez un coureur

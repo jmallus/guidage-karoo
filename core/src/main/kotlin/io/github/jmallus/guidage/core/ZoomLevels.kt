@@ -22,14 +22,29 @@ enum class GraphZoom(val lookaheadMeters: Double?) {
 }
 
 /**
- * Distance visible devant le coureur sur la minicarte.
+ * Distance visible devant le coureur sur la minicarte, parcourue par appui sur le champ.
  *
- * Une seule portée, relevée en roulant : à 150 m, le prochain carrefour se lit sans
- * hésitation et les épaisseurs de chaussée gardent un sens. Les portées plus larges,
- * parcourues par appui sur le champ, n'ont servi qu'à égarer — la carte native du Karoo
- * est là pour la vue d'ensemble.
+ * Trois crans seulement, relevés en roulant : deux cents mètres pour le carrefour qui
+ * vient, cinq cents pour la sortie du village, un kilomètre pour savoir où l'on va. Au-delà,
+ * la carte native du Karoo fait mieux, et en deçà on ne voit plus assez loin pour anticiper.
+ *
+ * À chaque cran sa longueur de chevrons. Ils ne courent pas sur tout ce qui reste : sur un
+ * parcours qui repasse par son départ, la branche du retour est là, à quelques mètres, et
+ * ses chevrons désignent une direction qui n'est pas celle du moment. Bornés à ce qu'on
+ * atteindra dans la minute ou deux, ils ne montrent plus qu'un chemin à la fois.
  */
-const val MAP_RANGE_METERS = 150.0
+enum class MapZoom(val rangeMeters: Double, val chevronMeters: Double) {
+    NEAR(200.0, 300.0),
+    MIDDLE(500.0, 800.0),
+    FAR(1_000.0, 1_300.0),
+    ;
+
+    fun next(): MapZoom = entries[(ordinal + 1) % entries.size]
+
+    companion object {
+        fun fromOrdinal(ordinal: Int): MapZoom = entries.getOrElse(ordinal) { NEAR }
+    }
+}
 
 /** Ce que le tableau de bord affiche dans sa zone de guidage. */
 enum class GuidanceZoneType {

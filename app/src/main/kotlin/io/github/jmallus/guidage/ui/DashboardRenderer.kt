@@ -596,21 +596,17 @@ object DashboardRenderer {
             return
         }
 
-        // Les plateaux tiennent dans le quart gauche, les pignons occupent le reste : c'est
-        // la proportion des dentures, et cela laisse la place de compter les pignons.
-        val gap = area.width() * COMB_GAP_FRACTION
-        val frontWidth = if (front == null) 0f else area.width() * FRONT_COMB_FRACTION
-        val rearLeft = area.left + frontWidth + if (front == null) 0f else gap
-        val rearWidth = area.right - rearLeft
-
-        // Une seule largeur de barre pour les deux peignes : deux plateaux dans le quart
-        // gauche donneraient des barres trois fois plus larges que les onze pignons, et le
-        // schéma se lirait comme deux dessins différents plutôt que comme une transmission.
-        val pitches = listOfNotNull(
-            front?.let { frontWidth / it.second },
-            rear?.let { rearWidth / it.second },
-        )
-        val barWidth = (pitches.minOrNull() ?: 0f).times(BAR_WIDTH_FRACTION).coerceAtLeast(2f)
+        // Un seul pas pour les deux peignes, donc une seule largeur de barre et un seul
+        // écart : les plateaux se lisent comme la suite de la cassette, à sa propre échelle,
+        // et non comme un second dessin aux proportions étrangères. Deux plateaux étalés sur
+        // le quart gauche donnaient des barres trois fois plus larges que les onze pignons.
+        val gap = if (front == null) 0f else area.width() * COMB_GAP_FRACTION
+        val bars = (front?.second ?: 0) + (rear?.second ?: 0)
+        if (bars <= 0) return
+        val pitch = (area.width() - gap) / bars
+        val frontWidth = (front?.second ?: 0) * pitch
+        val rearLeft = area.left + frontWidth + gap
+        val barWidth = (pitch * BAR_WIDTH_FRACTION).coerceAtLeast(2f)
 
         front?.let {
             drawComb(canvas, RectF(area.left, area.top, area.left + frontWidth, area.top + combHeight), it, barWidth, ascending = true, palette = palette)
@@ -626,9 +622,15 @@ object DashboardRenderer {
         }
     }
 
-    /** Rapport courant et nombre de rapports, quand les deux sont connus et cohérents. */
+    /**
+     * Rapport courant et nombre de rapports, quand les deux sont connus et cohérents.
+     *
+     * Un peigne d'une seule barre n'est pas dessiné : sur un mono-plateau, une barre unique
+     * toujours allumée n'apprend rien et laisse croire à un second peigne amputé. Seule la
+     * cassette reste, ce qui est exactement ce qu'il y a à savoir.
+     */
     private fun comb(current: Int?, count: Int?): Pair<Int, Int>? {
-        if (count == null || count <= 0) return null
+        if (count == null || count <= 1) return null
         val gear = current?.coerceIn(1, count) ?: return null
         return gear to count
     }
@@ -652,7 +654,10 @@ object DashboardRenderer {
             val ratio = if (ascending) step else 1f - step
             val height = area.height() * (BAR_MIN_HEIGHT + (1f - BAR_MIN_HEIGHT) * ratio)
             val left = area.left + (index - 1) * pitch + (pitch - barWidth) / 2f
-            paint.color = if (index == current) palette.iconTint else translucent(palette.textSecondary, BAR_ALPHA)
+            // La barre engagée est en blanc, la couleur des valeurs : c'est un chiffre qu'on
+            // lit, pas un voyant. Le vert des icônes la faisait passer pour un état.
+            paint.color =
+                if (index == current) palette.textPrimary else translucent(palette.textSecondary, BAR_ALPHA)
             // Bouts arrondis : à cette taille, des angles vifs font des barres sales.
             canvas.drawRoundRect(
                 RectF(left, area.bottom - height, left + barWidth, area.bottom),
@@ -678,7 +683,7 @@ object DashboardRenderer {
     private const val PLACEHOLDER = "--"
 
     /** Part de la case revenant aux plateaux, l'écart et les pignons se partageant le reste. */
-    private const val FRONT_COMB_FRACTION = 0.22f
+    /** Écart entre les plateaux et la cassette, en part de la largeur du schéma. */
     private const val COMB_GAP_FRACTION = 0.08f
     private const val BAR_WIDTH_FRACTION = 0.62f
 

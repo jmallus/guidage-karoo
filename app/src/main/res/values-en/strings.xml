@@ -20,7 +20,7 @@
     <string name="dashboard_label_heart_rate">HR</string>
     <string name="dashboard_label_cadence">CADENCE</string>
     <string name="dashboard_label_grade">GRADE</string>
-    <string name="dashboard_label_gears">GEAR</string>
+    <string name="dashboard_label_gears">DRIVETRAIN</string>
     <string name="dashboard_label_distance">DISTANCE</string>
     <string name="dashboard_label_remaining">%1$s TO GO</string>
     <string name="dashboard_label_arrival">ARRIVAL</string>

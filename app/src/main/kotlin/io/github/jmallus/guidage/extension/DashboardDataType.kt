@@ -19,7 +19,7 @@ import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
-import io.github.jmallus.guidage.core.MAP_RANGE_METERS
+import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.Zones
@@ -148,7 +148,7 @@ class DashboardDataType(
         return DashboardModel(
             guidance = when (settings.guidanceZone) {
                 GuidanceZoneType.MAP ->
-                    GuidanceZone.Map(mapModel(context, snapshot, state, preview, rideData))
+                    GuidanceZone.Map(mapModel(context, snapshot, state, preview, rideData, settings.mapZoom))
                 GuidanceZoneType.PROFILE -> GuidanceZone.Profile(profileModel(context, state, settings))
             },
             topTiles = effortTiles(context, units, rideData),
@@ -215,6 +215,7 @@ class DashboardDataType(
         state: GuidanceState,
         preview: Boolean,
         rideData: RideData,
+        zoom: MapZoom,
     ): MapModel {
         val route = state.route
         val location = if (preview) PreviewData.location else snapshot.location
@@ -225,16 +226,21 @@ class DashboardDataType(
         return MapModel(
             // On lit un peu au-delà du cadre : en cap en haut, la fenêtre tourne avec le
             // coureur et ses coins balaient plus loin que la portée annoncée.
-            roads = position?.let {
-                roadMapRepository.roadsAround(it, MAP_RANGE_METERS * ROADS_RADIUS_FACTOR)
-            }.orEmpty(),
+            roads = if (preview) {
+                PreviewData.roads
+            } else {
+                position?.let {
+                    roadMapRepository.roadsAround(it, zoom.rangeMeters * ROADS_RADIUS_FACTOR)
+                }.orEmpty()
+            },
             path = route?.path.orEmpty(),
             position = position,
             heading = location?.heading,
             pois = route?.pois.orEmpty().mapNotNull { poi ->
                 poi.position?.let { MapPoi(it, PoiLabels.label(context, poi)) }
             },
-            rangeMeters = MAP_RANGE_METERS,
+            rangeMeters = zoom.rangeMeters,
+            chevronRangeMeters = zoom.chevronMeters,
             offRoute = rideData.onRoute == false,
             emptyMessage = context.getString(
                 if (route == null) R.string.field_no_route else R.string.field_waiting_for_position,

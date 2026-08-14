@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import io.github.jmallus.guidage.core.AlertSettings
 import io.github.jmallus.guidage.core.GraphZoom
 import io.github.jmallus.guidage.core.GuidanceZoneType
+import io.github.jmallus.guidage.core.MapZoom
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -21,6 +22,8 @@ data class GuidageSettings(
     val guidanceZone: GuidanceZoneType = GuidanceZoneType.MAP,
     /** Portée du profil en portrait, changée par appui sur le champ. */
     val graphZoom: GraphZoom = GraphZoom.AHEAD_20KM,
+    /** Portée de la minicarte, changée par appui sur le champ. */
+    val mapZoom: MapZoom = MapZoom.NEAR,
 )
 
 /**
@@ -48,6 +51,7 @@ class SettingsRepository(context: Context) {
             colorByGrade = prefs.getBoolean(KEY_COLOR_BY_GRADE, defaults.colorByGrade),
             guidanceZone = GuidanceZoneType.fromName(prefs.getString(KEY_GUIDANCE_ZONE, null)),
             graphZoom = GraphZoom.fromOrdinal(prefs.getInt(KEY_GRAPH_ZOOM, defaults.graphZoom.ordinal)),
+            mapZoom = MapZoom.fromOrdinal(prefs.getInt(KEY_MAP_ZOOM, defaults.mapZoom.ordinal)),
             alerts = AlertSettings(
                 climbEnabled = prefs.getBoolean(KEY_CLIMB_ENABLED, defaults.alerts.climbEnabled),
                 climbDistance = prefs.getFloat(KEY_CLIMB_DISTANCE, defaults.alerts.climbDistance.toFloat()).toDouble(),
@@ -66,6 +70,7 @@ class SettingsRepository(context: Context) {
             .putBoolean(KEY_COLOR_BY_GRADE, settings.colorByGrade)
             .putString(KEY_GUIDANCE_ZONE, settings.guidanceZone.name)
             .putInt(KEY_GRAPH_ZOOM, settings.graphZoom.ordinal)
+            .putInt(KEY_MAP_ZOOM, settings.mapZoom.ordinal)
             .putBoolean(KEY_CLIMB_ENABLED, settings.alerts.climbEnabled)
             .putFloat(KEY_CLIMB_DISTANCE, settings.alerts.climbDistance.toFloat())
             .putBoolean(KEY_SUMMIT_ENABLED, settings.alerts.summitEnabled)
@@ -81,6 +86,7 @@ class SettingsRepository(context: Context) {
         const val KEY_COLOR_BY_GRADE = "color_by_grade"
         const val KEY_GUIDANCE_ZONE = "guidance_zone"
         const val KEY_GRAPH_ZOOM = "graph_zoom"
+        const val KEY_MAP_ZOOM = "map_zoom"
         const val KEY_CLIMB_ENABLED = "climb_alerts"
         const val KEY_CLIMB_DISTANCE = "climb_alert_distance"
         const val KEY_SUMMIT_ENABLED = "summit_alerts"
