@@ -130,8 +130,28 @@ class GeoJsonSeqTest {
     }
 
     @Test
-    fun `un champ n est pas une surface qu on garde`() {
-        assertNull(GeoJsonSeq.toSegment(polygon("""{"landuse":"farmland"}""", "[${ring(0.840, 49.110, 0.002)}]")))
+    fun `un champ devient une surface de campagne`() {
+        val segment = GeoJsonSeq.toSegment(polygon("""{"landuse":"farmland"}""", "[${ring(0.840, 49.110, 0.002)}]"))
+        assertNotNull(segment)
+        assertEquals(RoadKind.FARMLAND, segment!!.kind)
+    }
+
+    @Test
+    fun `une parcelle sous l hectare ne pese pas son poids`() {
+        // 0,001° font 110 m sur 72 m à cette latitude, soit 0,8 ha : gardé pour un bois,
+        // écarté pour un champ, dont les milliers de parcelles se ressemblent toutes.
+        val small = "[${ring(0.840, 49.110, 0.001)}]"
+        assertNotNull(GeoJsonSeq.toSegment(polygon("""{"natural":"wood"}""", small)))
+        assertNull(GeoJsonSeq.toSegment(polygon("""{"landuse":"farmland"}""", small)))
+        // 0,0015° font 1,8 ha : au-dessus du seuil, la parcelle est gardée.
+        assertNotNull(
+            GeoJsonSeq.toSegment(polygon("""{"landuse":"farmland"}""", "[${ring(0.840, 49.110, 0.0015)}]")),
+        )
+    }
+
+    @Test
+    fun `une carriere n est pas une surface qu on garde`() {
+        assertNull(GeoJsonSeq.toSegment(polygon("""{"landuse":"quarry"}""", "[${ring(0.840, 49.110, 0.002)}]")))
     }
 
     @Test

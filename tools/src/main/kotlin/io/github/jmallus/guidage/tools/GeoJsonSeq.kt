@@ -88,7 +88,7 @@ object GeoJsonSeq {
         val simplified = simplify(points.first, points.second, SIMPLIFY_TOLERANCE_METERS)
         val contour = opened(simplified)
         if (contour.first.size < 3) return null
-        if (area(contour.first, contour.second) < MINIMUM_AREA_SQUARE_METERS) return null
+        if (area(contour.first, contour.second) < minimumArea(kind)) return null
         return RoadSegment(kind, RoadSurface.UNKNOWN, contour.first, contour.second)
     }
 
@@ -235,4 +235,18 @@ object GeoJsonSeq {
 
     /** Surface en deçà de laquelle une tache ne se distingue plus de rien (m²). */
     private const val MINIMUM_AREA_SQUARE_METERS = 2_000.0
+
+    /**
+     * Seuil des cultures et prairies, plus haut que les autres (m²).
+     *
+     * La campagne est découpée en parcelles par milliers, et chacune pèse dans le fichier
+     * alors qu'aucune ne se distingue de sa voisine : elles ont toutes la même teinte, et
+     * leurs limites ne se voient pas. Écarter les petites ne laisse donc pas un trou mais le
+     * fond de la carte, presque de la même couleur. Un hectare est la limite en deçà de
+     * laquelle la question ne se pose plus.
+     */
+    private const val MINIMUM_FARMLAND_SQUARE_METERS = 10_000.0
+
+    private fun minimumArea(kind: RoadKind): Double =
+        if (kind == RoadKind.FARMLAND) MINIMUM_FARMLAND_SQUARE_METERS else MINIMUM_AREA_SQUARE_METERS
 }

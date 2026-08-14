@@ -113,10 +113,10 @@ object MapRenderer {
     /**
      * Surfaces du fond de carte : eau, bois, bâti, sous tout le reste.
      *
-     * Elles sont dessinées dans cet ordre — bâti, bois, eau — pour que l'eau reste visible
-     * là où un étang borde un bois, cas fréquent et qui se lit mal dans l'autre sens. Chaque
-     * famille forme un seul chemin : le remplissage est ce qui coûte le plus cher à
-     * dessiner, autant ne changer de pinceau que trois fois.
+     * Elles sont dessinées de la plus étendue à la plus rare — campagne, bâti, bois, eau —
+     * pour que l'eau reste visible là où un étang borde un bois, cas fréquent et qui se lit
+     * mal dans l'autre sens. Chaque famille forme un seul chemin : le remplissage est ce qui
+     * coûte le plus cher à dessiner, autant ne changer de pinceau que quatre fois.
      */
     private fun drawAreas(canvas: Canvas, areas: List<RoadSegment>, projection: Projection) {
         if (areas.isEmpty()) return
@@ -144,8 +144,9 @@ object MapRenderer {
         }
     }
 
-    /** Du plus lointain au plus proche du regard : le bâti, puis le bois, puis l'eau. */
-    private val AREA_ORDER = listOf(RoadKind.BUILT_UP, RoadKind.FOREST, RoadKind.WATER)
+    /** Du plus lointain au plus proche du regard : la campagne, le bâti, le bois, l'eau. */
+    private val AREA_ORDER =
+        listOf(RoadKind.FARMLAND, RoadKind.BUILT_UP, RoadKind.FOREST, RoadKind.WATER)
 
     /**
      * Voies du fond de carte, sous le tracé.

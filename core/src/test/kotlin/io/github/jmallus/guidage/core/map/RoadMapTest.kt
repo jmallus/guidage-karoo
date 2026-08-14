@@ -258,9 +258,21 @@ class RoadKindTest {
         assertEquals(RoadKind.FOREST, RoadKind.fromAreaTags(natural = "wood", landuse = null, waterway = null))
         assertEquals(RoadKind.FOREST, RoadKind.fromAreaTags(natural = null, landuse = "forest", waterway = null))
         assertEquals(RoadKind.BUILT_UP, RoadKind.fromAreaTags(natural = null, landuse = "residential", waterway = null))
-        // Un champ ou un stade couvrirait l'écran sans rien apprendre.
-        assertNull(RoadKind.fromAreaTags(natural = null, landuse = "farmland", waterway = null))
+        assertEquals(RoadKind.FARMLAND, RoadKind.fromAreaTags(natural = null, landuse = "farmland", waterway = null))
+        assertEquals(RoadKind.FARMLAND, RoadKind.fromAreaTags(natural = null, landuse = "meadow", waterway = null))
+        assertEquals(RoadKind.FARMLAND, RoadKind.fromAreaTags(natural = null, landuse = "orchard", waterway = null))
+        // Un stade, une carrière, un cimetière couvriraient l'écran sans rien apprendre.
+        assertNull(RoadKind.fromAreaTags(natural = null, landuse = "quarry", waterway = null))
         assertNull(RoadKind.fromAreaTags(natural = null, landuse = null, waterway = null))
+    }
+
+    @Test
+    fun `un bois au milieu des champs reste un bois`() {
+        // Une prairie plantée d'arbres porte les deux tags : le bois l'emporte, c'est lui
+        // qui se voit depuis la selle.
+        assertEquals(RoadKind.FOREST, RoadKind.fromAreaTags(natural = "wood", landuse = "meadow", waterway = null))
+        // Un étang dans un pré est d'abord un étang.
+        assertEquals(RoadKind.WATER, RoadKind.fromAreaTags(natural = "water", landuse = "farmland", waterway = null))
     }
 
     @Test
@@ -268,6 +280,7 @@ class RoadKindTest {
         assertTrue(RoadKind.WATER.isArea)
         assertTrue(RoadKind.FOREST.isArea)
         assertTrue(RoadKind.BUILT_UP.isArea)
+        assertTrue(RoadKind.FARMLAND.isArea)
         // Un ruisseau est une ligne, si mince qu'il n'a pas de rive.
         assertTrue(!RoadKind.STREAM.isArea)
         assertEquals(RoadKind.STREAM, RoadKind.fromWaterwayTag("stream"))

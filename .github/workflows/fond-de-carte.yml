@@ -60,15 +60,15 @@ jobs:
             ls -lh "osm/$nom.osm.pbf"
 
             # Les voies portant un tag highway — routes, chemins, sentiers — les cours
-            # d'eau, et les surfaces qui aident à se situer : eau, bois, bâti. Les
-            # surfaces se déclarent en « wa/… » : elles arrivent tantôt en chemin fermé,
-            # tantôt en relation de multipolygone.
+            # d'eau, et les surfaces qui aident à se situer : eau, bois, bâti, campagne.
+            # Les surfaces se déclarent en « wa/… » : elles arrivent tantôt en chemin
+            # fermé, tantôt en relation de multipolygone.
             osmium tags-filter "osm/$nom.osm.pbf" \
               w/highway \
               w/waterway=river,canal,stream \
               wa/natural=water,wetland,wood,scrub \
               wa/waterway=riverbank,dock \
-              wa/landuse=forest,reservoir,basin,residential,industrial,commercial,retail \
+              wa/landuse=forest,reservoir,basin,residential,industrial,commercial,retail,farmland,meadow,orchard,vineyard,farmyard,allotments \
               -o "osm/$nom.retenu.osm.pbf" --overwrite
             # Géométries résolues, une ligne de JSON par objet.
             osmium export "osm/$nom.retenu.osm.pbf" \
@@ -102,7 +102,7 @@ jobs:
 
           Contient les routes **et** les chemins — \`track\`, \`path\`, \`bridleway\`,
           \`cycleway\` — avec leur revêtement quand OpenStreetMap le renseigne, les cours
-          d'eau, et les surfaces d'eau, de bois et de bâti.
+          d'eau, et les surfaces d'eau, de bois, de bâti et de cultures.
           NOTES
           if gh release view carte >/dev/null 2>&1; then
             gh release upload carte "${{ github.event.inputs.nom }}.gkmap" --clobber

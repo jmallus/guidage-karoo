@@ -42,6 +42,9 @@ enum class RoadKind(val code: Int) {
 
     /** Bâti : zones résidentielles, industrielles, villages. */
     BUILT_UP(17),
+
+    /** Cultures et prairies : le fond du paysage, entre les bois et les villages. */
+    FARMLAND(18),
     ;
 
     /** true pour les voies qui intéressent le gravel et le VTT. */
@@ -58,9 +61,12 @@ enum class RoadKind(val code: Int) {
         /**
          * Correspondance depuis les tags de surface, ou null si l'objet ne nous intéresse pas.
          *
-         * Les trois familles retenues sont celles qui se voient depuis la selle et qui
-         * aident à se situer. Le reste — champs, prairies, terrains de sport — couvrirait
-         * l'écran sans rien apprendre.
+         * Les quatre familles retenues sont celles qui se voient depuis la selle et qui
+         * aident à se situer : l'eau qu'on longe, le bois où l'on entre, le village qu'on
+         * traverse, et la campagne entre les trois. Le reste — terrains de sport, carrières,
+         * cimetières — couvrirait l'écran sans rien apprendre.
+         *
+         * L'ordre des cas compte : un étang au milieu d'un bois est d'abord un étang.
          */
         fun fromAreaTags(natural: String?, landuse: String?, waterway: String?): RoadKind? = when {
             natural == "water" || natural == "wetland" -> WATER
@@ -69,6 +75,7 @@ enum class RoadKind(val code: Int) {
             natural == "wood" || natural == "scrub" -> FOREST
             landuse == "forest" -> FOREST
             landuse in BUILT_UP_TAGS -> BUILT_UP
+            landuse in FARMLAND_TAGS -> FARMLAND
             else -> null
         }
 
@@ -79,6 +86,11 @@ enum class RoadKind(val code: Int) {
         }
 
         private val BUILT_UP_TAGS = setOf("residential", "industrial", "commercial", "retail")
+
+        /** Cultures, herbe et arbres alignés : tout ce qui se travaille et rien de bâti. */
+        private val FARMLAND_TAGS = setOf(
+            "farmland", "meadow", "orchard", "vineyard", "farmyard", "allotments",
+        )
 
         /** Correspondance depuis la valeur du tag `highway`, ou null si la voie ne nous intéresse pas. */
         fun fromHighwayTag(tag: String): RoadKind? = when (tag) {

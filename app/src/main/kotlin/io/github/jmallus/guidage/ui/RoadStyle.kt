@@ -24,7 +24,7 @@ object RoadStyle {
     /** Largeur de chaussée, en mètres. Sans objet pour les surfaces. */
     fun widthMeters(kind: RoadKind): Float = when (kind) {
         RoadKind.STREAM -> 4f
-        RoadKind.WATER, RoadKind.FOREST, RoadKind.BUILT_UP -> 0f
+        RoadKind.WATER, RoadKind.FOREST, RoadKind.BUILT_UP, RoadKind.FARMLAND -> 0f
         RoadKind.MOTORWAY -> 12f
         RoadKind.TRUNK -> 10f
         RoadKind.PRIMARY -> 8f
@@ -65,6 +65,7 @@ object RoadStyle {
         RoadKind.WATER -> WATER_FILL
         RoadKind.FOREST -> FOREST_FILL
         RoadKind.BUILT_UP -> BUILT_UP_FILL
+        RoadKind.FARMLAND -> FARMLAND_FILL
         // Chemins et sentiers : ce que le coureur cherche, donc le brun des cartes de
         // randonnée, qui ne se confond avec aucune route.
         RoadKind.TRACK, RoadKind.PATH, RoadKind.BRIDLEWAY ->
@@ -103,5 +104,15 @@ object RoadStyle {
     private const val WATER_LINE = 0xFF6FA8CC.toInt()
     private const val FOREST_FILL = 0xFFC7DDBC.toInt()
     private const val BUILT_UP_FILL = 0xFFE6DFD5.toInt()
+
+    /**
+     * Cultures et prairies : un vert de paille, plus jaune et plus clair que le bois.
+     *
+     * Les deux verts doivent se distinguer sans se disputer : la campagne couvre presque
+     * tout l'écran en Normandie, elle ne peut être qu'à peine teintée, tandis que le bois,
+     * plus rare et plus franc, se détache dessus. C'est la relation qu'ont ces deux verts
+     * sur les cartes au 25 000e, où l'on reconnaît la lisière sans avoir à la chercher.
+     */
+    private const val FARMLAND_FILL = 0xFFEBEFCE.toInt()
     private const val FAINT = 0xFFCFCAC0.toInt()
 }
