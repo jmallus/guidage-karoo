@@ -131,6 +131,84 @@ class RoadMapTest {
         assertEquals(long.latitudes.toList(), rebuilt)
     }
 
+    /** Un contour rectangulaire, en micro-degrés, coin sud-ouest en (lat, lng). */
+    private fun area(
+        kind: RoadKind,
+        latitude: Int,
+        longitude: Int,
+        heightMicroDegrees: Int = 1_000,
+        widthMicroDegrees: Int = 1_000,
+    ) = RoadSegment(
+        kind = kind,
+        surface = RoadSurface.UNKNOWN,
+        latitudes = intArrayOf(latitude, latitude, latitude + heightMicroDegrees, latitude + heightMicroDegrees),
+        longitudes = intArrayOf(longitude, longitude + widthMicroDegrees, longitude + widthMicroDegrees, longitude),
+    )
+
+    @Test
+    fun `une surface qui tient dans une cellule revient intacte`() {
+        val pond = area(RoadKind.WATER, 49_110_000, 840_000)
+        val reader = readerOf(pond)
+
+        val found = reader.segmentsIn(MapBounds(49_100_000, 830_000, 49_130_000, 850_000))
+        assertEquals(1, found.size)
+        assertEquals(pond, found.first())
+    }
+
+    @Test
+    fun `une surface n est jamais decoupee en morceaux de polyligne`() {
+        // Cinquante points de contour : une ligne serait tronçonnée, un bois ne doit pas
+        // l'être — ses morceaux ne se rempliraient plus.
+        val wood = RoadSegment(
+            kind = RoadKind.FOREST,
+            surface = RoadSurface.UNKNOWN,
+            latitudes = IntArray(50) { 49_110_000 + (if (it < 25) it else 49 - it) * 40 },
+            longitudes = IntArray(50) { 840_000 + it * 40 },
+        )
+        val writer = RoadMapWriter()
+        writer.add(wood)
+
+        assertEquals(1, writer.segmentCount)
+    }
+
+    @Test
+    fun `une surface a cheval sur deux cellules est limitee a chacune`() {
+        // La cellule fait 20 000 micro-degrés : ce bois occupe deux rangées.
+        val wood = area(RoadKind.FOREST, 49_100_000, 840_000, heightMicroDegrees = 30_000)
+        val reader = readerOf(wood)
+
+        val found = reader.segmentsIn(MapBounds(49_090_000, 830_000, 49_140_000, 850_000))
+        assertEquals(2, found.size)
+        // Aucun morceau ne déborde de sa cellule, et les deux se rejoignent à la limite.
+        val south = found.first { it.latitudes.min() == 49_100_000 }
+        val north = found.first { it.latitudes.min() == 49_120_000 }
+        assertEquals(49_120_000, south.latitudes.max())
+        assertEquals(49_130_000, north.latitudes.max())
+        assertTrue("le bois reste un bois", found.all { it.kind == RoadKind.FOREST })
+    }
+
+    @Test
+    fun `un fichier de la version precedente reste lisible`() {
+        val writer = RoadMapWriter()
+        writer.add(segment(RoadKind.TRACK, 49_110_000, 840_000))
+        val bytes = writer.build()
+        bytes[6] = RoadMapFormat.OLDEST_VERSION.toByte()
+
+        val reader = RoadMapReader.open(ByteArraySource(bytes))
+        assertNotNull("les anciens fichiers doivent rester lisibles", reader)
+        assertEquals(1, reader!!.segmentsIn(MapBounds(49_100_000, 830_000, 49_130_000, 850_000)).size)
+    }
+
+    @Test
+    fun `un fichier d une version future est refuse`() {
+        val writer = RoadMapWriter()
+        writer.add(segment(RoadKind.TRACK, 49_110_000, 840_000))
+        val bytes = writer.build()
+        bytes[6] = (RoadMapFormat.VERSION + 1).toByte()
+
+        assertNull(RoadMapReader.open(ByteArraySource(bytes)))
+    }
+
     @Test
     fun `an empty map produces no file`() {
         assertEquals(0, RoadMapWriter().build().size)
@@ -170,6 +248,32 @@ class RoadKindTest {
         assertTrue(RoadKind.BRIDLEWAY.isTrail)
         assertTrue(!RoadKind.RESIDENTIAL.isTrail)
         assertTrue(!RoadKind.PRIMARY.isTrail)
+    }
+
+    @Test
+    fun `les tags de surface donnent l eau, le bois et le bati`() {
+        assertEquals(RoadKind.WATER, RoadKind.fromAreaTags(natural = "water", landuse = null, waterway = null))
+        assertEquals(RoadKind.WATER, RoadKind.fromAreaTags(natural = null, landuse = "reservoir", waterway = null))
+        assertEquals(RoadKind.WATER, RoadKind.fromAreaTags(natural = null, landuse = null, waterway = "riverbank"))
+        assertEquals(RoadKind.FOREST, RoadKind.fromAreaTags(natural = "wood", landuse = null, waterway = null))
+        assertEquals(RoadKind.FOREST, RoadKind.fromAreaTags(natural = null, landuse = "forest", waterway = null))
+        assertEquals(RoadKind.BUILT_UP, RoadKind.fromAreaTags(natural = null, landuse = "residential", waterway = null))
+        // Un champ ou un stade couvrirait l'écran sans rien apprendre.
+        assertNull(RoadKind.fromAreaTags(natural = null, landuse = "farmland", waterway = null))
+        assertNull(RoadKind.fromAreaTags(natural = null, landuse = null, waterway = null))
+    }
+
+    @Test
+    fun `ce qui se remplit se distingue de ce qui se trace`() {
+        assertTrue(RoadKind.WATER.isArea)
+        assertTrue(RoadKind.FOREST.isArea)
+        assertTrue(RoadKind.BUILT_UP.isArea)
+        // Un ruisseau est une ligne, si mince qu'il n'a pas de rive.
+        assertTrue(!RoadKind.STREAM.isArea)
+        assertEquals(RoadKind.STREAM, RoadKind.fromWaterwayTag("stream"))
+        assertEquals(RoadKind.STREAM, RoadKind.fromWaterwayTag("river"))
+        assertNull(RoadKind.fromWaterwayTag("drain"))
+        assertTrue(!RoadKind.TRACK.isArea)
     }
 
     @Test

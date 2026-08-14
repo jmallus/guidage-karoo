@@ -21,8 +21,10 @@ import io.github.jmallus.guidage.core.map.RoadSurface
  */
 object RoadStyle {
 
-    /** Largeur de chaussée, en mètres. */
+    /** Largeur de chaussée, en mètres. Sans objet pour les surfaces. */
     fun widthMeters(kind: RoadKind): Float = when (kind) {
+        RoadKind.STREAM -> 4f
+        RoadKind.WATER, RoadKind.FOREST, RoadKind.BUILT_UP -> 0f
         RoadKind.MOTORWAY -> 12f
         RoadKind.TRUNK -> 10f
         RoadKind.PRIMARY -> 8f
@@ -59,6 +61,10 @@ object RoadStyle {
         RoadKind.SERVICE -> SERVICE
         RoadKind.FOOTWAY, RoadKind.STEPS -> FAINT
         RoadKind.CYCLEWAY -> CYCLEWAY
+        RoadKind.STREAM -> WATER_LINE
+        RoadKind.WATER -> WATER_FILL
+        RoadKind.FOREST -> FOREST_FILL
+        RoadKind.BUILT_UP -> BUILT_UP_FILL
         // Chemins et sentiers : ce que le coureur cherche, donc le brun des cartes de
         // randonnée, qui ne se confond avec aucune route.
         RoadKind.TRACK, RoadKind.PATH, RoadKind.BRIDLEWAY ->
@@ -85,5 +91,17 @@ object RoadStyle {
     private const val SERVICE = 0xFFA9AFB4.toInt()
     private const val TRAIL = 0xFF9A6B33.toInt()
     private const val CYCLEWAY = 0xFF2E7D6B.toInt()
+
+    /**
+     * Surfaces : des teintes franches mais pâles.
+     *
+     * Elles occupent de grandes plages derrière tout le reste ; saturées, elles
+     * emporteraient le regard que le tracé doit garder. Ce sont les couleurs des cartes de
+     * randonnée, où l'on reconnaît l'eau et le bois sans avoir à y penser.
+     */
+    private const val WATER_FILL = 0xFFB4D4E7.toInt()
+    private const val WATER_LINE = 0xFF6FA8CC.toInt()
+    private const val FOREST_FILL = 0xFFC7DDBC.toInt()
+    private const val BUILT_UP_FILL = 0xFFE6DFD5.toInt()
     private const val FAINT = 0xFFCFCAC0.toInt()
 }

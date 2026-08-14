@@ -13,9 +13,14 @@ class RoadMapWriter(
 ) {
     private val segments = mutableListOf<RoadSegment>()
 
-    /** Ajoute une voie, découpée si elle est trop longue pour être rangée proprement. */
+    /**
+     * Ajoute un objet, découpé s'il est trop long pour être rangé proprement.
+     *
+     * Les surfaces échappent au découpage : elles sont limitées cellule par cellule au
+     * moment de l'écriture, un contour scindé en morceaux ne se remplissant plus.
+     */
     fun add(segment: RoadSegment) {
-        chop(segment).forEach { segments.add(it) }
+        if (segment.kind.isArea) segments.add(segment) else chop(segment).forEach { segments.add(it) }
     }
 
     fun addAll(segments: Iterable<RoadSegment>) = segments.forEach { add(it) }
@@ -61,23 +66,45 @@ class RoadMapWriter(
         val columns = cellCount(minLongitude, maxLongitude)
         val rows = cellCount(minLatitude, maxLatitude)
 
-        // Chaque tronçon est rangé dans toutes les cellules que touche son rectangle.
-        val buckets = Array(columns * rows) { mutableListOf<RoadSegment>() }
+        // Chaque objet est rangé dans toutes les cellules que touche son rectangle. Les
+        // lignes y entrent entières — le lecteur les dédoublonne par leur identifiant — et
+        // les surfaces y entrent limitées à la cellule, sinon un bois de dix kilomètres
+        // serait recopié dans chacune des cent cellules qu'il traverse.
+        val buckets = Array(columns * rows) { mutableListOf<Stored>() }
+        var nextIdentifier = 0
+        val identifiers = HashMap<RoadSegment, Int>(segments.size)
         for (segment in segments) {
             val bounds = MapBounds.of(segment.latitudes, segment.longitudes)
             val firstColumn = cellIndex(bounds.minLongitude, minLongitude, columns)
             val lastColumn = cellIndex(bounds.maxLongitude, minLongitude, columns)
             val firstRow = cellIndex(bounds.minLatitude, minLatitude, rows)
             val lastRow = cellIndex(bounds.maxLatitude, minLatitude, rows)
+            val identifier = if (segment.kind.isArea) {
+                -1
+            } else {
+                identifiers.getOrPut(segment) { nextIdentifier++ }
+            }
             for (row in firstRow..lastRow) {
                 for (column in firstColumn..lastColumn) {
-                    buckets[row * columns + column].add(segment)
+                    val cell = buckets[row * columns + column]
+                    if (!segment.kind.isArea) {
+                        cell.add(Stored(segment, identifier))
+                        continue
+                    }
+                    val clipped = ClipPolygon.clip(
+                        segment.latitudes,
+                        segment.longitudes,
+                        cellBounds(minLatitude, minLongitude, row, column),
+                    ) ?: continue
+                    cell.add(
+                        Stored(
+                            RoadSegment(segment.kind, segment.surface, clipped.first, clipped.second),
+                            nextIdentifier++,
+                        ),
+                    )
                 }
             }
         }
-
-        val identifiers = HashMap<RoadSegment, Int>(segments.size)
-        segments.forEachIndexed { index, segment -> identifiers.putIfAbsent(segment, index) }
 
         val body = mutableListOf<Byte>()
         val offsets = IntArray(columns * rows + 1)
@@ -88,7 +115,7 @@ class RoadMapWriter(
             val originLatitude = minLatitude + row * cellSize
             val originLongitude = minLongitude + column * cellSize
             cell.forEach {
-                writeSegment(body, it, identifiers.getValue(it), originLatitude, originLongitude)
+                writeSegment(body, it.segment, it.identifier, originLatitude, originLongitude)
             }
         }
         offsets[offsets.size - 1] = body.size
@@ -129,6 +156,16 @@ class RoadMapWriter(
             previousLongitude = segment.longitudes[index]
         }
     }
+
+    /** Un objet rangé dans une cellule, avec l'identifiant qui permet de le dédoublonner. */
+    private data class Stored(val segment: RoadSegment, val identifier: Int)
+
+    private fun cellBounds(minLatitude: Int, minLongitude: Int, row: Int, column: Int) = MapBounds(
+        minLatitude = minLatitude + row * cellSize,
+        minLongitude = minLongitude + column * cellSize,
+        maxLatitude = minLatitude + (row + 1) * cellSize,
+        maxLongitude = minLongitude + (column + 1) * cellSize,
+    )
 
     private fun cellCount(min: Int, max: Int): Int =
         floor((max - min).toDouble() / cellSize).toInt() + 1

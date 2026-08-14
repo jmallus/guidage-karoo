@@ -11,7 +11,7 @@ package io.github.jmallus.guidage.core.map
  * ```
  * Entête, en petit-boutiste :
  *   magie          6 octets   « GKMAP\0 »
- *   version        1 octet    = 1
+ *   version        1 octet    = 2
  *   réservé        1 octet    = 0
  *   minLatitude    int32      micro-degrés
  *   minLongitude   int32
@@ -43,7 +43,17 @@ object RoadMapFormat {
 
     val MAGIC = byteArrayOf('G'.code.toByte(), 'K'.code.toByte(), 'M'.code.toByte(), 'A'.code.toByte(), 'P'.code.toByte(), 0)
 
-    const val VERSION = 1
+    /**
+     * Version du format.
+     *
+     * La 2 ajoute les surfaces — eau, bois, bâti — sans rien changer à la disposition des
+     * enregistrements : ce sont de nouvelles natures d'objet, écrites comme les autres. Un
+     * fichier de version 1 reste donc lisible tel quel.
+     */
+    const val VERSION = 2
+
+    /** Plus ancienne version que ce lecteur sait lire. */
+    const val OLDEST_VERSION = 1
 
     const val HEADER_SIZE = 8 + 7 * 4
 

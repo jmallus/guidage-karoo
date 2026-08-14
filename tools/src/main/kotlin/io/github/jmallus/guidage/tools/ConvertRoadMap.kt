@@ -5,7 +5,7 @@ import io.github.jmallus.guidage.core.map.RoadMapWriter
 import java.io.File
 
 /**
- * Convertit des voies OpenStreetMap en fond de carte.
+ * Convertit des objets OpenStreetMap — voies, cours d'eau, bois, eau, bâti — en fond de carte.
  *
  *     convertRoadMap sortie.gkmap entree1.geojsonseq [entree2.geojsonseq …]
  *
@@ -35,16 +35,17 @@ fun main(args: Array<String>) {
         input.bufferedReader().useLines { sequence ->
             sequence.forEach { line ->
                 lines++
-                val segment = GeoJsonSeq.toSegment(line) ?: return@forEach
-                writer.add(segment)
-                counts.merge(segment.kind, 1, Int::plus)
+                GeoJsonSeq.toSegments(line).forEach { segment ->
+                    writer.add(segment)
+                    counts.merge(segment.kind, 1, Int::plus)
+                }
             }
         }
     }
 
     val kept = counts.values.sum()
     if (kept == 0) {
-        System.err.println("aucune voie retenue sur $lines lignes : entrées vides ou filtre trop strict")
+        System.err.println("aucun objet retenu sur $lines lignes : entrées vides ou filtre trop strict")
         kotlin.system.exitProcess(1)
     }
 
@@ -53,9 +54,13 @@ fun main(args: Array<String>) {
     output.writeBytes(bytes)
 
     println()
-    println("$lines lignes lues, $kept voies retenues, ${writer.segmentCount} tronçons après découpage")
+    println("$lines lignes lues, $kept objets retenus, ${writer.segmentCount} tronçons après découpage")
     counts.entries.sortedByDescending { it.value }.forEach { (kind, count) ->
-        val marker = if (kind.isTrail) " (chemin)" else ""
+        val marker = when {
+            kind.isArea -> " (surface)"
+            kind.isTrail -> " (chemin)"
+            else -> ""
+        }
         println("  %-14s %7d%s".format(kind.name.lowercase(), count, marker))
     }
     println()

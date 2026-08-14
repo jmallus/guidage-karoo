@@ -9,6 +9,7 @@ import io.github.jmallus.guidage.core.map.RoadSurface
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GeoJsonSeqTest {
@@ -84,6 +85,93 @@ class GeoJsonSeqTest {
                 feature("""{"highway":"track"}""", """[[0.8400001,49.1100001],[0.8400002,49.1100002]]"""),
             ),
         )
+    }
+
+    private fun polygon(properties: String, rings: String) =
+        """{"type":"Feature","properties":$properties,"geometry":{"type":"Polygon","coordinates":$rings}}"""
+
+    /** Un anneau carré de [side] degrés de côté, refermé sur lui-même. */
+    private fun ring(longitude: Double, latitude: Double, side: Double): String {
+        val corners = listOf(
+            longitude to latitude,
+            longitude + side to latitude,
+            longitude + side to latitude + side,
+            longitude to latitude + side,
+            longitude to latitude,
+        )
+        return corners.joinToString(",", prefix = "[", postfix = "]") { "[${it.first},${it.second}]" }
+    }
+
+    @Test
+    fun `un plan d eau devient une surface`() {
+        val segment = GeoJsonSeq.toSegment(
+            polygon("""{"natural":"water"}""", "[${ring(0.840, 49.110, 0.001)}]"),
+        )
+        assertNotNull(segment)
+        assertEquals(RoadKind.WATER, segment!!.kind)
+        // Le point de fermeture ne sert à rien : un contour se referme tout seul.
+        assertEquals(4, segment.size)
+    }
+
+    @Test
+    fun `un bois en plusieurs morceaux en donne autant de surfaces`() {
+        val rings = "[[${ring(0.840, 49.110, 0.001)}],[${ring(0.850, 49.120, 0.001)}]]"
+        val segments = GeoJsonSeq.toSegments(
+            """{"type":"Feature","properties":{"landuse":"forest"},"geometry":{"type":"MultiPolygon","coordinates":$rings}}""",
+        )
+        assertEquals(2, segments.size)
+        assertEquals(listOf(RoadKind.FOREST, RoadKind.FOREST), segments.map { it.kind })
+    }
+
+    @Test
+    fun `une mare ne se distinguerait pas d un defaut de l ecran`() {
+        // Trente mètres sur vingt : sous le seuil, donc écartée.
+        assertNull(GeoJsonSeq.toSegment(polygon("""{"natural":"water"}""", "[${ring(0.840, 49.110, 0.0003)}]")))
+    }
+
+    @Test
+    fun `un champ n est pas une surface qu on garde`() {
+        assertNull(GeoJsonSeq.toSegment(polygon("""{"landuse":"farmland"}""", "[${ring(0.840, 49.110, 0.002)}]")))
+    }
+
+    @Test
+    fun `une riviere devient une ligne`() {
+        val segment = GeoJsonSeq.toSegment(
+            feature("""{"waterway":"river"}""", """[[0.840,49.110],[0.842,49.112]]"""),
+        )
+        assertNotNull(segment)
+        assertEquals(RoadKind.STREAM, segment!!.kind)
+    }
+
+    @Test
+    fun `la simplification ne garde que ce qui se voit`() {
+        // Onze points alignés : les neuf du milieu n'apprennent rien.
+        val latitudes = IntArray(11) { it * 100 }
+        val straight = GeoJsonSeq.simplify(latitudes, IntArray(11), 8.0)
+        assertEquals(2, straight.first.size)
+
+        // Un décrochement de deux cents mètres, lui, se voit : le sommet est gardé.
+        val bent = GeoJsonSeq.simplify(latitudes, IntArray(11) { if (it == 5) 2_000 else 0 }, 8.0)
+        assertTrue("le sommet doit survivre", bent.second.contains(2_000))
+
+        // Le même décrochement de onze centimètres ne se voit pas.
+        val flat = GeoJsonSeq.simplify(latitudes, IntArray(11) { if (it == 5) 1 else 0 }, 8.0)
+        assertEquals(2, flat.first.size)
+    }
+
+    @Test
+    fun `un contour simplifie garde sa surface`() {
+        // Un carré de cent dix mètres de côté, avec un point superflu au milieu de chaque côté.
+        val segment = GeoJsonSeq.toSegment(
+            polygon(
+                """{"natural":"wood"}""",
+                """[[[0.840000,49.110000],[0.840500,49.110000],[0.841000,49.110000],
+                    [0.841000,49.110500],[0.841000,49.111000],[0.840500,49.111000],
+                    [0.840000,49.111000],[0.840000,49.110500],[0.840000,49.110000]]]""",
+            ),
+        )
+        assertNotNull(segment)
+        assertEquals(4, segment!!.size)
     }
 
     @Test

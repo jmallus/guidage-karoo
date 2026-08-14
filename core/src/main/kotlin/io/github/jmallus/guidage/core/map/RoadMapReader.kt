@@ -91,7 +91,8 @@ class RoadMapReader private constructor(
             if (source.size < RoadMapFormat.HEADER_SIZE) return null
             val header = source.read(0, RoadMapFormat.HEADER_SIZE)
             if (!header.copyOfRange(0, RoadMapFormat.MAGIC.size).contentEquals(RoadMapFormat.MAGIC)) return null
-            if (header[6].toInt() != RoadMapFormat.VERSION) return null
+            val version = header[6].toInt()
+            if (version < RoadMapFormat.OLDEST_VERSION || version > RoadMapFormat.VERSION) return null
 
             var at = 8
             val minLatitude = readInt(header, at); at += 4

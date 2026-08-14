@@ -35,9 +35,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # osmium fait le gros œuvre : décoder le format binaire d'OSM et n'en garder
-      # que les voies. Le faire en Kotlin demanderait une bibliothèque de plus pour
-      # un travail qui ne tourne jamais sur l'appareil.
+      # osmium fait le gros œuvre : décoder le format binaire d'OSM, en garder ce qui
+      # nous intéresse et reconstituer les surfaces à partir des relations. Le faire en
+      # Kotlin demanderait une bibliothèque de plus pour un travail qui ne tourne jamais
+      # sur l'appareil.
       - name: Installer osmium
         run: sudo apt-get update && sudo apt-get install -y osmium-tool
 
@@ -58,12 +59,20 @@ jobs:
             fi
             ls -lh "osm/$nom.osm.pbf"
 
-            # Toutes les voies portant un tag highway : routes, chemins, sentiers.
-            osmium tags-filter "osm/$nom.osm.pbf" w/highway \
-              -o "osm/$nom.highways.osm.pbf" --overwrite
-            # Géométries résolues, une ligne de JSON par voie.
-            osmium export "osm/$nom.highways.osm.pbf" \
-              --geometry-types=linestring \
+            # Les voies portant un tag highway — routes, chemins, sentiers — les cours
+            # d'eau, et les surfaces qui aident à se situer : eau, bois, bâti. Les
+            # surfaces se déclarent en « wa/… » : elles arrivent tantôt en chemin fermé,
+            # tantôt en relation de multipolygone.
+            osmium tags-filter "osm/$nom.osm.pbf" \
+              w/highway \
+              w/waterway=river,canal,stream \
+              wa/natural=water,wetland,wood,scrub \
+              wa/waterway=riverbank,dock \
+              wa/landuse=forest,reservoir,basin,residential,industrial,commercial,retail \
+              -o "osm/$nom.retenu.osm.pbf" --overwrite
+            # Géométries résolues, une ligne de JSON par objet.
+            osmium export "osm/$nom.retenu.osm.pbf" \
+              --geometry-types=linestring,polygon \
               -f geojsonseq -o "osm/$nom.geojsonseq" --overwrite
             ls -lh "osm/$nom.geojsonseq"
             echo "::endgroup::"
@@ -92,7 +101,8 @@ jobs:
           ci-dessous et le copier sur le Karoo dans \`Download/\`.
 
           Contient les routes **et** les chemins — \`track\`, \`path\`, \`bridleway\`,
-          \`cycleway\` — avec leur revêtement quand OpenStreetMap le renseigne.
+          \`cycleway\` — avec leur revêtement quand OpenStreetMap le renseigne, les cours
+          d'eau, et les surfaces d'eau, de bois et de bâti.
           NOTES
           if gh release view carte >/dev/null 2>&1; then
             gh release upload carte "${{ github.event.inputs.nom }}.gkmap" --clobber

@@ -1,11 +1,15 @@
 package io.github.jmallus.guidage.core.map
 
 /**
- * Nature d'une voie, telle qu'on la retient d'OpenStreetMap.
+ * Nature d'un objet du fond de carte, telle qu'on la retient d'OpenStreetMap.
  *
- * La liste est volontairement courte : le fond de carte ne sert qu'à situer le tracé, pas
- * à décrire le terrain. Chaque valeur est écrite dans le fichier sous son [code], qui ne
- * doit donc jamais changer une fois publié.
+ * La liste est volontairement courte : le fond ne sert qu'à situer le tracé, pas à décrire
+ * le terrain. On y trouve les voies, les cours d'eau — des lignes — puis les surfaces :
+ * l'eau, les bois et le bâti, qui donnent au coup d'œil ce que les voies seules ne disent
+ * pas, à savoir si l'on longe une rivière ou si l'on traverse un village.
+ *
+ * Chaque valeur est écrite dans le fichier sous son [code], qui ne doit donc jamais changer
+ * une fois publié.
  */
 enum class RoadKind(val code: Int) {
     MOTORWAY(0),
@@ -26,15 +30,55 @@ enum class RoadKind(val code: Int) {
     BRIDLEWAY(11),
     FOOTWAY(12),
     STEPS(13),
+
+    /** Cours d'eau, dessiné en ligne : rivière, ruisseau, canal. */
+    STREAM(14),
+
+    /** Plan d'eau ou cours d'eau assez large pour avoir une rive : dessiné en surface. */
+    WATER(15),
+
+    /** Bois et forêts. */
+    FOREST(16),
+
+    /** Bâti : zones résidentielles, industrielles, villages. */
+    BUILT_UP(17),
     ;
 
     /** true pour les voies qui intéressent le gravel et le VTT. */
-    val isTrail: Boolean get() = code >= TRACK.code
+    val isTrail: Boolean get() = code in TRACK.code..STEPS.code
+
+    /** true pour ce qui se remplit plutôt que se trace : la polyligne est alors un contour. */
+    val isArea: Boolean get() = code >= WATER.code
 
     companion object {
         private val BY_CODE = entries.associateBy { it.code }
 
         fun fromCode(code: Int): RoadKind? = BY_CODE[code]
+
+        /**
+         * Correspondance depuis les tags de surface, ou null si l'objet ne nous intéresse pas.
+         *
+         * Les trois familles retenues sont celles qui se voient depuis la selle et qui
+         * aident à se situer. Le reste — champs, prairies, terrains de sport — couvrirait
+         * l'écran sans rien apprendre.
+         */
+        fun fromAreaTags(natural: String?, landuse: String?, waterway: String?): RoadKind? = when {
+            natural == "water" || natural == "wetland" -> WATER
+            waterway == "riverbank" || waterway == "dock" -> WATER
+            landuse == "reservoir" || landuse == "basin" -> WATER
+            natural == "wood" || natural == "scrub" -> FOREST
+            landuse == "forest" -> FOREST
+            landuse in BUILT_UP_TAGS -> BUILT_UP
+            else -> null
+        }
+
+        /** Correspondance depuis la valeur du tag `waterway`, pour les cours d'eau en ligne. */
+        fun fromWaterwayTag(tag: String): RoadKind? = when (tag) {
+            "river", "canal", "stream" -> STREAM
+            else -> null
+        }
+
+        private val BUILT_UP_TAGS = setOf("residential", "industrial", "commercial", "retail")
 
         /** Correspondance depuis la valeur du tag `highway`, ou null si la voie ne nous intéresse pas. */
         fun fromHighwayTag(tag: String): RoadKind? = when (tag) {

@@ -9,7 +9,9 @@ import android.graphics.Typeface
 import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.PlanePoint
+import io.github.jmallus.guidage.core.map.RoadKind
 import io.github.jmallus.guidage.core.map.RoadSegment
+import io.github.jmallus.guidage.core.map.RoadSurface
 import io.github.jmallus.guidage.core.map.fromMicroDegrees
 import kotlin.math.hypot
 import kotlin.math.ln
@@ -68,7 +70,9 @@ object MapRenderer {
         // soleil, l'écran du Karoo réfléchissant la lumière au lieu de lutter contre elle.
         canvas.drawRect(area, Paint().apply { color = RoadStyle.BACKGROUND })
         if (model.roads.isNotEmpty()) {
-            drawRoads(canvas, model.roads, projection, metersToPixels)
+            val (areas, lines) = model.roads.partition { it.kind.isArea }
+            drawAreas(canvas, areas, projection)
+            drawRoads(canvas, lines, projection, metersToPixels)
         }
         drawPath(canvas, model, projection, palette, routeWidth(model.rangeMeters), riderX, riderY)
         drawPois(canvas, area, model, projection, palette)
@@ -105,6 +109,43 @@ object MapRenderer {
             return (riderY - plane.y * metersToPixels).toFloat()
         }
     }
+
+    /**
+     * Surfaces du fond de carte : eau, bois, bâti, sous tout le reste.
+     *
+     * Elles sont dessinées dans cet ordre — bâti, bois, eau — pour que l'eau reste visible
+     * là où un étang borde un bois, cas fréquent et qui se lit mal dans l'autre sens. Chaque
+     * famille forme un seul chemin : le remplissage est ce qui coûte le plus cher à
+     * dessiner, autant ne changer de pinceau que trois fois.
+     */
+    private fun drawAreas(canvas: Canvas, areas: List<RoadSegment>, projection: Projection) {
+        if (areas.isEmpty()) return
+        AREA_ORDER.forEach { kind ->
+            val ofKind = areas.filter { it.kind == kind }
+            if (ofKind.isEmpty()) return@forEach
+            val path = Path().apply { fillType = Path.FillType.WINDING }
+            ofKind.forEach { area ->
+                for (index in 0 until area.size) {
+                    val latitude = area.latitudes[index].fromMicroDegrees()
+                    val longitude = area.longitudes[index].fromMicroDegrees()
+                    val x = projection.screenX(latitude, longitude)
+                    val y = projection.screenY(latitude, longitude)
+                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                path.close()
+            }
+            canvas.drawPath(
+                path,
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.FILL
+                    color = RoadStyle.color(kind, RoadSurface.UNKNOWN)
+                },
+            )
+        }
+    }
+
+    /** Du plus lointain au plus proche du regard : le bâti, puis le bois, puis l'eau. */
+    private val AREA_ORDER = listOf(RoadKind.BUILT_UP, RoadKind.FOREST, RoadKind.WATER)
 
     /**
      * Voies du fond de carte, sous le tracé.
