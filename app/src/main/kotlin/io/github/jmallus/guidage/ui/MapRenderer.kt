@@ -30,6 +30,8 @@ data class MapModel(
     val roads: List<RoadSegment> = emptyList(),
     /** Distance visible devant le coureur (m). */
     val rangeMeters: Double = 1_000.0,
+    /** Vrai quand le Karoo estime qu'on a quitté l'itinéraire. */
+    val offRoute: Boolean = false,
     val emptyMessage: String? = null,
 )
 
@@ -68,7 +70,7 @@ object MapRenderer {
         if (model.roads.isNotEmpty()) {
             drawRoads(canvas, model.roads, projection, metersToPixels)
         }
-        drawPath(canvas, model, projection, palette, routeWidth(model.rangeMeters))
+        drawPath(canvas, model, projection, palette, routeWidth(model.rangeMeters), riderX, riderY)
         drawPois(canvas, area, model, projection, palette)
         drawRider(canvas, riderX, riderY, area.height(), palette)
         drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
@@ -154,38 +156,84 @@ object MapRenderer {
     private const val MIN_ROAD_WIDTH = 1f
     private const val MAX_ROAD_WIDTH = 26f
 
+    /**
+     * Le tracé, coupé en deux à hauteur du coureur.
+     *
+     * Ce qui est fait passe en sourdine, ce qui reste garde sa pleine couleur. C'est ce qui
+     * permet de s'y retrouver quand l'itinéraire se recroise : au carrefour, la branche
+     * éteinte est celle qu'on a déjà prise, et les chevrons ne courent que sur la suite.
+     *
+     * Hors itinéraire, tout le tracé passe au rouge : mieux vaut le voir tout de suite que
+     * de le découvrir au bout de deux kilomètres.
+     */
     private fun drawPath(
         canvas: Canvas,
         model: MapModel,
         projection: Projection,
         palette: Palette,
         width: Float,
+        riderX: Float,
+        riderY: Float,
     ) {
         if (model.path.size < 2) return
-        val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val ahead = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = width
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
-            color = palette.routeLine
+            color = if (model.offRoute) OFF_ROUTE_COLOR else palette.routeLine
         }
-        val outline = Paint(line).apply {
+        val behind = Paint(ahead).apply {
+            strokeWidth = width * TRAVELED_WIDTH_RATIO
+            color = FieldPalette.translucent(ahead.color, TRAVELED_ALPHA)
+        }
+        val outline = Paint(ahead).apply {
             strokeWidth = width + ROUTE_OUTLINE_WIDTH * 2
             color = palette.routeOutline
         }
 
         val screenPoints = model.path.map { projection.toScreen(it) }
-        val path = Path()
-        screenPoints.forEachIndexed { index, point ->
-            if (index == 0) {
-                path.moveTo(point.x.toFloat(), point.y.toFloat())
-            } else {
-                path.lineTo(point.x.toFloat(), point.y.toFloat())
+        val here = nearestIndex(screenPoints, riderX, riderY)
+        val traveled = polyline(screenPoints.subList(0, (here + 1).coerceAtMost(screenPoints.size)))
+        val remaining = polyline(screenPoints.subList(here.coerceAtMost(screenPoints.lastIndex), screenPoints.size))
+
+        canvas.drawPath(remaining, outline)
+        canvas.drawPath(traveled, behind)
+        canvas.drawPath(remaining, ahead)
+        drawDirectionChevrons(
+            canvas = canvas,
+            points = screenPoints.subList(here.coerceAtMost(screenPoints.lastIndex), screenPoints.size),
+            palette = palette,
+            routeWidth = width,
+        )
+    }
+
+    private fun polyline(points: List<PlanePoint>): Path = Path().apply {
+        points.forEachIndexed { index, point ->
+            if (index == 0) moveTo(point.x.toFloat(), point.y.toFloat())
+            else lineTo(point.x.toFloat(), point.y.toFloat())
+        }
+    }
+
+    /**
+     * Point du tracé le plus proche du coureur, cherché à l'écran.
+     *
+     * On ne se fie pas à la distance parcourue rapportée par l'appareil : elle se décale, et
+     * le tracé se couperait alors au mauvais endroit. La position à l'écran, elle, ne ment pas.
+     */
+    private fun nearestIndex(points: List<PlanePoint>, x: Float, y: Float): Int {
+        var best = 0
+        var bestDistance = Float.MAX_VALUE
+        points.forEachIndexed { index, point ->
+            val dx = point.x.toFloat() - x
+            val dy = point.y.toFloat() - y
+            val distance = dx * dx + dy * dy
+            if (distance < bestDistance) {
+                bestDistance = distance
+                best = index
             }
         }
-        canvas.drawPath(path, outline)
-        canvas.drawPath(path, line)
-        drawDirectionChevrons(canvas, screenPoints, palette, width)
+        return best
     }
 
     /**
@@ -200,7 +248,7 @@ object MapRenderer {
     private fun routeWidth(rangeMeters: Double): Float {
         val range = rangeMeters.coerceIn(MIN_RANGE, MAX_RANGE)
         val ratio = ln(range / MIN_RANGE) / ln(MAX_RANGE / MIN_RANGE)
-        return (ROUTE_WIDTH_NEAR - (ROUTE_WIDTH_NEAR - ROUTE_WIDTH_FAR) * ratio).toFloat()
+        return ((ROUTE_WIDTH_NEAR - (ROUTE_WIDTH_NEAR - ROUTE_WIDTH_FAR) * ratio) * TRACE_THINNING).toFloat()
     }
 
     /**
@@ -221,12 +269,15 @@ object MapRenderer {
         // Les chevrons débordent le ruban de part et d'autre, cerne compris : c'est ce
         // débord qui les fait lire comme des pointes posées dessus. Contenus dans la
         // largeur du tracé, ils s'y noieraient — le tracé est jaune comme eux.
-        val spacing = routeWidth * CHEVRON_SPACING_RATIO
-        val stroke = routeWidth * CHEVRON_STROKE_RATIO
+        // Les chevrons gardent la taille qu'ils avaient avant l'amincissement du ruban :
+        // c'est le tracé qu'on a voulu plus fin, pas les pointes qui le jalonnent.
+        val reference = (routeWidth / TRACE_THINNING).toFloat()
+        val spacing = reference * CHEVRON_SPACING_RATIO
+        val stroke = reference * CHEVRON_STROKE_RATIO
         val borderWidth = stroke + (stroke * CHEVRON_BORDER_RATIO).coerceAtLeast(1.6f) * 2
         val halfSpan =
-            routeWidth / 2 + ROUTE_OUTLINE_WIDTH + routeWidth * CHEVRON_OVERHANG_RATIO
-        val size = ((halfSpan - borderWidth / 2) / CHEVRON_ARM).coerceAtLeast(routeWidth * 0.4f)
+            reference / 2 + ROUTE_OUTLINE_WIDTH + reference * CHEVRON_OVERHANG_RATIO
+        val size = ((halfSpan - borderWidth / 2) / CHEVRON_ARM).coerceAtLeast(reference * 0.4f)
         val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = borderWidth
@@ -286,6 +337,13 @@ object MapRenderer {
         path.lineTo(backX - armX, backY - armY)
     }
 
+    /**
+     * Points d'intérêt : une pastille cerclée de blanc, avec son nom à côté.
+     *
+     * Le cerne blanc et le halo du texte ne sont pas décoratifs : sans eux, la pastille se
+     * confond avec le tracé qu'elle jouxte et le nom devient illisible dès qu'il tombe sur
+     * une route. Ils sont dimensionnés d'après la case, pour rester lisibles en roulant.
+     */
     private fun drawPois(
         canvas: Canvas,
         area: RectF,
@@ -294,10 +352,24 @@ object MapRenderer {
         palette: Palette,
     ) {
         if (model.pois.isEmpty()) return
-        val labelSize = (area.height() * 0.05f).coerceIn(10f, 16f)
+        val labelSize = (area.height() * 0.062f).coerceIn(12f, 20f)
+        val radius = (area.height() * 0.026f).coerceIn(5f, 10f)
         val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = POI_COLOR
             style = Paint.Style.FILL
+        }
+        val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFFFFFFF.toInt()
+            style = Paint.Style.STROKE
+            strokeWidth = radius * 0.45f
+        }
+        val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = RoadStyle.BACKGROUND
+            textSize = labelSize
+            typeface = Typeface.DEFAULT_BOLD
+            style = Paint.Style.STROKE
+            strokeWidth = labelSize * 0.30f
+            strokeJoin = Paint.Join.ROUND
         }
         val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = RoadStyle.INK
@@ -310,8 +382,15 @@ object MapRenderer {
             val x = screen.x.toFloat()
             val y = screen.y.toFloat()
             if (x < area.left - 20 || x > area.right + 20 || y < area.top - 20 || y > area.bottom + 20) return@forEach
-            canvas.drawCircle(x, y, 5f, dot)
-            canvas.drawText(poi.label, x + 8f, y + labelSize * 0.35f, text)
+            canvas.drawCircle(x, y, radius, dot)
+            canvas.drawCircle(x, y, radius, ring)
+
+            // Le nom se met à gauche quand il déborderait à droite : la carte est étroite.
+            val width = text.measureText(poi.label)
+            val left = if (x + radius + 6f + width <= area.right) x + radius + 6f else x - radius - 6f - width
+            val baseline = y + labelSize * 0.35f
+            canvas.drawText(poi.label, left, baseline, halo)
+            canvas.drawText(poi.label, left, baseline, text)
         }
     }
 
@@ -386,6 +465,19 @@ object MapRenderer {
     private const val ARROW_HALF_WIDTH = 0.82f
     private const val ARROW_BASE = 0.72f
     private const val ARROW_NOTCH = 0.19f
+
+    /**
+     * Amincissement du tracé : il masquait le carrefour qu'il traverse. Les chevrons, eux,
+     * gardent leur envergure — c'est par eux que le tracé se signale désormais.
+     */
+    private const val TRACE_THINNING = 2.0 / 3.0
+
+    /** Part de l'épaisseur et opacité du tracé déjà parcouru. */
+    private const val TRAVELED_WIDTH_RATIO = 0.7f
+    private const val TRAVELED_ALPHA = 0x59
+
+    /** Rouge du hors-itinéraire, repris de la palette d'effort. */
+    private const val OFF_ROUTE_COLOR = 0xFFD32F2F.toInt()
 
     /** Épaisseur du tracé aux deux bouts de la plage de portées, et cerne. */
     private const val ROUTE_WIDTH_NEAR = 14.0

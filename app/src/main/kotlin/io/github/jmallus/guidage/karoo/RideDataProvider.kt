@@ -1,5 +1,6 @@
 package io.github.jmallus.guidage.karoo
 
+import io.github.jmallus.guidage.core.ClimbProgress
 import io.github.jmallus.guidage.core.Drivetrain
 import io.github.jmallus.guidage.core.ZoneRange
 import io.hammerhead.karooext.KarooSystemService
@@ -30,6 +31,14 @@ data class RideData(
     val arrivalTime: Double? = null,
     /** Rapport engagé, quand le groupe le rapporte. */
     val drivetrain: Drivetrain = Drivetrain.UNKNOWN,
+    /** Côte en cours, telle que le Karoo la suit lui-même. */
+    val climb: ClimbProgress = ClimbProgress.NONE,
+    /**
+     * Faux quand le Karoo estime qu'on a quitté l'itinéraire.
+     *
+     * Null tant qu'il ne se prononce pas — hors navigation, par exemple.
+     */
+    val onRoute: Boolean? = null,
     /** Zones réglées sur l'appareil, qui donnent leur couleur aux cases. */
     val powerZones: List<ZoneRange> = emptyList(),
     val heartRateZones: List<ZoneRange> = emptyList(),
@@ -45,7 +54,12 @@ class RideDataProvider(
     private val karooSystem: KarooSystemService,
     scope: CoroutineScope,
 ) {
-    val data: StateFlow<RideData> = combine(metrics(), zones(), gears()) { values, profile, drivetrain ->
+    val data: StateFlow<RideData> = combine(
+        metrics(),
+        zones(),
+        gears(),
+        climb(),
+    ) { values, profile, drivetrain, climb ->
         RideData(
             speed = values[0],
             averageSpeed = values[1],
@@ -57,6 +71,8 @@ class RideDataProvider(
             distanceRemaining = values[7],
             arrivalTime = values[8],
             drivetrain = drivetrain,
+            climb = climb,
+            onRoute = values[9]?.let { it > 0.5 },
             powerZones = profile.first,
             heartRateZones = profile.second,
         )
@@ -76,6 +92,7 @@ class RideDataProvider(
             // Ce type porte aussi l'état de navigation : il faut nommer le champ voulu.
             field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.DISTANCE_TO_DESTINATION),
             value(DataType.Type.TIME_OF_ARRIVAL),
+            field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.ON_ROUTE),
         ),
     ) { it }
 
@@ -107,6 +124,28 @@ class RideDataProvider(
                 )
             }
             .onStart { emit(Drivetrain.UNKNOWN) }
+
+    /**
+     * Côte en cours, telle que le Karoo la suit.
+     *
+     * On préfère ses valeurs aux nôtres : lui sait exactement où commence et où finit la
+     * côte qu'il a identifiée, là où nous ne pouvons que la situer d'après une distance
+     * parcourue reconstituée, dont le moindre décalage fait apparaître le profil après la
+     * bosse. Le rang de la côte vient de la même source, pour la même raison.
+     */
+    private fun climb(): Flow<ClimbProgress> = combine(
+        karooSystem.streamFieldsFlow(DataType.Type.CLIMB).onStart { emit(emptyMap()) },
+        karooSystem.streamFieldsFlow(DataType.Type.CLIMB_NUMBER).onStart { emit(emptyMap()) },
+    ) { climb, numbering ->
+        ClimbProgress(
+            distanceFromBottom = climb[DataType.Field.DISTANCE_FROM_BOTTOM],
+            distanceToTop = climb[DataType.Field.DISTANCE_TO_TOP],
+            elevationToTop = climb[DataType.Field.ELEVATION_TO_TOP],
+            totalElevation = climb[DataType.Field.CLIMB_ELEVATION],
+            number = numbering[DataType.Field.CLIMB_NUMBER]?.toInt(),
+            totalClimbs = numbering[DataType.Field.TOTAL_CLIMBS]?.toInt(),
+        )
+    }
 
     private fun value(dataTypeId: String) =
         karooSystem.streamValueFlow(dataTypeId).onStart { emit(null) }

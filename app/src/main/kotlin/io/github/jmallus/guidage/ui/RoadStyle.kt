@@ -42,18 +42,26 @@ object RoadStyle {
     /**
      * Couleur d'une voie.
      *
+     * Les classes ont chacune leur teinte, comme sur une carte routière : le rouge et
+     * l'orange pour ce qui roule vite, le gris pour la desserte, le brun pour ce qui n'est
+     * pas revêtu, le vert pour les voies cyclables. Sur un écran de six centimètres, la
+     * couleur distingue les classes bien plus vite que l'épaisseur seule.
+     *
      * Trottoirs et escaliers sont volontairement à peine détachés du fond : ils forment
      * le tiers du fichier et n'intéressent ni le gravel ni le VTT, mais les effacer
      * complètement reviendrait à prétendre qu'il n'y a rien là où il y a quelque chose.
      */
     fun color(kind: RoadKind, surface: RoadSurface): Int = when (kind) {
-        RoadKind.MOTORWAY, RoadKind.TRUNK, RoadKind.PRIMARY, RoadKind.SECONDARY -> MAJOR
-        RoadKind.TERTIARY, RoadKind.UNCLASSIFIED, RoadKind.RESIDENTIAL -> MINOR
+        RoadKind.MOTORWAY, RoadKind.TRUNK -> EXPRESSWAY
+        RoadKind.PRIMARY -> PRIMARY
+        RoadKind.SECONDARY, RoadKind.TERTIARY -> SECONDARY
+        RoadKind.UNCLASSIFIED, RoadKind.RESIDENTIAL -> MINOR
         RoadKind.SERVICE -> SERVICE
         RoadKind.FOOTWAY, RoadKind.STEPS -> FAINT
-        // Chemins et sentiers : ce que le coureur cherche, donc un ton un peu chaud qui
-        // se distingue du gris des routes sans pour autant crier.
-        RoadKind.TRACK, RoadKind.PATH, RoadKind.BRIDLEWAY, RoadKind.CYCLEWAY ->
+        RoadKind.CYCLEWAY -> CYCLEWAY
+        // Chemins et sentiers : ce que le coureur cherche, donc le brun des cartes de
+        // randonnée, qui ne se confond avec aucune route.
+        RoadKind.TRACK, RoadKind.PATH, RoadKind.BRIDLEWAY ->
             if (surface == RoadSurface.PAVED) MINOR else TRAIL
     }
 
@@ -70,9 +78,12 @@ object RoadStyle {
     /** Encre des mentions portées sur la carte — échelle, messages — sur ce fond clair. */
     const val INK = 0xFF2A2F33.toInt()
 
-    private const val MAJOR = 0xFF5A6167.toInt()
-    private const val MINOR = 0xFF868D93.toInt()
-    private const val SERVICE = 0xFFAAB0B5.toInt()
+    private const val EXPRESSWAY = 0xFFD4573C.toInt()
+    private const val PRIMARY = 0xFFE8944A.toInt()
+    private const val SECONDARY = 0xFFD8B23F.toInt()
+    private const val MINOR = 0xFF7C8489.toInt()
+    private const val SERVICE = 0xFFA9AFB4.toInt()
     private const val TRAIL = 0xFF9A6B33.toInt()
-    private const val FAINT = 0xFFD3CEC4.toInt()
+    private const val CYCLEWAY = 0xFF2E7D6B.toInt()
+    private const val FAINT = 0xFFCFCAC0.toInt()
 }

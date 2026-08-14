@@ -156,7 +156,7 @@ class DashboardDataType(
             heartRateTile = heartRateTile(context, rideData),
             midTiles = midTiles(context, units, rideData),
             footerTiles = footerTiles(context, units, rideData),
-            climbBand = climbBand(state),
+            climbBand = climbBand(state, rideData),
             palette = FieldPalette.of(context),
         )
     }
@@ -164,15 +164,38 @@ class DashboardDataType(
     /**
      * Profil de la côte en cours, ou de la prochaine quand elle approche.
      *
-     * Les côtes sont celles que le Karoo a lui-même identifiées sur l'itinéraire ; on ne
-     * cherche pas à en détecter d'autres. Au-delà de [CLIMB_BAND_LOOKAHEAD] le bandeau
-     * disparaît : une côte à trente kilomètres n'a pas à prendre de la place à l'écran.
+     * La côte en cours vient du Karoo lui-même : il publie la distance depuis le pied et
+     * celle qui reste jusqu'au sommet, c'est-à-dire exactement ce qu'il faut pour cadrer le
+     * profil et y placer le coureur. Notre propre distance parcourue, reconstituée par
+     * soustraction, suffisait à faire apparaître le bandeau une fois la bosse passée.
+     *
+     * Faute de côte en cours, on annonce la prochaine d'après l'itinéraire, mais seulement
+     * quand elle est à moins de [CLIMB_BAND_LOOKAHEAD] : une côte à trente kilomètres n'a
+     * pas à prendre de la place à l'écran.
      */
-    private fun climbBand(state: GuidanceState): ClimbBandModel? {
+    private fun climbBand(state: GuidanceState, rideData: RideData): ClimbBandModel? {
         val route = state.route ?: return null
         val along = state.distanceAlongRoute ?: return null
+        val live = rideData.climb
+
+        if (live.onClimb) {
+            val fromBottom = live.distanceFromBottom ?: 0.0
+            val window = Guidance.profileWindow(
+                route,
+                (along - fromBottom).coerceAtLeast(0.0),
+                lookahead = live.length ?: return null,
+            )
+            if (window.isEmpty) return null
+            return ClimbBandModel(
+                window = window,
+                position = along,
+                positionElevation = route.profile?.elevationAt(along),
+                label = live.label,
+            )
+        }
+
         val status = Guidance.climbStatus(route, along) ?: return null
-        if (!status.onClimb && status.distanceToStart > CLIMB_BAND_LOOKAHEAD) return null
+        if (status.distanceToStart > CLIMB_BAND_LOOKAHEAD) return null
 
         val climb = status.climb
         val window = Guidance.profileWindow(route, climb.startDistance, lookahead = climb.length)
@@ -182,7 +205,7 @@ class DashboardDataType(
             window = window,
             position = along,
             positionElevation = route.profile?.elevationAt(along),
-            label = "${status.number}/${status.totalClimbs}",
+            label = live.label ?: "${status.number}/${status.totalClimbs}",
         )
     }
 
@@ -212,6 +235,7 @@ class DashboardDataType(
                 poi.position?.let { MapPoi(it, PoiLabels.label(context, poi)) }
             },
             rangeMeters = MAP_RANGE_METERS,
+            offRoute = rideData.onRoute == false,
             emptyMessage = context.getString(
                 if (route == null) R.string.field_no_route else R.string.field_waiting_for_position,
             ),

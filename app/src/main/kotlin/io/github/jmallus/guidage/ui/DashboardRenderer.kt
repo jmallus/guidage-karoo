@@ -138,6 +138,9 @@ object DashboardRenderer {
     /** Nombre de cases du bandeau du haut. */
     private const val TOP_TILES = 3
 
+    /** Corps des chiffres du bandeau du haut, en part de celui des autres cases. */
+    private const val TOP_VALUE_RATIO = 0.78f
+
     /** Proportions relevées sur la maquette, exprimées en part de la hauteur de case. */
     private const val VALUE_HEIGHT_FRACTION = 0.614f
     private const val LABEL_HEIGHT_FRACTION = 0.147f
@@ -169,19 +172,30 @@ object DashboardRenderer {
         val footerTop = row(GRID_ROWS)
         val footerBottom = contentHeight - padding
 
-        // Rang du haut : l'effort instantané, trois cases côte à côte.
+        // Rang du haut : l'effort instantané, trois cases côte à côte. Il a sa propre taille
+        // de chiffres, plus petite : ces cases sont deux fois plus étroites que les autres,
+        // et des chiffres à pleine hauteur y touchaient les bords.
         val topWidth = (width - 2 * padding) / TOP_TILES
+        val topTiles = model.topTiles.take(TOP_TILES)
+        drawTiles(
+            context = context,
+            canvas = canvas,
+            bounds = topTiles.indices.map { index ->
+                RectF(
+                    padding + index * topWidth,
+                    row(0),
+                    padding + (index + 1) * topWidth,
+                    row(1),
+                )
+            },
+            tiles = topTiles,
+            palette = model.palette,
+            valueFraction = VALUE_HEIGHT_FRACTION * TOP_VALUE_RATIO,
+            labelFraction = LABEL_HEIGHT_FRACTION,
+        )
+
         val gridTiles = mutableListOf<Tile>()
         val gridBounds = mutableListOf<RectF>()
-        model.topTiles.take(TOP_TILES).forEachIndexed { index, tile ->
-            gridTiles += tile
-            gridBounds += RectF(
-                padding + index * topWidth,
-                row(0),
-                padding + (index + 1) * topWidth,
-                row(1),
-            )
-        }
         // Colonne gauche : le cœur sous la transmission.
         model.heartRateTile?.let {
             gridTiles += it
@@ -194,8 +208,8 @@ object DashboardRenderer {
             gridBounds += RectF(left, row(3), if (index == 0) columnSplit else right, footerTop)
         }
 
-        // Une seule taille de chiffres pour toute la grille : d'un rang à l'autre, les
-        // valeurs se comparent alors sans que leur corps ne trahisse la largeur de la case.
+        // Une seule taille de chiffres pour ces cases-là : d'un rang à l'autre, les valeurs
+        // se comparent alors sans que leur corps ne trahisse la largeur de la case.
         val valueSize = drawTiles(
             context = context,
             canvas = canvas,
@@ -587,8 +601,25 @@ object DashboardRenderer {
         val gap = area.width() * COMB_GAP_FRACTION
         val frontWidth = if (front == null) 0f else area.width() * FRONT_COMB_FRACTION
         val rearLeft = area.left + frontWidth + if (front == null) 0f else gap
-        front?.let { drawComb(canvas, RectF(area.left, area.top, area.left + frontWidth, area.top + combHeight), it, palette) }
-        rear?.let { drawComb(canvas, RectF(rearLeft, area.top, area.right, area.top + combHeight), it, palette) }
+        val rearWidth = area.right - rearLeft
+
+        // Une seule largeur de barre pour les deux peignes : deux plateaux dans le quart
+        // gauche donneraient des barres trois fois plus larges que les onze pignons, et le
+        // schéma se lirait comme deux dessins différents plutôt que comme une transmission.
+        val pitches = listOfNotNull(
+            front?.let { frontWidth / it.second },
+            rear?.let { rearWidth / it.second },
+        )
+        val barWidth = (pitches.minOrNull() ?: 0f).times(BAR_WIDTH_FRACTION).coerceAtLeast(2f)
+
+        front?.let {
+            drawComb(canvas, RectF(area.left, area.top, area.left + frontWidth, area.top + combHeight), it, barWidth, ascending = true, palette = palette)
+        }
+        rear?.let {
+            // Les pignons décroissent de gauche à droite, comme sur la cassette : le premier
+            // rapport est le grand pignon, celui qu'on prend pour monter.
+            drawComb(canvas, RectF(rearLeft, area.top, area.right, area.top + combHeight), it, barWidth, ascending = false, palette = palette)
+        }
 
         teeth?.let {
             canvas.drawText(it, right - teethPaint.measureText(it), area.bottom - teethPaint.descent(), teethPaint)
@@ -602,19 +633,33 @@ object DashboardRenderer {
         return gear to count
     }
 
-    private fun drawComb(canvas: Canvas, area: RectF, comb: Pair<Int, Int>, palette: Palette) {
+    private fun drawComb(
+        canvas: Canvas,
+        area: RectF,
+        comb: Pair<Int, Int>,
+        barWidth: Float,
+        ascending: Boolean,
+        palette: Palette,
+    ) {
         val (current, count) = comb
         if (area.width() <= 0f) return
         val pitch = area.width() / count
-        val barWidth = (pitch * BAR_WIDTH_FRACTION).coerceAtLeast(2f)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        val radius = barWidth / 2f
 
         for (index in 1..count) {
-            val ratio = if (count == 1) 1f else (index - 1).toFloat() / (count - 1)
+            val step = if (count == 1) 1f else (index - 1).toFloat() / (count - 1)
+            val ratio = if (ascending) step else 1f - step
             val height = area.height() * (BAR_MIN_HEIGHT + (1f - BAR_MIN_HEIGHT) * ratio)
             val left = area.left + (index - 1) * pitch + (pitch - barWidth) / 2f
             paint.color = if (index == current) palette.iconTint else translucent(palette.textSecondary, BAR_ALPHA)
-            canvas.drawRect(left, area.bottom - height, left + barWidth, area.bottom, paint)
+            // Bouts arrondis : à cette taille, des angles vifs font des barres sales.
+            canvas.drawRoundRect(
+                RectF(left, area.bottom - height, left + barWidth, area.bottom),
+                radius,
+                radius,
+                paint,
+            )
         }
     }
 
