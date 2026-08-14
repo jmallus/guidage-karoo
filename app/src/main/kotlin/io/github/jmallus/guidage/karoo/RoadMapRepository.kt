@@ -43,6 +43,18 @@ private class FileSource(private val file: File) : ByteSource, AutoCloseable {
  * giga-octets du Karoo, c'est sans importance, et cela évite de dépendre de la façon dont
  * Android range les ressources.
  */
+/** Ce que vaut le fond de carte, quand il n'affiche rien. */
+enum class RoadMapState {
+    /** Aucun fichier : l'APK n'en embarquait pas, ou le déballage a échoué. */
+    MISSING,
+
+    /** Fichier présent mais refusé à la lecture : tronqué, ou d'une version inconnue. */
+    UNREADABLE,
+
+    /** Fichier lu. S'il ne montre rien, c'est qu'on est hors de la région couverte. */
+    READY,
+}
+
 class RoadMapRepository(private val context: Context) {
 
     private var source: FileSource? = null
@@ -98,12 +110,15 @@ class RoadMapRepository(private val context: Context) {
                 temporary.delete()
                 isAvailable
             } else {
-                // Renommer par-dessus une carte en place : le renommage remplace de lui-même
-                // sur le système de fichiers d'Android, la suppression n'est qu'un recours.
+                // Renommer par-dessus une carte en place : sur le système de fichiers
+                // d'Android le renommage remplace de lui-même. La carte déjà installée n'est
+                // effacée qu'en dernier recours, et seulement après que la nouvelle a été
+                // relue avec succès — perdre une carte qui marchait serait pire que de
+                // garder l'ancienne une version de plus.
                 val replaced = temporary.renameTo(file) ||
                     (file.delete() && temporary.renameTo(file))
-                if (replaced) stampFile.writeText(stamp)
-                replaced
+                if (replaced) stampFile.writeText(stamp) else temporary.delete()
+                replaced || isAvailable
             }
         } catch (error: Exception) {
             // Absence d'asset comprise : l'extension marche sans fond de carte.
@@ -150,9 +165,40 @@ class RoadMapRepository(private val context: Context) {
         return cachedRoads
     }
 
+    /**
+     * Pourquoi la carte ne montre rien, quand elle ne montre rien.
+     *
+     * Un fond de carte vide est muet : le cadre reste au blanc cassé et rien ne distingue
+     * « aucun fichier » de « hors de la région couverte ». Ces deux cas n'appellent pourtant
+     * pas la même chose du coureur, et le second n'est même pas une panne.
+     */
+    @Synchronized
+    fun state(): RoadMapState = when {
+        !isAvailable -> RoadMapState.MISSING
+        reader() == null -> RoadMapState.UNREADABLE
+        else -> RoadMapState.READY
+    }
+
+    /** Vrai quand le fond installé couvre ce point. Faux s'il n'y a pas de fond lisible. */
+    @Synchronized
+    fun covers(point: GeoPoint): Boolean {
+        val bounds = reader()?.bounds ?: return false
+        val latitude = point.lat.toMicroDegrees()
+        val longitude = point.lng.toMicroDegrees()
+        return latitude in bounds.minLatitude..bounds.maxLatitude &&
+            longitude in bounds.minLongitude..bounds.maxLongitude
+    }
+
+    /**
+     * Lecteur du fond en place.
+     *
+     * Ne déballe que s'il n'y a rien à lire. Le remplacement d'une carte par celle d'une
+     * mise à jour, lui, est laissé au démarrage de l'extension : il recopie quarante
+     * méga-octets, ce qui n'a rien à faire dans le fil qui dessine une fois par seconde.
+     */
     @Synchronized
     private fun reader(): RoadMapReader? {
-        if (!unpackIfNeeded()) return null
+        if (!isAvailable && !unpackIfNeeded()) return null
         val stamp = if (isAvailable) file.lastModified() else -1
         if (stamp != loadedFrom) {
             close()

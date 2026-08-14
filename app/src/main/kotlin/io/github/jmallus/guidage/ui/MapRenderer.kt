@@ -30,6 +30,8 @@ data class MapModel(
     val pois: List<MapPoi> = emptyList(),
     /** Voies du fond de carte, quand un fond est installé. */
     val roads: List<RoadSegment> = emptyList(),
+    /** Pourquoi le fond ne montre rien, à porter discrètement sur la carte vide. */
+    val roadsMessage: String? = null,
     /** Distance visible devant le coureur (m). */
     val rangeMeters: Double = 1_000.0,
     /** Longueur de tracé, devant le coureur, sur laquelle les chevrons sont semés (m). */
@@ -71,7 +73,11 @@ object MapRenderer {
         // Le fond clair est posé même sans voies : c'est lui qui rend la carte lisible au
         // soleil, l'écran du Karoo réfléchissant la lumière au lieu de lutter contre elle.
         canvas.drawRect(area, Paint().apply { color = RoadStyle.BACKGROUND })
-        if (model.roads.isNotEmpty()) {
+        if (model.roads.isEmpty()) {
+            // Un fond vide se confond avec un fond qui n'existe pas : le dire coûte une
+            // ligne et évite de chercher une panne là où il n'y en a pas.
+            drawBasemapNotice(canvas, area, model.roadsMessage)
+        } else {
             val (areas, lines) = model.roads.partition { it.kind.isArea }
             drawAreas(canvas, areas, projection)
             drawRoads(canvas, lines, projection, metersToPixels)
@@ -92,6 +98,27 @@ object MapRenderer {
 
         canvas.restore()
     }
+
+    /**
+     * Mention portée en haut de la carte quand le fond ne donne rien.
+     *
+     * Discrète et sur une seule ligne : elle explique une absence, elle ne remplace pas la
+     * carte. Le tracé continue de se dessiner par-dessus, et c'est lui qu'on regarde.
+     */
+    private fun drawBasemapNotice(canvas: Canvas, area: RectF, message: String?) {
+        if (message.isNullOrBlank()) return
+        val size = (area.height() * 0.055f).coerceIn(10f, 16f)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = size
+            typeface = Typeface.DEFAULT_BOLD
+            color = RoadStyle.INK
+            alpha = NOTICE_ALPHA
+        }
+        canvas.drawText(message, area.left + 6f, area.top + size + 4f, paint)
+    }
+
+    /** La mention du fond absent s'efface derrière le tracé : c'est une note, pas une alerte. */
+    private const val NOTICE_ALPHA = 0x9E
 
     /** Position géographique → pixels, cap en haut et coureur fixe. */
     private class Projection(

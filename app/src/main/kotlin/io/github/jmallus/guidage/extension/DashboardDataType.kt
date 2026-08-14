@@ -16,6 +16,7 @@ import androidx.glance.layout.ContentScale
 import androidx.glance.layout.fillMaxSize
 import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.Format
+import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
@@ -28,6 +29,7 @@ import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RideDataProvider
 import io.github.jmallus.guidage.karoo.RoadMapRepository
+import io.github.jmallus.guidage.karoo.RoadMapState
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.settings.SettingsRepository
 import io.github.jmallus.guidage.ui.ClimbBandModel
@@ -223,16 +225,18 @@ class DashboardDataType(
         // vitesse courante, sans quoi le coureur se voit derrière lui-même à l'approche
         // du carrefour, là précisément où il regarde la carte.
         val position = location?.extrapolated(System.currentTimeMillis(), rideData.speed)
+        // On lit un peu au-delà du cadre : en cap en haut, la fenêtre tourne avec le coureur
+        // et ses coins balaient plus loin que la portée annoncée.
+        val roads = if (preview) {
+            PreviewData.roads
+        } else {
+            position?.let {
+                roadMapRepository.roadsAround(it, zoom.rangeMeters * ROADS_RADIUS_FACTOR)
+            }.orEmpty()
+        }
         return MapModel(
-            // On lit un peu au-delà du cadre : en cap en haut, la fenêtre tourne avec le
-            // coureur et ses coins balaient plus loin que la portée annoncée.
-            roads = if (preview) {
-                PreviewData.roads
-            } else {
-                position?.let {
-                    roadMapRepository.roadsAround(it, zoom.rangeMeters * ROADS_RADIUS_FACTOR)
-                }.orEmpty()
-            },
+            roads = roads,
+            roadsMessage = if (roads.isEmpty() && !preview) basemapNotice(context, position) else null,
             path = route?.path.orEmpty(),
             position = position,
             heading = location?.heading,
@@ -247,6 +251,26 @@ class DashboardDataType(
             ),
         )
     }
+
+    /**
+     * Pourquoi la carte ne montre rien.
+     *
+     * Sans cette mention, l'absence de fond ressemble à une panne quel qu'en soit le motif,
+     * et le coureur qui sort de la région couverte cherche un défaut là où il n'y en a pas.
+     * Elle ne s'affiche que sur la vraie carte : l'aperçu, lui, a son décor.
+     */
+    private fun basemapNotice(context: Context, position: GeoPoint?): String = context.getString(
+        when (roadMapRepository.state()) {
+            RoadMapState.MISSING -> R.string.basemap_missing
+            RoadMapState.UNREADABLE -> R.string.basemap_unreadable
+            RoadMapState.READY ->
+                if (position != null && roadMapRepository.covers(position)) {
+                    R.string.basemap_empty
+                } else {
+                    R.string.basemap_out_of_area
+                }
+        },
+    )
 
     private fun profileModel(
         context: Context,

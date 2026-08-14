@@ -53,6 +53,14 @@ android {
         compose = true
     }
 
+    androidResources {
+        // Le fond de carte entre dans l'APK tel quel, sans compression. Il est déjà dense —
+        // des écarts en varint ne se compriment plus guère — et laisser aapt le déflater
+        // n'économise presque rien tout en obligeant l'appareil à le décompresser
+        // entièrement au premier démarrage, quarante méga-octets durant.
+        noCompress += "gkmap"
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

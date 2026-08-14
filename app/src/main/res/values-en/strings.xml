@@ -22,6 +22,12 @@
     <string name="dashboard_label_grade">GRADE</string>
     <string name="dashboard_label_gears">DRIVETRAIN</string>
     <string name="dashboard_label_distance">DISTANCE</string>
+
+    <!-- Notices drawn on the minimap when the basemap gives nothing -->
+    <string name="basemap_missing">No basemap installed</string>
+    <string name="basemap_unreadable">Basemap unreadable</string>
+    <string name="basemap_out_of_area">Outside the mapped region</string>
+    <string name="basemap_empty">No ways here</string>
     <string name="dashboard_label_remaining">%1$s TO GO</string>
     <string name="dashboard_label_arrival">ARRIVAL</string>
     <string name="dashboard_zoom_whole_route">Route</string>
