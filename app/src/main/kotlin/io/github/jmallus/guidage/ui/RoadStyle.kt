@@ -102,9 +102,9 @@ object RoadStyle {
      */
     private const val WATER_FILL = 0xFFB4D4E7.toInt()
     private const val WATER_LINE = 0xFF6FA8CC.toInt()
-    // Assez sombre pour que la lisière se voie du premier regard à côté de la paille
-    // des champs, assez pâle pour que routes et tracé restent lisibles par-dessus.
-    private const val FOREST_FILL = 0xFFA9CC97.toInt()
+    // Teinte choisie sur l'appareil même : les essais plus pâles disparaissaient
+    // sur l'écran transflectif du Karoo, qui délave tout ce qui manque de saturation.
+    private const val FOREST_FILL = 0xFF9AD770.toInt()
     private const val BUILT_UP_FILL = 0xFFE6DFD5.toInt()
 
     /**
@@ -115,10 +115,10 @@ object RoadStyle {
      * plus rare et plus franc, se détache dessus. C'est la relation qu'ont ces deux verts
      * sur les cartes au 25 000e, où l'on reconnaît la lisière sans avoir à la chercher.
      *
-     * La première teinte essayée était si proche du fond que les champs semblaient
-     * absents : il faut au moins soixante points d'écart sur le canal bleu pour que la
-     * paille se détache du blanc cassé sur l'écran transflectif.
+     * Les premiers essais, calqués sur le papier, étaient si proches du fond que les
+     * champs semblaient absents : l'écran transflectif délave les teintes pâles bien
+     * plus que l'impression. Celles-ci ont été arrêtées sur l'appareil même.
      */
-    private const val FARMLAND_FILL = 0xFFE2E8AC.toInt()
+    private const val FARMLAND_FILL = 0xFFCDD770.toInt()
     private const val FAINT = 0xFFCFCAC0.toInt()
 }
