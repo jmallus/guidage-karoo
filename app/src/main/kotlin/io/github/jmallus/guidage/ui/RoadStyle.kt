@@ -102,7 +102,9 @@ object RoadStyle {
      */
     private const val WATER_FILL = 0xFFB4D4E7.toInt()
     private const val WATER_LINE = 0xFF6FA8CC.toInt()
-    private const val FOREST_FILL = 0xFFC7DDBC.toInt()
+    // Assez sombre pour que la lisière se voie du premier regard à côté de la paille
+    // des champs, assez pâle pour que routes et tracé restent lisibles par-dessus.
+    private const val FOREST_FILL = 0xFFA9CC97.toInt()
     private const val BUILT_UP_FILL = 0xFFE6DFD5.toInt()
 
     /**
