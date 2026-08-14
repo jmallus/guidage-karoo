@@ -50,6 +50,23 @@ class ZonesTest {
     }
 
     @Test
+    fun `la pente reprend la palette de puissance du Karoo`() {
+        assertEquals(Zones.POWER_COLORS[0], Zones.gradeColor(0.5))
+        assertEquals(Zones.POWER_COLORS[1], Zones.gradeColor(2.0))
+        assertEquals(Zones.POWER_COLORS[2], Zones.gradeColor(7.9))
+        assertEquals(Zones.POWER_COLORS[3], Zones.gradeColor(8.0))
+        assertEquals(Zones.POWER_COLORS[4], Zones.gradeColor(11.0))
+        assertEquals(Zones.POWER_COLORS[5], Zones.gradeColor(14.0))
+        assertEquals(Zones.POWER_COLORS[6], Zones.gradeColor(25.0))
+    }
+
+    @Test
+    fun `une descente n a pas de couleur dans cette palette`() {
+        assertNull(Zones.gradeColor(-0.1))
+        assertNull(Zones.gradeColor(-8.0))
+    }
+
+    @Test
     fun `speed is green at or above the ride average and red below`() {
         assertEquals(Zones.ABOVE_AVERAGE, Zones.speedColor(9.0, 8.0))
         assertEquals(Zones.ABOVE_AVERAGE, Zones.speedColor(8.0, 8.0))

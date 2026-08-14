@@ -37,6 +37,27 @@ object Zones {
         0xFFD01020.toInt(),
     )
 
+    /**
+     * Couleur d'une pente en %, ou null pour une descente.
+     *
+     * Le Karoo n'a pas de palette de pente à lui : il reprend celle des zones de puissance,
+     * du vert foncé au violet, avec ses propres seuils. Le profil de montée parle donc le
+     * même langage que les cases d'effort, ce qui est tout l'intérêt — un violet veut dire
+     * « ça va faire mal » partout sur l'écran.
+     *
+     * Les descentes ne sont pas colorées : la palette du Karoo ne descend pas sous zéro.
+     */
+    fun gradeColor(grade: Double): Int? = when {
+        grade >= 20.0 -> POWER_COLORS[6] // violet
+        grade >= 14.0 -> POWER_COLORS[5] // rouge
+        grade >= 11.0 -> POWER_COLORS[4] // orange
+        grade >= 8.0 -> POWER_COLORS[3] // saumon
+        grade >= 5.0 -> POWER_COLORS[2] // jaune
+        grade >= 2.0 -> POWER_COLORS[1] // vert menthe
+        grade >= 0.0 -> POWER_COLORS[0] // vert foncé
+        else -> null
+    }
+
     /** Vitesse au-dessus de la moyenne de la sortie. */
     const val ABOVE_AVERAGE = 0xFF00A661.toInt()
 

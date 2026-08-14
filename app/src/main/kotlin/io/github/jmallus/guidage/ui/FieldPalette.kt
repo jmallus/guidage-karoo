@@ -3,6 +3,7 @@ package io.github.jmallus.guidage.ui
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
+import io.github.jmallus.guidage.core.Zones
 
 /**
  * Couleurs des champs dessinés.
@@ -65,24 +66,27 @@ object FieldPalette {
         return if (nightMode == Configuration.UI_MODE_NIGHT_NO) LIGHT else DARK
     }
 
-    private const val DOWNHILL = 0xFF4FA3D1.toInt()
-    private const val FLAT = 0xFF9AA7AD.toInt()
-    private const val EASY = 0xFF7CB342.toInt()
-    private const val MODERATE = 0xFFF9A825.toInt()
-    private const val HARD = 0xFFEF6C00.toInt()
-    private const val VERY_HARD = 0xFFD32F2F.toInt()
-    private const val EXTREME = 0xFF7B1FA2.toInt()
+    /**
+     * Couleur associée à une pente en %, celle du Karoo.
+     *
+     * Une descente n'a pas de couleur dans cette palette : elle prend le gris neutre, une
+     * teinte de plus n'apprenant rien sur une bande de trente pixels de haut.
+     */
+    fun gradeColor(grade: Double): Int = Zones.gradeColor(grade) ?: NEUTRAL
 
-    /** Couleur associée à une pente en %. */
-    fun gradeColor(grade: Double): Int = when {
-        grade <= -1.0 -> DOWNHILL
-        grade < 1.0 -> FLAT
-        grade < 3.0 -> EASY
-        grade < 6.0 -> MODERATE
-        grade < 9.0 -> HARD
-        grade < 12.0 -> VERY_HARD
-        else -> EXTREME
-    }
+    /**
+     * Bleu des montées du Karoo, porté par le filet du profil.
+     *
+     * C'est la teinte que l'appareil emploie partout où il est question de grimper : la
+     * reprendre évite d'avoir à réapprendre un code de couleur pour un seul écran.
+     */
+    const val CLIMB_LINE = 0xFF2086D8.toInt()
+
+    /** Rouge du Karoo quand il faut rejoindre l'itinéraire. */
+    const val REJOIN = 0xFFFC292B.toInt()
+
+    /** Violet du Karoo pour la destination. */
+    const val DESTINATION = 0xFFDDACFA.toInt()
 
     /** Version translucide d'une couleur, pour les aplats de fond. */
     fun translucent(color: Int, alpha: Int): Int =

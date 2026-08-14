@@ -323,7 +323,7 @@ object DashboardRenderer {
                 style = Paint.Style.STROKE
                 strokeWidth = 2.5f
                 strokeJoin = Paint.Join.ROUND
-                color = palette.position
+                color = FieldPalette.CLIMB_LINE
             },
         )
 

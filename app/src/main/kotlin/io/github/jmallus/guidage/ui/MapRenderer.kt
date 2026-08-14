@@ -517,8 +517,8 @@ object MapRenderer {
     private const val TRAVELED_WIDTH_RATIO = 0.7f
     private const val TRAVELED_ALPHA = 0x59
 
-    /** Rouge du hors-itinéraire, repris de la palette d'effort. */
-    private const val OFF_ROUTE_COLOR = 0xFFD32F2F.toInt()
+    /** Rouge du hors-itinéraire : celui du Karoo, pour dire la même chose de la même façon. */
+    private val OFF_ROUTE_COLOR = FieldPalette.REJOIN
 
     /** Épaisseur du tracé aux deux bouts de la plage de portées, et cerne. */
     private const val ROUTE_WIDTH_NEAR = 14.0
