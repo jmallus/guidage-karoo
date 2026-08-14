@@ -49,6 +49,9 @@ class RoadMapRepository(private val context: Context) {
     private var reader: RoadMapReader? = null
     private var loadedFrom: Long = -1
 
+    /** Une seule tentative de déballage par démarrage — voir [unpackIfNeeded]. */
+    private var unpackAttempted = false
+
     /** Dernière fenêtre lue, pour ne pas relire le fichier à chaque rafraîchissement. */
     private var cachedBounds: MapBounds? = null
     private var cachedRoads: List<RoadSegment> = emptyList()
@@ -61,33 +64,70 @@ class RoadMapRepository(private val context: Context) {
     val installedSize: Long get() = if (isAvailable) file.length() else 0L
 
     /**
-     * Déballe la carte de l'APK si ce n'est pas déjà fait.
+     * Déballe la carte de l'APK si ce n'est pas déjà fait, ou si l'APK a changé depuis.
+     *
+     * La seconde condition n'est pas une précaution de principe : une mise à jour de
+     * l'extension apporte une carte neuve, et se contenter de constater qu'une carte est
+     * déjà déballée reviendrait à garder l'ancienne pour toujours. L'instant d'installation
+     * de l'APK sert de repère — il change à chaque mise à jour, et à elle seule.
      *
      * Le fichier est écrit de côté puis renommé : un déballage interrompu — batterie vide,
-     * extension arrêtée — ne laisse pas une carte tronquée qui planterait à la lecture.
-     * Renvoie false quand l'APK n'embarque pas de carte, ce qui est un cas normal : la
-     * construction a pu se faire avant qu'un fond n'ait été fabriqué.
+     * extension arrêtée — ne laisse pas une carte tronquée qui planterait à la lecture, et
+     * l'ancienne reste en service jusqu'à ce que la nouvelle soit entière.
+     *
+     * Renvoie true si une carte est utilisable au retour — celle qui vient d'être déballée,
+     * ou celle qui était déjà là. Un APK sans carte est un cas normal : la construction a pu
+     * se faire avant qu'un fond n'ait été fabriqué.
      */
     @Synchronized
     fun unpackIfNeeded(): Boolean {
-        if (isAvailable) return true
+        val stamp = packageStamp()
+        if (isAvailable && stamp == unpackedStamp()) return true
+        // Un asset absent ou illisible ne se répare pas en réessayant : une seule tentative
+        // par démarrage, sans quoi la lecture de la carte relancerait la copie chaque seconde.
+        if (unpackAttempted) return isAvailable
+        unpackAttempted = true
+
         val temporary = File(context.filesDir, "$MAP_FILE_NAME.partiel")
         return try {
             context.assets.open(MAP_ASSET_NAME).use { input ->
                 temporary.outputStream().use { output -> input.copyTo(output) }
             }
             if (RoadMapReader.open(FileSource(temporary)) == null) {
+                // Carte embarquée illisible : garder celle qui est en place, s'il y en a une.
                 temporary.delete()
-                false
+                isAvailable
             } else {
-                temporary.renameTo(file)
+                // Renommer par-dessus une carte en place : le renommage remplace de lui-même
+                // sur le système de fichiers d'Android, la suppression n'est qu'un recours.
+                val replaced = temporary.renameTo(file) ||
+                    (file.delete() && temporary.renameTo(file))
+                if (replaced) stampFile.writeText(stamp)
+                replaced
             }
         } catch (error: Exception) {
             // Absence d'asset comprise : l'extension marche sans fond de carte.
             temporary.delete()
-            false
+            isAvailable
         }
     }
+
+    /** Fichier témoin : de quel APK vient la carte déballée. */
+    private val stampFile: File get() = File(context.filesDir, "$MAP_FILE_NAME.origine")
+
+    private fun unpackedStamp(): String? = runCatching { stampFile.readText() }.getOrNull()
+
+    /**
+     * Repère de l'APK courant.
+     *
+     * `lastUpdateTime` change à chaque installation et ne bouge pas autrement — ni au
+     * redémarrage, ni au vidage du cache. Faute de pouvoir le lire, la chaîne vide force le
+     * déballage : mieux vaut recopier trente méga-octets une fois de trop qu'afficher
+     * indéfiniment la carte d'une version précédente.
+     */
+    private fun packageStamp(): String = runCatching {
+        context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime.toString()
+    }.getOrDefault("")
 
     /**
      * Voies autour d'un point, dans un rayon donné.
@@ -112,7 +152,7 @@ class RoadMapRepository(private val context: Context) {
 
     @Synchronized
     private fun reader(): RoadMapReader? {
-        if (!isAvailable && !unpackIfNeeded()) return null
+        if (!unpackIfNeeded()) return null
         val stamp = if (isAvailable) file.lastModified() else -1
         if (stamp != loadedFrom) {
             close()
