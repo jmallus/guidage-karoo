@@ -84,12 +84,21 @@ jobs:
         if: steps.creds.outputs.available == 'true' && github.event_name != 'pull_request'
         run: |
           cp app/build/outputs/apk/release/app-release.apk guidage-karoo.apk
-          cat > notes.md <<'NOTES'
+          # Le numéro de version et le commit sont portés dans les notes : la ligne
+          # « Commit » affichée en tête de la page GitHub, elle, est celle de la création de
+          # la Release et ne bouge plus jamais, ce qui laisse croire que l'APK date de là.
+          cat > notes.md <<NOTES
+          Version **1.0.${GITHUB_RUN_NUMBER}**, construite le $(date -u '+%d/%m/%Y à %H:%M UTC')
+          à partir de \`${GITHUB_SHA:0:7}\`. Fond de carte embarqué : \`$(
+            [ -f app/src/main/assets/carte.gkmap ] &&
+              du -h app/src/main/assets/carte.gkmap | cut -f1 || echo aucun
+          )\`.
+
           Extension de guidage d'itinéraire pour Hammerhead Karoo — profil à venir,
           prochaine côte, prochain point d'intérêt et annonces in-ride.
 
           **Installation sur le Karoo 3**, depuis le téléphone : ouvrir cette page dans le
-          navigateur du téléphone, appuyer longuement sur le lien `guidage-karoo.apk`
+          navigateur du téléphone, appuyer longuement sur le lien \`guidage-karoo.apk\`
           ci-dessous, puis le partager vers l'application Hammerhead Companion.
           L'écran d'installation s'affiche ensuite sur le Karoo.
 
@@ -105,7 +114,7 @@ jobs:
             # reconstruction et doublait les écritures.
             if gh release view latest >/dev/null 2>&1; then
               gh release upload latest guidage-karoo.apk --clobber
-              gh release edit latest --notes-file notes.md
+              gh release edit latest --notes-file notes.md --target "$GITHUB_SHA"
             else
               gh release create latest guidage-karoo.apk \
                 --target "$GITHUB_SHA" --prerelease \
