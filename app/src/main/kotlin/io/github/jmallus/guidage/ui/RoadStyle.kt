@@ -112,7 +112,11 @@ object RoadStyle {
      * tout l'écran en Normandie, elle ne peut être qu'à peine teintée, tandis que le bois,
      * plus rare et plus franc, se détache dessus. C'est la relation qu'ont ces deux verts
      * sur les cartes au 25 000e, où l'on reconnaît la lisière sans avoir à la chercher.
+     *
+     * La première teinte essayée était si proche du fond que les champs semblaient
+     * absents : il faut au moins soixante points d'écart sur le canal bleu pour que la
+     * paille se détache du blanc cassé sur l'écran transflectif.
      */
-    private const val FARMLAND_FILL = 0xFFEBEFCE.toInt()
+    private const val FARMLAND_FILL = 0xFFE2E8AC.toInt()
     private const val FAINT = 0xFFCFCAC0.toInt()
 }
