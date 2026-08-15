@@ -482,23 +482,19 @@ object DashboardRenderer {
 
         val labelHeight = labelPaint.descent() - labelPaint.ascent()
         val valueHeight = valuePaint.descent() - valuePaint.ascent()
-        // Le bloc est descendu d'une fraction de sa hauteur de libellé : centré au pixel près,
-        // il paraissait haut dans la case, les chiffres n'ayant pas de jambages pour occuper
-        // le bas de leur ligne.
-        val drop = (labelHeight * BLOCK_DROP_RATIO)
-            .coerceAtMost((bounds.height() - labelHeight - valueHeight) / 2f)
-            .coerceAtLeast(0f)
-        val top = bounds.centerY() - (labelHeight + valueHeight) / 2f + drop
+        val top = labelTop(bounds, labelHeight)
         val right = bounds.right - EDGE_INSET
 
         drawLabelRow(context, canvas, bounds, right, tile, labelPaint, iconInk, top, labelSize)
 
-        // La valeur, sa décimale et son unité forment un bloc unique aligné à droite.
+        // La valeur, sa décimale et son unité forment un bloc unique aligné à droite, centré
+        // dans ce qui reste sous le libellé : elle garde ainsi la place qu'elle occupait quand
+        // le bloc entier était centré.
         val valueWidth = valuePaint.measureText(tile.value)
         val tail = tile.decimal ?: tile.suffix
         val tailWidth = tail?.let { suffixPaint.measureText(it) } ?: 0f
         val left = right - (valueWidth + tailWidth)
-        val baseline = top + labelHeight - valuePaint.ascent()
+        val baseline = valueTop(bounds, top, labelHeight, valueHeight) - valuePaint.ascent()
 
         canvas.drawText(tile.value, left, baseline, valuePaint)
         if (tail != null) {
@@ -567,10 +563,7 @@ object DashboardRenderer {
         val valuePaint = paint(valueSize, 0, LIGHT_TYPEFACE)
         val labelHeight = labelPaint.descent() - labelPaint.ascent()
         val valueHeight = valuePaint.descent() - valuePaint.ascent()
-        val drop = (labelHeight * BLOCK_DROP_RATIO)
-            .coerceAtMost((bounds.height() - labelHeight - valueHeight) / 2f)
-            .coerceAtLeast(0f)
-        val top = bounds.centerY() - (labelHeight + valueHeight) / 2f + drop
+        val top = labelTop(bounds, labelHeight)
         val right = bounds.right - EDGE_INSET
 
         drawLabelRow(
@@ -585,7 +578,8 @@ object DashboardRenderer {
             labelSize = labelSize,
         )
 
-        val area = RectF(bounds.left + EDGE_INSET, top + labelHeight, right, top + labelHeight + valueHeight)
+        val schematicTop = valueTop(bounds, top, labelHeight, valueHeight)
+        val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicTop + valueHeight)
         if (area.width() <= 0 || area.height() <= 0) return
 
         val teeth = teethLabel(model)
@@ -758,8 +752,36 @@ object DashboardRenderer {
     /** Marge entre le bord de la case et ce qu'elle contient. */
     private const val EDGE_INSET = 8f
 
-    /** Descente du bloc libellé + valeur, en part de la hauteur du libellé. */
-    private const val BLOCK_DROP_RATIO = 0.45f
+    /**
+     * Ordonnée du libellé : suspendu au haut de la case, à une fraction de sa propre hauteur.
+     *
+     * Il tombe ainsi sur la même ligne d'un rang à l'autre, quelle que soit la taille des
+     * chiffres qui le suivent. Le bloc libellé + valeur était auparavant centré dans la case,
+     * de sorte que le bandeau du haut — dont les chiffres sont plus petits que partout
+     * ailleurs — voyait tout son bloc descendre, et ses trois libellés flottaient deux
+     * millimètres plus bas que ceux des autres cases.
+     */
+    private fun labelTop(bounds: RectF, labelHeight: Float): Float =
+        bounds.top + labelHeight * LABEL_TOP_RATIO
+
+    /**
+     * Ordonnée de la valeur : centrée dans ce qui reste de la case sous le libellé.
+     *
+     * Elle retrouve à peu de chose près la place qu'elle occupait du temps du bloc centré :
+     * seul le libellé remonte.
+     */
+    private fun valueTop(bounds: RectF, top: Float, labelHeight: Float, valueHeight: Float): Float {
+        val below = top + labelHeight
+        return below + ((bounds.bottom - below - valueHeight) / 2f).coerceAtLeast(0f)
+    }
+
+    /**
+     * Suspension du libellé sous le bord de la case, en part de sa hauteur.
+     *
+     * Réglé pour que les rangs qui allaient déjà bien ne bougent pas : un libellé collé au
+     * bord paraîtrait tombé de la case voisine.
+     */
+    private const val LABEL_TOP_RATIO = 0.6f
     private val LIGHT_TYPEFACE: Typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
 
     // --- Colonne de guidage en mode profil ------------------------------------------------
