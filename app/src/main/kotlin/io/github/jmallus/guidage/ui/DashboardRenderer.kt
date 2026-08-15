@@ -578,8 +578,14 @@ object DashboardRenderer {
             labelSize = labelSize,
         )
 
+        // Le schéma occupe la même bande que les chiffres des autres cases, mais s'arrête
+        // franchement au-dessus du bord. Ailleurs, le bas de cette bande est vide — les
+        // chiffres n'ont pas de jambages — tandis qu'ici la ligne des dentures s'y pose. Or
+        // la case du dessous porte un aplat de couleur qui commence net : une ligne écrite à
+        // un cheveu de lui paraît lui appartenir, et déborder si peu que ce soit l'y jette.
         val schematicTop = valueTop(bounds, top, labelHeight, valueHeight)
-        val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicTop + valueHeight)
+        val schematicBottom = (schematicTop + valueHeight).coerceAtMost(bounds.bottom - EDGE_INSET)
+        val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicBottom)
         if (area.width() <= 0 || area.height() <= 0) return
 
         val teeth = teethLabel(model)
