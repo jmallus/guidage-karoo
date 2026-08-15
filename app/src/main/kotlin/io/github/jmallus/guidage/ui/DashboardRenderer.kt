@@ -710,16 +710,23 @@ object DashboardRenderer {
      * Taille des dentures, en part de celle des chiffres des autres cases.
      *
      * « 50×17 » est un renseignement d'appoint — la position dans la cassette se lit sur les
-     * barres, pas sur les nombres. À quatre dixièmes il pesait autant qu'une vraie valeur et
-     * mangeait la hauteur du schéma.
+     * barres, pas sur les nombres. À quatre dixièmes il pesait autant qu'une vraie valeur, et
+     * il prend sa place sur la hauteur du peigne : chaque dixième rendu ici est rendu aux
+     * barres, qui sont ce qu'on regarde.
      */
-    private const val TEETH_RATIO = 0.34f
+    private const val TEETH_RATIO = 0.28f
 
     /** Blanc entre le bas des barres et la ligne des dentures, en part du corps de celle-ci. */
-    private const val TEETH_LEADING = 1.4f
+    private const val TEETH_LEADING = 1.35f
 
-    /** Blanc réservé au-dessus des barres, en part de la hauteur du libellé. */
-    private const val COMB_TOP_MARGIN = 0.45f
+    /**
+     * Blanc réservé au-dessus des barres, en part de la hauteur du libellé.
+     *
+     * Juste de quoi détacher la plus haute barre du plateau dessiné à côté du libellé. Au-delà
+     * on ne gagne rien de plus à l'œil et le peigne s'écrase, alors qu'il est le seul dessin
+     * de la case.
+     */
+    private const val COMB_TOP_MARGIN = 0.32f
 
     /**
      * Plus grande taille de libellé laissant l'icône à découvert.
