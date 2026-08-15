@@ -7,18 +7,26 @@ sur la prochaine côte, la distance au prochain point d'intérêt, et des annonc
 Tout est calculé **sur l'appareil**, à partir des données que Karoo OS fournit déjà :
 aucune connexion réseau, aucun compte, rien à synchroniser.
 
+<img src="docs/planches/tableau-de-bord.png" alt="Le champ plein écran : effort en haut, transmission et fréquence cardiaque à gauche, minicarte à droite, distance et arrivée en bas" width="340">
+
+Le champ plein écran ci-dessus est reconstruit à la taille qu'il occupe sur l'écran du
+Karoo 3. Les [planches](docs/planches.md) en montrent le détail — chaque zone, les trois
+portées de la carte, la légende du fond — et permettent de juger d'une retouche d'affichage
+sans construire un APK.
+
 ## Ce que ça ajoute sur le vélo
 
 ### Champs de données
 
 | Champ | Type | Contenu |
 | --- | --- | --- |
+| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance parcourue, pente, distance restante, heure d'arrivée, et le profil de la côte en cours. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
 | **Profil à venir** | graphique | Le profil altimétrique de la portion devant vous (portée réglable de 1 à 15 km), rempli en couleur selon la pente, côtes de l'itinéraire surlignées avec leur pente moyenne, dénivelé positif restant sur la fenêtre. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
 
-Les deux champs graphiques s'adaptent à la taille et à l'alignement configurés dans le profil
-de page, et affichent un aperçu réaliste dans l'écran d'édition des pages.
+« Profil à venir » et « Prochaine côte » s'adaptent à la taille et à l'alignement configurés
+dans le profil de page. Tous affichent un aperçu réaliste dans l'écran d'édition des pages.
 
 ### Annonces in-ride
 
