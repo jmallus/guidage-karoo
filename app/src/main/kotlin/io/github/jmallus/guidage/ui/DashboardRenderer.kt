@@ -585,7 +585,13 @@ object DashboardRenderer {
         val teeth = teethLabel(model)
         val teethSize = valueSize * TEETH_RATIO
         val teethPaint = paint(teethSize, palette.textPrimary, LIGHT_TYPEFACE)
-        val combHeight = if (teeth == null) area.height() else area.height() - teethSize * 1.25f
+
+        // Les barres montent depuis le bas de cette bande. Contrairement aux chiffres des
+        // autres cases, alignés à droite et qui ne rencontrent donc jamais l'icône, elles
+        // partent du bord gauche, juste sous elle : il faut leur réserver du blanc en haut,
+        // sans quoi la plus haute vient toucher le plateau dessiné.
+        val combBottom = area.bottom - if (teeth == null) 0f else teethSize * TEETH_LEADING
+        val combTop = (area.top + labelHeight * COMB_TOP_MARGIN).coerceAtMost(combBottom)
 
         val front = comb(model.front, model.frontCount)
         val rear = comb(model.rear, model.rearCount)
@@ -612,12 +618,12 @@ object DashboardRenderer {
         val barWidth = (pitch * BAR_WIDTH_FRACTION).coerceAtLeast(2f)
 
         front?.let {
-            drawComb(canvas, RectF(area.left, area.top, area.left + frontWidth, area.top + combHeight), it, barWidth, ascending = true, palette = palette)
+            drawComb(canvas, RectF(area.left, combTop, area.left + frontWidth, combBottom), it, barWidth, ascending = true, palette = palette)
         }
         rear?.let {
             // Les pignons décroissent de gauche à droite, comme sur la cassette : le premier
             // rapport est le grand pignon, celui qu'on prend pour monter.
-            drawComb(canvas, RectF(rearLeft, area.top, area.right, area.top + combHeight), it, barWidth, ascending = false, palette = palette)
+            drawComb(canvas, RectF(rearLeft, combTop, area.right, combBottom), it, barWidth, ascending = false, palette = palette)
         }
 
         teeth?.let {
@@ -694,8 +700,20 @@ object DashboardRenderer {
     private const val BAR_MIN_HEIGHT = 0.35f
     private const val BAR_ALPHA = 0x66
 
-    /** Taille des dentures, en part de celle des chiffres des autres cases. */
-    private const val TEETH_RATIO = 0.42f
+    /**
+     * Taille des dentures, en part de celle des chiffres des autres cases.
+     *
+     * « 50×17 » est un renseignement d'appoint — la position dans la cassette se lit sur les
+     * barres, pas sur les nombres. À quatre dixièmes il pesait autant qu'une vraie valeur et
+     * mangeait la hauteur du schéma.
+     */
+    private const val TEETH_RATIO = 0.34f
+
+    /** Blanc entre le bas des barres et la ligne des dentures, en part du corps de celle-ci. */
+    private const val TEETH_LEADING = 1.4f
+
+    /** Blanc réservé au-dessus des barres, en part de la hauteur du libellé. */
+    private const val COMB_TOP_MARGIN = 0.45f
 
     /**
      * Plus grande taille de libellé laissant l'icône à découvert.
