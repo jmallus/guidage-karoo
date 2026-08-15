@@ -231,7 +231,7 @@
       et demi de diagonale. Toutes les cotes, les couleurs et les icônes viennent du code de
       la branche.</p>
     <div class="stamp">
-      <span>Version <b>5203617</b></span>
+      <span>Version <b>b20c0ff</b></span>
       <span>Branche <b>claude/hammerhead-karou-3-app-9yvabn</b></span>
       <span>Écran <b>480 × 800 px · ≈389 ppp</b></span>
     </div>
@@ -404,6 +404,8 @@
     </div>
     <div class="plate-body">
       <ul class="log">
+        <li><span class="sha">b20c0ff</span><p>Le peigne retrouve sa hauteur
+          <small>Reprise sur le corps des dentures, que les barres valent mieux que les nombres.</small></p></li>
         <li><span class="sha">5203617</span><p>La ligne des dentures écartée du bord de sa case
           <small>«&nbsp;50×17&nbsp;» tombait à un demi-millimètre de l'aplat jaune du champ dessous.</small></p></li>
         <li><span class="sha">aa25ae4</span><p>Le plateau dégagé des barres de la transmission
@@ -717,8 +719,8 @@ function drawTiles(ctx, bounds, tiles, valueFraction, labelFraction){
 
 /* Transmission */
 const COMB_GAP_FRACTION = 0.08, BAR_WIDTH_FRACTION = 0.62;
-const BAR_MIN_HEIGHT = 0.35, BAR_ALPHA = 0x66, TEETH_RATIO = 0.34;
-const TEETH_LEADING = 1.4, COMB_TOP_MARGIN = 0.45;
+const BAR_MIN_HEIGHT = 0.35, BAR_ALPHA = 0x66, TEETH_RATIO = 0.28;
+const TEETH_LEADING = 1.35, COMB_TOP_MARGIN = 0.32;
 
 function comb(current, count){
   if (count == null || count <= 1) return null;
