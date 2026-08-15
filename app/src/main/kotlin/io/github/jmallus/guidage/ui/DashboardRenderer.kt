@@ -236,7 +236,12 @@ object DashboardRenderer {
                 model = drivetrain,
                 palette = model.palette,
                 valueSize = valueSize,
-                labelSize = (rowHeight * LABEL_HEIGHT_FRACTION).coerceIn(9f, 26f),
+                labelSize = fitLabelSize(
+                    label = drivetrain.label,
+                    hasIcon = drivetrain.icon != null,
+                    maxWidth = columnSplit - padding - EDGE_INSET * 2,
+                    preferredSize = rowHeight * LABEL_HEIGHT_FRACTION,
+                ),
             )
         }
 
@@ -411,7 +416,11 @@ object DashboardRenderer {
     ): Float {
         if (tiles.isEmpty() || bounds.isEmpty()) return 0f
         val cellHeight = bounds.first().height()
-        val labelSize = (cellHeight * labelFraction).coerceIn(9f, 26f)
+        // Une seule taille de libellé pour le groupe, comme pour les valeurs : celle qui
+        // laisse l'icône à découvert dans la plus étroite des cases.
+        val labelSize = tiles.zip(bounds).minOf { (tile, box) ->
+            fitLabelSize(tile.label, tile.icon != null, box.width() - EDGE_INSET * 2, cellHeight * labelFraction)
+        }
         val preferred = cellHeight * valueFraction
         val valueSize = tiles.zip(bounds).minOf { (tile, box) ->
             fitValueSize(tile, box.width() - EDGE_INSET * 2, preferred)
@@ -693,6 +702,39 @@ object DashboardRenderer {
 
     /** Taille des dentures, en part de celle des chiffres des autres cases. */
     private const val TEETH_RATIO = 0.42f
+
+    /**
+     * Plus grande taille de libellé laissant l'icône à découvert.
+     *
+     * Le libellé est aligné à droite, l'icône calée à gauche : quand le mot est long et la
+     * case étroite, le premier vient recouvrir la seconde — et c'est l'icône qui fait
+     * reconnaître la case avant même qu'on ait lu le mot. Les trois cases du bandeau du haut
+     * font la moitié de la largeur des autres, « VITESSE 3S » y passait par-dessus le
+     * compteur.
+     *
+     * L'icône étant dimensionnée d'après le libellé, les deux se réduisent ensemble : la
+     * largeur totale est proportionnelle au corps, et une seule mise à l'échelle suffit.
+     */
+    private fun fitLabelSize(
+        label: String,
+        hasIcon: Boolean,
+        maxWidth: Float,
+        preferredSize: Float,
+    ): Float {
+        val size = preferredSize.coerceIn(MINIMUM_LABEL_SIZE, MAXIMUM_LABEL_SIZE)
+        if (label.isEmpty() || maxWidth <= 0f) return size
+        val icon = if (hasIcon) size * ICON_RATIO + LABEL_GAP else 0f
+        val measured = paint(size, 0, Typeface.DEFAULT_BOLD).measureText(label) + icon
+        if (measured <= maxWidth || measured <= 0f) return size
+        return (size * maxWidth / measured).coerceAtLeast(MINIMUM_LABEL_SIZE)
+    }
+
+    /** Bornes du corps des libellés. */
+    private const val MINIMUM_LABEL_SIZE = 9f
+    private const val MAXIMUM_LABEL_SIZE = 26f
+
+    /** Blanc gardé entre l'icône et le libellé qui la suit. */
+    private const val LABEL_GAP = 6f
 
     /** Plus grande taille de valeur tenant dans la largeur, décimale et unité comprises. */
     private fun fitValueSize(tile: Tile, maxWidth: Float, preferredSize: Float): Float {
