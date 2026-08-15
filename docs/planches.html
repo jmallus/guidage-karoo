@@ -231,7 +231,7 @@
       et demi de diagonale. Toutes les cotes, les couleurs et les icônes viennent du code de
       la branche.</p>
     <div class="stamp">
-      <span>Version <b>aa25ae4</b></span>
+      <span>Version <b>5203617</b></span>
       <span>Branche <b>claude/hammerhead-karou-3-app-9yvabn</b></span>
       <span>Écran <b>480 × 800 px · ≈389 ppp</b></span>
     </div>
@@ -404,6 +404,8 @@
     </div>
     <div class="plate-body">
       <ul class="log">
+        <li><span class="sha">5203617</span><p>La ligne des dentures écartée du bord de sa case
+          <small>«&nbsp;50×17&nbsp;» tombait à un demi-millimètre de l'aplat jaune du champ dessous.</small></p></li>
         <li><span class="sha">aa25ae4</span><p>Le plateau dégagé des barres de la transmission
           <small>Du blanc réservé au-dessus du peigne, et «&nbsp;50×17&nbsp;» ramené au rang de renseignement d'appoint.</small></p></li>
         <li><span class="sha">d446049</span><p>Les libellés sont suspendus au haut de leur case
@@ -758,8 +760,11 @@ function drawDrivetrain(ctx, bounds, model, valueSize, labelSize){
   drawLabelRow(ctx, bounds, right, {label:model.label, value:"", icon:model.icon},
                labelSize, PAL.textSecondary, PAL.iconTint, top);
 
+  // Le schéma s'arrête franchement au-dessus du bord : la case du dessous porte un aplat
+  // qui commence net, et la ligne des dentures y paraîtrait posée.
   const schematicTop = valueTop(bounds, top, labelHeight, valueHeight);
-  const area = {x:bounds.x+EDGE_INSET, y:schematicTop, w:right-(bounds.x+EDGE_INSET), h:valueHeight};
+  const schematicBottom = Math.min(schematicTop + valueHeight, bounds.y + bounds.h - EDGE_INSET);
+  const area = {x:bounds.x+EDGE_INSET, y:schematicTop, w:right-(bounds.x+EDGE_INSET), h:schematicBottom-schematicTop};
   if (area.w <= 0 || area.h <= 0) return;
 
   const teeth = model.frontTeeth && model.rearTeeth ? model.frontTeeth+"×"+model.rearTeeth : null;
