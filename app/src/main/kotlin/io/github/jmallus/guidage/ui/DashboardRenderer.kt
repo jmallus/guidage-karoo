@@ -624,10 +624,10 @@ object DashboardRenderer {
         val barWidth = (pitch * BAR_WIDTH_FRACTION).coerceAtLeast(2f)
 
         front?.let {
-            drawComb(canvas, RectF(area.left, combTop, area.left + frontWidth, combBottom), it, barWidth, palette)
+            drawComb(canvas, RectF(area.left, combTop, area.left + frontWidth, combBottom), it, barWidth, ascending = true, palette = palette)
         }
         rear?.let {
-            drawComb(canvas, RectF(rearLeft, combTop, area.right, combBottom), it, barWidth, palette)
+            drawComb(canvas, RectF(rearLeft, combTop, area.right, combBottom), it, barWidth, ascending = false, palette = palette)
         }
 
         teeth?.let {
@@ -650,20 +650,24 @@ object DashboardRenderer {
 
     /**
      * Un peigne : une barre par rapport, de gauche à droite dans l'ordre où le groupe les
-     * numérote, et dont la hauteur monte avec la denture.
+     * numérote, et dont la hauteur suit la denture.
      *
-     * Les deux peignes montent, plateaux comme pignons, parce que les groupes numérotent
-     * dans le même sens : le rapport n° 1 est le plus petit plateau et le plus petit pignon.
-     * Les pignons descendaient auparavant, sur l'idée fausse que le premier rapport était le
-     * grand pignon — le peigne montrait alors la barre la plus haute pour le pignon de dix
-     * dents et la plus basse pour celui de cinquante-deux, exactement à l'envers de ce qu'on
-     * a sous les yeux en tournant la tête.
+     * Les deux peignes ne vont pas dans le même sens, parce que les groupes ne numérotent
+     * pas dans le même sens. Le plateau n° 1 est le petit, le peigne avant monte donc. Le
+     * pignon n° 1 est le grand — celui qu'on prend pour monter —, le peigne arrière descend
+     * donc : à gauche le grand pignon, à droite le petit, comme sur la cassette qu'on a sous
+     * les yeux en tournant la tête.
+     *
+     * Ce sens a été retourné une fois par erreur, sur une observation mal comprise. Le vérifier
+     * demande de regarder la cassette et le schéma en même temps, pas de raisonner : à gauche,
+     * la barre la plus haute et le plus grand nombre de dents.
      */
     private fun drawComb(
         canvas: Canvas,
         area: RectF,
         comb: Pair<Int, Int>,
         barWidth: Float,
+        ascending: Boolean,
         palette: Palette,
     ) {
         val (current, count) = comb
@@ -673,7 +677,8 @@ object DashboardRenderer {
         val radius = barWidth / 2f
 
         for (index in 1..count) {
-            val ratio = if (count == 1) 1f else (index - 1).toFloat() / (count - 1)
+            val step = if (count == 1) 1f else (index - 1).toFloat() / (count - 1)
+            val ratio = if (ascending) step else 1f - step
             val height = area.height() * (BAR_MIN_HEIGHT + (1f - BAR_MIN_HEIGHT) * ratio)
             val left = area.left + (index - 1) * pitch + (pitch - barWidth) / 2f
             // La barre engagée est en blanc, la couleur des valeurs : c'est un chiffre qu'on
