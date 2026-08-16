@@ -231,7 +231,7 @@
       et demi de diagonale. Toutes les cotes, les couleurs et les icônes viennent du code de
       la branche.</p>
     <div class="stamp">
-      <span>Version <b>b20c0ff</b></span>
+      <span>Version <b>5cbb78a</b></span>
       <span>Branche <b>claude/hammerhead-karou-3-app-9yvabn</b></span>
       <span>Écran <b>480 × 800 px · ≈389 ppp</b></span>
     </div>
@@ -404,6 +404,8 @@
     </div>
     <div class="plate-body">
       <ul class="log">
+        <li><span class="sha">5cbb78a</span><p>La part parcourue du tracé cernée elle aussi
+          <small>Sans cerne elle disparaissait sur le fond clair : la flèche flottait sur du vide.</small></p></li>
         <li><span class="sha">b20c0ff</span><p>Le peigne retrouve sa hauteur
           <small>Reprise sur le corps des dentures, que les barres valent mieux que les nombres.</small></p></li>
         <li><span class="sha">5203617</span><p>La ligne des dentures écartée du bord de sa case
@@ -916,7 +918,7 @@ const POIS = [{position: PATH[16], label:"Fontaine"}];
 const AHEAD_FRACTION = 0.80, MIN_ROAD_WIDTH = 1, MAX_ROAD_WIDTH = 26;
 const ROUTE_WIDTH_NEAR = 14, ROUTE_WIDTH_FAR = 6, ROUTE_OUTLINE_WIDTH = 4;
 const MIN_RANGE = 200, MAX_RANGE = 10000, TRACE_THINNING = 2/3;
-const TRAVELED_WIDTH_RATIO = 0.7, TRAVELED_ALPHA = 0x59;
+const TRAVELED_WIDTH_RATIO = 0.75, TRAVELED_ALPHA = 0xCC;
 const CHEVRON_SPACING_RATIO = 4.3, CHEVRON_STROKE_RATIO = 0.43;
 const CHEVRON_OVERHANG_RATIO = 0.35, CHEVRON_BORDER_RATIO = 0.35;
 const CHEVRON_SWEEP = 1.6, CHEVRON_ARM = 0.9;
@@ -994,7 +996,9 @@ function drawMap(ctx, area, model){
   const traveled = screen.slice(0, here+1);
   const trace = pts => { ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); };
 
+  // La part parcourue a son propre cerne : sans lui elle disparaît sur le fond clair.
   ctx.lineCap = "round"; ctx.lineJoin = "round";
+  trace(traveled);  ctx.lineWidth = width*TRAVELED_WIDTH_RATIO + ROUTE_OUTLINE_WIDTH*2; ctx.strokeStyle = PAL.routeOutline; ctx.stroke();
   trace(remaining); ctx.lineWidth = width + ROUTE_OUTLINE_WIDTH*2; ctx.strokeStyle = PAL.routeOutline; ctx.stroke();
   trace(traveled);  ctx.lineWidth = width*TRAVELED_WIDTH_RATIO;    ctx.strokeStyle = alphaOf(PAL.routeLine, TRAVELED_ALPHA); ctx.stroke();
   trace(remaining); ctx.lineWidth = width;                          ctx.strokeStyle = PAL.routeLine; ctx.stroke();
