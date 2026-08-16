@@ -231,7 +231,7 @@
       et demi de diagonale. Toutes les cotes, les couleurs et les icônes viennent du code de
       la branche.</p>
     <div class="stamp">
-      <span>Version <b>5cbb78a</b></span>
+      <span>Version <b>b0898a8</b></span>
       <span>Branche <b>claude/hammerhead-karou-3-app-9yvabn</b></span>
       <span>Écran <b>480 × 800 px · ≈389 ppp</b></span>
     </div>
@@ -404,6 +404,8 @@
     </div>
     <div class="plate-body">
       <ul class="log">
+        <li><span class="sha">b0898a8</span><p>Les barres de la cassette remises à l'endroit
+          <small>Le rapport n° 1 est le petit pignon, pas le grand : le peigne était retourné.</small></p></li>
         <li><span class="sha">5cbb78a</span><p>La part parcourue du tracé cernée elle aussi
           <small>Sans cerne elle disparaissait sur le fond clair : la flèche flottait sur du vide.</small></p></li>
         <li><span class="sha">b20c0ff</span><p>Le peigne retrouve sa hauteur
@@ -729,14 +731,15 @@ function comb(current, count){
   if (current == null) return null;
   return [clamp(current,1,count), count];
 }
-function drawComb(ctx, area, c, barWidth, ascending){
+// Les deux peignes montent : le rapport n° 1 est le plus petit plateau et le plus petit
+// pignon, la hauteur suit donc la denture des deux côtés.
+function drawComb(ctx, area, c, barWidth){
   const [current, count] = c;
   if (area.w <= 0) return;
   const pitch = area.w / count;
   const radius = barWidth/2;
   for (let index = 1; index <= count; index++) {
-    const step = count === 1 ? 1 : (index-1)/(count-1);
-    const ratio = ascending ? step : 1-step;
+    const ratio = count === 1 ? 1 : (index-1)/(count-1);
     const height = area.h * (BAR_MIN_HEIGHT + (1-BAR_MIN_HEIGHT)*ratio);
     const left = area.x + (index-1)*pitch + (pitch-barWidth)/2;
     ctx.fillStyle = index === current ? PAL.textPrimary : alphaOf(PAL.textSecondary, BAR_ALPHA);
@@ -789,8 +792,8 @@ function drawDrivetrain(ctx, bounds, model, valueSize, labelSize){
   const rearLeft = area.x + frontWidth + gap;
   const barWidth = Math.max(pitch*BAR_WIDTH_FRACTION, 2);
 
-  if (front) drawComb(ctx, {x:area.x, y:combTop, w:frontWidth, h:combBottom-combTop}, front, barWidth, true);
-  if (rear)  drawComb(ctx, {x:rearLeft, y:combTop, w:area.x+area.w-rearLeft, h:combBottom-combTop}, rear, barWidth, false);
+  if (front) drawComb(ctx, {x:area.x, y:combTop, w:frontWidth, h:combBottom-combTop}, front, barWidth);
+  if (rear)  drawComb(ctx, {x:rearLeft, y:combTop, w:area.x+area.w-rearLeft, h:combBottom-combTop}, rear, barWidth);
 
   if (teeth) {
     ctx.font = fontLight(teethSize);
