@@ -278,12 +278,21 @@ object MapRenderer {
             strokeWidth = width + ROUTE_OUTLINE_WIDTH * 2
             color = palette.routeOutline
         }
+        // La part parcourue a son propre cerne, à sa propre épaisseur. Sans lui, elle se
+        // réduisait à un jaune pâle posé sur un fond crème, c'est-à-dire à rien : le coureur
+        // voyait sa flèche flotter sur du vide, sans plus rien pour dire d'où il venait ni
+        // qu'il était bien sur le tracé. Le cerne est ce qui fait tenir le ruban sur un fond
+        // clair ; le lui refuser revenait à l'effacer.
+        val behindOutline = Paint(outline).apply {
+            strokeWidth = width * TRAVELED_WIDTH_RATIO + ROUTE_OUTLINE_WIDTH * 2
+        }
 
         val screenPoints = model.path.map { projection.toScreen(it) }
         val here = nearestIndex(screenPoints, riderX, riderY)
         val traveled = polyline(screenPoints.subList(0, (here + 1).coerceAtMost(screenPoints.size)))
         val remaining = polyline(screenPoints.subList(here.coerceAtMost(screenPoints.lastIndex), screenPoints.size))
 
+        canvas.drawPath(traveled, behindOutline)
         canvas.drawPath(remaining, outline)
         canvas.drawPath(traveled, behind)
         canvas.drawPath(remaining, ahead)
@@ -569,9 +578,16 @@ object MapRenderer {
      */
     private const val TRACE_THINNING = 2.0 / 3.0
 
-    /** Part de l'épaisseur et opacité du tracé déjà parcouru. */
-    private const val TRAVELED_WIDTH_RATIO = 0.7f
-    private const val TRAVELED_ALPHA = 0x59
+    /**
+     * Part de l'épaisseur et opacité du tracé déjà parcouru.
+     *
+     * Il s'agit de le mettre en sourdine, pas de l'effacer : le tracé doit rester apparent
+     * d'un bout à l'autre, seuls les chevrons disant le sens sur les quelques centaines de
+     * mètres qui viennent. À trente-cinq pour cent, la part faite était invisible sur le fond
+     * clair de la carte ; quatre-vingts la laissent lire sans qu'on la confonde avec la suite.
+     */
+    private const val TRAVELED_WIDTH_RATIO = 0.75f
+    private const val TRAVELED_ALPHA = 0xCC
 
     /** Rouge du hors-itinéraire : celui du Karoo, pour dire la même chose de la même façon. */
     private val OFF_ROUTE_COLOR = FieldPalette.REJOIN
