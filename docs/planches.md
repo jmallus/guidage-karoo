@@ -16,7 +16,7 @@ sont ceux des sources.
 > en Roboto, plus étroit que la fonte système d'un navigateur, et les libellés — dont le corps
 > s'ajuste à la largeur disponible — sortent donc un peu plus petits ici que sur l'appareil.
 
-Version reproduite : **`b0898a8`**.
+Version reproduite : **`c252b6f`**.
 
 ## La page interactive
 
@@ -53,7 +53,7 @@ tourner au bon carrefour.
 | | Zone | Ce qu'elle porte |
 | --- | --- | --- |
 | **A** | Bandeau d'effort | Vitesse, cadence, puissance sur 3 secondes. Vitesse et puissance prennent un aplat : vert au-dessus de la moyenne de la sortie, et la couleur de la zone réglée dans le Karoo. |
-| **B** | Transmission | Plateaux à gauche, pignons à droite, même pas d'un peigne à l'autre. Les barres montent avec la denture des deux côtés : le rapport n° 1 est le plus petit plateau et le plus petit pignon. La barre allumée est en blanc — c'est un chiffre qu'on lit, pas un voyant. Un mono-plateau n'affiche que la cassette. |
+| **B** | Transmission | Plateaux à gauche, pignons à droite, même pas d'un peigne à l'autre. Les barres suivent la denture : le peigne des plateaux monte, celui des pignons descend, le rapport n° 1 étant le petit plateau mais le grand pignon. La barre allumée est en blanc — c'est un chiffre qu'on lit, pas un voyant. Un mono-plateau n'affiche que la cassette. |
 | **C** | Minicarte | Cap en haut, coureur fixe aux quatre cinquièmes de la hauteur. Fond de carte hors ligne, tracé cerné de noir, chevrons bornés aux prochaines centaines de mètres. |
 | **D** | Fréquence cardiaque | Aplat de zone, encre noire ou blanche selon le contraste perceptuel APCA : le jaune tempo réclame du noir, le rouge anaérobie non. |
 | **E** | Distance et pente | Une seule taille de chiffres pour ce rang et celui du dessus : sans cela « 96,9 » s'écrirait plus petit que « 4 » et l'œil ne saurait plus laquelle est laquelle. |
