@@ -295,7 +295,9 @@
         <li><span class="badge">C</span><div>
           <h3>Minicarte</h3>
           <p>Cap en haut, coureur fixe aux quatre cinquièmes de la hauteur. Fond de carte hors ligne,
-             tracé jaune cerné de noir, chevrons bornés aux prochaines centaines de mètres.</p>
+             tracé jaune cerné de noir, chevrons bornés aux prochaines centaines de mètres et
+             partant de l'aplomb exact du coureur. Hors itinéraire, ruban et chevrons passent
+             au rouge, et les chevrons courent alors tout du long.</p>
         </div></li>
         <li><span class="badge">D</span><div>
           <h3>Fréquence cardiaque</h3>
@@ -989,13 +991,19 @@ function drawMap(ctx, area, model){
   /* Tracé */
   const width = routeWidth(model.rangeMeters);
   const screen = PATH.map(toScreen);
-  let here = 0, bestD = Infinity;
-  screen.forEach((p,i) => {
+  // Projection sur le segment, non sur le sommet : accroché à un sommet, le point de
+  // coupure attendait le coureur puis sautait au sommet suivant, chevrons compris.
+  let here = 1, anchor = screen[0], bestD = Infinity;
+  for (let i=1; i<screen.length; i++){
+    const a = screen[i-1], b = screen[i];
+    const dx = b.x-a.x, dy = b.y-a.y, sq = dx*dx + dy*dy;
+    const t = sq > 0 ? clamp(((riderX-a.x)*dx + (riderY-a.y)*dy)/sq, 0, 1) : 0;
+    const p = {x: a.x + dx*t, y: a.y + dy*t};
     const d = (p.x-riderX)**2 + (p.y-riderY)**2;
-    if (d < bestD) { bestD = d; here = i; }
-  });
-  const remaining = screen.slice(here);
-  const traveled = screen.slice(0, here+1);
+    if (d < bestD) { bestD = d; here = i; anchor = p; }
+  }
+  const remaining = [anchor].concat(screen.slice(here));
+  const traveled = screen.slice(0, here).concat([anchor]);
   const trace = pts => { ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); };
 
   // La part parcourue a son propre cerne : sans lui elle disparaît sur le fond clair.
@@ -1014,6 +1022,10 @@ function drawMap(ctx, area, model){
     const borderWidth = stroke + Math.max(stroke*CHEVRON_BORDER_RATIO, 1.6)*2;
     const halfSpan = reference/2 + ROUTE_OUTLINE_WIDTH + reference*CHEVRON_OVERHANG_RATIO;
     const size = Math.max((halfSpan - borderWidth/2)/CHEVRON_ARM, reference*0.4);
+    // Sans borne de longueur — hors itinéraire — il faut une borne d'écran : le tracé
+    // court des kilomètres au-delà du cadre.
+    const margin = size*CHEVRON_SWEEP + borderWidth;
+    const cadre = {l: area.x-margin, r: area.x+area.w+margin, t: area.y-margin, b: area.y+area.h+margin};
 
     ctx.beginPath();
     let carry = 0, travelled = 0;
@@ -1025,7 +1037,9 @@ function drawMap(ctx, area, model){
       if (len < 0.01) continue;
       const ux = dx/len, uy = dy/len;
       const reach = Math.min(len, limitPixels-travelled);
-      let position = spacing - carry;
+      const visible = Math.max(from.x,to.x) >= cadre.l && Math.min(from.x,to.x) <= cadre.r
+                   && Math.max(from.y,to.y) >= cadre.t && Math.min(from.y,to.y) <= cadre.b;
+      let position = visible ? spacing - carry : Infinity;
       while (position <= reach) {
         const x = from.x + ux*position, y = from.y + uy*position;
         const px = -uy, py = ux;
@@ -1041,7 +1055,8 @@ function drawMap(ctx, area, model){
       travelled += len;
     }
     ctx.lineWidth = borderWidth; ctx.strokeStyle = ARROW_BORDER_COLOR; ctx.stroke();
-    ctx.lineWidth = stroke;      ctx.strokeStyle = ARROW_COLOR;        ctx.stroke();
+    // Les chevrons prennent la couleur du ruban : jaune ici, rouge hors itinéraire.
+    ctx.lineWidth = stroke;      ctx.strokeStyle = PAL.routeLine;      ctx.stroke();
   }
 
   /* Points d'intérêt */

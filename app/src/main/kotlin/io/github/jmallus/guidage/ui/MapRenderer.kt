@@ -84,6 +84,7 @@ object MapRenderer {
         }
         drawPath(
             canvas = canvas,
+            area = area,
             model = model,
             projection = projection,
             palette = palette,
@@ -249,11 +250,16 @@ object MapRenderer {
      * reste » : ses chevrons désignaient donc une direction qui n'était pas celle du moment.
      * Bornés, ils ne montrent plus qu'un chemin à la fois.
      *
-     * Hors itinéraire, tout le tracé passe au rouge : mieux vaut le voir tout de suite que
-     * de le découvrir au bout de deux kilomètres.
+     * Hors itinéraire, tout le tracé passe au rouge — mieux vaut le voir tout de suite que
+     * de le découvrir au bout de deux kilomètres — et ses chevrons prennent le même rouge,
+     * comme ils prennent ailleurs le jaune du ruban. Ils ne sont alors plus bornés : la
+     * borne se compte depuis le point où l'on est *sur* le tracé, or ce point n'existe plus.
+     * Il se plaçait là où l'on a quitté l'itinéraire, souvent hors du cadre, et les chevrons
+     * avec lui : le ruban rouge qu'on voyait à l'écran n'en portait aucun.
      */
     private fun drawPath(
         canvas: Canvas,
+        area: RectF,
         model: MapModel,
         projection: Projection,
         palette: Palette,
@@ -288,9 +294,13 @@ object MapRenderer {
         }
 
         val screenPoints = model.path.map { projection.toScreen(it) }
-        val here = nearestIndex(screenPoints, riderX, riderY)
-        val traveled = polyline(screenPoints.subList(0, (here + 1).coerceAtMost(screenPoints.size)))
-        val remaining = polyline(screenPoints.subList(here.coerceAtMost(screenPoints.lastIndex), screenPoints.size))
+        val here = anchor(screenPoints, riderX, riderY)
+        val aheadPoints = buildList {
+            add(here.point)
+            addAll(screenPoints.subList(here.index, screenPoints.size))
+        }
+        val traveled = polyline(screenPoints.subList(0, here.index) + here.point)
+        val remaining = polyline(aheadPoints)
 
         canvas.drawPath(traveled, behindOutline)
         canvas.drawPath(remaining, outline)
@@ -298,10 +308,15 @@ object MapRenderer {
         canvas.drawPath(remaining, ahead)
         drawDirectionChevrons(
             canvas = canvas,
-            points = screenPoints.subList(here.coerceAtMost(screenPoints.lastIndex), screenPoints.size),
-            palette = palette,
+            area = area,
+            points = aheadPoints,
+            color = ahead.color,
             routeWidth = width,
-            limitPixels = (model.chevronRangeMeters * metersToPixels).toFloat(),
+            limitPixels = if (model.offRoute) {
+                Float.POSITIVE_INFINITY
+            } else {
+                (model.chevronRangeMeters * metersToPixels).toFloat()
+            },
         )
     }
 
@@ -312,25 +327,48 @@ object MapRenderer {
         }
     }
 
+    /** Où le coureur se tient sur le tracé : le point, et le sommet qui le suit. */
+    private class Anchor(val index: Int, val point: PlanePoint)
+
     /**
      * Point du tracé le plus proche du coureur, cherché à l'écran.
      *
      * On ne se fie pas à la distance parcourue rapportée par l'appareil : elle se décale, et
      * le tracé se couperait alors au mauvais endroit. La position à l'écran, elle, ne ment pas.
+     *
+     * La projection se fait sur le **segment** et non sur le sommet le plus proche. C'est
+     * toute la différence entre un tracé qui avance avec le coureur et un tracé qui l'attend :
+     * accroché à un sommet, le point de coupure — donc le début des chevrons — restait planté
+     * là pendant qu'on roulait vers lui, puis sautait d'un coup au sommet suivant dès qu'on
+     * passait à mi-chemin. Un tracé de route ayant un sommet tous les cinquante à cent mètres,
+     * cela faisait un bond de cette longueur, suivi d'une remontée : « le tracé saute devant
+     * moi et je le rattrape ». Projeté sur le segment, le point glisse continûment et les
+     * chevrons commencent toujours sous la flèche.
      */
-    private fun nearestIndex(points: List<PlanePoint>, x: Float, y: Float): Int {
-        var best = 0
+    private fun anchor(points: List<PlanePoint>, x: Float, y: Float): Anchor {
+        var best = Anchor(1, points.first())
         var bestDistance = Float.MAX_VALUE
-        points.forEachIndexed { index, point ->
-            val dx = point.x.toFloat() - x
-            val dy = point.y.toFloat() - y
+        for (index in 1 until points.size) {
+            val projected = projectOnSegment(points[index - 1], points[index], x, y)
+            val dx = projected.x.toFloat() - x
+            val dy = projected.y.toFloat() - y
             val distance = dx * dx + dy * dy
             if (distance < bestDistance) {
                 bestDistance = distance
-                best = index
+                best = Anchor(index, projected)
             }
         }
         return best
+    }
+
+    /** Projection orthogonale d'un point sur un segment, bornée à ses deux extrémités. */
+    private fun projectOnSegment(from: PlanePoint, to: PlanePoint, x: Float, y: Float): PlanePoint {
+        val dx = to.x - from.x
+        val dy = to.y - from.y
+        val squared = dx * dx + dy * dy
+        if (squared <= 0.0) return from
+        val t = (((x - from.x) * dx + (y - from.y) * dy) / squared).coerceIn(0.0, 1.0)
+        return PlanePoint(from.x + dx * t, from.y + dy * t)
     }
 
     /**
@@ -350,8 +388,9 @@ object MapRenderer {
 
     /**
      * Chevrons semés le long du tracé pour indiquer le sens de la marche, comme sur la
-     * carte native du Karoo : jaunes et cernés de noir, dans les couleurs de la flèche de
-     * position.
+     * carte native du Karoo : cernés de noir, et de la couleur du ruban qu'ils jalonnent —
+     * le jaune de la flèche de position sur l'itinéraire, le rouge de rejointe quand on
+     * l'a quitté.
      *
      * Le cerne n'est pas un ornement. Un chevron d'une seule couleur disparaît dès que le
      * tracé passe sur un fond de la même valeur — et le tracé est justement clair. Deux
@@ -359,8 +398,9 @@ object MapRenderer {
      */
     private fun drawDirectionChevrons(
         canvas: Canvas,
+        area: RectF,
         points: List<PlanePoint>,
-        palette: Palette,
+        color: Int,
         routeWidth: Float,
         limitPixels: Float,
     ) {
@@ -386,8 +426,16 @@ object MapRenderer {
         }
         val fill = Paint(border).apply {
             strokeWidth = stroke
-            color = ARROW_COLOR
+            this.color = color
         }
+        // Le tracé peut courir des kilomètres hors du cadre ; sans borne de longueur, il
+        // faut donc une borne d'écran. La marge tient au débord du chevron sur le segment
+        // qui entre dans le cadre.
+        val margin = size * CHEVRON_SWEEP + borderWidth
+        val left = area.left - margin
+        val right = area.right + margin
+        val top = area.top - margin
+        val bottom = area.bottom + margin
 
         // Les chevrons sont accumulés puis dessinés en deux passes : sans cela, le cerne du
         // chevron suivant viendrait mordre le jaune du précédent quand ils se serrent.
@@ -409,17 +457,23 @@ object MapRenderer {
             val ux = dx / length
             val uy = dy / length
             val reach = minOf(length, limitPixels - travelled)
-            var position = spacing - carry
-            while (position <= reach) {
-                addChevron(
-                    path = chevrons,
-                    x = from.x.toFloat() + ux * position,
-                    y = from.y.toFloat() + uy * position,
-                    ux = ux,
-                    uy = uy,
-                    size = size,
-                )
-                position += spacing
+            // Un segment entièrement hors du cadre n'est pas semé, mais il compte : c'est
+            // l'écart cumulé qui garde les chevrons régulièrement espacés au retour.
+            val visible = maxOf(from.x, to.x) >= left && minOf(from.x, to.x) <= right &&
+                maxOf(from.y, to.y) >= top && minOf(from.y, to.y) <= bottom
+            if (visible) {
+                var position = spacing - carry
+                while (position <= reach) {
+                    addChevron(
+                        path = chevrons,
+                        x = from.x.toFloat() + ux * position,
+                        y = from.y.toFloat() + uy * position,
+                        ux = ux,
+                        uy = uy,
+                        size = size,
+                    )
+                    position += spacing
+                }
             }
             carry = (carry + length) % spacing
             travelled += length
