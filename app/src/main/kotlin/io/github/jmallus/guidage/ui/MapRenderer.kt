@@ -310,7 +310,7 @@ object MapRenderer {
             canvas = canvas,
             area = area,
             points = aheadPoints,
-            color = ahead.color,
+            tint = ahead.color,
             routeWidth = width,
             limitPixels = if (model.offRoute) {
                 Float.POSITIVE_INFINITY
@@ -400,7 +400,7 @@ object MapRenderer {
         canvas: Canvas,
         area: RectF,
         points: List<PlanePoint>,
-        color: Int,
+        tint: Int,
         routeWidth: Float,
         limitPixels: Float,
     ) {
@@ -426,7 +426,7 @@ object MapRenderer {
         }
         val fill = Paint(border).apply {
             strokeWidth = stroke
-            this.color = color
+            color = tint
         }
         // Le tracé peut courir des kilomètres hors du cadre ; sans borne de longueur, il
         // faut donc une borne d'écran. La marge tient au débord du chevron sur le segment
