@@ -19,7 +19,7 @@
       "x": 500,
       "y": -300,
       "w": 460,
-      "text": "Acquis dans les trois : rien de ce qui est DEVANT ne s'atténue jamais — ni le fond, ni la trace. Le dégradé de la trace ne s'éteint donc qu'en arrière. La flèche de position est de retour, en blanc, cernée de noir pour tenir sur une chaussée claire. Le trait doublé se décide sur la largeur réelle : au-delà de 5 m de chaussée, deux traits blancs de 2 px écartés de la largeur au sol, le creux étant le noir du fond ; en deçà, un seul trait, tireté pour les chemins."
+      "text": "Acquis dans les trois : rien de ce qui est DEVANT ne s'atténue jamais — ni le fond, ni la trace. Le dégradé de la trace ne s'éteint donc qu'en arrière. La flèche de position est celle de la navigation Karoo, aux cotes de MapRenderer, en blanc au lieu du jaune. Les voies sont des traits pleins blancs, à la largeur réelle de la chaussée : 9,3 px pour une secondaire à la portée 200 m, 6,7 pour une résidentielle, 4,7 pour une voie de service, 4 tiretés pour un chemin. Une départementale reste une départementale à toutes les échelles."
     },
     {
       "id": "note-fond-a",
