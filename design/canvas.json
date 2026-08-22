@@ -1,48 +1,46 @@
 {
   "artboards": [
-    { "file": "CarteA.dc.html", "x": 0, "y": 0, "w": 234, "h": 334, "title": "Fond A — Halo autour du coureur" },
-    { "file": "CarteB.dc.html", "x": 334, "y": 0, "w": 234, "h": 334, "title": "Fond B — Atténué vers le lointain" },
-    { "file": "CarteC.dc.html", "x": 668, "y": 0, "w": 234, "h": 334, "title": "Fond C — Hiérarchie" },
+    { "file": "CarteA.dc.html", "x": 0, "y": 0, "w": 234, "h": 334, "title": "Fond A — Rien ne s'atténue" },
+    { "file": "CarteB.dc.html", "x": 334, "y": 0, "w": 234, "h": 334, "title": "Fond B — Le passé s'efface" },
+    { "file": "CarteC.dc.html", "x": 668, "y": 0, "w": 234, "h": 334, "title": "Fond C — Le passé se hiérarchise" },
     { "file": "Main.dc.html", "x": 1002, "y": 0, "w": 480, "h": 454, "title": "En place — Fond A + Profil A" },
-    { "file": "TraceB.dc.html", "x": 0, "y": 620, "w": 234, "h": 334, "title": "Dégradé 2 — Plein devant + halo" },
-    { "file": "TraceC.dc.html", "x": 334, "y": 620, "w": 234, "h": 334, "title": "Dégradé 3 — Vif à la position" },
     { "file": "ProfilA.dc.html", "x": 1002, "y": 620, "w": 480, "h": 80, "title": "Profil A — retenu" }
   ],
   "annotations": [
     {
       "id": "note-cadre",
       "x": 0,
-      "y": -280,
+      "y": -300,
       "w": 460,
       "text": "Cotes réelles du Karoo 3 : minicarte 234 × 334 px, bandeau 480 × 80 px, coureur aux 4/5 de la hauteur. Aucun code de rendu n'est modifié à ce stade."
     },
     {
-      "id": "note-chaussee",
+      "id": "note-acquis",
       "x": 500,
-      "y": -280,
+      "y": -300,
       "w": 460,
-      "text": "Le trait doublé se décide sur la largeur réelle de la chaussée, pas sur l'échelle : au-delà de 5 m, deux traits blancs de 2 px écartés de la largeur au sol ; en deçà (service, chemin, sentier), un seul trait, tireté pour les chemins. À la portée 200 m cela donne une secondaire à 9,3 px de large et une résidentielle à 6,7. Le creux des grandes routes est le noir du fond, comme sur la photo."
+      "text": "Acquis dans les trois : rien de ce qui est DEVANT ne s'atténue jamais — ni le fond, ni la trace. Le dégradé de la trace ne s'éteint donc qu'en arrière. La flèche de position est de retour, en blanc, cernée de noir pour tenir sur une chaussée claire. Le trait doublé se décide sur la largeur réelle : au-delà de 5 m de chaussée, deux traits blancs de 2 px écartés de la largeur au sol, le creux étant le noir du fond ; en deçà, un seul trait, tireté pour les chemins."
     },
     {
       "id": "note-fond-a",
       "x": 0,
       "y": -150,
       "w": 300,
-      "text": "A — Les voies s'éteignent en cercle autour du coureur. Le plus proche de la photo, et le plus lisible au centre. Revers : une grande route qui passe au ras du bord disparaît alors qu'elle est justement le repère qu'on cherche."
+      "text": "A — Aucune atténuation nulle part. Les voies sont blanches d'un bord à l'autre, devant comme derrière. Le plus lisible et le plus simple à écrire ; en ville, le plus chargé."
     },
     {
       "id": "note-fond-b",
       "x": 334,
       "y": -150,
       "w": 300,
-      "text": "B — L'atténuation suit la distance devant, pas le rayon : la bande à hauteur du coureur reste franche d'un bord à l'autre, le lointain se vide. Les carrefours qui arrivent tiennent leur netteté plus longtemps."
+      "text": "B — Derrière le coureur, tout s'efface vers le bas de la carte. Le cinquième bas de l'écran cesse d'encombrer, et l'œil est tiré vers l'avant sans qu'on ait rien perdu de ce qui vient. Ma recommandation."
     },
     {
       "id": "note-fond-c",
       "x": 668,
       "y": -150,
       "w": 300,
-      "text": "C — L'atténuation ne joue que sur les voies étroites. Les chaussées larges restent blanches jusqu'au bord : ce sont elles qu'on nomme et qu'on reconnaît. Fond plus chargé, mais rien de ce qui sert à se situer ne s'efface. Ma recommandation."
+      "text": "C — Derrière, les chaussées larges ne font que pâlir, les chemins disparaissent. On garde la grande route qu'on vient de quitter — c'est elle qu'on nomme si l'on doit faire demi-tour — sans garder le lacis autour."
     },
     {
       "id": "note-main",
@@ -52,32 +50,11 @@
       "text": "Le fond A remis à sa place dans l'écran, avec le profil A en bas. Deux rangs de champs en repère de proportion — c'est le rapport de tailles qu'on juge, pas les chiffres gris."
     },
     {
-      "id": "note-degrade",
-      "x": 0,
-      "y": 490,
-      "w": 560,
-      "text": "Question encore ouverte : d'où part le dégradé de la trace. Le dégradé 1 est celui des trois fonds ci-dessus — plein sous le coureur, il s'éteint vers l'avant. Les deux ci-dessous sont les autres partis, sur le même fond A."
-    },
-    {
-      "id": "note-trace-b",
-      "x": 0,
-      "y": 990,
-      "w": 300,
-      "text": "2 — Plein sur tout l'avant, éteint en arrière, halo bleu à la position. Sans chevron ni flèche, c'est le seul des trois qui dise encore où l'on est et dans quel sens on va."
-    },
-    {
-      "id": "note-trace-c",
-      "x": 334,
-      "y": 990,
-      "w": 300,
-      "text": "3 — Le plus vif à la position, s'atténuant également des deux côtés. On garde la trace derrière soi, utile pour vérifier qu'on est bien dessus après un carrefour."
-    },
-    {
       "id": "note-profil",
       "x": 1002,
       "y": 490,
       "w": 460,
-      "text": "Profil A, retenu, corrigé : le repère blanc ne bouge jamais, c'est le profil qui défile dessous. 200 m déjà faits tenus en grisé derrière lui, 1,8 km devant. Vingt tranches de 100 m aux couleurs de pente du Karoo, accolées sans séparation sous la silhouette."
+      "text": "Profil A, retenu. Le repère est un point posé sur la courbe, cerné de noir pour tenir sur les sept couleurs de pente, et il ne bouge jamais : c'est le profil qui défile dessous. 200 m déjà faits tenus en grisé derrière lui, 1,8 km devant. Vingt tranches de 100 m accolées sans séparation sous la silhouette."
     }
   ],
   "launch": { "view": "canvas" }

@@ -15,50 +15,61 @@
 <div style="position: relative; width: 234px; height: 334px; background: #000000; overflow: hidden">
   <svg width="234" height="334" viewBox="0 0 234 334" style="display: block">
     <defs>
-      <radialGradient id="c-fade" cx="50%" cy="80%" r="66%">
-        <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-        <stop offset="45%" stop-color="#ffffff" stop-opacity="0.42"/>
-        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
-      </radialGradient>
-      <mask id="c-mask">
-        <rect x="0" y="0" width="234" height="334" fill="url(#c-fade)"/>
+      <!-- Derrière le coureur, les chaussées larges ne font que pâlir… -->
+      <linearGradient id="c-fade-large" x1="0" y1="334" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+        <stop offset="20%" stop-color="#ffffff" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="1"/>
+      </linearGradient>
+      <mask id="c-mask-large">
+        <rect x="0" y="0" width="234" height="334" fill="url(#c-fade-large)"/>
+      </mask>
+      <!-- …tandis que les voies étroites disparaissent. Devant, rien ne bouge. -->
+      <linearGradient id="c-fade-fine" x1="0" y1="334" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
+        <stop offset="20%" stop-color="#ffffff" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="1"/>
+      </linearGradient>
+      <mask id="c-mask-fine">
+        <rect x="0" y="0" width="234" height="334" fill="url(#c-fade-fine)"/>
       </mask>
       <linearGradient id="c-trace" x1="0" y1="334" x2="0" y2="0" gradientUnits="userSpaceOnUse">
         <stop offset="0%" stop-color="#2E8BFF" stop-opacity="0"/>
-        <stop offset="16%" stop-color="#2E8BFF" stop-opacity="0.28"/>
-        <stop offset="20%" stop-color="#4DA0FF" stop-opacity="1"/>
-        <stop offset="46%" stop-color="#2E8BFF" stop-opacity="0.9"/>
-        <stop offset="78%" stop-color="#2E8BFF" stop-opacity="0.52"/>
-        <stop offset="100%" stop-color="#2E8BFF" stop-opacity="0.24"/>
+        <stop offset="12%" stop-color="#2E8BFF" stop-opacity="0.18"/>
+        <stop offset="20%" stop-color="#2E8BFF" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#2E8BFF" stop-opacity="1"/>
       </linearGradient>
     </defs>
 
-    <!-- Chaussées larges : pleines d'un bord à l'autre, ce sont les repères -->
-    <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
-      <path d="M-12 250 L246 264" stroke-width="9.3"/>
-      <path d="M-12 176 L246 148" stroke-width="8"/>
-      <path d="M-12 88 L246 106" stroke-width="6.7"/>
-      <path d="M128 170 L226 202" stroke-width="6.7"/>
-    </g>
-    <g fill="none" stroke="#000000" stroke-linecap="round">
-      <path d="M-12 250 L246 264" stroke-width="5.3"/>
-      <path d="M-12 176 L246 148" stroke-width="4"/>
-      <path d="M-12 88 L246 106" stroke-width="2.7"/>
-      <path d="M128 170 L226 202" stroke-width="2.7"/>
-    </g>
-
-    <!-- Voies étroites : un seul trait, et elles seules s'effacent avec la distance -->
-    <g mask="url(#c-mask)">
-      <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="2.2">
-        <path d="M96 250 L14 302"/>
-        <path d="M122 90 L34 58" stroke-dasharray="6 5"/>
-        <path d="M-12 300 L88 256" stroke-dasharray="6 5"/>
-        <path d="M168 -6 L196 96"/>
+    <g mask="url(#c-mask-large)">
+      <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
+        <path d="M-12 250 L246 264" stroke-width="9.3"/>
+        <path d="M-12 176 L246 148" stroke-width="8"/>
+        <path d="M-12 88 L246 106" stroke-width="6.7"/>
+        <path d="M145 188 L246 220" stroke-width="6.7"/>
+      </g>
+      <g fill="none" stroke="#000000" stroke-linecap="round">
+        <path d="M-12 250 L246 264" stroke-width="5.3"/>
+        <path d="M-12 176 L246 148" stroke-width="4"/>
+        <path d="M-12 88 L246 106" stroke-width="2.7"/>
+        <path d="M145 188 L246 220" stroke-width="2.7"/>
       </g>
     </g>
 
-    <path d="M117 340 C117 300 100 280 96 250 C92 215 120 200 128 170 C136 140 120 120 122 90 C124 55 140 40 138 -6"
+    <g mask="url(#c-mask-fine)">
+      <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="2.2">
+        <path d="M117 258 L26 306"/>
+        <path d="M139 104 L48 74" stroke-dasharray="6 5"/>
+        <path d="M186 -6 L206 92"/>
+        <path d="M-12 316 L96 272" stroke-dasharray="6 5"/>
+      </g>
+    </g>
+
+    <path d="M112 342 C114 315 117 290 117 267 C117 236 138 216 145 188 C152 158 136 132 139 104 C142 68 158 46 155 -6"
           fill="none" stroke="url(#c-trace)" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path d="M117 246 L134 284 L117 274 L100 284 Z"
+          fill="#FFFFFF" stroke="#000000" stroke-width="2.4" stroke-linejoin="round"/>
 
     <g opacity="0.85">
       <line x1="8" y1="322" x2="52" y2="322" stroke="#FFFFFF" stroke-width="2"/>
