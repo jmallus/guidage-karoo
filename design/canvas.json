@@ -6,7 +6,7 @@
       "y": 0,
       "w": 234,
       "h": 300,
-      "title": "A — Blancs, dans le ruban"
+      "title": "Serré — retenu"
     },
     {
       "file": "ChevronB.dc.html",
@@ -14,7 +14,7 @@
       "y": 0,
       "w": 234,
       "h": 300,
-      "title": "B — Évidés"
+      "title": "Écarté et gras"
     },
     {
       "file": "ChevronC.dc.html",
@@ -22,7 +22,7 @@
       "y": 0,
       "w": 234,
       "h": 300,
-      "title": "C — Blancs, débordants"
+      "title": "Fin"
     }
   ],
   "annotations": [
@@ -30,43 +30,36 @@
       "id": "note-cadre",
       "x": 0,
       "y": -300,
-      "w": 560,
-      "text": "La carte telle qu'elle est aujourd'hui — fond noir, voies blanches rognées par le couloir, ruban bleu de 17 px éteint en arrière — avec trois façons d'y remettre le sens. Cotes réelles : 234 × 300 px, la hauteur qu'a la carte depuis que le bandeau est permanent. Aucun code n'est modifié à ce stade."
-    },
-    {
-      "id": "note-reglages",
-      "x": 600,
-      "y": -300,
-      "w": 480,
-      "text": "Communs aux trois : un chevron tous les 52 px, soit 43 m à la portée 200 m — quatre ou cinq visibles à la fois. Ils ne jalonnent que l'avant du coureur ; en arrière le ruban s'éteint déjà, en semer là dirait le sens d'où l'on vient."
+      "w": 900,
+      "text": "Double chevron noir, sur la carte telle qu'elle est et à ses cotes réelles (234 × 300 px). Trois calibres, qui ne diffèrent que par l'écartement des paires, l'écart entre les deux pointes et la graisse du trait. Le noir ne pose pas le problème que j'avais annoncé : les chevrons ne jalonnent que l'avant, où le ruban est plein — le fondu n'est qu'en arrière, où il n'y en a pas."
     },
     {
       "id": "note-a",
       "x": 0,
       "y": -150,
       "w": 300,
-      "text": "A — Blancs, contenus dans la largeur du ruban. Le blanc est l'encre de la carte : le chevron se lit sans rien ajouter au vocabulaire, et ne mord sur rien puisqu'il reste dans le bleu. Ma recommandation."
+      "text": "Serré — une paire tous les 58 px (48 m à la portée 200), 9 px entre les deux pointes, trait de 3,4. Retenu : lisible et entièrement contenu dans le ruban, même dans les virages."
     },
     {
       "id": "note-b",
       "x": 334,
       "y": -150,
       "w": 300,
-      "text": "B — Évidés : le chevron est le noir du fond percé dans le ruban, sans encre ajoutée. Le plus discret, et le plus élégant sur la partie pleine. Revers, visible en bas de la planche : là où le ruban s'éteint, le chevron noir se confond avec le fond et disparaît — précisément à l'aplomb du coureur."
+      "text": "Écarté et gras — 66 px, 12 px, trait de 4. Le plus visible, mais il déborde du bleu là où le tracé tourne, et ce débord noir mord alors sur le fond."
     },
     {
       "id": "note-c",
       "x": 668,
       "y": -150,
       "w": 300,
-      "text": "C — Blancs et débordant le ruban de part et d'autre, comme les anciens. Les plus visibles de loin. Ils mordent en revanche sur les routes que le tracé croise, et à cette taille l'ensemble s'épaissit vite."
+      "text": "Fin — 52 px, 8 px, trait de 2,8. Plus discret, mais à quinze millimètres de large sur l'appareil il manque de corps."
     },
     {
       "id": "note-borne",
       "x": 0,
       "y": 360,
       "w": 900,
-      "text": "Question qui revient avec eux : faut-il les borner ? Les anciens ne couraient que sur les 300 prochains mètres, parce que sur une boucle qui repasse par son départ la branche du retour est là, à quelques mètres, et ses chevrons désignaient une direction qui n'était pas celle du moment. Le couloir ne règle pas ce cas — cette branche est proche du tracé, donc pleinement visible. Je propose de reprendre la borne de 300 / 800 / 1 300 m selon la portée, sauf avis contraire."
+      "text": "Les chevrons sont bornés aux 300, 800 ou 1 300 prochains mètres selon la portée, comme avant leur suppression : sur une boucle qui repasse par son départ, la branche du retour est à quelques mètres et en plein dans le couloir — sans borne, ses chevrons désigneraient une direction qui n'est pas celle du moment. Hors itinéraire la borne saute, le point d'où elle se compte n'existant plus."
     }
   ],
   "launch": {

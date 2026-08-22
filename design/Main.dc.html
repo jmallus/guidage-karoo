@@ -1,22 +1,13 @@
 <!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <script src="./support.js"></script>
-</head>
-<body>
+<html><head><meta charset="utf-8"><script src="./support.js"></script></head><body>
 <x-dc>
-<helmet>
-  <style>
-    body { margin: 0; font-family: "Roboto Condensed", system-ui, sans-serif; }
-  </style>
-</helmet>
+<helmet><style>body { margin: 0; font-family: "Roboto Condensed", system-ui, sans-serif; }</style></helmet>
 <div style="position: relative; width: 234px; height: 300px; background: #000000; overflow: hidden">
   <svg width="234" height="300" viewBox="0 0 234 300" style="display: block">
     <defs>
-      <filter id="ca-soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="12"/></filter>
-      <mask id="ca-couloir">
-        <g filter="url(#ca-soft)">
+      <filter id="d1-soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="12"/></filter>
+      <mask id="d1-couloir">
+        <g filter="url(#d1-soft)">
           <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="246" stroke-opacity="0.36" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="190" stroke-opacity="0.281" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="145" stroke-opacity="0.348" stroke-linecap="round" stroke-linejoin="round"/>
@@ -25,15 +16,14 @@
           <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="26" stroke-opacity="1.0" stroke-linecap="round" stroke-linejoin="round"/>
         </g>
       </mask>
-      <linearGradient id="ca-trace" x1="0" y1="300" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+      <linearGradient id="d1-trace" x1="0" y1="300" x2="0" y2="0" gradientUnits="userSpaceOnUse">
         <stop offset="0%" stop-color="#2E8BFF" stop-opacity="0"/>
         <stop offset="12%" stop-color="#2E8BFF" stop-opacity="0.18"/>
         <stop offset="20%" stop-color="#2E8BFF" stop-opacity="1"/>
         <stop offset="100%" stop-color="#2E8BFF" stop-opacity="1"/>
       </linearGradient>
     </defs>
-
-    <g mask="url(#ca-couloir)">
+    <g mask="url(#d1-couloir)">
       <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
         <path d="M-12 224 L246 236" stroke-width="9.3"/>
         <path d="M-12 158 L246 132" stroke-width="8"/>
@@ -44,19 +34,19 @@
         <path d="M139 92 L48 64" stroke-width="4" stroke-dasharray="7 5"/>
       </g>
     </g>
-
-    <!-- A — chevrons blancs posés dans le ruban -->
-    <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="url(#ca-trace)" stroke-width="17"
+    <!-- Double chevron noir, serré -->
+    <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="url(#d1-trace)" stroke-width="17"
           stroke-linecap="round" stroke-linejoin="round"/>
-
     <g>
-      <path d="M127.6 218.7 L126.6 206.1 L116.4 213.5" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M150.9 170.5 L147.0 158.5 L138.7 168.0" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M147.0 116.9 L138.9 107.2 L134.8 119.2" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M149.9 68.6 L146.9 56.3 L137.9 65.2" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M161.2 16.5 L155.5 5.2 L148.8 15.9" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M127.5 218.0 L126.6 206.2 L117.0 213.1" fill="none" stroke="#000000" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M131.3 210.0 L131.1 198.1 L121.1 204.5" fill="none" stroke="#000000" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M151.9 163.5 L147.1 152.7 L140.4 162.4" fill="none" stroke="#000000" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M152.7 153.5 L146.4 143.5 L141.1 154.0" fill="none" stroke="#000000" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M144.7 105.2 L138.4 95.1 L133.1 105.7" fill="none" stroke="#000000" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M144.3 97.1 L139.6 86.2 L132.8 95.9" fill="none" stroke="#000000" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M154.8 50.1 L151.7 38.7 L143.6 47.2" fill="none" stroke="#000000" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M157.0 41.4 L153.5 30.1 L145.7 39.0" fill="none" stroke="#000000" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
-
     <g opacity="0.85">
       <line x1="8" y1="288" x2="52" y2="288" stroke="#FFFFFF" stroke-width="2"/>
       <line x1="8" y1="284" x2="8" y2="292" stroke="#FFFFFF" stroke-width="2"/>
@@ -69,5 +59,4 @@
 <script data-dc-script data-props='{"$preview":{"width":234,"height":300}}'>
 class Component extends DCLogic {}
 </script>
-</body>
-</html>
+</body></html>

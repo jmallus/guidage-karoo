@@ -986,6 +986,11 @@ const SLICE_METERS = 100, RIDGE_LINE = "#FFFFFF";
 /* Profil d'exemple : 2 km, un relevé tous les 100 m, pentes variées. */
 const SAMPLE_BAND = {start:3200, end:5200, position:3400, label:"1/2 — 1,48 km du sommet", points:[[3200,246.0],[3300,247.5],[3400,249.9],[3500,253.0],[3600,257.2],[3700,262.8],[3800,269.6],[3900,277.0],[4000,285.9],[4100,295.4],[4200,306.6],[4300,319.4],[4400,329.8],[4500,338.0],[4600,344.1],[4700,349.4],[4800,357.2],[4900,366.3],[5000,372.7],[5100,375.9],[5200,377.7]]};
 const BEHIND_FADE_FRACTION = 0.17, FADE_STEP = 3, MAX_FADE_STEPS = 24;
+// Le double chevron noir, en part de l'épaisseur du ruban. Calibre retenu sur planche :
+// plus écarté et plus gras il déborde du bleu dans les virages, plus fin il manque de corps.
+const CHEVRON_SPACING_RATIO = 3.41, CHEVRON_GAP_RATIO = 0.53;
+const CHEVRON_SIZE_RATIO = 0.38, CHEVRON_STROKE_RATIO = 0.20;
+const CHEVRON_SWEEP = 1.6, CHEVRON_ARM = 0.9, CHEVRON_COLOR = "#000000";
 const POI_COLOR = "#1B5E9A";
 
 function routeWidth(rangeMeters){
@@ -1102,6 +1107,56 @@ function drawMap(ctx, area, model){
   const tint = model.offRoute ? OFF_ROUTE_COLOR : ROUTE_COLOR;
   ctx.lineCap = "round"; ctx.lineJoin = "round";
   trace(remaining); ctx.lineWidth = width; ctx.strokeStyle = tint; ctx.stroke();
+
+  // Doubles chevrons noirs : le ruban dit où passe l'itinéraire, non dans quel sens le
+  // prendre. Bornés à ce qu'on atteindra dans la minute — sur une boucle, la branche du
+  // retour est à quelques mètres et en plein dans le couloir.
+  {
+    const limit = model.offRoute ? Infinity : model.chevronRangeMeters*m2p;
+    const spacing = width*CHEVRON_SPACING_RATIO, gap = width*CHEVRON_GAP_RATIO;
+    const size = width*CHEVRON_SIZE_RATIO, stroke = width*CHEVRON_STROKE_RATIO;
+    const margin = size*CHEVRON_SWEEP + stroke;
+
+    // Parcours unique en abscisse curviligne, arrêté à la borne.
+    const walk = [remaining[0]], along = [0];
+    let total = 0;
+    for (let i = 1; i < remaining.length; i++) {
+      total += Math.hypot(remaining[i].x-remaining[i-1].x, remaining[i].y-remaining[i-1].y);
+      walk.push(remaining[i]); along.push(total);
+      if (total > limit + gap) break;
+    }
+    let cursor = 1;
+    const locate = d => {
+      if (d > along[along.length-1]) return null;
+      while (cursor < along.length && along[cursor] < d) cursor++;
+      if (cursor >= along.length) return null;
+      const a = walk[cursor-1], b = walk[cursor];
+      const seg = along[cursor] - along[cursor-1];
+      if (seg <= 0) return null;
+      const t = (d - along[cursor-1])/seg;
+      return [a.x + (b.x-a.x)*t, a.y + (b.y-a.y)*t, (b.x-a.x)/seg, (b.y-a.y)/seg];
+    };
+    const put = (x,y,ux,uy) => {
+      const px = -uy, py = ux;
+      const tipX = x + ux*size, tipY = y + uy*size;
+      const bX = tipX - ux*size*CHEVRON_SWEEP, bY = tipY - uy*size*CHEVRON_SWEEP;
+      const aX = px*size*CHEVRON_ARM, aY = py*size*CHEVRON_ARM;
+      ctx.moveTo(bX+aX, bY+aY); ctx.lineTo(tipX, tipY); ctx.lineTo(bX-aX, bY-aY);
+    };
+    ctx.beginPath();
+    // Les deux pointes d'une paire sont posées à l'abscisse curviligne : le long du segment
+    // courant, la seconde disparaissait dès qu'elle tombait au-delà d'un sommet.
+    for (let s0 = spacing; s0 <= Math.min(limit, total); s0 += spacing) {
+      for (const d of [s0, s0 + gap]) {
+        const at = locate(d);
+        if (!at) continue;
+        if (at[0] < area.x-margin || at[0] > area.x+area.w+margin) continue;
+        if (at[1] < area.y-margin || at[1] > area.y+area.h+margin) continue;
+        put(at[0], at[1], at[2], at[3]);
+      }
+    }
+    ctx.lineWidth = stroke; ctx.strokeStyle = CHEVRON_COLOR; ctx.stroke();
+  }
 
   // La part faite s'éteint le long du tracé, non en hauteur d'écran : sur une épingle, la
   // branche qu'on vient de faire revient à côté de soi sans être plus bas.
@@ -1261,7 +1316,7 @@ function renderDashboard(canvas, zoom){
   /* Minicarte */
   drawMap(ctx,
     {x:L.columnSplit, y:L.row(1), w:L.right-L.columnSplit, h:L.rowHeight*GUIDANCE_ROWS},
-    {rangeMeters: zoom.range});
+    {rangeMeters: zoom.range, chevronRangeMeters: zoom.chevron});
 
   /* Transmission */
   drawDrivetrain(ctx, {x:L.padding, y:L.row(1), w:L.columnSplit-L.padding, h:L.rowHeight},
@@ -1284,9 +1339,9 @@ function renderDashboard(canvas, zoom){
    Assemblage de la page
    ============================================================ */
 const ZOOMS = [
-  {name:"Près",  range:200},
-  {name:"Moyen", range:500},
-  {name:"Loin",  range:1000}
+  {name:"Près",  range:200,  chevron:300},
+  {name:"Moyen", range:500,  chevron:800},
+  {name:"Loin",  range:1000, chevron:1300}
 ];
 const NEAR = ZOOMS[0];
 
@@ -1301,7 +1356,7 @@ function drawAll(){
     ctx.setTransform(scale,0,0,scale,0,0);
     ctx.clearRect(0,0,234,334);
     ctx.textBaseline = "alphabetic";
-    drawMap(ctx, {x:0,y:0,w:234,h:299.6}, {rangeMeters:z.range});
+    drawMap(ctx, {x:0,y:0,w:234,h:299.6}, {rangeMeters:z.range, chevronRangeMeters:z.chevron});
   });
   drawBand();
 }
@@ -1347,7 +1402,7 @@ function drawAll(){
     + '<canvas data-range="'+z.range+'" width="468" height="668" style="width:100%;height:auto"'
     + ' aria-label="Minicarte à '+z.range+' mètres"></canvas>'
     + '<figcaption><b>'+(z.range>=1000 ? (z.range/1000)+" km" : z.range+" m")+'</b>'
-    + 'Le fond s\'éteint en s\'écartant du tracé.</figcaption>'
+    + 'Chevrons sur les '+z.chevron+' prochains mètres.</figcaption>'
     + '</figure></div>'
   )).join("");
 })();

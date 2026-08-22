@@ -37,6 +37,8 @@ data class MapModel(
     val roadsMessage: String? = null,
     /** Distance visible devant le coureur (m). */
     val rangeMeters: Double = 1_000.0,
+    /** Longueur de tracé, devant le coureur, sur laquelle les chevrons sont semés (m). */
+    val chevronRangeMeters: Double = 300.0,
     /** Vrai quand le Karoo estime qu'on a quitté l'itinéraire. */
     val offRoute: Boolean = false,
     val emptyMessage: String? = null,
@@ -48,8 +50,9 @@ data class MapModel(
  *
  * Le fond est noir, les voies blanches, et elles s'éteignent vers le noir à mesure qu'elles
  * s'écartent de l'itinéraire : la carte ne montre qu'un couloir autour de ce qu'on va faire.
- * Le tracé y est un ruban bleu, plein devant le coureur et s'effaçant derrière lui — ni
- * chevron ni flèche de position, le fondu disant le sens à leur place.
+ * Le tracé y est un ruban bleu, plein devant le coureur et s'effaçant derrière lui, jalonné
+ * de doubles chevrons noirs qui disent le sens de la marche. Pas de flèche de position : le
+ * ruban est plein à partir du coureur et s'éteint derrière, ce qui dit déjà où il est.
  *
  * Tout est calculé sur l'appareil, sans réseau ni tuiles à télécharger.
  */
@@ -101,10 +104,16 @@ object MapRenderer {
             canvas = canvas,
             model = model,
             screenPath = screenPath,
+            area = area,
             width = routeWidth(model.rangeMeters),
             riderX = riderX,
             riderY = riderY,
             fadeLength = area.height() * BEHIND_FADE_FRACTION,
+            chevronLimit = if (model.offRoute) {
+                Float.POSITIVE_INFINITY
+            } else {
+                (model.chevronRangeMeters * metersToPixels).toFloat()
+            },
         )
         drawPois(canvas, area, model, projection, palette)
         drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
@@ -335,10 +344,12 @@ object MapRenderer {
         canvas: Canvas,
         model: MapModel,
         screenPath: List<PlanePoint>,
+        area: RectF,
         width: Float,
         riderX: Float,
         riderY: Float,
         fadeLength: Float,
+        chevronLimit: Float,
     ) {
         if (screenPath.size < 2) return
         val tint = if (model.offRoute) OFF_ROUTE_COLOR else ROUTE_COLOR
@@ -356,7 +367,115 @@ object MapRenderer {
             addAll(screenPath.subList(here.index, screenPath.size))
         }
         canvas.drawPath(polyline(ahead), paint)
+        drawChevrons(canvas, area, ahead, width, chevronLimit)
         drawFadingBehind(canvas, screenPath, here, paint, tint, fadeLength)
+    }
+
+    /**
+     * Doubles chevrons noirs semés le long de ce qui reste à faire.
+     *
+     * Le ruban seul dit où passe l'itinéraire, non dans quel sens le prendre : à un carrefour
+     * en T, les deux branches se ressemblent. Les chevrons le disent, et le noir suffit — le
+     * ruban est plein sur tout l'avant, le fondu n'étant qu'en arrière, où l'on n'en sème pas.
+     * Doubles parce qu'une pointe seule, à cette taille, se lit comme un accident du tracé ;
+     * deux qui se suivent ne peuvent être qu'un sens.
+     *
+     * Ils sont contenus dans la largeur du ruban. Débordants, ils mordaient sur le fond dans
+     * les virages, où le noir se confond avec lui — et sur les voies que le tracé croise.
+     */
+    private fun drawChevrons(
+        canvas: Canvas,
+        area: RectF,
+        points: List<PlanePoint>,
+        routeWidth: Float,
+        limitPixels: Float,
+    ) {
+        if (limitPixels <= 0f || points.size < 2) return
+        val spacing = routeWidth * CHEVRON_SPACING_RATIO
+        val gap = routeWidth * CHEVRON_GAP_RATIO
+        val size = routeWidth * CHEVRON_SIZE_RATIO
+        val stroke = routeWidth * CHEVRON_STROKE_RATIO
+        val margin = size * CHEVRON_SWEEP + stroke
+
+        // Le tracé est parcouru une fois, en abscisse curviligne, et pas plus loin que la
+        // borne : un itinéraire de cent kilomètres ne coûte donc pas plus qu'un de un.
+        val walk = ArrayList<PlanePoint>(64)
+        val along = ArrayList<Float>(64)
+        walk += points.first()
+        along += 0f
+        var total = 0f
+        for (index in 1 until points.size) {
+            total += hypot(
+                (points[index].x - points[index - 1].x).toFloat(),
+                (points[index].y - points[index - 1].y).toFloat(),
+            )
+            walk += points[index]
+            along += total
+            if (total > limitPixels + gap) break
+        }
+        if (total <= 0f) return
+
+        // Les positions demandées ne font que croître : un curseur qui n'avance jamais en
+        // arrière suffit, sans quoi il faudrait rechercher le segment à chaque pointe.
+        var cursor = 1
+        fun locate(distance: Float): FloatArray? {
+            if (distance > along.last()) return null
+            while (cursor < along.size && along[cursor] < distance) cursor++
+            if (cursor >= along.size) return null
+            val from = walk[cursor - 1]
+            val to = walk[cursor]
+            val segment = along[cursor] - along[cursor - 1]
+            if (segment <= 0f) return null
+            val t = (distance - along[cursor - 1]) / segment
+            return floatArrayOf(
+                (from.x + (to.x - from.x) * t).toFloat(),
+                (from.y + (to.y - from.y) * t).toFloat(),
+                ((to.x - from.x) / segment).toFloat(),
+                ((to.y - from.y) / segment).toFloat(),
+            )
+        }
+
+        val chevrons = Path()
+        var start = spacing
+        while (start <= minOf(limitPixels, along.last())) {
+            // Les deux pointes d'une paire sont posées à l'abscisse curviligne, non le long
+            // du segment courant : autrement la seconde disparaissait dès qu'elle tombait
+            // au-delà d'un sommet, ce qui, sur un tracé de route, arrive une fois sur deux —
+            // et un double chevron qui se réduit à une pointe ne dit plus qu'un accident.
+            listOf(start, start + gap).forEach { distance ->
+                val at = locate(distance) ?: return@forEach
+                if (at[0] >= area.left - margin && at[0] <= area.right + margin &&
+                    at[1] >= area.top - margin && at[1] <= area.bottom + margin
+                ) {
+                    addChevron(chevrons, at[0], at[1], at[2], at[3], size)
+                }
+            }
+            start += spacing
+        }
+        canvas.drawPath(
+            chevrons,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = stroke
+                strokeCap = Paint.Cap.ROUND
+                strokeJoin = Paint.Join.ROUND
+                color = CHEVRON_COLOR
+            },
+        )
+    }
+
+    private fun addChevron(path: Path, x: Float, y: Float, ux: Float, uy: Float, size: Float) {
+        val px = -uy
+        val py = ux
+        val tipX = x + ux * size
+        val tipY = y + uy * size
+        val backX = tipX - ux * size * CHEVRON_SWEEP
+        val backY = tipY - uy * size * CHEVRON_SWEEP
+        val armX = px * size * CHEVRON_ARM
+        val armY = py * size * CHEVRON_ARM
+        path.moveTo(backX + armX, backY + armY)
+        path.lineTo(tipX, tipY)
+        path.lineTo(backX - armX, backY - armY)
     }
 
     /**
@@ -567,6 +686,25 @@ object MapRenderer {
      * s'y couperait net au lieu de s'y éteindre.
      */
     private const val BEHIND_FADE_FRACTION = 0.17f
+
+    /**
+     * Le double chevron, en part de l'épaisseur du ruban.
+     *
+     * Trois calibres ont été mis côte à côte à la taille de l'appareil. Plus écartés et plus
+     * gras, ils débordent du bleu dans les virages ; plus fins, ils manquent de corps sur
+     * quinze millimètres de large. Ceux-ci restent contenus dans le ruban partout.
+     */
+    private const val CHEVRON_SPACING_RATIO = 3.41f
+    private const val CHEVRON_GAP_RATIO = 0.53f
+    private const val CHEVRON_SIZE_RATIO = 0.38f
+    private const val CHEVRON_STROKE_RATIO = 0.20f
+
+    /** Recul des branches derrière la pointe, et leur écartement, en part de la taille. */
+    private const val CHEVRON_SWEEP = 1.6f
+    private const val CHEVRON_ARM = 0.9f
+
+    /** Le noir du fond, percé dans le ruban : aucune encre ajoutée à la carte. */
+    private const val CHEVRON_COLOR = 0xFF000000.toInt()
 
     /** Longueur d'un tronçon du fondu, et garde-fou contre un segment démesuré. */
     private const val FADE_STEP = 3f
