@@ -71,18 +71,11 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ secrets.GPR_USER }}
           GITHUB_TOKEN: ${{ secrets.GPR_KEY }}
-      # Sur une poussée, l'étape suivante publie déjà l'APK en Release : le doubler en
-      # artefact d'Actions ne sert personne et remplit le quota de stockage du compte —
-      # quatre-vingt-dix jours de rétention par défaut, une construction par poussée, et
-      # au bout de quelques semaines toutes les constructions échouent à l'envoi alors
-      # que la compilation, elle, passe. L'artefact n'est donc gardé que pour les PR, où
-      # aucune Release n'est faite, et pour une semaine.
-      - if: steps.creds.outputs.available == 'true' && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: guidage-karoo-apk
-          path: app/build/outputs/apk/release/*.apk
-          retention-days: 7
+      # Il n'y a plus d'artefact d'Actions ici. Il faisait double emploi avec la Release
+      # ci-dessous — une poussée sur la branche d'une PR déclenche les deux — et gardait
+      # quatre-vingt-dix jours un APK que personne ne peut installer depuis là. Au bout de
+      # cent trente constructions le quota de stockage du compte était plein, et l'envoi
+      # échouait : la PR passait au rouge alors que la compilation, elle, réussissait.
 
       # Un artefact d'Actions n'est téléchargeable que connecté, et sous forme d'archive :
       # l'app Hammerhead Companion ne peut pas l'envoyer au Karoo. Une Release, si —
