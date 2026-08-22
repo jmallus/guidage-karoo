@@ -229,9 +229,10 @@
     <p class="standfirst">L'écran du tableau de bord reconstruit point par point, à la taille
       qu'il occupe réellement sur le Karoo 3&nbsp;: 480&nbsp;×&nbsp;800 points sur deux pouces
       et demi de diagonale. Toutes les cotes, les couleurs et les icônes viennent du code de
-      la branche.</p>
+      la branche. La carte y est neuve&nbsp;: fond noir, voies blanches qui s'éteignent en
+      s'écartant de l'itinéraire, ruban bleu sans chevron ni flèche.</p>
     <div class="stamp">
-      <span>Version <b>c252b6f</b></span>
+      <span>Version <b>22b21e0</b></span>
       <span>Branche <b>claude/hammerhead-karou-3-app-9yvabn</b></span>
       <span>Écran <b>480 × 800 px · ≈389 ppp</b></span>
     </div>
@@ -295,9 +296,11 @@
         <li><span class="badge">C</span><div>
           <h3>Minicarte</h3>
           <p>Cap en haut, coureur fixe aux quatre cinquièmes de la hauteur. Fond de carte hors ligne,
-             tracé jaune cerné de noir, chevrons bornés aux prochaines centaines de mètres et
-             partant de l'aplomb exact du coureur. Hors itinéraire, ruban et chevrons passent
-             au rouge, et les chevrons courent alors tout du long.</p>
+             fond noir et voies blanches, dont le rang se lit à la seule épaisseur. Elles
+             s'éteignent vers le noir à mesure qu'elles s'écartent de l'itinéraire&nbsp;: la
+             carte ne montre qu'un couloir autour de ce qu'on va faire. Le tracé y est un ruban
+             bleu, plein devant le coureur et s'effaçant derrière lui — ni chevron ni flèche,
+             c'est le fondu qui dit le sens. Hors itinéraire, il passe au rouge.</p>
         </div></li>
         <li><span class="badge">D</span><div>
           <h3>Fréquence cardiaque</h3>
@@ -324,10 +327,10 @@
       <span class="plate-no">Planche III</span>
       <h2>Les trois portées</h2>
     </div>
-    <p class="lede">Une pression sur le champ fait tourner l'échelle. Les chevrons ne courent
-      jamais jusqu'au bout du tracé restant, mais seulement sur les 300, 800 ou 1 300 prochains
-      mètres&nbsp;: sur une boucle qui repasse par son départ, la branche du retour cessait
-      d'indiquer la bonne direction.</p>
+    <p class="lede">Une pression sur le champ fait tourner l'échelle. Le couloir, lui, garde la
+      même largeur relative&nbsp;: il vaut toujours à peu près la largeur de la carte, si bien
+      qu'en dézoomant on ne voit pas plus loin de part et d'autre du tracé, on voit plus loin
+      devant. C'est ce qu'on cherche — le fond n'est pas là pour être lu comme une carte.</p>
     <div class="plate-body ranges" id="ranges"></div>
   </section>
 
@@ -335,20 +338,23 @@
   <section class="plate" id="plancheCote">
     <div class="plate-head">
       <span class="plate-no">Planche IV</span>
-      <h2>Le bandeau de côte</h2>
+      <h2>Le bandeau de profil</h2>
     </div>
-    <p class="lede">Il apparaît 300 mètres avant le pied et reste jusqu'au sommet, en mangeant
-      le dixième bas de l'écran. La silhouette porte la couleur de la pente&nbsp;; le filet bleu
-      est celui que le Karoo emploie partout où il est question de grimper.</p>
+    <p class="lede">Il est là en permanence, et mange le dixième bas de l'écran. Un bandeau qui
+      surgit au pied d'une bosse et disparaît au sommet oblige à réapprendre la mise en page
+      chaque fois, et se dérobe précisément quand on voudrait savoir si le faux plat qu'on
+      subit en est un. La couleur est posée par tranches de cent mètres, jointives, rognées
+      d'un seul tenant sous la silhouette.</p>
     <div class="plate-body">
       <div class="band-stage">
         <canvas id="cBand" width="936" height="160" style="width:100%;height:auto"
                 aria-label="Bandeau de profil de côte"></canvas>
       </div>
-      <p class="caveat">Ci-dessus, la première côte de l'itinéraire d'aperçu&nbsp;: 2 400 à
-        5 000 mètres, le coureur au tiers de la montée. Le «&nbsp;1/2&nbsp;» ne bougera plus —
-        le Karoo retire une côte de sa liste dès qu'on y entre, l'extension garde mémoire de
-        celles déjà vues pour que la numérotation ne recule pas.</p>
+      <p class="caveat">Deux kilomètres&nbsp;: deux cents mètres derrière le coureur, tenus en
+        grisé, et mille huit cents devant. Le repère blanc ne bouge donc jamais du dixième
+        gauche de la bande — c'est le profil qui défile dessous. Le «&nbsp;1/2&nbsp;» ne
+        reculera pas&nbsp;: le Karoo retire une côte de sa liste dès qu'on y entre, l'extension
+        garde mémoire de celles déjà vues.</p>
       <div class="grades" id="grades"></div>
     </div>
   </section>
@@ -359,9 +365,11 @@
       <span class="plate-no">Planche V</span>
       <h2>La légende du fond</h2>
     </div>
-    <p class="lede">Les surfaces d'abord, de la plus étendue à la plus rare, puis les voies de la
-      plus fine à la plus large. Les largeurs sont en mètres de terrain, pas en pixels&nbsp;:
-      une départementale reste une départementale à toutes les échelles.</p>
+    <p class="lede">Toutes les chaussées sont blanches&nbsp;: leur rang ne se lit plus à la
+      teinte mais à la seule épaisseur, exprimée en mètres de terrain et non en pixels — une
+      départementale reste une départementale à toutes les échelles. Le codage par couleur
+      supposait qu'on ait la carte entière sous les yeux&nbsp;; il n'y a jamais, dans le
+      couloir, qu'une poignée de voies. Les surfaces passent à des gris très sombres.</p>
     <div class="plate-body legend">
       <div>
         <div class="eyebrow">Surfaces</div>
@@ -414,6 +422,12 @@
           <small>«&nbsp;50×17&nbsp;» tombait à un demi-millimètre de l'aplat jaune du champ dessous.</small></p></li>
         <li><span class="sha">aa25ae4</span><p>Le plateau dégagé des barres de la transmission
           <small>Du blanc réservé au-dessus du peigne, et «&nbsp;50×17&nbsp;» ramené au rang de renseignement d'appoint.</small></p></li>
+        <li><span class="sha">22b21e0</span><p>La carte passe au noir, et son fondu naît du tracé
+          <small>Voies blanches rognées par un couloir autour de l'itinéraire&nbsp;; ruban bleu de dix-sept points, éteint en arrière ; ni chevron ni flèche.</small></p></li>
+        <li><span class="sha">16c5d34</span><p>Le bandeau de profil devient permanent
+          <small>Deux kilomètres autour du coureur, coloriés par tranches de cent mètres, repère fixe sur la courbe.</small></p></li>
+        <li><span class="sha">7d10823</span><p>Le numéro de zone s'écrit à gauche de la fréquence cardiaque
+          <small>L'aplat le disait déjà, mais de mémoire seulement.</small></p></li>
         <li><span class="sha">d446049</span><p>Les libellés sont suspendus au haut de leur case
           <small>Ils tombent sur la même ligne d'un rang à l'autre, quelle que soit la taille des chiffres.</small></p></li>
         <li><span class="sha">eb6146c</span><p>Les libellés se réduisent jusqu'à dégager leur icône
