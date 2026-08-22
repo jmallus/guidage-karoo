@@ -1,0 +1,70 @@
+{
+  "artboards": [
+    { "file": "CarteA.dc.html", "x": 0, "y": 0, "w": 234, "h": 334, "title": "Carte A — Nuit Beeline" },
+    { "file": "CarteB.dc.html", "x": 334, "y": 0, "w": 234, "h": 334, "title": "Carte B — Jour encre" },
+    { "file": "CarteC.dc.html", "x": 668, "y": 0, "w": 234, "h": 334, "title": "Carte C — Halo" },
+    { "file": "Main.dc.html", "x": 1002, "y": 0, "w": 480, "h": 454, "title": "En place — Carte A + Profil A" },
+    { "file": "ProfilA.dc.html", "x": 0, "y": 620, "w": 480, "h": 80, "title": "Profil A — Bandes pleines" },
+    { "file": "ProfilB.dc.html", "x": 600, "y": 620, "w": 480, "h": 80, "title": "Profil B — Réglette de pente" },
+    { "file": "ProfilC.dc.html", "x": 1200, "y": 620, "w": 480, "h": 80, "title": "Profil C — Bandes + repère" }
+  ],
+  "annotations": [
+    {
+      "id": "note-cadre",
+      "x": 0,
+      "y": -260,
+      "w": 420,
+      "text": "Tout est dessiné aux cotes réelles du Karoo 3 : minicarte 234 × 334 px, bandeau de côte 480 × 80 px, coureur fixe aux 4/5 de la hauteur. Aucun code n'est modifié à ce stade."
+    },
+    {
+      "id": "note-carte-a",
+      "x": 0,
+      "y": -140,
+      "w": 300,
+      "text": "A — Fond noir, routes croisées effacées en cercle autour du coureur. Trace bleue 17 px, dégradé qui naît à la position : transparent derrière, plein dessous, s'éteint vers l'avant. Ni chevron ni flèche. Le point le plus proche de la photo Beeline."
+    },
+    {
+      "id": "note-carte-b",
+      "x": 334,
+      "y": -140,
+      "w": 300,
+      "text": "B — Le même dessin en négatif : fond crème, routes à l'encre noire. L'écran transflectif du Karoo vit de la lumière du jour ; en plein soleil ce sens-là gagne, la nuit il perd. À trancher sur route, pas ici."
+    },
+    {
+      "id": "note-carte-c",
+      "x": 668,
+      "y": -140,
+      "w": 300,
+      "text": "C — Les routes s'atténuent avec la distance devant, pas en cercle : le proche reste net, le lointain se vide. Trace pleine sur tout l'avant (on ne perd rien du prochain virage) et halo bleu à la position en guise de repère — la flèche disparaît sans qu'on perde où l'on est."
+    },
+    {
+      "id": "note-main",
+      "x": 1002,
+      "y": -140,
+      "w": 300,
+      "text": "La proposition qui tient la corde, remise à sa place dans l'écran : deux rangs de champs en repère de proportion, la carte à droite, le bandeau en bas. C'est ce rapport de tailles qu'on juge, pas les chiffres gris."
+    },
+    {
+      "id": "note-profil-a",
+      "x": 0,
+      "y": 480,
+      "w": 420,
+      "text": "A — 20 tranches de 100 m, couleurs Karoo, aucune séparation : les aplats se touchent sous la silhouette, découpés d'un seul trait blanc. 2 km toujours à l'écran, la position collée au bord gauche. C'est la langue de la photo jointe."
+    },
+    {
+      "id": "note-profil-b",
+      "x": 600,
+      "y": 480,
+      "w": 420,
+      "text": "B — La silhouette redevient neutre (bleu montée du Karoo) et la couleur passe dans une réglette de 13 px sous la ligne d'appui. L'altitude se lit par la forme, la pente par la bande : deux informations qui ne se marchent plus dessus."
+    },
+    {
+      "id": "note-profil-c",
+      "x": 1200,
+      "y": 480,
+      "w": 420,
+      "text": "C — A, plus 200 m déjà parcourus tenus à gauche en grisé et un repère de position dans la bande. La pente courante et le dénivelé restant occupent le vide en haut à gauche, que la montée laisse toujours libre. Fenêtre : 200 m derrière, 1,8 km devant."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

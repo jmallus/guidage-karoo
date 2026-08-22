@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: "Roboto Condensed", system-ui, sans-serif; }
+    a { color: #2E8BFF; } a:hover { color: #79B4FF; }
+  </style>
+</helmet>
+<div style="position: relative; width: 234px; height: 334px; background: #0B0D0F; overflow: hidden">
+  <svg width="234" height="334" viewBox="0 0 234 334" style="display: block">
+    <defs>
+      <linearGradient id="c-fade" x1="0" y1="334" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+        <stop offset="20%" stop-color="#ffffff" stop-opacity="1"/>
+        <stop offset="58%" stop-color="#ffffff" stop-opacity="0.52"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="0.10"/>
+      </linearGradient>
+      <mask id="c-mask">
+        <rect x="0" y="0" width="234" height="334" fill="url(#c-fade)"/>
+      </mask>
+      <linearGradient id="c-trace" x1="0" y1="334" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#2E8BFF" stop-opacity="0"/>
+        <stop offset="12%" stop-color="#2E8BFF" stop-opacity="0.18"/>
+        <stop offset="20%" stop-color="#6BB4FF" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#2E8BFF" stop-opacity="1"/>
+      </linearGradient>
+      <radialGradient id="c-halo" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#BBDCFF" stop-opacity="0.95"/>
+        <stop offset="42%" stop-color="#4DA0FF" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="#2E8BFF" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+
+    <g mask="url(#c-mask)">
+      <g fill="none" stroke="#343A40" stroke-linecap="round">
+        <path d="M-12 250 L246 264" stroke-width="13"/>
+        <path d="M-12 176 L246 148" stroke-width="11"/>
+        <path d="M-12 88 L246 106" stroke-width="9"/>
+        <path d="M96 250 L14 302" stroke-width="7"/>
+        <path d="M128 170 L226 202" stroke-width="7"/>
+        <path d="M122 90 L34 58" stroke-width="6"/>
+      </g>
+      <g fill="none" stroke="#9AA3AA" stroke-linecap="round">
+        <path d="M-12 250 L246 264" stroke-width="7"/>
+        <path d="M-12 176 L246 148" stroke-width="6"/>
+        <path d="M-12 88 L246 106" stroke-width="5"/>
+        <path d="M96 250 L14 302" stroke-width="3"/>
+        <path d="M128 170 L226 202" stroke-width="3"/>
+        <path d="M122 90 L34 58" stroke-width="2.5" stroke-dasharray="7 5"/>
+      </g>
+    </g>
+
+    <path d="M117 340 C117 300 100 280 96 250 C92 215 120 200 128 170 C136 140 120 120 122 90 C124 55 140 40 138 -6"
+          fill="none" stroke="url(#c-trace)" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <circle cx="99" cy="267" r="26" fill="url(#c-halo)"/>
+
+    <g opacity="0.9">
+      <line x1="8" y1="322" x2="52" y2="322" stroke="#8E979E" stroke-width="2"/>
+      <line x1="8" y1="318" x2="8" y2="326" stroke="#8E979E" stroke-width="2"/>
+      <line x1="52" y1="318" x2="52" y2="326" stroke="#8E979E" stroke-width="2"/>
+      <text x="8" y="314" fill="#8E979E" font-size="11" font-weight="700" font-family="Roboto Condensed, system-ui, sans-serif">100 m</text>
+    </g>
+  </svg>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":234,"height":334}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>
