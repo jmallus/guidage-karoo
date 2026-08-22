@@ -66,8 +66,15 @@
       </g>
       <path d="M112 342 C114 315 117 290 117 267 C117 236 138 216 145 188 C152 158 136 132 139 104 C142 68 158 46 155 -6"
             fill="none" stroke="url(#m-trace)" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M117 246 L134 284 L117 274 L100 284 Z"
-            fill="#FFFFFF" stroke="#000000" stroke-width="2.4" stroke-linejoin="round"/>
+      <!-- La flèche de la navigation Karoo, aux cotes de MapRenderer : silhouette calculée
+           en retrait du rayon d'arrondi, puis repoussée par un trait à jointures rondes.
+           Taille 28,4 px pour une carte de 334 de haut ; jaune remplacé par du blanc. -->
+      <g>
+        <path d="M117 241.4 L138 285.4 L117 271.9 L96 285.4 Z"
+              fill="none" stroke="#1E1E1E" stroke-width="10.7" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="M117 241.4 L138 285.4 L117 271.9 L96 285.4 Z"
+              fill="#FFFFFF" stroke="#FFFFFF" stroke-width="5.7" stroke-linejoin="round" stroke-linecap="round"/>
+      </g>
     </svg>
 
     <!-- Bandeau de côte, cotes réelles : 480 × 80 -->
