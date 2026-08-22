@@ -369,11 +369,11 @@ object MapRenderer {
         val aheadPath = polyline(ahead)
         canvas.drawPath(aheadPath, paint)
 
-        // Les chevrons sont dessinés plus larges que le ruban puis coupés par lui : leurs
-        // branches viennent donc exactement à ses bords, d'un bout plat, et ne peuvent pas
-        // déborder sur le fond dans les virages — où le noir s'y confondrait. Calculer la
-        // demi-envergure juste ne suffisait pas : le ruban tourne, sa largeur perpendiculaire
-        // au chevron n'est pas la sienne, et le coin du trait passait outre.
+        // Le ruban sert de gabarit aux chevrons. Leurs branches sont taillées à sa
+        // demi-largeur, si bien qu'elles s'arrêtent d'elles-mêmes au bord ; le gabarit ne
+        // fait que rogner ce que la courbure fait dépasser. Le ruban tourne, sa largeur
+        // perpendiculaire au chevron n'est pas tout à fait la sienne, et le coin du trait
+        // passait alors outre — le noir débordant sur le fond, où il s'y confond.
         val ribbon = Path()
         paint.getFillPath(aheadPath, ribbon)
         val clip = canvas.save()
@@ -707,12 +707,14 @@ object MapRenderer {
      * Le double chevron, en part de l'épaisseur du ruban.
      *
      * Trois calibres ont été mis côte à côte à la taille de l'appareil ; celui-ci a été
-     * retenu. La demi-envergure vaut plus que la demi-largeur du ruban : c'est voulu, le
-     * ruban servant de gabarit qui coupe ce qui dépasse.
+     * retenu. La demi-envergure vaut exactement la demi-largeur du ruban : chaque branche
+     * s'arrête ainsi d'elle-même au bord, d'une coupe courte et perpendiculaire à elle.
+     * Dessinée plus longue et laissée au gabarit, elle était coupée *le long* du bord et
+     * laissait un long coin noir qui longeait la bordure au lieu de s'y arrêter.
      */
     private const val CHEVRON_SPACING_RATIO = 3.88f
     private const val CHEVRON_GAP_RATIO = 0.71f
-    private const val CHEVRON_SIZE_RATIO = 0.689f
+    private const val CHEVRON_SIZE_RATIO = 0.556f
     private const val CHEVRON_STROKE_RATIO = 0.235f
 
     /** Recul des branches derrière la pointe, et leur écartement, en part de la taille. */
@@ -722,12 +724,19 @@ object MapRenderer {
     /** Le noir du fond, percé dans le ruban : aucune encre ajoutée à la carte. */
     private const val CHEVRON_COLOR = 0xFF000000.toInt()
 
-    /** Longueur d'un tronçon du fondu, et garde-fou contre un segment démesuré. */
-    private const val FADE_STEP = 3f
+    /**
+     * Longueur d'un tronçon du fondu, et garde-fou contre un segment démesuré.
+     *
+     * À trois pixels, le fondu se consommait en dix-sept paliers d'opacité, soit six points
+     * par marche : sur un ruban de dix-sept pixels de large, ça se voit, et le ruban paraît
+     * rayé en travers. À un pixel et demi la marche passe sous le seuil, pour une trentaine
+     * de traits courts par image — rien du tout.
+     */
+    private const val FADE_STEP = 1.5f
 
     /** Recouvrement entre deux tronçons du fondu, en pixels. */
     private const val SEAM_OVERLAP = 0.5f
-    private const val MAX_FADE_STEPS = 24
+    private const val MAX_FADE_STEPS = 48
 
     /** Rouge du hors-itinéraire : celui du Karoo, pour dire la même chose de la même façon. */
     private val OFF_ROUTE_COLOR = FieldPalette.REJOIN

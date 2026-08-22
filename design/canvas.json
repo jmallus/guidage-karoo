@@ -15,7 +15,7 @@
       "x": 334,
       "y": 0,
       "w": 420,
-      "text": "Double chevron noir, calibre du milieu des trois essayés : une paire tous les 66 px (55 m à la portée 200), 12 px entre les deux pointes, trait de 4. Les branches sont dessinées plus larges que le ruban puis COUPÉES par lui : elles viennent donc exactement à ses bords, d'un bout plat, et ne peuvent pas déborder sur le fond dans les virages — où le noir s'y confondrait. Calculer la demi-envergure juste ne suffisait pas : le ruban tourne, sa largeur perpendiculaire au chevron n'est pas la sienne, et le coin du trait passait outre."
+      "text": "Double chevron noir, calibre du milieu des trois essayés : une paire tous les 66 px (55 m à la portée 200), 12 px entre les deux pointes, trait de 4. Chaque branche est taillée à la demi-largeur du ruban : elle s'arrête donc d'elle-même au bord, d'une coupe courte et perpendiculaire à elle. Le ruban ne sert plus que de gabarit pour rogner ce que la courbure fait dépasser — dessinée plus longue et laissée au gabarit, la branche était coupée LE LONG du bord et laissait un long coin noir qui le longeait au lieu de s'y arrêter."
     },
     {
       "id": "note-borne",
