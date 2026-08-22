@@ -12,13 +12,13 @@
     a { color: #2E8BFF; } a:hover { color: #79B4FF; }
   </style>
 </helmet>
-<div style="position: relative; width: 480px; height: 454px; background: #0B0D0F; overflow: hidden">
+<div style="position: relative; width: 480px; height: 454px; background: #000000; overflow: hidden">
   <svg width="480" height="454" viewBox="0 0 480 454" style="display: block">
     <defs>
       <radialGradient id="m-fade" cx="50%" cy="80%" r="72%">
         <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-        <stop offset="52%" stop-color="#ffffff" stop-opacity="0.62"/>
-        <stop offset="100%" stop-color="#ffffff" stop-opacity="0.06"/>
+        <stop offset="52%" stop-color="#ffffff" stop-opacity="0.60"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="0.05"/>
       </radialGradient>
       <mask id="m-mask">
         <rect x="0" y="0" width="234" height="334" fill="url(#m-fade)"/>
@@ -58,21 +58,21 @@
     <svg x="246" y="40" width="234" height="334" viewBox="0 0 234 334">
       <rect x="0" y="0" width="234" height="334" fill="#000000"/>
       <g mask="url(#m-mask)">
-        <g fill="none" stroke="#3A4046" stroke-linecap="round">
-          <path d="M-12 250 L246 264" stroke-width="13"/>
-          <path d="M-12 176 L246 148" stroke-width="11"/>
-          <path d="M-12 88 L246 106" stroke-width="9"/>
-          <path d="M96 250 L14 302" stroke-width="7"/>
-          <path d="M128 170 L226 202" stroke-width="7"/>
-          <path d="M122 90 L34 58" stroke-width="6"/>
+        <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
+          <path d="M-12 250 L246 264" stroke-width="9.3"/>
+          <path d="M-12 176 L246 148" stroke-width="8"/>
+          <path d="M-12 88 L246 106" stroke-width="6.7"/>
+          <path d="M128 170 L226 202" stroke-width="6.7"/>
         </g>
-        <g fill="none" stroke="#8E979E" stroke-linecap="round">
-          <path d="M-12 250 L246 264" stroke-width="7"/>
-          <path d="M-12 176 L246 148" stroke-width="6"/>
-          <path d="M-12 88 L246 106" stroke-width="5"/>
-          <path d="M96 250 L14 302" stroke-width="3"/>
-          <path d="M128 170 L226 202" stroke-width="3"/>
-          <path d="M122 90 L34 58" stroke-width="2.5" stroke-dasharray="7 5"/>
+        <g fill="none" stroke="#000000" stroke-linecap="round">
+          <path d="M-12 250 L246 264" stroke-width="5.3"/>
+          <path d="M-12 176 L246 148" stroke-width="4"/>
+          <path d="M-12 88 L246 106" stroke-width="2.7"/>
+          <path d="M128 170 L226 202" stroke-width="2.7"/>
+        </g>
+        <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="2.2">
+          <path d="M96 250 L14 302"/>
+          <path d="M122 90 L34 58" stroke-dasharray="6 5"/>
         </g>
       </g>
       <path d="M117 340 C117 300 100 280 96 250 C92 215 120 200 128 170 C136 140 120 120 122 90 C124 55 140 40 138 -6"
@@ -81,7 +81,7 @@
 
     <!-- Bandeau de côte, cotes réelles : 480 × 80 -->
     <svg x="0" y="374" width="480" height="80" viewBox="0 0 480 80">
-      <rect x="0" y="0" width="480" height="80" fill="#0B0D0F"/>
+      <rect x="0" y="0" width="480" height="80" fill="#000000"/>
       <g clip-path="url(#m-clip)">
         <rect x="0"   y="0" width="24.5" height="80" fill="#1A8C3A"/>
         <rect x="24"  y="0" width="24.5" height="80" fill="#40D078"/>
@@ -103,16 +103,17 @@
         <rect x="408" y="0" width="24.5" height="80" fill="#F0D800"/>
         <rect x="432" y="0" width="24.5" height="80" fill="#40D078"/>
         <rect x="456" y="0" width="24.5" height="80" fill="#1A8C3A"/>
+        <rect x="0" y="0" width="48" height="80" fill="#000000" opacity="0.62"/>
       </g>
       <polyline points="0,62.00 24,61.39 48,60.40 72,59.13 96,57.41 120,55.11 144,52.32 168,49.29 192,45.64 216,41.75 240,37.15 264,31.91 288,27.64 312,24.28 336,21.78 360,19.61 384,16.41 408,12.68 432,10.05 456,8.74 480,8.00"
                 fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       <line x1="0" y1="63" x2="480" y2="63" stroke="#2A2F33" stroke-width="2"/>
       <g fill="#B0BEC5" font-size="13" font-weight="700" font-family="Roboto Condensed, system-ui, sans-serif">
-        <text x="4" y="77">0</text>
-        <text x="240" y="77" text-anchor="middle">1 km</text>
-        <text x="476" y="77" text-anchor="end">2 km</text>
+        <text x="288" y="77" text-anchor="middle">1 km</text>
+        <text x="476" y="77" text-anchor="end">1,8 km</text>
       </g>
-      <rect x="0" y="0" width="3" height="63" fill="#FFFFFF"/>
+      <rect x="46" y="0" width="4" height="63" fill="#FFFFFF"/>
+      <path d="M42 63 L54 63 L48 71 Z" fill="#FFFFFF"/>
     </svg>
   </svg>
 </div>

@@ -633,6 +633,8 @@ function valueTop(bounds, top, labelHeight, valueHeight){
   return below + Math.max((bounds.y + bounds.h - below - valueHeight)/2, 0);
 }
 const LABEL_ALPHA = 0xCC, TILE_BORDER = "#000000", TILE_BORDER_WIDTH = 3;
+// Numéro de zone porté à gauche de la valeur : corps réduit, encre un peu effacée.
+const LEADING_RATIO = 0.54, LEADING_ALPHA = 0xB0;
 const MINIMUM_LABEL_SIZE = 9, MAXIMUM_LABEL_SIZE = 26, LABEL_GAP = 6;
 
 /* Plus grande taille de libellé laissant l'icône à découvert : le libellé est aligné à
@@ -652,6 +654,8 @@ function fitValueSize(ctx, tile, maxWidth, preferred){
   const tail = tile.decimal != null ? tile.decimal : tile.suffix;
   let measured = measure(ctx, tile.value, fontLight(size));
   if (tail) measured += measure(ctx, tail, fontLight(size*SUFFIX_RATIO));
+  // Le numéro de zone occupe la gauche de la même ligne : il entre dans le compte.
+  if (tile.leading) measured += measure(ctx, tile.leading, fontBold(size*LEADING_RATIO)) + EDGE_INSET;
   if (measured <= maxWidth || measured <= 0) return size;
   return Math.max(size * maxWidth / measured, 10);
 }
@@ -695,6 +699,13 @@ function drawTile(ctx, bounds, tile, valueSize, labelSize){
   const tailWidth = tail ? measure(ctx, tail, fontLight(valueSize*SUFFIX_RATIO)) : 0;
   const left = right - (valueWidth + tailWidth);
   const baseline = valueTop(bounds, top, labelHeight, valueHeight) + ASC*valueSize;
+
+  // Le numéro de zone contre le bord gauche, à mi-corps de la valeur.
+  if (tile.leading) {
+    ctx.font = fontBold(valueSize*LEADING_RATIO);
+    ctx.fillStyle = alphaOf(ink, LEADING_ALPHA);
+    ctx.fillText(tile.leading, bounds.x + EDGE_INSET, baseline);
+  }
 
   ctx.font = fontLight(valueSize);
   ctx.fillStyle = ink;
@@ -1131,7 +1142,7 @@ function model(){
       {label:"CADENCE",    value:"92", icon:"cadence"},
       {label:"POWER 3S",   value:"188", background:POWER_COLORS[2], icon:"power"}
     ],
-    heartRateTile:{label:"FC", value:"149", background:HR_COLORS[2], icon:"heart"},
+    heartRateTile:{label:"FC", value:"149", leading:"3", background:HR_COLORS[2], icon:"heart"},
     drivetrain:{label:"TRANSMISSION", front:2, frontCount:2, frontTeeth:50,
                 rear:4, rearCount:11, rearTeeth:17, icon:"gears"},
     midTiles:[

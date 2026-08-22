@@ -50,6 +50,15 @@ data class Tile(
      * reconnaît à sa hauteur. « 38,5 » s'écrit donc « 38 » suivi d'un « 5 » surélevé.
      */
     val decimal: String? = null,
+    /**
+     * Chiffre porté à gauche de la valeur, sur la même ligne de base : le numéro de zone.
+     *
+     * L'aplat de couleur dit déjà la zone, mais il faut connaître la palette par cœur pour
+     * la nommer — et le saumon de la zone 4 tient de près à l'orange de la zone 5. Le
+     * chiffre lève le doute sans rien coûter : la moitié gauche de cette ligne était vide,
+     * la valeur étant alignée à droite.
+     */
+    val leading: String? = null,
     /** Aplat de fond, ou null pour laisser le fond de l'écran. */
     val background: Int? = null,
     /** Icône posée devant le libellé. */
@@ -496,6 +505,13 @@ object DashboardRenderer {
         val left = right - (valueWidth + tailWidth)
         val baseline = valueTop(bounds, top, labelHeight, valueHeight) - valuePaint.ascent()
 
+        // Le numéro de zone contre le bord gauche, à mi-corps de la valeur : assez gros pour
+        // se lire d'un coup d'œil, assez petit pour qu'on ne le confonde pas avec elle.
+        tile.leading?.let { leading ->
+            val leadingPaint = paint(valueSize * LEADING_RATIO, translucent(ink, LEADING_ALPHA), Typeface.DEFAULT_BOLD)
+            canvas.drawText(leading, bounds.left + EDGE_INSET, baseline, leadingPaint)
+        }
+
         canvas.drawText(tile.value, left, baseline, valuePaint)
         if (tail != null) {
             // La décimale monte en exposant, l'unité reste sur la ligne de base.
@@ -777,8 +793,13 @@ object DashboardRenderer {
     private fun fitValueSize(tile: Tile, maxWidth: Float, preferredSize: Float): Float {
         val size = preferredSize.coerceIn(12f, 140f)
         val tail = tile.decimal ?: tile.suffix
+        // Le numéro de zone occupe la gauche de la même ligne : il entre dans le compte,
+        // sinon la valeur viendrait s'écrire par-dessus dans les cases étroites.
         val measured = paint(size, 0, LIGHT_TYPEFACE).measureText(tile.value) +
-            (tail?.let { paint(size * SUFFIX_RATIO, 0, LIGHT_TYPEFACE).measureText(it) } ?: 0f)
+            (tail?.let { paint(size * SUFFIX_RATIO, 0, LIGHT_TYPEFACE).measureText(it) } ?: 0f) +
+            (tile.leading?.let {
+                paint(size * LEADING_RATIO, 0, Typeface.DEFAULT_BOLD).measureText(it) + EDGE_INSET
+            } ?: 0f)
         if (measured <= maxWidth || measured <= 0f) return size
         return (size * maxWidth / measured).coerceAtLeast(10f)
     }
@@ -786,6 +807,12 @@ object DashboardRenderer {
     private fun translucent(color: Int, alpha: Int): Int = (color and 0x00FFFFFF) or (alpha shl 24)
 
     private const val LABEL_ALPHA = 0xCC
+
+    /** Corps du numéro de zone, en part de celui de la valeur. */
+    private const val LEADING_RATIO = 0.54f
+
+    /** Le numéro de zone s'efface un peu : c'est la fréquence qu'on lit d'abord. */
+    private const val LEADING_ALPHA = 0xB0
 
     /** Cerne des cases colorées. */
     private const val TILE_BORDER = 0xFF000000.toInt()

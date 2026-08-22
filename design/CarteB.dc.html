@@ -12,43 +12,44 @@
     a { color: #2E8BFF; } a:hover { color: #79B4FF; }
   </style>
 </helmet>
-<div style="position: relative; width: 234px; height: 334px; background: #F4F2ED; overflow: hidden">
+<div style="position: relative; width: 234px; height: 334px; background: #000000; overflow: hidden">
   <svg width="234" height="334" viewBox="0 0 234 334" style="display: block">
     <defs>
-      <radialGradient id="b-fade" cx="50%" cy="80%" r="70%">
-        <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-        <stop offset="48%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <linearGradient id="b-fade" x1="0" y1="334" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.24"/>
+        <stop offset="20%" stop-color="#ffffff" stop-opacity="1"/>
+        <stop offset="56%" stop-color="#ffffff" stop-opacity="0.50"/>
         <stop offset="100%" stop-color="#ffffff" stop-opacity="0.08"/>
-      </radialGradient>
+      </linearGradient>
       <mask id="b-mask">
         <rect x="0" y="0" width="234" height="334" fill="url(#b-fade)"/>
       </mask>
       <linearGradient id="b-trace" x1="0" y1="334" x2="0" y2="0" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stop-color="#1565C0" stop-opacity="0"/>
-        <stop offset="16%" stop-color="#1565C0" stop-opacity="0.26"/>
-        <stop offset="20%" stop-color="#0F6FE0" stop-opacity="1"/>
-        <stop offset="46%" stop-color="#1565C0" stop-opacity="0.92"/>
-        <stop offset="78%" stop-color="#1565C0" stop-opacity="0.56"/>
-        <stop offset="100%" stop-color="#1565C0" stop-opacity="0.26"/>
+        <stop offset="0%" stop-color="#2E8BFF" stop-opacity="0"/>
+        <stop offset="16%" stop-color="#2E8BFF" stop-opacity="0.28"/>
+        <stop offset="20%" stop-color="#4DA0FF" stop-opacity="1"/>
+        <stop offset="46%" stop-color="#2E8BFF" stop-opacity="0.9"/>
+        <stop offset="78%" stop-color="#2E8BFF" stop-opacity="0.52"/>
+        <stop offset="100%" stop-color="#2E8BFF" stop-opacity="0.24"/>
       </linearGradient>
     </defs>
 
     <g mask="url(#b-mask)">
-      <g fill="none" stroke="#CFCAC0" stroke-linecap="round">
-        <path d="M-12 250 L246 264" stroke-width="13"/>
-        <path d="M-12 176 L246 148" stroke-width="11"/>
-        <path d="M-12 88 L246 106" stroke-width="9"/>
-        <path d="M96 250 L14 302" stroke-width="7"/>
-        <path d="M128 170 L226 202" stroke-width="7"/>
-        <path d="M122 90 L34 58" stroke-width="6"/>
+      <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
+        <path d="M-12 250 L246 264" stroke-width="9.3"/>
+        <path d="M-12 176 L246 148" stroke-width="8"/>
+        <path d="M-12 88 L246 106" stroke-width="6.7"/>
+        <path d="M128 170 L226 202" stroke-width="6.7"/>
       </g>
-      <g fill="none" stroke="#2A2F33" stroke-linecap="round">
-        <path d="M-12 250 L246 264" stroke-width="7"/>
-        <path d="M-12 176 L246 148" stroke-width="6"/>
-        <path d="M-12 88 L246 106" stroke-width="5"/>
-        <path d="M96 250 L14 302" stroke-width="3"/>
-        <path d="M128 170 L226 202" stroke-width="3"/>
-        <path d="M122 90 L34 58" stroke-width="2.5" stroke-dasharray="7 5"/>
+      <g fill="none" stroke="#000000" stroke-linecap="round">
+        <path d="M-12 250 L246 264" stroke-width="5.3"/>
+        <path d="M-12 176 L246 148" stroke-width="4"/>
+        <path d="M-12 88 L246 106" stroke-width="2.7"/>
+        <path d="M128 170 L226 202" stroke-width="2.7"/>
+      </g>
+      <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="2.2">
+        <path d="M96 250 L14 302"/>
+        <path d="M122 90 L34 58" stroke-dasharray="6 5"/>
       </g>
     </g>
 
@@ -56,10 +57,10 @@
           fill="none" stroke="url(#b-trace)" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
 
     <g opacity="0.85">
-      <line x1="8" y1="322" x2="52" y2="322" stroke="#2A2F33" stroke-width="2"/>
-      <line x1="8" y1="318" x2="8" y2="326" stroke="#2A2F33" stroke-width="2"/>
-      <line x1="52" y1="318" x2="52" y2="326" stroke="#2A2F33" stroke-width="2"/>
-      <text x="8" y="314" fill="#2A2F33" font-size="11" font-weight="700" font-family="Roboto Condensed, system-ui, sans-serif">100 m</text>
+      <line x1="8" y1="322" x2="52" y2="322" stroke="#FFFFFF" stroke-width="2"/>
+      <line x1="8" y1="318" x2="8" y2="326" stroke="#FFFFFF" stroke-width="2"/>
+      <line x1="52" y1="318" x2="52" y2="326" stroke="#FFFFFF" stroke-width="2"/>
+      <text x="8" y="314" fill="#FFFFFF" font-size="11" font-weight="700" font-family="Roboto Condensed, system-ui, sans-serif">100 m</text>
     </g>
   </svg>
 </div>

@@ -333,10 +333,20 @@ class DashboardDataType(
         ),
     )
 
-    /** Case de gauche sous la transmission : la fréquence cardiaque, à sa couleur de zone. */
+    /**
+     * Case de gauche sous la transmission : la fréquence cardiaque, à sa couleur de zone.
+     *
+     * Le numéro de zone est écrit à gauche de la valeur. L'aplat le disait déjà, mais de
+     * mémoire seulement : le chiffre le nomme. Il ne s'écrit que si les zones sont réglées
+     * dans le Karoo — sans elles, `zoneOf` rend zéro, qui ne veut rien dire.
+     */
     private fun heartRateTile(context: Context, rideData: RideData): Tile = Tile(
         label = context.getString(R.string.dashboard_label_heart_rate),
         value = rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
+        leading = rideData.heartRate
+            ?.let { Zones.zoneOf(it, rideData.heartRateZones) }
+            ?.takeIf { it > 0 }
+            ?.toString(),
         background = rideData.heartRate?.let { Zones.heartRateColor(it, rideData.heartRateZones) },
         icon = R.drawable.ic_heart_rate,
     )

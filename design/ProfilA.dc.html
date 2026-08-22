@@ -12,7 +12,7 @@
     a { color: #2E8BFF; } a:hover { color: #79B4FF; }
   </style>
 </helmet>
-<div style="position: relative; width: 480px; height: 80px; background: #0B0D0F; overflow: hidden">
+<div style="position: relative; width: 480px; height: 80px; background: #000000; overflow: hidden">
   <svg width="480" height="80" viewBox="0 0 480 80" style="display: block">
     <defs>
       <clipPath id="pa-clip">
@@ -20,6 +20,8 @@
       </clipPath>
     </defs>
 
+    <!-- Vingt tranches de 100 m, couleurs de pente du Karoo, aucune séparation :
+         les aplats se touchent sous la silhouette. -->
     <g clip-path="url(#pa-clip)">
       <rect x="0"   y="0" width="24.5" height="80" fill="#1A8C3A"/>
       <rect x="24"  y="0" width="24.5" height="80" fill="#40D078"/>
@@ -41,6 +43,8 @@
       <rect x="408" y="0" width="24.5" height="80" fill="#F0D800"/>
       <rect x="432" y="0" width="24.5" height="80" fill="#40D078"/>
       <rect x="456" y="0" width="24.5" height="80" fill="#1A8C3A"/>
+      <!-- Les 200 m déjà faits, tenus en grisé derrière le repère -->
+      <rect x="0" y="0" width="48" height="80" fill="#000000" opacity="0.62"/>
     </g>
 
     <polyline points="0,62.00 24,61.39 48,60.40 72,59.13 96,57.41 120,55.11 144,52.32 168,49.29 192,45.64 216,41.75 240,37.15 264,31.91 288,27.64 312,24.28 336,21.78 360,19.61 384,16.41 408,12.68 432,10.05 456,8.74 480,8.00"
@@ -48,12 +52,14 @@
 
     <line x1="0" y1="63" x2="480" y2="63" stroke="#2A2F33" stroke-width="2"/>
     <g fill="#B0BEC5" font-size="13" font-weight="700" font-family="Roboto Condensed, system-ui, sans-serif">
-      <text x="4" y="77">0</text>
-      <text x="240" y="77" text-anchor="middle">1 km</text>
-      <text x="476" y="77" text-anchor="end">2 km</text>
+      <text x="288" y="77" text-anchor="middle">1 km</text>
+      <text x="476" y="77" text-anchor="end">1,8 km</text>
     </g>
-    <line x1="240" y1="64" x2="240" y2="68" stroke="#5F6A6F" stroke-width="2"/>
-    <rect x="0" y="0" width="3" height="63" fill="#FFFFFF"/>
+    <line x1="288" y1="64" x2="288" y2="68" stroke="#5F6A6F" stroke-width="2"/>
+
+    <!-- Le repère ne bouge jamais : c'est le profil qui défile dessous. -->
+    <rect x="46" y="0" width="4" height="63" fill="#FFFFFF"/>
+    <path d="M42 63 L54 63 L48 71 Z" fill="#FFFFFF"/>
   </svg>
 </div>
 </x-dc>
