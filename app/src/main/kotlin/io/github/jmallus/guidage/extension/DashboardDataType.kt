@@ -164,50 +164,38 @@ class DashboardDataType(
     }
 
     /**
-     * Profil de la côte en cours, ou de la prochaine quand elle approche.
+     * Le bandeau du bas : les deux kilomètres qui entourent le coureur, toujours affichés.
      *
-     * La côte en cours vient du Karoo lui-même : il publie la distance depuis le pied et
-     * celle qui reste jusqu'au sommet, c'est-à-dire exactement ce qu'il faut pour cadrer le
-     * profil et y placer le coureur. Notre propre distance parcourue, reconstituée par
-     * soustraction, suffisait à faire apparaître le bandeau une fois la bosse passée.
+     * Il ne dépend plus de la présence d'une côte. Un bandeau qui apparaît au pied d'une
+     * bosse et disparaît au sommet oblige à réapprendre la mise en page de l'écran chaque
+     * fois qu'il surgit, et se dérobe précisément quand on voudrait savoir si le faux plat
+     * qu'on subit en est un. Deux kilomètres de profil permanents règlent les deux.
      *
-     * Faute de côte en cours, on annonce la prochaine d'après l'itinéraire, mais seulement
-     * quand elle est à moins de [CLIMB_BAND_LOOKAHEAD] : une côte à trente kilomètres n'a
-     * pas à prendre de la place à l'écran.
+     * La fenêtre est calée sur le coureur, non sur la côte : deux cents mètres derrière lui
+     * et mille huit cents devant. Son repère reste donc immobile au dixième gauche de la
+     * bande, et c'est le profil qui défile dessous.
+     *
+     * Le rang de la côte — « 1/5 » — reste porté quand il y en a une en vue ; c'est le seul
+     * reste de l'ancien cadrage.
      */
     private fun climbBand(state: GuidanceState, rideData: RideData): ClimbBandModel? {
         val route = state.route ?: return null
         val along = state.distanceAlongRoute ?: return null
-        val live = rideData.climb
-
-        if (live.onClimb) {
-            val fromBottom = live.distanceFromBottom ?: 0.0
-            val window = Guidance.profileWindow(
-                route,
-                (along - fromBottom).coerceAtLeast(0.0),
-                lookahead = live.length ?: return null,
-            )
-            if (window.isEmpty) return null
-            return ClimbBandModel(
-                window = window,
-                position = along,
-                positionElevation = route.profile?.elevationAt(along),
-                label = live.label,
-            )
-        }
-
-        val status = Guidance.climbStatus(route, along) ?: return null
-        if (status.distanceToStart > CLIMB_BAND_LOOKAHEAD) return null
-
-        val climb = status.climb
-        val window = Guidance.profileWindow(route, climb.startDistance, lookahead = climb.length)
+        val window = Guidance.profileWindow(
+            route,
+            (along - CLIMB_BAND_BEHIND).coerceAtLeast(0.0),
+            lookahead = CLIMB_BAND_SPAN,
+        )
         if (window.isEmpty) return null
 
         return ClimbBandModel(
             window = window,
             position = along,
             positionElevation = route.profile?.elevationAt(along),
-            label = live.label ?: "${status.number}/${status.totalClimbs}",
+            label = rideData.climb.label
+                ?: Guidance.climbStatus(route, along)
+                    ?.takeIf { it.distanceToStart <= CLIMB_BAND_LOOKAHEAD }
+                    ?.let { "${it.number}/${it.totalClimbs}" },
         )
     }
 
@@ -448,6 +436,10 @@ class DashboardDataType(
          * occuper le bas de l'écran pendant un quart d'heure.
          */
         private const val CLIMB_BAND_LOOKAHEAD = 300.0
+
+        /** Longueur du bandeau, et part tenue derrière le coureur (m). */
+        private const val CLIMB_BAND_SPAN = 2_000.0
+        private const val CLIMB_BAND_BEHIND = 200.0
 
         /** Rayon de lecture du fond de carte, en multiples de la portée affichée. */
         private const val ROADS_RADIUS_FACTOR = 1.6

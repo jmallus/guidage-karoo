@@ -74,14 +74,6 @@ object FieldPalette {
      */
     fun gradeColor(grade: Double): Int = Zones.gradeColor(grade) ?: NEUTRAL
 
-    /**
-     * Bleu des montées du Karoo, porté par le filet du profil.
-     *
-     * C'est la teinte que l'appareil emploie partout où il est question de grimper : la
-     * reprendre évite d'avoir à réapprendre un code de couleur pour un seul écran.
-     */
-    const val CLIMB_LINE = 0xFF2086D8.toInt()
-
     /** Rouge du Karoo quand il faut rejoindre l'itinéraire. */
     const val REJOIN = 0xFFFC292B.toInt()
 

@@ -84,10 +84,10 @@ data class DrivetrainModel(
 )
 
 /**
- * Bandeau de montée : le profil de la côte en cours ou toute proche.
+ * Bandeau du bas : les deux kilomètres de profil qui entourent le coureur.
  *
- * Il n'apparaît que lorsque le Karoo a identifié une côte ; le reste du temps la place
- * revient aux autres champs.
+ * Il est affiché en permanence, et non seulement au voisinage d'une côte : un bandeau qui
+ * surgit et disparaît oblige à réapprendre la mise en page de l'écran à chaque fois.
  */
 data class ClimbBandModel(
     val window: ProfileWindow,
@@ -125,7 +125,7 @@ data class DashboardModel(
     val midTiles: List<Tile> = emptyList(),
     /** Dernier rang : distance restante et heure d'arrivée. */
     val footerTiles: List<Tile> = emptyList(),
-    /** Profil de la côte, sous la dernière ligne, quand il y en a une. */
+    /** Les deux kilomètres de profil autour du coureur, sous la dernière ligne. */
     val climbBand: ClimbBandModel? = null,
     val palette: Palette,
 )
@@ -162,7 +162,7 @@ object DashboardRenderer {
     /** Élévation de la décimale, en part de la hauteur des chiffres. */
     private const val DECIMAL_RISE = 0.42f
 
-    /** Hauteur du bandeau de montée, quand il y en a un. */
+    /** Hauteur du bandeau de profil, qui mange le dixième bas de l'écran. */
     private const val CLIMB_BAND_FRACTION = 0.10f
 
     fun render(context: Context, width: Int, height: Int, model: DashboardModel): Bitmap {
@@ -173,7 +173,8 @@ object DashboardRenderer {
         val columnSplit = width * TILE_COLUMN_FRACTION
         val right = width - padding
 
-        // Le bandeau de montée mange le bas de l'écran ; tout le reste se serre au-dessus.
+        // Le bandeau mange le bas de l'écran ; tout le reste se serre au-dessus. Il est là
+        // dès qu'on navigue, de sorte que la mise en page ne bouge plus en cours de route.
         val bandHeight = if (model.climbBand == null) 0f else height * CLIMB_BAND_FRACTION
         val contentHeight = height - bandHeight
         val rowHeight = (contentHeight - 2 * padding) * ROW_HEIGHT_FRACTION
@@ -302,26 +303,48 @@ object DashboardRenderer {
         fun y(elevation: Double) =
             area.bottom - ((elevation - window.minElevation) / elevationSpan * area.height()).toFloat()
 
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
         val points = window.points
-        for (index in 1 until points.size) {
-            val previous = points[index - 1]
-            val current = points[index]
-            val length = current.distance - previous.distance
-            if (length <= 0) continue
-            val grade = (current.elevation - previous.elevation) / length * 100.0
-            fill.color = FieldPalette.gradeColor(grade)
-            canvas.drawPath(
-                Path().apply {
-                    moveTo(x(previous.distance), area.bottom)
-                    lineTo(x(previous.distance), y(previous.elevation))
-                    lineTo(x(current.distance), y(current.elevation))
-                    lineTo(x(current.distance), area.bottom)
-                    close()
-                },
-                fill,
+
+        // La couleur est posée par tranches de cent mètres, et non d'un sommet du relevé au
+        // suivant : un itinéraire porte un point tous les dix à trente mètres, ce qui donnait
+        // des lamelles trop étroites pour qu'on y distingue une couleur, et une pente si
+        // bruitée que deux tranches voisines pouvaient sauter deux zones. Les aplats se
+        // touchent sans séparation, découpés d'un seul tenant sous la silhouette : ils sont
+        // tracés pleine hauteur puis rognés par elle, ce qui évite d'avoir à faire coïncider
+        // le bord de chacun avec la ligne de crête.
+        val silhouette = Path().apply {
+            moveTo(x(points.first().distance), area.bottom)
+            points.forEach { lineTo(x(it.distance), y(it.elevation)) }
+            lineTo(x(points.last().distance), area.bottom)
+            close()
+        }
+        canvas.save()
+        canvas.clipPath(silhouette)
+        val fill = Paint().apply { style = Paint.Style.FILL }
+        var sliceStart = window.start
+        while (sliceStart < window.end) {
+            val sliceEnd = (sliceStart + SLICE_METERS).coerceAtMost(window.end)
+            val length = sliceEnd - sliceStart
+            if (length <= 0) break
+            val rise = elevationAt(points, sliceEnd) - elevationAt(points, sliceStart)
+            fill.color = FieldPalette.gradeColor(rise / length * 100.0)
+            // Un demi-pixel de recouvrement : deux aplats strictement jointifs laissent voir
+            // le fond entre eux, l'antialiasing ne remplissant complètement ni l'un ni l'autre.
+            canvas.drawRect(x(sliceStart), area.top, x(sliceEnd) + 0.5f, area.bottom, fill)
+            sliceStart = sliceEnd
+        }
+        // Ce qui est déjà fait passe en sourdine. Sans cela, le repère collé au dixième
+        // gauche de la bande ne dirait pas que c'est le profil qui défile sous lui.
+        if (model.position > window.start) {
+            canvas.drawRect(
+                area.left,
+                area.top,
+                x(model.position),
+                area.bottom,
+                Paint().apply { color = FieldPalette.translucent(0xFF000000.toInt(), BEHIND_DIM_ALPHA) },
             )
         }
+        canvas.restore()
 
         val ridge = Path()
         points.forEachIndexed { index, point ->
@@ -337,7 +360,7 @@ object DashboardRenderer {
                 style = Paint.Style.STROKE
                 strokeWidth = 2.5f
                 strokeJoin = Paint.Join.ROUND
-                color = FieldPalette.CLIMB_LINE
+                color = RIDGE_LINE
             },
         )
 
@@ -347,8 +370,9 @@ object DashboardRenderer {
             drawMarker(canvas, x(model.position), y(elevation), markerRadius, RIDER_MARKER)
         }
 
-        // Le rang de la côte se pose en haut à gauche : le profil part du bas de la bande à
-        // gauche pour monter vers la droite, ce coin est donc toujours vide.
+        // Le rang de la côte se pose en haut à gauche, le coin le moins souvent occupé. La
+        // fenêtre n'étant plus cadrée sur la côte, le profil peut désormais y passer : le
+        // cerne sombre du libellé est ce qui le garde lisible dans ce cas.
         model.label?.let { label ->
             val size = (area.height() * 0.42f).coerceIn(11f, 22f)
             val x = area.left + 4f
@@ -402,8 +426,22 @@ object DashboardRenderer {
         return before.elevation + (after.elevation - before.elevation) * ratio
     }
 
-    private const val RIDER_MARKER = 0xFFF2C037.toInt()
-    private const val MARKER_BORDER = 0xFF1A1A1A.toInt()
+    /**
+     * Ligne de crête et repère : du blanc, cerné de noir.
+     *
+     * La bande porte sept couleurs de pente, du vert foncé au violet ; aucune teinte ne se
+     * détache sur les sept à la fois, seul le blanc le fait. Le bleu de montée du Karoo,
+     * qu'elle portait avant, disparaissait sur l'orange comme sur le rouge.
+     */
+    private const val RIDGE_LINE = 0xFFFFFFFF.toInt()
+    private const val RIDER_MARKER = 0xFFFFFFFF.toInt()
+    private const val MARKER_BORDER = 0xFF000000.toInt()
+
+    /** Longueur d'une tranche de couleur, en mètres de terrain. */
+    private const val SLICE_METERS = 100.0
+
+    /** Voile posé sur la part déjà parcourue du bandeau. */
+    private const val BEHIND_DIM_ALPHA = 0x9E
 
     // --- Cases de chiffres ---------------------------------------------------------------
 
