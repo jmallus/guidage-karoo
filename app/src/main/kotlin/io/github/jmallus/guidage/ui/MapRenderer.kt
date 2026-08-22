@@ -17,6 +17,7 @@ import io.github.jmallus.guidage.core.map.RoadSurface
 import io.github.jmallus.guidage.core.map.fromMicroDegrees
 import kotlin.math.hypot
 import kotlin.math.ln
+import kotlin.math.pow
 
 /** Un point d'intérêt à poser sur la carte. */
 data class MapPoi(val position: GeoPoint, val label: String)
@@ -261,20 +262,38 @@ object MapRenderer {
      * Les largeurs sont en part de la largeur de la carte, non en pixels : le fondu occupe
      * ainsi la même place quelle que soit la taille de la case.
      *
-     * Les opacités sont celles des passes, pas celles qu'on veut obtenir. Chaque anneau se
-     * pose sur les précédents, du plus large au plus étroit : pour atteindre les paliers
-     * voulus — 36, 54, 70, 84, 94 puis 100 % — il faut peindre a = (cible − acquis) /
-     * (1 − acquis). Le mélange progressif de l'antialiasing efface au passage les marches
-     * entre anneaux, qu'un remplacement franc laisserait voir.
+     * Les opacités posées ne sont pas celles qu'on veut obtenir : chaque anneau se pose sur
+     * les précédents, du plus large au plus étroit, d'où a = (cible − acquis) / (1 − acquis).
+     *
+     * Seize paliers, et non six : à six, chaque marche vaut une dizaine de points d'opacité
+     * et se voit sur une chaussée large, qui traverse plusieurs anneaux d'un coup — la route
+     * paraît alors carrelée. À seize, la marche passe sous le seuil de perception.
      */
-    private val CORRIDOR_RINGS = listOf(
-        1.03f to 0.360f,
-        0.81f to 0.281f,
-        0.62f to 0.348f,
-        0.43f to 0.467f,
-        0.26f to 0.625f,
-        0.11f to 1.000f,
-    )
+    private const val CORRIDOR_STEPS = 16
+    private const val CORRIDOR_WIDEST = 1.05f
+    private const val CORRIDOR_NARROWEST = 0.06f
+
+    /** Opacité au bord du couloir : le fondu doux, retenu sur planche. */
+    private const val CORRIDOR_EDGE = 0.36f
+
+    /**
+     * Exposant de la courbe d'opacité.
+     *
+     * En deçà de 1, l'encre remonte vite en quittant le bord puis s'aplatit : le lointain
+     * garde sa lisibilité et c'est le voisinage immédiat du tracé qui gagne le contraste.
+     */
+    private const val CORRIDOR_CURVE = 0.7f
+
+    private val CORRIDOR_RINGS: List<Pair<Float, Float>> = buildList {
+        var reached = 0f
+        for (index in 0 until CORRIDOR_STEPS) {
+            val t = index.toFloat() / (CORRIDOR_STEPS - 1)
+            val widthRatio = CORRIDOR_WIDEST - (CORRIDOR_WIDEST - CORRIDOR_NARROWEST) * t
+            val target = CORRIDOR_EDGE + (1f - CORRIDOR_EDGE) * t.pow(CORRIDOR_CURVE)
+            add(widthRatio to (target - reached) / (1f - reached))
+            reached = target
+        }
+    }
 
     /** Le calque du couloir ne garde du fond que ce qu'il recouvre. */
     private val CORRIDOR_PAINT =

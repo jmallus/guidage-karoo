@@ -452,7 +452,7 @@
 const W = 480, H = 800;
 
 const RS = {                            // RoadStyle
-  BACKGROUND:"#F2EFE8", INK:"#2A2F33",
+  BACKGROUND:"#000000", INK:"#FFFFFF",
   EXPRESSWAY:"#D4573C", PRIMARY:"#E8944A", SECONDARY:"#D8B23F",
   MINOR:"#7C8489", SERVICE:"#A9AFB4", TRAIL:"#9A6B33", CYCLEWAY:"#2E7D6B",
   WATER_FILL:"#B4D4E7", WATER_LINE:"#6FA8CC",
@@ -469,24 +469,19 @@ const AREA_KINDS = ["WATER","FOREST","BUILT_UP","FARMLAND"];
 const AREA_ORDER = ["FARMLAND","BUILT_UP","FOREST","WATER"];
 
 function roadColor(kind, surface){
-  switch(kind){
-    case "MOTORWAY": case "TRUNK": return RS.EXPRESSWAY;
-    case "PRIMARY": return RS.PRIMARY;
-    case "SECONDARY": case "TERTIARY": return RS.SECONDARY;
-    case "UNCLASSIFIED": case "RESIDENTIAL": return RS.MINOR;
-    case "SERVICE": return RS.SERVICE;
-    case "FOOTWAY": case "STEPS": return RS.FAINT;
-    case "CYCLEWAY": return RS.CYCLEWAY;
-    case "STREAM": return RS.WATER_LINE;
-    case "WATER": return RS.WATER_FILL;
-    case "FOREST": return RS.FOREST_FILL;
-    case "BUILT_UP": return RS.BUILT_UP_FILL;
-    case "FARMLAND": return RS.FARMLAND_FILL;
-    case "TRACK": case "PATH": case "BRIDLEWAY":
-      return surface === "PAVED" ? RS.MINOR : RS.TRAIL;
+  // Toutes les chaussées en blanc : leur rang se lit à l'épaisseur. Le fond ne montre
+  // qu'un couloir autour de l'itinéraire, où il n'y a jamais qu'une poignée de voies.
+  switch (kind) {
+    case "FOOTWAY": case "STEPS": return "#585C60";
+    case "STREAM":  return "#3E6B87";
+    case "WATER":   return "#12222E";
+    case "FOREST":  return "#14200F";
+    case "BUILT_UP":return "#1E1E1E";
+    case "FARMLAND":return "#10160C";
+    default:        return "#FFFFFF";
   }
-  return RS.MINOR;
 }
+
 function isDashed(kind, surface){
   if (kind==="TRACK"||kind==="PATH"||kind==="BRIDLEWAY") return surface!=="PAVED";
   return kind==="FOOTWAY"||kind==="STEPS";
@@ -497,7 +492,6 @@ const POWER_COLORS = ["#1A8C3A","#40D078","#F0D800","#F08868","#F06020","#D01020
 const HR_COLORS    = ["#1A8C3A","#40D078","#F0D800","#F08868","#D01020"];
 const ABOVE_AVERAGE = "#00A661";
 const BELOW_AVERAGE = "#AF090B";
-const CLIMB_LINE = "#2086D8";
 const NEUTRAL = "#78909C";
 
 function gradeColor(g){
@@ -826,29 +820,40 @@ function drawClimbBand(ctx, area, band){
   const X = d => area.x + (d-band.start)/dSpan*area.w;
   const Y = e => area.y + area.h - (e-minE)/eSpan*area.h;
 
-  for (let i=1;i<pts.length;i++){
-    const p0 = pts[i-1], p1 = pts[i];
-    const len = p1[0]-p0[0];
-    if (len <= 0) continue;
-    ctx.fillStyle = gradeColor((p1[1]-p0[1])/len*100);
-    ctx.beginPath();
-    ctx.moveTo(X(p0[0]), area.y+area.h);
-    ctx.lineTo(X(p0[0]), Y(p0[1]));
-    ctx.lineTo(X(p1[0]), Y(p1[1]));
-    ctx.lineTo(X(p1[0]), area.y+area.h);
-    ctx.closePath();
-    ctx.fill();
+  // La couleur est posée par tranches de cent mètres, jointives, rognées d'un seul tenant
+  // sous la silhouette : d'un sommet du relevé au suivant les lamelles étaient trop
+  // étroites pour qu'on y distingue une couleur, et la pente trop bruitée.
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(X(pts[0][0]), area.y+area.h);
+  pts.forEach(p => ctx.lineTo(X(p[0]), Y(p[1])));
+  ctx.lineTo(X(pts[pts.length-1][0]), area.y+area.h);
+  ctx.closePath();
+  ctx.clip();
+  for (let d = band.start; d < band.end; d += SLICE_METERS){
+    const e = Math.min(d + SLICE_METERS, band.end);
+    const len = e - d;
+    if (len <= 0) break;
+    ctx.fillStyle = gradeColor((elevationAt(pts, e) - elevationAt(pts, d))/len*100);
+    // Un demi-pixel de recouvrement : deux aplats jointifs laissent voir le fond entre eux.
+    ctx.fillRect(X(d), area.y, X(e) - X(d) + 0.5, area.h);
   }
+  if (band.position > band.start){
+    ctx.fillStyle = "rgba(0,0,0,0.62)";
+    ctx.fillRect(area.x, area.y, X(band.position) - area.x, area.h);
+  }
+  ctx.restore();
+
   ctx.beginPath();
   pts.forEach((p,i)=> i ? ctx.lineTo(X(p[0]),Y(p[1])) : ctx.moveTo(X(p[0]),Y(p[1])));
-  ctx.strokeStyle = CLIMB_LINE; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.stroke();
+  ctx.strokeStyle = RIDGE_LINE; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.stroke();
 
   const markerRadius = clamp(area.h*0.13, 4, 9);
   if (band.position >= band.start && band.position <= band.end){
     const e = elevationAt(pts, band.position);
     ctx.beginPath(); ctx.arc(X(band.position), Y(e), markerRadius, 0, Math.PI*2);
-    ctx.fillStyle = "#F2C037"; ctx.fill();
-    ctx.strokeStyle = "#1A1A1A"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = RIDGE_LINE; ctx.fill();
+    ctx.strokeStyle = "#000000"; ctx.lineWidth = 1.5; ctx.stroke();
   }
   if (band.label){
     const size = clamp(area.h*0.42, 11, 22);
@@ -931,36 +936,42 @@ const POIS = [{position: PATH[16], label:"Fontaine"}];
    MapRenderer — port
    ============================================================ */
 const AHEAD_FRACTION = 0.80, MIN_ROAD_WIDTH = 1, MAX_ROAD_WIDTH = 26;
-const ROUTE_WIDTH_NEAR = 14, ROUTE_WIDTH_FAR = 6, ROUTE_OUTLINE_WIDTH = 4;
-const MIN_RANGE = 200, MAX_RANGE = 10000, TRACE_THINNING = 2/3;
-const TRAVELED_WIDTH_RATIO = 0.75, TRAVELED_ALPHA = 0xCC;
-const CHEVRON_SPACING_RATIO = 4.3, CHEVRON_STROKE_RATIO = 0.43;
-const CHEVRON_OVERHANG_RATIO = 0.35, CHEVRON_BORDER_RATIO = 0.35;
-const CHEVRON_SWEEP = 1.6, CHEVRON_ARM = 0.9;
-const ARROW_COLOR = "#E6E24C", ARROW_BORDER_COLOR = "#1E1E1E", ARROW_BORDER_WIDTH = 2.5;
-const CORNER_RATIO = 0.10, ARROW_HALF_WIDTH = 0.82, ARROW_BASE = 0.72, ARROW_NOTCH = 0.19;
+const ROUTE_WIDTH_NEAR = 17, ROUTE_WIDTH_FAR = 8;
+const MIN_RANGE = 200, MAX_RANGE = 10000;
+// Le couloir : la trace repassée de plus en plus large et de moins en moins encrée. Les
+// opacités posées ne sont pas les paliers voulus — chaque anneau se pose sur les précédents,
+// d'où a = (cible - acquis) / (1 - acquis). Seize paliers : à six, la marche se voit sur une
+// chaussée large, qui traverse plusieurs anneaux d'un coup, et la route paraît carrelée.
+const CORRIDOR_STEPS = 16, CORRIDOR_WIDEST = 1.05, CORRIDOR_NARROWEST = 0.06;
+const CORRIDOR_EDGE = 0.36, CORRIDOR_CURVE = 0.7;
+const CORRIDOR_RINGS = (() => {
+  const rings = []; let reached = 0;
+  for (let i = 0; i < CORRIDOR_STEPS; i++) {
+    const t = i/(CORRIDOR_STEPS-1);
+    const w = CORRIDOR_WIDEST - (CORRIDOR_WIDEST-CORRIDOR_NARROWEST)*t;
+    const target = CORRIDOR_EDGE + (1-CORRIDOR_EDGE)*Math.pow(t, CORRIDOR_CURVE);
+    rings.push([w, (target-reached)/(1-reached)]);
+    reached = target;
+  }
+  return rings;
+})();
+const ROUTE_COLOR = "#2E8BFF", OFF_ROUTE_COLOR = "#FC292B";
+// Bandeau : tranches de cent mètres, crête et repère en blanc — la bande porte sept
+// couleurs de pente, et aucune teinte ne se détache sur les sept à la fois.
+const SLICE_METERS = 100, RIDGE_LINE = "#FFFFFF";
+/* Profil d'exemple : 2 km, un relevé tous les 100 m, pentes variées. */
+const SAMPLE_BAND = {start:3200, end:5200, position:3400, label:"1/2", points:[[3200,246.0],[3300,247.5],[3400,249.9],[3500,253.0],[3600,257.2],[3700,262.8],[3800,269.6],[3900,277.0],[4000,285.9],[4100,295.4],[4200,306.6],[4300,319.4],[4400,329.8],[4500,338.0],[4600,344.1],[4700,349.4],[4800,357.2],[4900,366.3],[5000,372.7],[5100,375.9],[5200,377.7]]};
+const BEHIND_FADE_FRACTION = 0.17, FADE_STEP = 4, MAX_FADE_STEPS = 24;
 const POI_COLOR = "#1B5E9A";
 
 function routeWidth(rangeMeters){
   const range = clamp(rangeMeters, MIN_RANGE, MAX_RANGE);
   const ratio = Math.log(range/MIN_RANGE)/Math.log(MAX_RANGE/MIN_RANGE);
-  return (ROUTE_WIDTH_NEAR - (ROUTE_WIDTH_NEAR-ROUTE_WIDTH_FAR)*ratio)*TRACE_THINNING;
+  return ROUTE_WIDTH_NEAR - (ROUTE_WIDTH_NEAR-ROUTE_WIDTH_FAR)*ratio;
 }
 
-function drawMap(ctx, area, model){
-  const riderX = area.x + area.w/2;
-  const riderY = area.y + area.h*AHEAD_FRACTION;
-  const m2p = (area.h*AHEAD_FRACTION)/Math.max(model.rangeMeters,1);
-  const toScreen = p => {
-    const q = trackUp(LOC, HEADING, p);
-    return {x: riderX + q.x*m2p, y: riderY - q.y*m2p};
-  };
-
-  ctx.save();
-  ctx.beginPath(); ctx.rect(area.x, area.y, area.w, area.h); ctx.clip();
-  ctx.fillStyle = RS.BACKGROUND; ctx.fillRect(area.x, area.y, area.w, area.h);
-
-  /* Surfaces, de la plus étendue à la plus rare */
+/** Surfaces puis voies, dessinées dans le calque que le couloir viendra rogner. */
+function drawGround(ctx, toScreen, m2p){
   for (const kind of AREA_ORDER) {
     const ofKind = ROADS.filter(r => r.kind === kind);
     if (!ofKind.length) continue;
@@ -998,12 +1009,58 @@ function drawMap(ctx, area, model){
       ctx.stroke();
       ctx.setLineDash([]);
     });
+}
+
+function drawMap(ctx, area, model){
+  const riderX = area.x + area.w/2;
+  const riderY = area.y + area.h*AHEAD_FRACTION;
+  const m2p = (area.h*AHEAD_FRACTION)/Math.max(model.rangeMeters,1);
+  const toScreen = p => {
+    const q = trackUp(LOC, HEADING, p);
+    return {x: riderX + q.x*m2p, y: riderY - q.y*m2p};
+  };
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(area.x, area.y, area.w, area.h); ctx.clip();
+  ctx.fillStyle = RS.BACKGROUND; ctx.fillRect(area.x, area.y, area.w, area.h);
+
+  // Le fond entier est dessiné dans un calque, dont l'opacité est ensuite multipliée par
+  // celle du couloir : les voies s'éteignent vers le noir en s'écartant de l'itinéraire.
+  {
+    const w = Math.ceil(area.w), h = Math.ceil(area.h);
+    const layer = document.createElement("canvas");
+    layer.width = w; layer.height = h;
+    const gctx = layer.getContext("2d");
+    gctx.translate(-area.x, -area.y);
+    drawGround(gctx, toScreen, m2p);
+
+    // Le couloir est composé à part, anneau sur anneau, puis appliqué en une seule fois.
+    // Appliqué anneau par anneau il s'intersecterait avec lui-même au lieu de s'additionner,
+    // et le fond disparaîtrait entièrement dès le deuxième passage.
+    const mask = document.createElement("canvas");
+    mask.width = w; mask.height = h;
+    const mctx = mask.getContext("2d");
+    mctx.translate(-area.x, -area.y);
+    mctx.lineCap = "round"; mctx.lineJoin = "round";
+    const screenAll = PATH.map(toScreen);
+    for (const [ratio, opacity] of CORRIDOR_RINGS) {
+      mctx.beginPath();
+      screenAll.forEach((q,i) => i ? mctx.lineTo(q.x,q.y) : mctx.moveTo(q.x,q.y));
+      mctx.lineWidth = area.w*ratio;
+      mctx.strokeStyle = "rgba(0,0,0," + opacity + ")";
+      mctx.stroke();
+    }
+    gctx.setTransform(1,0,0,1,0,0);
+    gctx.globalCompositeOperation = "destination-in";
+    gctx.drawImage(mask, 0, 0);
+    ctx.drawImage(layer, area.x, area.y);
+  }
 
   /* Tracé */
   const width = routeWidth(model.rangeMeters);
   const screen = PATH.map(toScreen);
   // Projection sur le segment, non sur le sommet : accroché à un sommet, le point de
-  // coupure attendait le coureur puis sautait au sommet suivant, chevrons compris.
+  // coupure attendait le coureur puis sautait au sommet suivant, avec le fondu.
   let here = 1, anchor = screen[0], bestD = Infinity;
   for (let i=1; i<screen.length; i++){
     const a = screen[i-1], b = screen[i];
@@ -1014,60 +1071,42 @@ function drawMap(ctx, area, model){
     if (d < bestD) { bestD = d; here = i; anchor = p; }
   }
   const remaining = [anchor].concat(screen.slice(here));
-  const traveled = screen.slice(0, here).concat([anchor]);
   const trace = pts => { ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); };
 
   // La part parcourue a son propre cerne : sans lui elle disparaît sur le fond clair.
   ctx.lineCap = "round"; ctx.lineJoin = "round";
-  trace(traveled);  ctx.lineWidth = width*TRAVELED_WIDTH_RATIO + ROUTE_OUTLINE_WIDTH*2; ctx.strokeStyle = PAL.routeOutline; ctx.stroke();
-  trace(remaining); ctx.lineWidth = width + ROUTE_OUTLINE_WIDTH*2; ctx.strokeStyle = PAL.routeOutline; ctx.stroke();
-  trace(traveled);  ctx.lineWidth = width*TRAVELED_WIDTH_RATIO;    ctx.strokeStyle = alphaOf(PAL.routeLine, TRAVELED_ALPHA); ctx.stroke();
-  trace(remaining); ctx.lineWidth = width;                          ctx.strokeStyle = PAL.routeLine; ctx.stroke();
+  const tint = model.offRoute ? OFF_ROUTE_COLOR : ROUTE_COLOR;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  trace(remaining); ctx.lineWidth = width; ctx.strokeStyle = tint; ctx.stroke();
 
-  /* Chevrons, bornés le long du tracé */
-  const limitPixels = model.chevronRangeMeters*m2p;
-  if (limitPixels > 0) {
-    const reference = width/TRACE_THINNING;
-    const spacing = reference*CHEVRON_SPACING_RATIO;
-    const stroke = reference*CHEVRON_STROKE_RATIO;
-    const borderWidth = stroke + Math.max(stroke*CHEVRON_BORDER_RATIO, 1.6)*2;
-    const halfSpan = reference/2 + ROUTE_OUTLINE_WIDTH + reference*CHEVRON_OVERHANG_RATIO;
-    const size = Math.max((halfSpan - borderWidth/2)/CHEVRON_ARM, reference*0.4);
-    // Sans borne de longueur — hors itinéraire — il faut une borne d'écran : le tracé
-    // court des kilomètres au-delà du cadre.
-    const margin = size*CHEVRON_SWEEP + borderWidth;
-    const cadre = {l: area.x-margin, r: area.x+area.w+margin, t: area.y-margin, b: area.y+area.h+margin};
-
-    ctx.beginPath();
-    let carry = 0, travelled = 0;
-    for (let i=1; i<remaining.length; i++){
-      if (travelled >= limitPixels) break;
-      const from = remaining[i-1], to = remaining[i];
-      const dx = to.x-from.x, dy = to.y-from.y;
-      const len = Math.hypot(dx,dy);
+  // La part faite s'éteint le long du tracé, non en hauteur d'écran : sur une épingle, la
+  // branche qu'on vient de faire revient à côté de soi sans être plus bas.
+  {
+    const fadeLength = area.h*BEHIND_FADE_FRACTION;
+    let travelled = 0, toX = anchor.x, toY = anchor.y;
+    for (let i = here-1; i >= 0 && travelled < fadeLength; i--) {
+      let fromX = screen[i].x, fromY = screen[i].y;
+      let len = Math.hypot(toX-fromX, toY-fromY);
       if (len < 0.01) continue;
-      const ux = dx/len, uy = dy/len;
-      const reach = Math.min(len, limitPixels-travelled);
-      const visible = Math.max(from.x,to.x) >= cadre.l && Math.min(from.x,to.x) <= cadre.r
-                   && Math.max(from.y,to.y) >= cadre.t && Math.min(from.y,to.y) <= cadre.b;
-      let position = visible ? spacing - carry : Infinity;
-      while (position <= reach) {
-        const x = from.x + ux*position, y = from.y + uy*position;
-        const px = -uy, py = ux;
-        const tipX = x + ux*size, tipY = y + uy*size;
-        const backX = tipX - ux*size*CHEVRON_SWEEP, backY = tipY - uy*size*CHEVRON_SWEEP;
-        const armX = px*size*CHEVRON_ARM, armY = py*size*CHEVRON_ARM;
-        ctx.moveTo(backX+armX, backY+armY);
-        ctx.lineTo(tipX, tipY);
-        ctx.lineTo(backX-armX, backY-armY);
-        position += spacing;
+      if (travelled + len > fadeLength) {
+        const keep = (fadeLength - travelled)/len;
+        fromX = toX + (fromX-toX)*keep; fromY = toY + (fromY-toY)*keep;
+        len = fadeLength - travelled;
       }
-      carry = (carry + len) % spacing;
+      const steps = Math.min(Math.floor(len/FADE_STEP) + 1, MAX_FADE_STEPS);
+      for (let k = 0; k < steps; k++) {
+        const t0 = k/steps, t1 = (k+1)/steps;
+        const d = travelled + len*(t0+t1)/2;
+        ctx.globalAlpha = Math.max(0, 1 - d/fadeLength);
+        ctx.beginPath();
+        ctx.moveTo(toX + (fromX-toX)*t0, toY + (fromY-toY)*t0);
+        ctx.lineTo(toX + (fromX-toX)*t1, toY + (fromY-toY)*t1);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
       travelled += len;
+      toX = screen[i].x; toY = screen[i].y;
     }
-    ctx.lineWidth = borderWidth; ctx.strokeStyle = ARROW_BORDER_COLOR; ctx.stroke();
-    // Les chevrons prennent la couleur du ruban : jaune ici, rouge hors itinéraire.
-    ctx.lineWidth = stroke;      ctx.strokeStyle = PAL.routeLine;      ctx.stroke();
   }
 
   /* Points d'intérêt */
@@ -1088,22 +1127,6 @@ function drawMap(ctx, area, model){
       ctx.strokeText(poi.label, left, baseline);
       ctx.fillStyle = RS.INK; ctx.fillText(poi.label, left, baseline);
     }
-  }
-
-  /* Flèche de position */
-  {
-    const size = clamp(area.h*0.085, 14, 30);
-    const radius = size*CORNER_RATIO, body = size-radius;
-    ctx.beginPath();
-    ctx.moveTo(riderX, riderY-body);
-    ctx.lineTo(riderX + body*ARROW_HALF_WIDTH, riderY + body*ARROW_BASE);
-    ctx.lineTo(riderX, riderY + body*ARROW_NOTCH);
-    ctx.lineTo(riderX - body*ARROW_HALF_WIDTH, riderY + body*ARROW_BASE);
-    ctx.closePath();
-    ctx.lineJoin = "round"; ctx.lineCap = "round";
-    ctx.strokeStyle = ARROW_BORDER_COLOR; ctx.lineWidth = radius*2 + ARROW_BORDER_WIDTH*2; ctx.stroke();
-    ctx.strokeStyle = ARROW_COLOR; ctx.lineWidth = radius*2; ctx.stroke();
-    ctx.fillStyle = ARROW_COLOR; ctx.fill();
   }
 
   /* Échelle */
@@ -1170,7 +1193,7 @@ function layout(hasBand){
           contentHeight, bandHeight};
 }
 const ZONES = (() => {
-  const L = layout(false);
+  const L = layout(true);
   return [
     {k:"A", x:L.padding, y:L.row(0), w:W-2*L.padding, h:L.rowHeight},
     {k:"B", x:L.padding, y:L.row(1), w:L.columnSplit-L.padding, h:L.rowHeight},
@@ -1189,7 +1212,8 @@ function renderDashboard(canvas, zoom){
   ctx.textBaseline = "alphabetic";
 
   const m = model();
-  const L = layout(false);
+  // Le bandeau est là dès qu'on navigue : la carte n'a donc plus 334 points de haut mais 300.
+  const L = layout(true);
 
   /* Bandeau du haut */
   const topWidth = (W - 2*L.padding)/TOP_TILES;
@@ -1209,7 +1233,7 @@ function renderDashboard(canvas, zoom){
   /* Minicarte */
   drawMap(ctx,
     {x:L.columnSplit, y:L.row(1), w:L.right-L.columnSplit, h:L.rowHeight*GUIDANCE_ROWS},
-    {rangeMeters: zoom.range, chevronRangeMeters: zoom.chevron});
+    {rangeMeters: zoom.range});
 
   /* Transmission */
   drawDrivetrain(ctx, {x:L.padding, y:L.row(1), w:L.columnSplit-L.padding, h:L.rowHeight},
@@ -1223,15 +1247,18 @@ function renderDashboard(canvas, zoom){
   drawTiles(ctx,
     m.footerTiles.map((_,i) => ({x:L.padding+i*footerWidth, y:L.footerTop, w:footerWidth, h:L.footerBottom-L.footerTop})),
     m.footerTiles, FOOTER_VALUE_HEIGHT_FRACTION, FOOTER_LABEL_HEIGHT_FRACTION);
+
+  /* Bandeau de profil */
+  drawClimbBand(ctx, {x:0, y:L.contentHeight, w:W, h:L.bandHeight}, SAMPLE_BAND);
 }
 
 /* ============================================================
    Assemblage de la page
    ============================================================ */
 const ZOOMS = [
-  {name:"Près",  range:200,  chevron:300},
-  {name:"Moyen", range:500,  chevron:800},
-  {name:"Loin",  range:1000, chevron:1300}
+  {name:"Près",  range:200},
+  {name:"Moyen", range:500},
+  {name:"Loin",  range:1000}
 ];
 const NEAR = ZOOMS[0];
 
@@ -1246,7 +1273,7 @@ function drawAll(){
     ctx.setTransform(scale,0,0,scale,0,0);
     ctx.clearRect(0,0,234,334);
     ctx.textBaseline = "alphabetic";
-    drawMap(ctx, {x:0,y:0,w:234,h:333.48}, {rangeMeters:z.range, chevronRangeMeters:z.chevron});
+    drawMap(ctx, {x:0,y:0,w:234,h:299.6}, {rangeMeters:z.range});
   });
   drawBand();
 }
@@ -1292,7 +1319,7 @@ function drawAll(){
     + '<canvas data-range="'+z.range+'" width="468" height="668" style="width:100%;height:auto"'
     + ' aria-label="Minicarte à '+z.range+' mètres"></canvas>'
     + '<figcaption><b>'+(z.range>=1000 ? (z.range/1000)+" km" : z.range+" m")+'</b>'
-    + 'Chevrons sur les '+z.chevron+' prochains mètres.</figcaption>'
+    + 'Le fond s\'éteint en s\'écartant du tracé.</figcaption>'
     + '</figure></div>'
   )).join("");
 })();
@@ -1305,11 +1332,8 @@ function drawBand(){
   ctx.setTransform(scale,0,0,scale,0,0);
   ctx.clearRect(0,0,468,80);
   ctx.textBaseline = "alphabetic";
-  // Première côte de l'itinéraire d'aperçu : 2 400 → 5 000 m, relevés du profil tels quels.
-  drawClimbBand(ctx, {x:0,y:0,w:468,h:80}, {
-    start:2400, end:5000, position:3400, label:"1/2",
-    points:[[2400,246],[3000,300],[4000,420],[5000,470]]
-  });
+  // Les deux kilomètres autour du coureur : deux cents derrière, mille huit cents devant.
+  drawClimbBand(ctx, {x:0,y:0,w:468,h:80}, SAMPLE_BAND);
 }
 (function grades(){
   const bands = [
