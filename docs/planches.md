@@ -16,7 +16,7 @@ sont ceux des sources.
 > en Roboto, plus étroit que la fonte système d'un navigateur, et les libellés — dont le corps
 > s'ajuste à la largeur disponible — sortent donc un peu plus petits ici que sur l'appareil.
 
-Version reproduite : **`6e874b8`**.
+Version reproduite : **`2d60960`**.
 
 ## La page interactive
 
@@ -54,7 +54,7 @@ tourner au bon carrefour.
 | --- | --- | --- |
 | **A** | Bandeau d'effort | Vitesse, cadence, puissance sur 3 secondes. Vitesse et puissance prennent un aplat : vert au-dessus de la moyenne de la sortie, et la couleur de la zone réglée dans le Karoo. |
 | **B** | Transmission | Plateaux à gauche, pignons à droite, même pas d'un peigne à l'autre. Les barres suivent la denture : le peigne des plateaux monte, celui des pignons descend, le rapport n° 1 étant le petit plateau mais le grand pignon. La barre allumée est en blanc — c'est un chiffre qu'on lit, pas un voyant. Un mono-plateau n'affiche que la cassette. |
-| **C** | Minicarte | Cap en haut, coureur fixe aux quatre cinquièmes de la hauteur. Fond noir, voies blanches dont le rang se lit à la seule épaisseur, et qui s'éteignent vers le noir en s'écartant de l'itinéraire : la carte ne montre qu'un couloir autour de ce qu'on va faire. Le tracé est un ruban bleu, plein devant le coureur et s'effaçant derrière lui, jalonné de doubles chevrons noirs bornés aux prochaines centaines de mètres. Pas de flèche : le ruban plein dit déjà où l'on est. Le tracé se coupe à l'aplomb du coureur, projeté sur le segment et non sur le sommet le plus proche — sans quoi la coupure attendait le coureur puis sautait au sommet suivant. Hors itinéraire, il passe au rouge. |
+| **C** | Minicarte | Cap en haut, coureur fixe aux quatre cinquièmes de la hauteur. Fond noir, voies blanches dont le rang se lit à la seule épaisseur, et qui s'éteignent vers le noir en s'écartant de l'itinéraire : la carte ne montre qu'un couloir autour de ce qu'on va faire. Le tracé est un ruban bleu, plein devant le coureur et s'effaçant derrière lui, jalonné de doubles chevrons noirs, coupés aux bords du ruban et bornés aux prochaines centaines de mètres. Pas de flèche : le ruban plein dit déjà où l'on est. Le tracé se coupe à l'aplomb du coureur, projeté sur le segment et non sur le sommet le plus proche — sans quoi la coupure attendait le coureur puis sautait au sommet suivant. Hors itinéraire, il passe au rouge. |
 | **D** | Fréquence cardiaque | Aplat de zone, encre noire ou blanche selon le contraste perceptuel APCA : le jaune tempo réclame du noir, le rouge anaérobie non. Le numéro de zone est écrit à gauche de la valeur : l'aplat le disait déjà, mais de mémoire seulement — et le saumon de la zone 4 tient de près à l'orange de la zone 5. La place était libre, la valeur étant alignée à droite. |
 | **E** | Distance et pente | Une seule taille de chiffres pour ce rang et celui du dessus : sans cela « 96,9 » s'écrirait plus petit que « 4 » et l'œil ne saurait plus laquelle est laquelle. |
 | **F** | Fin de parcours | Ce qu'il reste et l'heure d'arrivée estimée — les deux seules valeurs qu'on regarde quand on ne regarde plus rien d'autre. |

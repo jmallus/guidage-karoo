@@ -988,8 +988,8 @@ const SAMPLE_BAND = {start:3200, end:5200, position:3400, label:"1/2 — 1,48 km
 const BEHIND_FADE_FRACTION = 0.17, FADE_STEP = 3, MAX_FADE_STEPS = 24;
 // Le double chevron noir, en part de l'épaisseur du ruban. Calibre retenu sur planche :
 // plus écarté et plus gras il déborde du bleu dans les virages, plus fin il manque de corps.
-const CHEVRON_SPACING_RATIO = 3.41, CHEVRON_GAP_RATIO = 0.53;
-const CHEVRON_SIZE_RATIO = 0.38, CHEVRON_STROKE_RATIO = 0.20;
+const CHEVRON_SPACING_RATIO = 3.88, CHEVRON_GAP_RATIO = 0.71;
+const CHEVRON_SIZE_RATIO = 0.689, CHEVRON_STROKE_RATIO = 0.235;
 const CHEVRON_SWEEP = 1.6, CHEVRON_ARM = 0.9, CHEVRON_COLOR = "#000000";
 const POI_COLOR = "#1B5E9A";
 
@@ -1141,9 +1141,13 @@ function drawMap(ctx, area, model){
       const tipX = x + ux*size, tipY = y + uy*size;
       const bX = tipX - ux*size*CHEVRON_SWEEP, bY = tipY - uy*size*CHEVRON_SWEEP;
       const aX = px*size*CHEVRON_ARM, aY = py*size*CHEVRON_ARM;
-      ctx.moveTo(bX+aX, bY+aY); ctx.lineTo(tipX, tipY); ctx.lineTo(bX-aX, bY-aY);
+      cctx.moveTo(bX+aX, bY+aY); cctx.lineTo(tipX, tipY); cctx.lineTo(bX-aX, bY-aY);
     };
-    ctx.beginPath();
+    const layer = document.createElement("canvas");
+    layer.width = Math.ceil(area.w); layer.height = Math.ceil(area.h);
+    const cctx = layer.getContext("2d");
+    cctx.translate(-area.x, -area.y);
+    cctx.beginPath();
     // Les deux pointes d'une paire sont posées à l'abscisse curviligne : le long du segment
     // courant, la seconde disparaissait dès qu'elle tombait au-delà d'un sommet.
     for (let s0 = spacing; s0 <= Math.min(limit, total); s0 += spacing) {
@@ -1155,7 +1159,19 @@ function drawMap(ctx, area, model){
         put(at[0], at[1], at[2], at[3]);
       }
     }
-    ctx.lineWidth = stroke; ctx.strokeStyle = CHEVRON_COLOR; ctx.stroke();
+    cctx.lineWidth = stroke; cctx.strokeStyle = CHEVRON_COLOR;
+    cctx.lineCap = "butt"; cctx.lineJoin = "miter"; cctx.miterLimit = 4;
+    cctx.stroke();
+    // Le ruban sert de gabarit : ce qui dépasse est coupé, les branches viennent donc
+    // exactement à ses bords, d'un bout plat, sans déborder sur le fond dans les virages.
+    cctx.globalCompositeOperation = "destination-in";
+    cctx.lineWidth = width; cctx.lineCap = "round"; cctx.lineJoin = "round";
+    cctx.strokeStyle = "#000000";
+    cctx.beginPath();
+    remaining.forEach((q,i) => i ? cctx.lineTo(q.x,q.y) : cctx.moveTo(q.x,q.y));
+    cctx.stroke();
+    ctx.drawImage(layer, area.x, area.y);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
   }
 
   // La part faite s'éteint le long du tracé, non en hauteur d'écran : sur une épingle, la
@@ -1177,8 +1193,11 @@ function drawMap(ctx, area, model){
       }
       const steps = Math.min(Math.floor(len/FADE_STEP) + 1, MAX_FADE_STEPS);
       for (let k = 0; k < steps; k++) {
-        const t0 = k/steps, t1 = (k+1)/steps;
-        const d = travelled + len*(t0+t1)/2;
+        const t0 = k/steps, tn = (k+1)/steps;
+        // Un demi-pixel de recouvrement : deux tronçons à bout carré jointifs laissent un
+        // cheveu entre eux, et le ruban s'en trouve rayé.
+        const t1 = Math.min(1, tn + 0.5/len);
+        const d = travelled + len*(t0+tn)/2;
         ctx.globalAlpha = Math.max(0, 1 - d/fadeLength);
         ctx.beginPath();
         ctx.moveTo(toX + (fromX-toX)*t0, toY + (fromY-toY)*t0);

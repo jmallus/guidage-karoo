@@ -366,8 +366,21 @@ object MapRenderer {
             add(here.point)
             addAll(screenPath.subList(here.index, screenPath.size))
         }
-        canvas.drawPath(polyline(ahead), paint)
+        val aheadPath = polyline(ahead)
+        canvas.drawPath(aheadPath, paint)
+
+        // Les chevrons sont dessinés plus larges que le ruban puis coupés par lui : leurs
+        // branches viennent donc exactement à ses bords, d'un bout plat, et ne peuvent pas
+        // déborder sur le fond dans les virages — où le noir s'y confondrait. Calculer la
+        // demi-envergure juste ne suffisait pas : le ruban tourne, sa largeur perpendiculaire
+        // au chevron n'est pas la sienne, et le coin du trait passait outre.
+        val ribbon = Path()
+        paint.getFillPath(aheadPath, ribbon)
+        val clip = canvas.save()
+        canvas.clipPath(ribbon)
         drawChevrons(canvas, area, ahead, width, chevronLimit)
+        canvas.restoreToCount(clip)
+
         drawFadingBehind(canvas, screenPath, here, paint, tint, fadeLength)
     }
 
@@ -457,8 +470,8 @@ object MapRenderer {
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
                 strokeWidth = stroke
-                strokeCap = Paint.Cap.ROUND
-                strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.BUTT
+                strokeJoin = Paint.Join.MITER
                 color = CHEVRON_COLOR
             },
         )
@@ -519,8 +532,11 @@ object MapRenderer {
             val steps = ((length / FADE_STEP).toInt() + 1).coerceAtMost(MAX_FADE_STEPS)
             for (step in 0 until steps) {
                 val t0 = step.toFloat() / steps
-                val t1 = (step + 1).toFloat() / steps
-                val distance = travelled + length * (t0 + t1) / 2f
+                // Un demi-pixel de recouvrement : deux tronçons à bout carré strictement
+                // jointifs laissent un cheveu entre eux, l'antialiasing ne couvrant
+                // complètement ni l'un ni l'autre — le ruban s'en trouvait rayé.
+                val t1 = ((step + 1).toFloat() / steps + SEAM_OVERLAP / length).coerceAtMost(1f)
+                val distance = travelled + length * (t0 + (step + 1).toFloat() / steps) / 2f
                 paint.color = tint
                 paint.alpha = (255f * (1f - distance / fadeLength)).toInt().coerceIn(0, 255)
                 canvas.drawLine(
@@ -690,14 +706,14 @@ object MapRenderer {
     /**
      * Le double chevron, en part de l'épaisseur du ruban.
      *
-     * Trois calibres ont été mis côte à côte à la taille de l'appareil. Plus écartés et plus
-     * gras, ils débordent du bleu dans les virages ; plus fins, ils manquent de corps sur
-     * quinze millimètres de large. Ceux-ci restent contenus dans le ruban partout.
+     * Trois calibres ont été mis côte à côte à la taille de l'appareil ; celui-ci a été
+     * retenu. La demi-envergure vaut plus que la demi-largeur du ruban : c'est voulu, le
+     * ruban servant de gabarit qui coupe ce qui dépasse.
      */
-    private const val CHEVRON_SPACING_RATIO = 3.41f
-    private const val CHEVRON_GAP_RATIO = 0.53f
-    private const val CHEVRON_SIZE_RATIO = 0.38f
-    private const val CHEVRON_STROKE_RATIO = 0.20f
+    private const val CHEVRON_SPACING_RATIO = 3.88f
+    private const val CHEVRON_GAP_RATIO = 0.71f
+    private const val CHEVRON_SIZE_RATIO = 0.689f
+    private const val CHEVRON_STROKE_RATIO = 0.235f
 
     /** Recul des branches derrière la pointe, et leur écartement, en part de la taille. */
     private const val CHEVRON_SWEEP = 1.6f
@@ -708,6 +724,9 @@ object MapRenderer {
 
     /** Longueur d'un tronçon du fondu, et garde-fou contre un segment démesuré. */
     private const val FADE_STEP = 3f
+
+    /** Recouvrement entre deux tronçons du fondu, en pixels. */
+    private const val SEAM_OVERLAP = 0.5f
     private const val MAX_FADE_STEPS = 24
 
     /** Rouge du hors-itinéraire : celui du Karoo, pour dire la même chose de la même façon. */

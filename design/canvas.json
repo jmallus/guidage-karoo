@@ -6,60 +6,23 @@
       "y": 0,
       "w": 234,
       "h": 300,
-      "title": "Serré — retenu"
-    },
-    {
-      "file": "ChevronB.dc.html",
-      "x": 334,
-      "y": 0,
-      "w": 234,
-      "h": 300,
-      "title": "Écarté et gras"
-    },
-    {
-      "file": "ChevronC.dc.html",
-      "x": 668,
-      "y": 0,
-      "w": 234,
-      "h": 300,
-      "title": "Fin"
+      "title": "Double chevron — retenu"
     }
   ],
   "annotations": [
     {
-      "id": "note-cadre",
-      "x": 0,
-      "y": -300,
-      "w": 900,
-      "text": "Double chevron noir, sur la carte telle qu'elle est et à ses cotes réelles (234 × 300 px). Trois calibres, qui ne diffèrent que par l'écartement des paires, l'écart entre les deux pointes et la graisse du trait. Le noir ne pose pas le problème que j'avais annoncé : les chevrons ne jalonnent que l'avant, où le ruban est plein — le fondu n'est qu'en arrière, où il n'y en a pas."
-    },
-    {
-      "id": "note-a",
-      "x": 0,
-      "y": -150,
-      "w": 300,
-      "text": "Serré — une paire tous les 58 px (48 m à la portée 200), 9 px entre les deux pointes, trait de 3,4. Retenu : lisible et entièrement contenu dans le ruban, même dans les virages."
-    },
-    {
-      "id": "note-b",
+      "id": "note",
       "x": 334,
-      "y": -150,
-      "w": 300,
-      "text": "Écarté et gras — 66 px, 12 px, trait de 4. Le plus visible, mais il déborde du bleu là où le tracé tourne, et ce débord noir mord alors sur le fond."
-    },
-    {
-      "id": "note-c",
-      "x": 668,
-      "y": -150,
-      "w": 300,
-      "text": "Fin — 52 px, 8 px, trait de 2,8. Plus discret, mais à quinze millimètres de large sur l'appareil il manque de corps."
+      "y": 0,
+      "w": 420,
+      "text": "Double chevron noir, calibre du milieu des trois essayés : une paire tous les 66 px (55 m à la portée 200), 12 px entre les deux pointes, trait de 4. Les branches sont dessinées plus larges que le ruban puis COUPÉES par lui : elles viennent donc exactement à ses bords, d'un bout plat, et ne peuvent pas déborder sur le fond dans les virages — où le noir s'y confondrait. Calculer la demi-envergure juste ne suffisait pas : le ruban tourne, sa largeur perpendiculaire au chevron n'est pas la sienne, et le coin du trait passait outre."
     },
     {
       "id": "note-borne",
-      "x": 0,
-      "y": 360,
-      "w": 900,
-      "text": "Les chevrons sont bornés aux 300, 800 ou 1 300 prochains mètres selon la portée, comme avant leur suppression : sur une boucle qui repasse par son départ, la branche du retour est à quelques mètres et en plein dans le couloir — sans borne, ses chevrons désigneraient une direction qui n'est pas celle du moment. Hors itinéraire la borne saute, le point d'où elle se compte n'existant plus."
+      "x": 334,
+      "y": 180,
+      "w": 420,
+      "text": "Bornés aux 300, 800 ou 1 300 prochains mètres selon la portée : sur une boucle qui repasse par son départ, la branche du retour est à quelques mètres et en plein dans le couloir. Les deux pointes d'une paire sont posées à l'abscisse curviligne, sans quoi la seconde disparaissait dès qu'elle tombait au-delà d'un sommet."
     }
   ],
   "launch": {
