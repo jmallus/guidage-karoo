@@ -374,7 +374,13 @@ object DashboardRenderer {
         // fenêtre n'étant plus cadrée sur la côte, le profil peut désormais y passer : le
         // cerne sombre du libellé est ce qui le garde lisible dans ce cas.
         model.label?.let { label ->
-            val size = (area.height() * 0.42f).coerceIn(11f, 22f)
+            // Le libellé ne porte plus seulement un rang mais une phrase — « 1/4 — 1,48 km du
+            // sommet » —, et le corps qui allait pour « 1/4 » la ferait courir jusqu'au milieu
+            // de la bande, par-dessus le profil. Il se réduit jusqu'à tenir dans sa part.
+            var size = (area.height() * 0.42f).coerceIn(11f, 22f)
+            val maxWidth = area.width() * CLIMB_LABEL_WIDTH
+            val measured = paint(size, 0, Typeface.DEFAULT_BOLD).measureText(label)
+            if (measured > maxWidth) size = (size * maxWidth / measured).coerceAtLeast(9f)
             val x = area.left + 4f
             val baseline = area.top + size
             canvas.drawText(
@@ -442,6 +448,9 @@ object DashboardRenderer {
 
     /** Voile posé sur la part déjà parcourue du bandeau. */
     private const val BEHIND_DIM_ALPHA = 0x9E
+
+    /** Part de la largeur du bandeau laissée au libellé de côte. */
+    private const val CLIMB_LABEL_WIDTH = 0.62f
 
     // --- Cases de chiffres ---------------------------------------------------------------
 

@@ -376,6 +376,10 @@ object MapRenderer {
         fadeLength: Float,
     ) {
         if (fadeLength <= 0f) return
+        // Bout carré, et non rond : un tronçon à bout rond déborde d'une demi-épaisseur sur
+        // le suivant, et deux translucides qui se recouvrent font une perle plus sombre. Le
+        // ruban en paraissait chapeleté au lieu de s'éteindre.
+        paint.strokeCap = Paint.Cap.BUTT
         var travelled = 0f
         var toX = here.point.x.toFloat()
         var toY = here.point.y.toFloat()
@@ -565,7 +569,7 @@ object MapRenderer {
     private const val BEHIND_FADE_FRACTION = 0.17f
 
     /** Longueur d'un tronçon du fondu, et garde-fou contre un segment démesuré. */
-    private const val FADE_STEP = 4f
+    private const val FADE_STEP = 3f
     private const val MAX_FADE_STEPS = 24
 
     /** Rouge du hors-itinéraire : celui du Karoo, pour dire la même chose de la même façon. */

@@ -870,13 +870,19 @@ function drawClimbBand(ctx, area, band){
     ctx.strokeStyle = "#000000"; ctx.lineWidth = 1.5; ctx.stroke();
   }
   if (band.label){
-    const size = clamp(area.h*0.42, 11, 22);
-    const x = area.x + 4, baseline = area.y + size;
+    // Le libellé se réduit jusqu'à tenir dans sa part de la bande : il porte désormais une
+    // phrase, non plus un simple rang.
+    let size = clamp(area.h*0.42, 11, 22);
     ctx.font = fontBold(size);
-    ctx.strokeStyle = "#1A1A1A"; ctx.lineWidth = size*0.22; ctx.lineJoin = "round";
-    ctx.strokeText(band.label, x, baseline);
+    const measured = ctx.measureText(band.label).width;
+    const maxWidth = area.w*0.62;
+    if (measured > maxWidth) size = Math.max(size*maxWidth/measured, 9);
+    ctx.font = fontBold(size);
+    const bx = area.x + 4, baseline = area.y + size;
+    ctx.strokeStyle = "#000000"; ctx.lineWidth = size*0.22; ctx.lineJoin = "round";
+    ctx.strokeText(band.label, bx, baseline);
     ctx.fillStyle = PAL.textPrimary;
-    ctx.fillText(band.label, x, baseline);
+    ctx.fillText(band.label, bx, baseline)
   }
 }
 function elevationAt(pts, d){
@@ -937,14 +943,18 @@ const ROADS = [
   seg("PATH",     [[180,0],[260,160],[320,330]], "UNPAVED"),
   seg("FOOTWAY",  [[-160,340],[-60,300],[0,250]])
 ];
-const PATH = Array.from({length:121}, (_,step) => {
+// Le tracé part de six cents mètres EN AMONT du coureur, qui se tient au pas 10 : sans
+// cette part déjà faite, le fondu arrière n'a rien à dessiner et la planche laisserait
+// croire que le ruban se coupe net sous la flèche.
+const PATH = Array.from({length:131}, (_,i) => {
+  const step = i - 10;
   const meters = step*60, wander = Math.sin(step/6)*250;
   return {
     lat: LOC.lat + (meters*Math.cos(Math.PI/6) + wander)/110540,
     lng: LOC.lng + (meters*Math.sin(Math.PI/6) - wander)/78700
   };
 });
-const POIS = [{position: PATH[16], label:"Fontaine"}];
+const POIS = [{position: PATH[26], label:"Fontaine"}];
 
 /* ============================================================
    MapRenderer — port
@@ -974,8 +984,8 @@ const ROUTE_COLOR = "#2E8BFF", OFF_ROUTE_COLOR = "#FC292B";
 // couleurs de pente, et aucune teinte ne se détache sur les sept à la fois.
 const SLICE_METERS = 100, RIDGE_LINE = "#FFFFFF";
 /* Profil d'exemple : 2 km, un relevé tous les 100 m, pentes variées. */
-const SAMPLE_BAND = {start:3200, end:5200, position:3400, label:"1/2", points:[[3200,246.0],[3300,247.5],[3400,249.9],[3500,253.0],[3600,257.2],[3700,262.8],[3800,269.6],[3900,277.0],[4000,285.9],[4100,295.4],[4200,306.6],[4300,319.4],[4400,329.8],[4500,338.0],[4600,344.1],[4700,349.4],[4800,357.2],[4900,366.3],[5000,372.7],[5100,375.9],[5200,377.7]]};
-const BEHIND_FADE_FRACTION = 0.17, FADE_STEP = 4, MAX_FADE_STEPS = 24;
+const SAMPLE_BAND = {start:3200, end:5200, position:3400, label:"1/2 — 1,48 km du sommet", points:[[3200,246.0],[3300,247.5],[3400,249.9],[3500,253.0],[3600,257.2],[3700,262.8],[3800,269.6],[3900,277.0],[4000,285.9],[4100,295.4],[4200,306.6],[4300,319.4],[4400,329.8],[4500,338.0],[4600,344.1],[4700,349.4],[4800,357.2],[4900,366.3],[5000,372.7],[5100,375.9],[5200,377.7]]};
+const BEHIND_FADE_FRACTION = 0.17, FADE_STEP = 3, MAX_FADE_STEPS = 24;
 const POI_COLOR = "#1B5E9A";
 
 function routeWidth(rangeMeters){
@@ -1097,6 +1107,9 @@ function drawMap(ctx, area, model){
   // branche qu'on vient de faire revient à côté de soi sans être plus bas.
   {
     const fadeLength = area.h*BEHIND_FADE_FRACTION;
+    // Bout carré : à bout rond, chaque tronçon déborde sur le suivant et deux translucides
+    // qui se recouvrent font une perle plus sombre — le ruban paraissait chapeleté.
+    ctx.lineCap = "butt";
     let travelled = 0, toX = anchor.x, toY = anchor.y;
     for (let i = here-1; i >= 0 && travelled < fadeLength; i--) {
       let fromX = screen[i].x, fromY = screen[i].y;
@@ -1121,6 +1134,7 @@ function drawMap(ctx, area, model){
       travelled += len;
       toX = screen[i].x; toY = screen[i].y;
     }
+    ctx.lineCap = "round";
   }
 
   /* Points d'intérêt */

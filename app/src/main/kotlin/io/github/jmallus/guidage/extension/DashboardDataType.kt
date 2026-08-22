@@ -48,6 +48,7 @@ import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
 import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.ViewConfig
+import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -158,7 +159,7 @@ class DashboardDataType(
             heartRateTile = heartRateTile(context, rideData),
             midTiles = midTiles(context, units, rideData),
             footerTiles = footerTiles(context, units, rideData),
-            climbBand = climbBand(state, rideData),
+            climbBand = climbBand(state, units),
             palette = FieldPalette.of(context),
         )
     }
@@ -175,10 +176,12 @@ class DashboardDataType(
      * et mille huit cents devant. Son repère reste donc immobile au dixième gauche de la
      * bande, et c'est le profil qui défile dessous.
      *
-     * Le rang de la côte — « 1/5 » — reste porté quand il y en a une en vue ; c'est le seul
-     * reste de l'ancien cadrage.
+     * Le rang de la côte reste porté quand il y en a une en vue, suivi de la distance qui
+     * reste jusqu'à son sommet — « 1/4 — 1,48 km du sommet ». Le rang seul disait combien de
+     * bosses restaient, jamais où l'on en était de celle-ci ; c'est pourtant la seule chose
+     * qu'on veut savoir en la montant.
      */
-    private fun climbBand(state: GuidanceState, rideData: RideData): ClimbBandModel? {
+    private fun climbBand(state: GuidanceState, units: Units): ClimbBandModel? {
         val route = state.route ?: return null
         val along = state.distanceAlongRoute ?: return null
         val window = Guidance.profileWindow(
@@ -192,11 +195,24 @@ class DashboardDataType(
             window = window,
             position = along,
             positionElevation = route.profile?.elevationAt(along),
-            label = rideData.climb.label
-                ?: Guidance.climbStatus(route, along)
-                    ?.takeIf { it.distanceToStart <= CLIMB_BAND_LOOKAHEAD }
-                    ?.let { "${it.number}/${it.totalClimbs}" },
+            label = Guidance.climbStatus(route, along)
+                ?.takeIf { it.onClimb || it.distanceToStart <= CLIMB_BAND_LOOKAHEAD }
+                ?.let { "${it.number}/${it.totalClimbs} — ${toSummit(it.distanceToTop, units)}" },
         )
+    }
+
+    /**
+     * Distance au sommet, au centième de kilomètre au-delà du kilomètre.
+     *
+     * Le formateur commun arrondit au dixième, ce qui suffit partout ailleurs — mais dans une
+     * côte on regarde ce chiffre toutes les vingt secondes, et un dixième de kilomètre y reste
+     * figé assez longtemps pour donner l'impression qu'on n'avance plus. Sous le kilomètre, on
+     * revient aux mètres : « 480 m du sommet » se lit mieux que « 0,48 km ».
+     */
+    private fun toSummit(meters: Double, units: Units): String = when {
+        units != Units.METRIC -> "${Format.distance(meters, units)} du sommet"
+        meters < 1_000 -> "${(meters / 10).roundToInt() * 10} m du sommet"
+        else -> String.format(Locale.getDefault(), "%.2f km du sommet", meters / 1_000)
     }
 
     private fun mapModel(
