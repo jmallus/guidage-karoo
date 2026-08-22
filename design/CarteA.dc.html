@@ -18,14 +18,19 @@
       <!-- Le couloir : la trace elle-même, tracée très large et fondue. Les routes en
            reçoivent leur opacité, si bien qu'elles s'éteignent vers le noir à mesure
            qu'elles s'écartent de l'itinéraire — devant comme derrière, la distance à la
-           trace étant seule à compter. Serré : plein jusqu'à 75 m, éteint vers 150 m. -->
+           trace étant seule à compter. Fondu marqué : plein sur la trace, éteint vers 90 m. -->
       <filter id="a-soft" x="-60%" y="-60%" width="220%" height="220%">
-        <feGaussianBlur stdDeviation="30"/>
+        <feGaussianBlur stdDeviation="12"/>
       </filter>
       <mask id="a-couloir">
-        <path d="M112 342 C114 315 117 290 117 267 C117 236 138 216 145 188 C152 158 136 132 139 104 C142 68 158 46 155 -6"
-              fill="none" stroke="#ffffff" stroke-width="200"
-              stroke-linecap="round" stroke-linejoin="round" filter="url(#a-soft)"/>
+        <g filter="url(#a-soft)">
+            <path d="M112 342 C114 315 117 290 117 267 C117 236 138 216 145 188 C152 158 136 132 139 104 C142 68 158 46 155 -6" fill="none" stroke="#ffffff" stroke-width="240" stroke-opacity="0.1" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M112 342 C114 315 117 290 117 267 C117 236 138 216 145 188 C152 158 136 132 139 104 C142 68 158 46 155 -6" fill="none" stroke="#ffffff" stroke-width="190" stroke-opacity="0.26" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M112 342 C114 315 117 290 117 267 C117 236 138 216 145 188 C152 158 136 132 139 104 C142 68 158 46 155 -6" fill="none" stroke="#ffffff" stroke-width="145" stroke-opacity="0.46" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M112 342 C114 315 117 290 117 267 C117 236 138 216 145 188 C152 158 136 132 139 104 C142 68 158 46 155 -6" fill="none" stroke="#ffffff" stroke-width="100" stroke-opacity="0.68" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M112 342 C114 315 117 290 117 267 C117 236 138 216 145 188 C152 158 136 132 139 104 C142 68 158 46 155 -6" fill="none" stroke="#ffffff" stroke-width="60" stroke-opacity="0.86" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M112 342 C114 315 117 290 117 267 C117 236 138 216 145 188 C152 158 136 132 139 104 C142 68 158 46 155 -6" fill="none" stroke="#ffffff" stroke-width="26" stroke-opacity="1.0" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
       </mask>
       <!-- La trace ne s'éteint qu'en arrière : à partir du coureur (20 % du bas) et
            jusqu'en haut, elle est pleine. -->

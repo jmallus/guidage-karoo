@@ -15,9 +15,16 @@
 <div style="position: relative; width: 480px; height: 800px; background: #000000; overflow: hidden">
   <svg width="480" height="800" viewBox="0 0 480 800" style="display:block" font-family="Roboto Condensed, system-ui, sans-serif">
     <defs>
-      <filter id="m-soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="30"/></filter>
+      <filter id="m-soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="12"/></filter>
       <mask id="m-couloir">
-        <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="200" stroke-linecap="round" stroke-linejoin="round" filter="url(#m-soft)"/>
+        <g filter="url(#m-soft)">
+            <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="240" stroke-opacity="0.1" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="190" stroke-opacity="0.26" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="145" stroke-opacity="0.46" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="100" stroke-opacity="0.68" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="60" stroke-opacity="0.86" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="26" stroke-opacity="1.0" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
       </mask>
       <linearGradient id="m-trace" x1="0" y1="299.62559999999996" x2="0" y2="0" gradientUnits="userSpaceOnUse">
         <stop offset="0%" stop-color="#2E8BFF" stop-opacity="0"/>
