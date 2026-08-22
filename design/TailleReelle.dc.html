@@ -9,23 +9,23 @@
 <helmet>
   <style>
     body { margin: 0; font-family: "Roboto Condensed", system-ui, sans-serif; }
-    a { color: #2E8BFF; } a:hover { color: #79B4FF; }
   </style>
 </helmet>
-<div style="position: relative; width: 480px; height: 800px; background: #000000; overflow: hidden">
-  <svg width="480" height="800" viewBox="0 0 480 800" style="display:block" font-family="Roboto Condensed, system-ui, sans-serif">
+<div style="position: relative; width: 420px; height: 310px; background: #14171A; overflow: hidden">
+  <div style="position:absolute;left:20px;top:20px;width:31.34mm;height:52.24mm;overflow:hidden;box-shadow:0 0 0 1px #3A4046">
+    <svg width="100%" height="100%" viewBox="0 0 480 800" style="display:block" font-family="Roboto Condensed, system-ui, sans-serif">
     <defs>
-      <filter id="m-soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="30"/></filter>
-      <mask id="m-couloir">
-        <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="200" stroke-linecap="round" stroke-linejoin="round" filter="url(#m-soft)"/>
+      <filter id="t-soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="30"/></filter>
+      <mask id="t-couloir">
+        <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="200" stroke-linecap="round" stroke-linejoin="round" filter="url(#t-soft)"/>
       </mask>
-      <linearGradient id="m-trace" x1="0" y1="299.62559999999996" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+      <linearGradient id="t-trace" x1="0" y1="299.62559999999996" x2="0" y2="0" gradientUnits="userSpaceOnUse">
         <stop offset="0%" stop-color="#2E8BFF" stop-opacity="0"/>
         <stop offset="12%" stop-color="#2E8BFF" stop-opacity="0.18"/>
         <stop offset="20%" stop-color="#2E8BFF" stop-opacity="1"/>
         <stop offset="100%" stop-color="#2E8BFF" stop-opacity="1"/>
       </linearGradient>
-      <clipPath id="m-clip"><path d="M0 62 L0 62.00 L24 61.38 L48 60.40 L72 59.13 L96 57.41 L120 55.11 L144 52.32 L168 49.29 L192 45.64 L216 41.75 L240 37.15 L264 31.91 L288 27.64 L312 24.28 L336 21.78 L360 19.61 L384 16.41 L408 12.68 L432 10.05 L456 8.74 L480 8.00 L480 62 Z"/></clipPath>
+      <clipPath id="t-clip"><path d="M0 62 L0 62.00 L24 61.38 L48 60.40 L72 59.13 L96 57.41 L120 55.11 L144 52.32 L168 49.29 L192 45.64 L216 41.75 L240 37.15 L264 31.91 L288 27.64 L312 24.28 L336 21.78 L360 19.61 L384 16.41 L408 12.68 L432 10.05 L456 8.74 L480 8.00 L480 62 Z"/></clipPath>
     </defs>
 
     <rect x="0" y="0" width="480" height="800" fill="#000000"/>
@@ -59,7 +59,7 @@
 
     <!-- Minicarte : 234 × 299.6 — c'est la hauteur qu'elle a bandeau affiché -->
     <svg x="240.0" y="155.8128" width="234.0" height="299.62559999999996" viewBox="0 0 234 299.6">
-      <g mask="url(#m-couloir)">
+      <g mask="url(#t-couloir)">
         <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
           <path d="M-12 224 L246 236" stroke-width="9.3"/>
           <path d="M-12 158 L246 132" stroke-width="8"/>
@@ -70,7 +70,7 @@
           <path d="M139 92 L48 64" stroke-width="4" stroke-dasharray="7 5"/>
         </g>
       </g>
-      <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="url(#m-trace)" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="url(#t-trace)" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
       <g opacity="0.85">
         <line x1="8" y1="288" x2="52" y2="288" stroke="#FFFFFF" stroke-width="2"/>
         <line x1="8" y1="284" x2="8" y2="292" stroke="#FFFFFF" stroke-width="2"/>
@@ -96,7 +96,7 @@
 
     <!-- Bandeau de côte : 480 × 80, toujours affiché -->
     <svg x="0" y="720.0" width="480" height="80" viewBox="0 0 480 80">
-      <g clip-path="url(#m-clip)">
+      <g clip-path="url(#t-clip)">
         <rect x="0" y="0" width="24.5" height="80" fill="#1A8C3A"/>
         <rect x="24" y="0" width="24.5" height="80" fill="#40D078"/>
         <rect x="48" y="0" width="24.5" height="80" fill="#40D078"/>
@@ -128,9 +128,76 @@
       <circle cx="48" cy="60.4" r="5.5" fill="#FFFFFF" stroke="#000000" stroke-width="2.2"/>
     </svg>
   </svg>
+  </div>
+  <div style="position:absolute;left:154px;top:20px;height:52.24mm;width:60px">
+      <div style="position:absolute;top:0mm;left:0;width:11px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:1mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:2mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:3mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:4mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:5mm;left:0;width:7px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:6mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:7mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:8mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:9mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:10mm;left:0;width:11px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:10mm;left:14px;transform:translateY(-50%);font-size:9px;color:#B0BEC5;font-weight:700">10</div>
+      <div style="position:absolute;top:11mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:12mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:13mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:14mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:15mm;left:0;width:7px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:16mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:17mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:18mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:19mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:20mm;left:0;width:11px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:20mm;left:14px;transform:translateY(-50%);font-size:9px;color:#B0BEC5;font-weight:700">20</div>
+      <div style="position:absolute;top:21mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:22mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:23mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:24mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:25mm;left:0;width:7px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:26mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:27mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:28mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:29mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:30mm;left:0;width:11px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:30mm;left:14px;transform:translateY(-50%);font-size:9px;color:#B0BEC5;font-weight:700">30</div>
+      <div style="position:absolute;top:31mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:32mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:33mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:34mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:35mm;left:0;width:7px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:36mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:37mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:38mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:39mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:40mm;left:0;width:11px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:40mm;left:14px;transform:translateY(-50%);font-size:9px;color:#B0BEC5;font-weight:700">40</div>
+      <div style="position:absolute;top:41mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:42mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:43mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:44mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:45mm;left:0;width:7px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:46mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:47mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:48mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:49mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:50mm;left:0;width:11px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:50mm;left:14px;transform:translateY(-50%);font-size:9px;color:#B0BEC5;font-weight:700">50</div>
+      <div style="position:absolute;top:51mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:52mm;left:0;width:4px;height:1px;background:#B0BEC5"></div>
+      <div style="position:absolute;top:52.24mm;left:0;margin-top:7px;font-size:10px;color:#8E979E;white-space:nowrap">millimètres</div>
+  </div>
+  <div style="position:absolute;left:20px;top:233px;width:380px;font-size:11px;line-height:1.5;color:#8E979E">
+    L'écran du Karoo 3 : <b style="color:#CFD8DC">31,34 × 52,24 mm</b>, soit 480 × 800 points sur
+    deux pouces et demi de diagonale. La taille est juste à zoom 1 sur la toile, et à 100 % dans
+    le navigateur — la règle est là pour le vérifier contre une vraie.
+  </div>
 </div>
 </x-dc>
-<script data-dc-script data-props='{"$preview":{"width":480,"height":800}}'>
+<script data-dc-script data-props='{"$preview":{"width":420,"height":310}}'>
 class Component extends DCLogic {}
 </script>
 </body>

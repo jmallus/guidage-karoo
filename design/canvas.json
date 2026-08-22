@@ -1,60 +1,60 @@
 {
   "artboards": [
-    { "file": "CarteA.dc.html", "x": 0, "y": 0, "w": 234, "h": 334, "title": "Fond A — Rien ne s'atténue" },
-    { "file": "CarteB.dc.html", "x": 334, "y": 0, "w": 234, "h": 334, "title": "Fond B — Le passé s'efface" },
-    { "file": "CarteC.dc.html", "x": 668, "y": 0, "w": 234, "h": 334, "title": "Fond C — Le passé se hiérarchise" },
-    { "file": "Main.dc.html", "x": 1002, "y": 0, "w": 480, "h": 454, "title": "En place — Fond A + Profil A" },
-    { "file": "ProfilA.dc.html", "x": 1002, "y": 620, "w": 480, "h": 80, "title": "Profil A — retenu" }
+    { "file": "CarteA.dc.html", "x": 0, "y": 0, "w": 234, "h": 334, "title": "Couloir serré — 75 m" },
+    { "file": "CarteB.dc.html", "x": 334, "y": 0, "w": 234, "h": 334, "title": "Couloir large — 120 m" },
+    { "file": "TailleReelle.dc.html", "x": 668, "y": 0, "w": 420, "h": 310, "title": "L'écran, taille réelle" },
+    { "file": "Main.dc.html", "x": 0, "y": 620, "w": 480, "h": 800, "title": "L'écran entier, en points" },
+    { "file": "ProfilA.dc.html", "x": 600, "y": 620, "w": 480, "h": 80, "title": "Bandeau de côte — retenu" }
   ],
   "annotations": [
     {
-      "id": "note-cadre",
+      "id": "note-couloir",
       "x": 0,
       "y": -300,
-      "w": 460,
-      "text": "Cotes réelles du Karoo 3 : minicarte 234 × 334 px, bandeau 480 × 80 px, coureur aux 4/5 de la hauteur. Aucun code de rendu n'est modifié à ce stade."
+      "w": 560,
+      "text": "L'atténuation ne se mesure plus depuis le coureur ni depuis le bas de l'écran, mais depuis la TRACE : un couloir autour de l'itinéraire, les routes s'éteignant vers le noir à mesure qu'elles s'en écartent, devant comme derrière. Cela rend caduque le choix A/B/C de la version précédente — il ne reste qu'un réglage, la largeur du couloir. La flèche de position est supprimée."
     },
     {
       "id": "note-acquis",
-      "x": 500,
+      "x": 600,
       "y": -300,
-      "w": 460,
-      "text": "Acquis dans les trois : rien de ce qui est DEVANT ne s'atténue jamais — ni le fond, ni la trace. Le dégradé de la trace ne s'éteint donc qu'en arrière. La flèche de position est celle de la navigation Karoo, aux cotes de MapRenderer, en blanc au lieu du jaune. Les voies sont des traits pleins blancs, à la largeur réelle de la chaussée : 9,3 px pour une secondaire à la portée 200 m, 6,7 pour une résidentielle, 4,7 pour une voie de service, 4 tiretés pour un chemin. Une départementale reste une départementale à toutes les échelles."
+      "w": 480,
+      "text": "Le reste est arrêté : traits pleins blancs à la largeur réelle de la chaussée (9,3 px pour une secondaire à la portée 200 m, 6,7 pour une résidentielle, 4,7 pour une voie de service, 4 tiretés pour un chemin) ; trace bleue de 17 px, pleine du coureur jusqu'en haut, éteinte en arrière seulement ; bandeau de côte toujours affiché, repère en point fixe sur la courbe."
     },
     {
-      "id": "note-fond-a",
+      "id": "note-a",
       "x": 0,
       "y": -150,
       "w": 300,
-      "text": "A — Aucune atténuation nulle part. Les voies sont blanches d'un bord à l'autre, devant comme derrière. Le plus lisible et le plus simple à écrire ; en ville, le plus chargé."
+      "text": "Serré — plein jusqu'à 75 m de part et d'autre de la trace, éteint vers 150 m. Le fond ne montre que ce qu'on va couper. Très lisible, mais un carrefour un peu à l'écart n'apparaît qu'au dernier moment."
     },
     {
-      "id": "note-fond-b",
+      "id": "note-b",
       "x": 334,
       "y": -150,
       "w": 300,
-      "text": "B — Derrière le coureur, tout s'efface vers le bas de la carte. Le cinquième bas de l'écran cesse d'encombrer, et l'œil est tiré vers l'avant sans qu'on ait rien perdu de ce qui vient. Ma recommandation."
+      "text": "Large — plein jusqu'à 120 m, seuls les coins s'éteignent. On garde de quoi se situer, le noir ne servant plus qu'à ôter le poids des angles. Ma recommandation : à cette portée, 75 m de chaque côté c'est déjà presque rien."
     },
     {
-      "id": "note-fond-c",
+      "id": "note-taille",
       "x": 668,
       "y": -150,
-      "w": 300,
-      "text": "C — Derrière, les chaussées larges ne font que pâlir, les chemins disparaissent. On garde la grande route qu'on vient de quitter — c'est elle qu'on nomme si l'on doit faire demi-tour — sans garder le lacis autour."
+      "w": 420,
+      "text": "L'écran entier ramené à ses 31,34 × 52,24 mm, règle graduée à côté. C'est là que tout se juge : à cette taille, la carte fait à peine quinze millimètres de large."
     },
     {
       "id": "note-main",
-      "x": 1002,
-      "y": -150,
-      "w": 300,
-      "text": "Le fond A remis à sa place dans l'écran, avec le profil A en bas. Deux rangs de champs en repère de proportion — c'est le rapport de tailles qu'on juge, pas les chiffres gris."
+      "x": 0,
+      "y": 1500,
+      "w": 480,
+      "text": "L'écran entier en points de l'appareil, cotes prises dans DashboardRenderer. À noter : le bandeau étant désormais toujours affiché, la carte n'a plus 234 × 334 mais 234 × 300 — les deux planches de couloir ci-dessus sont dessinées à l'ancienne hauteur, celle-ci à la bonne."
     },
     {
       "id": "note-profil",
-      "x": 1002,
-      "y": 490,
-      "w": 460,
-      "text": "Profil A, retenu. Le repère est un point posé sur la courbe, cerné de noir pour tenir sur les sept couleurs de pente, et il ne bouge jamais : c'est le profil qui défile dessous. 200 m déjà faits tenus en grisé derrière lui, 1,8 km devant. Vingt tranches de 100 m accolées sans séparation sous la silhouette."
+      "x": 600,
+      "y": 760,
+      "w": 480,
+      "text": "Le bandeau, retenu : vingt tranches de 100 m aux couleurs de pente du Karoo, accolées sans séparation sous la silhouette. Le repère est un point posé sur la courbe et ne bouge jamais — c'est le profil qui défile dessous. 200 m derrière en grisé, 1,8 km devant."
     }
   ],
   "launch": { "view": "canvas" }
