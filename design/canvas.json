@@ -1,95 +1,72 @@
 {
   "artboards": [
     {
-      "file": "CarteA.dc.html",
+      "file": "Main.dc.html",
       "x": 0,
       "y": 0,
       "w": 234,
-      "h": 334,
-      "title": "Fondu marqué"
+      "h": 300,
+      "title": "A — Blancs, dans le ruban"
     },
     {
-      "file": "CarteB.dc.html",
+      "file": "ChevronB.dc.html",
       "x": 334,
       "y": 0,
       "w": 234,
-      "h": 334,
-      "title": "Fondu doux"
+      "h": 300,
+      "title": "B — Évidés"
     },
     {
-      "file": "TailleReelle.dc.html",
+      "file": "ChevronC.dc.html",
       "x": 668,
       "y": 0,
-      "w": 420,
-      "h": 310,
-      "title": "L'écran, taille réelle"
-    },
-    {
-      "file": "Main.dc.html",
-      "x": 0,
-      "y": 620,
-      "w": 480,
-      "h": 800,
-      "title": "L'écran entier, en points"
-    },
-    {
-      "file": "ProfilA.dc.html",
-      "x": 600,
-      "y": 620,
-      "w": 480,
-      "h": 80,
-      "title": "Bandeau de côte — retenu"
+      "w": 234,
+      "h": 300,
+      "title": "C — Blancs, débordants"
     }
   ],
   "annotations": [
     {
-      "id": "note-couloir",
+      "id": "note-cadre",
       "x": 0,
       "y": -300,
       "w": 560,
-      "text": "L'atténuation naît de la TRACE : les routes s'éteignent vers le noir à mesure qu'elles s'en écartent, devant comme derrière. Elle est obtenue par six passes de la trace, de plus en plus larges et de moins en moins encrées, lissées ensuite — et non par un simple flou, qui donnait un plateau d'opacité pleine couvrant toute la carte, donc aucun dégradé visible. Il ne reste qu'un réglage : la profondeur du fondu. La flèche de position est supprimée."
+      "text": "La carte telle qu'elle est aujourd'hui — fond noir, voies blanches rognées par le couloir, ruban bleu de 17 px éteint en arrière — avec trois façons d'y remettre le sens. Cotes réelles : 234 × 300 px, la hauteur qu'a la carte depuis que le bandeau est permanent. Aucun code n'est modifié à ce stade."
     },
     {
-      "id": "note-acquis",
+      "id": "note-reglages",
       "x": 600,
       "y": -300,
       "w": 480,
-      "text": "Le reste est arrêté : traits pleins blancs à la largeur réelle de la chaussée (9,3 px pour une secondaire à la portée 200 m, 6,7 pour une résidentielle, 4,7 pour une voie de service, 4 tiretés pour un chemin) ; trace bleue de 17 px, pleine du coureur jusqu'en haut, éteinte en arrière seulement ; bandeau de côte toujours affiché, repère en point fixe sur la courbe."
+      "text": "Communs aux trois : un chevron tous les 52 px, soit 43 m à la portée 200 m — quatre ou cinq visibles à la fois. Ils ne jalonnent que l'avant du coureur ; en arrière le ruban s'éteint déjà, en semer là dirait le sens d'où l'on vient."
     },
     {
       "id": "note-a",
       "x": 0,
       "y": -150,
       "w": 300,
-      "text": "Fondu marqué — plein sur la trace, éteint vers 90 m. Au-delà, plus rien : le fond ne montre que ce qu'on va couper. Le noir domine."
+      "text": "A — Blancs, contenus dans la largeur du ruban. Le blanc est l'encre de la carte : le chevron se lit sans rien ajouter au vocabulaire, et ne mord sur rien puisqu'il reste dans le bleu. Ma recommandation."
     },
     {
       "id": "note-b",
       "x": 334,
       "y": -150,
       "w": 300,
-      "text": "Fondu doux — plein sur la trace, encore un tiers d'encre à 90 m. On garde de quoi se situer sur les côtés. Ma recommandation : à cette portée la carte ne fait que 175 m de large, et la version marquée en efface la moitié."
+      "text": "B — Évidés : le chevron est le noir du fond percé dans le ruban, sans encre ajoutée. Le plus discret, et le plus élégant sur la partie pleine. Revers, visible en bas de la planche : là où le ruban s'éteint, le chevron noir se confond avec le fond et disparaît — précisément à l'aplomb du coureur."
     },
     {
-      "id": "note-taille",
+      "id": "note-c",
       "x": 668,
       "y": -150,
-      "w": 420,
-      "text": "L'écran entier ramené à ses 31,34 × 52,24 mm, règle graduée à côté. C'est là que tout se juge : à cette taille, la carte fait à peine quinze millimètres de large."
+      "w": 300,
+      "text": "C — Blancs et débordant le ruban de part et d'autre, comme les anciens. Les plus visibles de loin. Ils mordent en revanche sur les routes que le tracé croise, et à cette taille l'ensemble s'épaissit vite."
     },
     {
-      "id": "note-main",
+      "id": "note-borne",
       "x": 0,
-      "y": 1500,
-      "w": 480,
-      "text": "L'écran entier en points de l'appareil, cotes prises dans DashboardRenderer. À noter : le bandeau étant désormais toujours affiché, la carte n'a plus 234 × 334 mais 234 × 300 — les deux planches de couloir ci-dessus sont dessinées à l'ancienne hauteur, celle-ci à la bonne."
-    },
-    {
-      "id": "note-profil",
-      "x": 600,
-      "y": 760,
-      "w": 480,
-      "text": "Le bandeau, retenu : vingt tranches de 100 m aux couleurs de pente du Karoo, accolées sans séparation sous la silhouette. Le repère est un point posé sur la courbe et ne bouge jamais — c'est le profil qui défile dessous. 200 m derrière en grisé, 1,8 km devant."
+      "y": 360,
+      "w": 900,
+      "text": "Question qui revient avec eux : faut-il les borner ? Les anciens ne couraient que sur les 300 prochains mètres, parce que sur une boucle qui repasse par son départ la branche du retour est là, à quelques mètres, et ses chevrons désignaient une direction qui n'était pas celle du moment. Le couloir ne règle pas ce cas — cette branche est proche du tracé, donc pleinement visible. Je propose de reprendre la borne de 300 / 800 / 1 300 m selon la portée, sauf avis contraire."
     }
   ],
   "launch": {

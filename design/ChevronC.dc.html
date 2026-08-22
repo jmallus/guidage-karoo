@@ -14,9 +14,9 @@
 <div style="position: relative; width: 234px; height: 300px; background: #000000; overflow: hidden">
   <svg width="234" height="300" viewBox="0 0 234 300" style="display: block">
     <defs>
-      <filter id="ca-soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="12"/></filter>
-      <mask id="ca-couloir">
-        <g filter="url(#ca-soft)">
+      <filter id="cc-soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="12"/></filter>
+      <mask id="cc-couloir">
+        <g filter="url(#cc-soft)">
           <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="246" stroke-opacity="0.36" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="190" stroke-opacity="0.281" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="145" stroke-opacity="0.348" stroke-linecap="round" stroke-linejoin="round"/>
@@ -25,7 +25,7 @@
           <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="#ffffff" stroke-width="26" stroke-opacity="1.0" stroke-linecap="round" stroke-linejoin="round"/>
         </g>
       </mask>
-      <linearGradient id="ca-trace" x1="0" y1="300" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+      <linearGradient id="cc-trace" x1="0" y1="300" x2="0" y2="0" gradientUnits="userSpaceOnUse">
         <stop offset="0%" stop-color="#2E8BFF" stop-opacity="0"/>
         <stop offset="12%" stop-color="#2E8BFF" stop-opacity="0.18"/>
         <stop offset="20%" stop-color="#2E8BFF" stop-opacity="1"/>
@@ -33,7 +33,7 @@
       </linearGradient>
     </defs>
 
-    <g mask="url(#ca-couloir)">
+    <g mask="url(#cc-couloir)">
       <g fill="none" stroke="#FFFFFF" stroke-linecap="round">
         <path d="M-12 224 L246 236" stroke-width="9.3"/>
         <path d="M-12 158 L246 132" stroke-width="8"/>
@@ -45,16 +45,16 @@
       </g>
     </g>
 
-    <!-- A — chevrons blancs posés dans le ruban -->
-    <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="url(#ca-trace)" stroke-width="17"
+    <!-- C — chevrons blancs débordant le ruban -->
+    <path d="M112 306 C114 285 117 262 117 240 C117 212 138 194 145 168 C152 140 136 118 139 92 C142 60 158 40 155 -6" fill="none" stroke="url(#cc-trace)" stroke-width="17"
           stroke-linecap="round" stroke-linejoin="round"/>
 
     <g>
-      <path d="M127.6 218.7 L126.6 206.1 L116.4 213.5" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M150.9 170.5 L147.0 158.5 L138.7 168.0" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M147.0 116.9 L138.9 107.2 L134.8 119.2" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M149.9 68.6 L146.9 56.3 L137.9 65.2" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M161.2 16.5 L155.5 5.2 L148.8 15.9" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M130.7 223.6 L128.9 201.2 L110.7 214.4" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M154.9 174.6 L148.1 153.2 L133.4 170.2" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M152.3 119.2 L138.0 102.0 L130.7 123.2" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M153.6 73.0 L148.4 51.2 L132.5 67.0" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M165.9 19.9 L155.8 -0.1 L143.9 18.9" fill="none" stroke="#FFFFFF" stroke-opacity="1.0" stroke-width="4.0" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
 
     <g opacity="0.85">
