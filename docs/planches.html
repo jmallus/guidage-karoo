@@ -1373,7 +1373,7 @@ function drawAll(){
     const ctx = c.getContext("2d");
     const scale = c.width/234;
     ctx.setTransform(scale,0,0,scale,0,0);
-    ctx.clearRect(0,0,234,334);
+    ctx.clearRect(0,0,234,300);
     ctx.textBaseline = "alphabetic";
     drawMap(ctx, {x:0,y:0,w:234,h:299.6}, {rangeMeters:z.range, chevronRangeMeters:z.chevron});
   });
@@ -1418,7 +1418,7 @@ function drawAll(){
   const host = document.getElementById("ranges");
   host.innerHTML = ZOOMS.map(z => (
     '<div class="range"><figure>'
-    + '<canvas data-range="'+z.range+'" width="468" height="668" style="width:100%;height:auto"'
+    + '<canvas data-range="'+z.range+'" width="468" height="600" style="width:100%;height:auto"'
     + ' aria-label="Minicarte à '+z.range+' mètres"></canvas>'
     + '<figcaption><b>'+(z.range>=1000 ? (z.range/1000)+" km" : z.range+" m")+'</b>'
     + 'Chevrons sur les '+z.chevron+' prochains mètres.</figcaption>'
