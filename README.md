@@ -139,11 +139,21 @@ dans le module `:core`, sans dépendance Android : elle se teste sans SDK ni app
 ## Le simulateur
 
 Avant d'envoyer un APK vers le Karoo, on peut voir le tableau de bord **en mouvement** sur
-une machine de bureau :
+une machine de bureau. À la racine du dépôt, là où se trouve `gradlew` :
 
 ```
 ./gradlew :app:simulateur
 ```
+
+Il faut pour cela ce que demande déjà la compilation de l'APK — un JDK 17, le SDK Android et
+le [jeton GitHub](#le-jeton-github-obligatoire), puisque `:app` dépend de `karoo-ext` — plus
+deux choses : une **session graphique**, la fenêtre étant une fenêtre, et du **réseau au
+premier lancement**, Robolectric téléchargeant une fois pour toutes son image d'Android.
+Les lancements suivants se passent de réseau.
+
+Le premier prend une minute ou deux : le module se compile, puis les tests de contrôle
+passent avant que la fenêtre s'ouvre. C'est voulu — si le rendu est cassé, on l'apprend
+avant de le regarder.
 
 Une fenêtre s'ouvre et joue une sortie fictive de douze kilomètres — deux côtes, une
 descente, un point d'eau — à huit fois la vitesse réelle. La carte défile, le ruban s'éteint
