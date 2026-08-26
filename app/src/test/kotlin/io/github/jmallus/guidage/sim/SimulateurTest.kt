@@ -59,8 +59,8 @@ class SimulateurTest {
     @Test
     fun `le coureur monte moins vite qu'il ne descend`() {
         val sortie = SortieSimulee(PreviewData.route)
-        // La première côte de l'itinéraire d'aperçu part du kilomètre 2,4 ; la descente qui
-        // suit son sommet est vers le kilomètre 6,5.
+        // Le raidillon de l'itinéraire d'aperçu est entre les kilomètres 3 et 4, à douze
+        // pour cent ; la descente qui suit son sommet est vers le kilomètre 6,5.
         val montee = instantA(sortie, 3_500.0)
         val descente = instantA(sortie, 6_500.0)
 
@@ -75,8 +75,11 @@ class SimulateurTest {
     @Test
     fun `la frequence cardiaque suit l'effort avec retard`() {
         val sortie = SortieSimulee(PreviewData.route)
-        val avant = instantA(sortie, 2_300.0)
-        val dansLaCote = instantA(sortie, 4_500.0)
+        // Le faux plat du départ, puis le raidillon. Le kilomètre 2,3 ne conviendrait pas
+        // pour le premier : la côte est annoncée à partir de 2,4, mais le terrain s'y dresse
+        // déjà à neuf pour cent — plus qu'au kilomètre 4,5, où elle s'assagit.
+        val avant = instantA(sortie, 800.0)
+        val dansLaCote = instantA(sortie, 3_500.0)
 
         assertTrue(
             "le cœur passe de ${avant.cardiaque} à ${dansLaCote.cardiaque}",

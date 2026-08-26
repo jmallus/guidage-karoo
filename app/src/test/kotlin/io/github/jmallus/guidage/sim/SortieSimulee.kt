@@ -245,19 +245,41 @@ class SortieSimulee(
     }
 
     /**
+     * Puissance que le coureur veut tenir à cette pente.
+     *
+     * Elle ne peut pas être constante. Un coureur ne pousse pas dans une descente ce qu'il
+     * pousse dans un mur : il se relève dès que la pente le porte, et il en met un peu plus
+     * quand elle se dresse. La tenir constante serait plus simple, mais alors la puissance
+     * affichée ne bougerait jamais, la fréquence cardiaque non plus, et les aplats de zone —
+     * qui sont précisément ce qu'on vient juger — resteraient de la même couleur du départ à
+     * l'arrivée. Le simulateur ne montrerait qu'une moitié de l'écran.
+     */
+    private fun puissanceVoulue(pente: Double): Double {
+        val facteur = if (pente > 0) {
+            val part = (pente / PENTE_PLEIN_EFFORT).coerceAtMost(1.0)
+            EFFORT_PLAT + (EFFORT_COTE - EFFORT_PLAT) * part
+        } else {
+            val part = (pente / PENTE_ROUE_LIBRE).coerceIn(0.0, 1.0)
+            EFFORT_PLAT + (EFFORT_DESCENTE - EFFORT_PLAT) * part
+        }
+        return profil.puissance * facteur
+    }
+
+    /**
      * Vitesse d'équilibre à une pente donnée.
      *
-     * On résout par dichotomie la vitesse à laquelle la puissance tenue par le coureur égale
-     * la somme des résistances : pesanteur, roulement, air. C'est le modèle habituel, et il
-     * suffit largement ici — l'inertie et le vent sont ignorés, l'affichage ne les montre pas.
+     * On résout par dichotomie la vitesse à laquelle la puissance voulue égale la somme des
+     * résistances : pesanteur, roulement, air. C'est le modèle habituel, et il suffit
+     * largement ici — l'inertie et le vent sont ignorés, l'affichage ne les montre pas.
      */
     private fun vitesseA(pente: Double): Double {
         val angle = atan(pente / 100.0)
+        val voulue = puissanceVoulue(pente)
         var bas = 0.1
         var haut = 30.0
         repeat(40) {
             val milieu = (bas + haut) / 2
-            if (resistance(angle, milieu) < profil.puissance) bas = milieu else haut = milieu
+            if (resistance(angle, milieu) < voulue) bas = milieu else haut = milieu
         }
         return ((bas + haut) / 2).coerceIn(profil.vitesseMinimale, profil.vitesseMaximale)
     }
@@ -278,7 +300,7 @@ class SortieSimulee(
      */
     private fun puissanceA(pente: Double, vitesse: Double): Double {
         val demande = resistance(atan(pente / 100.0), vitesse)
-        return demande.coerceIn(0.0, profil.puissance)
+        return demande.coerceIn(0.0, puissanceVoulue(pente))
     }
 
     /**
@@ -346,6 +368,15 @@ class SortieSimulee(
 
         /** Constante de temps de la réponse cardiaque (s). */
         const val TEMPS_CARDIAQUE = 25.0
+
+        /** Part de la puissance de référence tenue sur le plat, en côte, et en descente. */
+        const val EFFORT_PLAT = 0.85
+        const val EFFORT_COTE = 1.15
+        const val EFFORT_DESCENTE = 0.30
+
+        /** Pente à laquelle le coureur donne tout, et celle à partir de laquelle il se relève (%). */
+        const val PENTE_PLEIN_EFFORT = 8.0
+        const val PENTE_ROUE_LIBRE = -4.0
 
         const val PESANTEUR = 9.81
         const val DENSITE_AIR = 1.225
