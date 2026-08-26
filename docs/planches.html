@@ -991,7 +991,9 @@ const BEHIND_FADE_FRACTION = 0.17, FADE_STEP = 1.5, MAX_FADE_STEPS = 48;
 const CHEVRON_SPACING_RATIO = 3.88, CHEVRON_GAP_RATIO = 0.71;
 const CHEVRON_SIZE_RATIO = 0.556, CHEVRON_STROKE_RATIO = 0.235;
 const CHEVRON_SWEEP = 1.6, CHEVRON_ARM = 0.9, CHEVRON_COLOR = "#000000";
-const POI_COLOR = "#1B5E9A";
+// Le violet pâle que le Karoo emploie pour une destination. Les planches ont longtemps
+// porté ici un bleu foncé, qui ne venait de nulle part : le portage avait dérivé.
+const POI_COLOR = "#DDACFA";
 
 function routeWidth(rangeMeters){
   const range = clamp(rangeMeters, MIN_RANGE, MAX_RANGE);
