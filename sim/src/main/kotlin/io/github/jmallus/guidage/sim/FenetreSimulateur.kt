@@ -19,6 +19,8 @@ import javax.swing.JFrame
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
+import javax.swing.UIManager
+import javax.swing.plaf.metal.MetalLookAndFeel
 
 /** Ce que le clavier demande au simulateur, lu par la boucle de rendu. */
 enum class Commande {
@@ -192,20 +194,32 @@ private fun versImageSwing(pixels: IntArray, largeur: Int, hauteur: Int): Buffer
 }
 
 /**
- * Rend l'ouverture d'une fenêtre possible, à appeler avant d'en construire une.
+ * Prépare l'ouverture d'une fenêtre, à appeler avant d'en construire une.
  *
- * Un lanceur de tests tourne « sans écran » : c'est le bon réglage pour tous les autres
- * tests, et c'est précisément ce qui fait lever une `HeadlessException` au premier `JFrame`.
- * Le régler depuis le fichier de construction ne suffit pas — le plugin Android repose sa
- * propre valeur, et l'ordre des deux ne se maîtrise pas.
+ * Deux obstacles, tous deux dus au fait que le simulateur s'exécute sous un lanceur de tests.
  *
- * On s'en charge donc ici, en deux temps. La propriété d'abord ; puis la réponse que
- * `java.awt` a peut-être déjà retenue, car elle n'est calculée qu'une seule fois, à la
- * première question posée — après quoi changer la propriété ne change plus rien. L'ouverture
- * du module `java.desktop` que réclame cet effacement est déclarée dans `app/build.gradle.kts`.
+ * **L'écran.** Un lanceur de tests tourne « sans écran » : c'est le bon réglage pour tous les
+ * autres tests, et c'est précisément ce qui fait lever une `HeadlessException` au premier
+ * `JFrame`. Le régler depuis le fichier de construction ne suffit pas — le plugin Android
+ * repose sa propre valeur, et l'ordre des deux ne se maîtrise pas. On s'en charge donc ici,
+ * en deux temps : la propriété d'abord, puis la réponse que `java.awt` a peut-être déjà
+ * retenue, car elle n'est calculée qu'une seule fois, à la première question posée. Après
+ * quoi changer la propriété ne change plus rien. L'ouverture du module `java.desktop` que
+ * réclame cet effacement est déclarée dans `app/build.gradle.kts`.
+ *
+ * **Le thème.** Robolectric charge lui-même les classes de l'application, et Swing va chercher
+ * le thème de la plateforme **par son nom** — donc en passant par ce chargeur-là. Sur un Mac,
+ * `com.apple.laf.AquaLookAndFeel` se retrouve ainsi chargé hors du module `java.desktop` et
+ * n'a plus le droit d'accéder à `sun.awt`, ce qui casse net l'ouverture de la fenêtre. Le
+ * thème de Java, lui, vit sous `javax.` — que Robolectric laisse au chargeur du système, où
+ * il retrouve ses droits. On le pose donc soi-même, et par instance plutôt que par nom : sur
+ * un Mac, le thème par défaut est écrit dans un fichier de réglages livré avec la machine
+ * virtuelle, qui l'emporterait sur une simple propriété. La fenêtre a ainsi l'air d'une
+ * fenêtre Java plutôt que d'une fenêtre macOS ; pour un banc d'essai, c'est sans importance.
  */
-fun rendreLAffichagePossible() {
+fun preparerLAffichage() {
     System.setProperty("java.awt.headless", "false")
+    System.setProperty("swing.defaultlaf", METAL)
     runCatching {
         val retenue = GraphicsEnvironment::class.java.getDeclaredField("headless")
         retenue.isAccessible = true
@@ -213,4 +227,12 @@ fun rendreLAffichagePossible() {
     }.onFailure {
         println("Simulateur : l'état « sans écran » retenu n'a pas pu être effacé (${it.message})")
     }
+    runCatching {
+        UIManager.setLookAndFeel(MetalLookAndFeel())
+    }.onFailure {
+        println("Simulateur : le thème Java n'a pas pu être posé (${it.message})")
+    }
 }
+
+/** Le thème de Java, le seul que le chargeur de classes de Robolectric laisse intact. */
+private const val METAL = "javax.swing.plaf.metal.MetalLookAndFeel"

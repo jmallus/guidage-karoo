@@ -167,7 +167,7 @@ class SimulateurTest {
             System.getProperty(PROPRIETE_FENETRE) != null,
         )
 
-        rendreLAffichagePossible()
+        preparerLAffichage()
 
         val simulateur = Simulateur(context)
         val fenetre = FenetreSimulateur()
