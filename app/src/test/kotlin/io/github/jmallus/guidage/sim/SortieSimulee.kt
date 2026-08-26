@@ -35,8 +35,13 @@ data class ProfilCoureur(
     val cardiaqueMaximale: Double = 182.0,
     /** Cadence recherchée au moment de changer de vitesse (tr/min). */
     val cadenceChoisie: Double = 84.0,
+    /** Plateaux, dans l'ordre où le groupe les numérote : le n° 1 est le petit. */
     val plateaux: List<Int> = listOf(34, 50),
-    val pignons: List<Int> = listOf(11, 12, 13, 14, 15, 17, 19, 21, 24, 28, 32),
+    /**
+     * Pignons, dans l'ordre où le groupe les numérote : le n° 1 est le **grand**, celui
+     * qu'on prend pour monter. La liste descend donc, à rebours des plateaux.
+     */
+    val pignons: List<Int> = listOf(32, 28, 24, 21, 19, 17, 15, 14, 13, 12, 11),
 )
 
 /** Un instant de la sortie simulée, prêt à être versé dans le modèle du tableau de bord. */
@@ -340,8 +345,10 @@ class SortieSimulee(
             front = meilleurPlateau + 1,
             frontCount = profil.plateaux.size,
             frontTeeth = profil.plateaux[meilleurPlateau],
-            // Le rang du pignon se compte depuis le plus petit, comme sur l'appareil, alors
-            // que la liste est ordonnée du plus petit au plus grand : les deux coïncident.
+            // Le rang du pignon se compte depuis le grand, celui qu'on prend pour monter :
+            // c'est la numérotation des groupes, et celle que le schéma du tableau de bord
+            // dessine — barre la plus haute à gauche, plus grand nombre de dents. La liste
+            // est rangée dans ce sens-là, les deux coïncident donc.
             rear = meilleurPignon + 1,
             rearCount = profil.pignons.size,
             rearTeeth = profil.pignons[meilleurPignon],

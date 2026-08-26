@@ -3,6 +3,7 @@ package io.github.jmallus.guidage.sim
 import android.graphics.Bitmap
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
+import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.PreviewData
 import java.io.File
 import java.io.FileOutputStream
@@ -26,9 +27,14 @@ import org.robolectric.annotation.GraphicsMode
  * le vrai Skia d'Android plutôt que par des ébauches vides. La différence n'est pas de
  * finesse mais de nature — en mode hérité, `Paint.getFillPath` ne rend rien et les chevrons
  * disparaîtraient sans que rien ne signale la perte.
+ *
+ * Le thème est **sombre**, celui du Karoo en sortie. Ce n'est pas un goût : le tableau de
+ * bord ne peint pas son fond — il arrive transparent, posé par le Karoo sur le sien — et
+ * choisit ses encres d'après le thème du système. Sans cette mention, Robolectric se dit en
+ * thème clair et le champ écrit ses chiffres en presque noir sur un écran noir.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "night")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SimulateurTest {
 
@@ -88,6 +94,53 @@ class SimulateurTest {
         assertTrue("fréquence invraisemblable : ${dansLaCote.cardiaque}", dansLaCote.cardiaque < 200)
     }
 
+    /**
+     * Le rang du pignon engagé et sa denture disent la même chose.
+     *
+     * Les deux sont lus par le schéma de la case des vitesses : le rang allume une barre, la
+     * denture s'écrit dessous. Rangés à l'envers l'un de l'autre, les deux se contredisent —
+     * la barre du grand pignon s'allume et « ×11 » s'écrit — sans que rien ne plante. Ce
+     * contrôle relie donc le rang aux dents, dans le sens que dessine le tableau de bord :
+     * le n° 1 est le grand pignon.
+     */
+    @Test
+    fun `le pignon engage porte bien la denture annoncee`() {
+        val profil = ProfilCoureur()
+        val sortie = SortieSimulee(PreviewData.route, profil)
+
+        assertEquals(
+            "le pignon n° 1 doit être le plus grand",
+            profil.pignons.max(),
+            profil.pignons.first(),
+        )
+        assertEquals(
+            "le plateau n° 1 doit être le plus petit",
+            profil.plateaux.min(),
+            profil.plateaux.first(),
+        )
+
+        var rangsVus = 0
+        var pas = 0.0
+        while (pas <= sortie.duree) {
+            val transmission = sortie.a(pas).transmission
+            val rangArriere = requireNotNull(transmission.rear) { "pas de pignon à $pas s" }
+            val rangAvant = requireNotNull(transmission.front) { "pas de plateau à $pas s" }
+            assertEquals(
+                "à $pas s, le pignon n° $rangArriere n'a pas la denture annoncée",
+                profil.pignons[rangArriere - 1],
+                transmission.rearTeeth,
+            )
+            assertEquals(
+                "à $pas s, le plateau n° $rangAvant n'a pas la denture annoncée",
+                profil.plateaux[rangAvant - 1],
+                transmission.frontTeeth,
+            )
+            rangsVus++
+            pas += 15.0
+        }
+        assertTrue("aucun rapport relevé", rangsVus > 10)
+    }
+
     /* --------------------------------------------------------------- le décor */
 
     @Test
@@ -103,6 +156,21 @@ class SimulateurTest {
     }
 
     /* --------------------------------------------------------------- le rendu */
+
+    /**
+     * Le simulateur peint avec les encres du thème sombre.
+     *
+     * Le tableau de bord arrive transparent : le Karoo le pose sur son propre fond, noir en
+     * sortie, et les encres se choisissent d'après le thème du système. Un banc d'essai qui
+     * se croirait en plein jour écrirait ses chiffres en presque noir sur ce noir-là — non
+     * pas illisibles au point qu'on crie à la panne, mais gris, ternes, faux. C'est arrivé.
+     */
+    @Test
+    fun `le banc d'essai peint comme le Karoo en sortie`() {
+        val palette = FieldPalette.of(context)
+
+        assertEquals("les valeurs ne sont pas en blanc", 0xFFFFFFFF.toInt(), palette.textPrimary)
+    }
 
     /**
      * Le contrôle du CI : chaque configuration rend une image, et cette image montre la trace.
