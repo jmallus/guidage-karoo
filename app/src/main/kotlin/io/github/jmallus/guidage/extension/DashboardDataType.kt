@@ -15,41 +15,20 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.fillMaxSize
 import io.github.jmallus.guidage.R
-import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.GeoPoint
-import io.github.jmallus.guidage.core.Guidance
-import io.github.jmallus.guidage.core.GuidanceState
-import io.github.jmallus.guidage.core.GuidanceZoneType
-import io.github.jmallus.guidage.core.MapZoom
-import io.github.jmallus.guidage.core.ProfileWindow
-import io.github.jmallus.guidage.core.Units
-import io.github.jmallus.guidage.core.Zones
+import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.karoo.GuidanceProvider
-import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RideDataProvider
 import io.github.jmallus.guidage.karoo.RoadMapRepository
 import io.github.jmallus.guidage.karoo.RoadMapState
-import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.settings.SettingsRepository
-import io.github.jmallus.guidage.ui.ClimbBandModel
-import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
-import io.github.jmallus.guidage.ui.DrivetrainModel
-import io.github.jmallus.guidage.ui.FieldPalette
-import io.github.jmallus.guidage.ui.GraphPoi
-import io.github.jmallus.guidage.ui.GuidanceZone
-import io.github.jmallus.guidage.ui.MapModel
-import io.github.jmallus.guidage.ui.MapPoi
 import io.github.jmallus.guidage.ui.PreviewData
-import io.github.jmallus.guidage.ui.RouteGraphModel
-import io.github.jmallus.guidage.ui.Tile
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
 import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.ViewConfig
-import java.util.Locale
-import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -76,6 +55,8 @@ class DashboardDataType(
 
     private val glance = GlanceRemoteViews()
 
+    private val roadSource: RoadSource = InstalledRoadMap()
+
     override fun startView(context: Context, config: ViewConfig, emitter: ViewEmitter) {
         val job = CoroutineScope(Dispatchers.IO).launch {
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
@@ -85,7 +66,14 @@ class DashboardDataType(
                 if (config.preview) previewRide() else rideDataProvider.data,
                 settingsRepository.settings,
             ) { snapshot, rideData, settings ->
-                buildModel(context, snapshot, rideData, settings, config)
+                DashboardModels.build(
+                    context = context,
+                    snapshot = snapshot,
+                    rideData = rideData,
+                    settings = settings,
+                    preview = config.preview && !snapshot.state.navigating,
+                    roadSource = roadSource,
+                )
             }
                 .distinctUntilChanged()
                 .collect { model ->
@@ -133,310 +121,34 @@ class DashboardDataType(
         }
     }
 
-    private fun buildModel(
-        context: Context,
-        snapshot: GuidanceSnapshot,
-        rideData: RideData,
-        settings: GuidageSettings,
-        config: ViewConfig,
-    ): DashboardModel {
-        val preview = config.preview && !snapshot.state.navigating
-        val state = if (preview) {
-            GuidanceState(PreviewData.route, PreviewData.DISTANCE_ALONG_ROUTE, null, null)
-        } else {
-            snapshot.state
-        }
+    /** Le fond de carte installé sur l'appareil, offert au constructeur de modèle. */
+    private inner class InstalledRoadMap : RoadSource {
 
-        val units = snapshot.units
-        return DashboardModel(
-            guidance = when (settings.guidanceZone) {
-                GuidanceZoneType.MAP ->
-                    GuidanceZone.Map(mapModel(context, snapshot, state, preview, rideData, settings.mapZoom))
-                GuidanceZoneType.PROFILE -> GuidanceZone.Profile(profileModel(context, state, settings))
+        override fun roads(position: GeoPoint?, radiusMeters: Double): List<RoadSegment> =
+            position?.let { roadMapRepository.roadsAround(it, radiusMeters) }.orEmpty()
+
+        /**
+         * Pourquoi la carte ne montre rien.
+         *
+         * Sans cette mention, l'absence de fond ressemble à une panne quel qu'en soit le motif,
+         * et le coureur qui sort de la région couverte cherche un défaut là où il n'y en a pas.
+         */
+        override fun notice(context: Context, position: GeoPoint?): String = context.getString(
+            when (roadMapRepository.state()) {
+                RoadMapState.MISSING -> R.string.basemap_missing
+                RoadMapState.UNREADABLE -> R.string.basemap_unreadable
+                RoadMapState.READY ->
+                    if (position != null && roadMapRepository.covers(position)) {
+                        R.string.basemap_empty
+                    } else {
+                        R.string.basemap_out_of_area
+                    }
             },
-            topTiles = effortTiles(context, units, rideData),
-            drivetrain = drivetrainModel(context, rideData),
-            heartRateTile = heartRateTile(context, rideData),
-            midTiles = midTiles(context, units, rideData),
-            footerTiles = footerTiles(context, units, rideData),
-            climbBand = climbBand(state, units),
-            palette = FieldPalette.of(context),
         )
-    }
-
-    /**
-     * Le bandeau du bas : les deux kilomètres qui entourent le coureur, toujours affichés.
-     *
-     * Il ne dépend plus de la présence d'une côte. Un bandeau qui apparaît au pied d'une
-     * bosse et disparaît au sommet oblige à réapprendre la mise en page de l'écran chaque
-     * fois qu'il surgit, et se dérobe précisément quand on voudrait savoir si le faux plat
-     * qu'on subit en est un. Deux kilomètres de profil permanents règlent les deux.
-     *
-     * La fenêtre est calée sur le coureur, non sur la côte : deux cents mètres derrière lui
-     * et mille huit cents devant. Son repère reste donc immobile au dixième gauche de la
-     * bande, et c'est le profil qui défile dessous.
-     *
-     * Le rang de la côte reste porté quand il y en a une en vue, suivi de la distance qui
-     * reste jusqu'à son sommet — « 1/4 — 1,48 km du sommet ». Le rang seul disait combien de
-     * bosses restaient, jamais où l'on en était de celle-ci ; c'est pourtant la seule chose
-     * qu'on veut savoir en la montant.
-     */
-    private fun climbBand(state: GuidanceState, units: Units): ClimbBandModel? {
-        val route = state.route ?: return null
-        val along = state.distanceAlongRoute ?: return null
-        val window = Guidance.profileWindow(
-            route,
-            (along - CLIMB_BAND_BEHIND).coerceAtLeast(0.0),
-            lookahead = CLIMB_BAND_SPAN,
-        )
-        if (window.isEmpty) return null
-
-        return ClimbBandModel(
-            window = window,
-            position = along,
-            positionElevation = route.profile?.elevationAt(along),
-            label = Guidance.climbStatus(route, along)
-                ?.takeIf { it.onClimb || it.distanceToStart <= CLIMB_BAND_LOOKAHEAD }
-                ?.let { "${it.number}/${it.totalClimbs} — ${toSummit(it.distanceToTop, units)}" },
-        )
-    }
-
-    /**
-     * Distance au sommet, au centième de kilomètre au-delà du kilomètre.
-     *
-     * Le formateur commun arrondit au dixième, ce qui suffit partout ailleurs — mais dans une
-     * côte on regarde ce chiffre toutes les vingt secondes, et un dixième de kilomètre y reste
-     * figé assez longtemps pour donner l'impression qu'on n'avance plus. Sous le kilomètre, on
-     * revient aux mètres : « 480 m du sommet » se lit mieux que « 0,48 km ».
-     */
-    private fun toSummit(meters: Double, units: Units): String = when {
-        units != Units.METRIC -> "${Format.distance(meters, units)} du sommet"
-        meters < 1_000 -> "${(meters / 10).roundToInt() * 10} m du sommet"
-        else -> String.format(Locale.getDefault(), "%.2f km du sommet", meters / 1_000)
-    }
-
-    private fun mapModel(
-        context: Context,
-        snapshot: GuidanceSnapshot,
-        state: GuidanceState,
-        preview: Boolean,
-        rideData: RideData,
-        zoom: MapZoom,
-    ): MapModel {
-        val route = state.route
-        val location = if (preview) PreviewData.location else snapshot.location
-        // Le point rapporté par le Karoo a déjà quelques secondes ; on le prolonge à la
-        // vitesse courante, sans quoi le coureur se voit derrière lui-même à l'approche
-        // du carrefour, là précisément où il regarde la carte.
-        val position = location?.extrapolated(System.currentTimeMillis(), rideData.speed)
-        // On lit un peu au-delà du cadre : en cap en haut, la fenêtre tourne avec le coureur
-        // et ses coins balaient plus loin que la portée annoncée.
-        val roads = if (preview) {
-            PreviewData.roads
-        } else {
-            position?.let {
-                roadMapRepository.roadsAround(it, zoom.rangeMeters * ROADS_RADIUS_FACTOR)
-            }.orEmpty()
-        }
-        return MapModel(
-            roads = roads,
-            roadsMessage = if (roads.isEmpty() && !preview) basemapNotice(context, position) else null,
-            path = route?.path.orEmpty(),
-            position = position,
-            heading = location?.heading,
-            pois = route?.pois.orEmpty().mapNotNull { poi ->
-                poi.position?.let { MapPoi(it, PoiLabels.label(context, poi)) }
-            },
-            rangeMeters = zoom.rangeMeters,
-            chevronRangeMeters = zoom.chevronMeters,
-            offRoute = rideData.onRoute == false,
-            emptyMessage = context.getString(
-                if (route == null) R.string.field_no_route else R.string.field_waiting_for_position,
-            ),
-        )
-    }
-
-    /**
-     * Pourquoi la carte ne montre rien.
-     *
-     * Sans cette mention, l'absence de fond ressemble à une panne quel qu'en soit le motif,
-     * et le coureur qui sort de la région couverte cherche un défaut là où il n'y en a pas.
-     * Elle ne s'affiche que sur la vraie carte : l'aperçu, lui, a son décor.
-     */
-    private fun basemapNotice(context: Context, position: GeoPoint?): String = context.getString(
-        when (roadMapRepository.state()) {
-            RoadMapState.MISSING -> R.string.basemap_missing
-            RoadMapState.UNREADABLE -> R.string.basemap_unreadable
-            RoadMapState.READY ->
-                if (position != null && roadMapRepository.covers(position)) {
-                    R.string.basemap_empty
-                } else {
-                    R.string.basemap_out_of_area
-                }
-        },
-    )
-
-    private fun profileModel(
-        context: Context,
-        state: GuidanceState,
-        settings: GuidageSettings,
-    ): RouteGraphModel {
-        val route = state.route
-        val along = state.distanceAlongRoute
-        if (route == null || along == null) {
-            return RouteGraphModel(
-                window = ProfileWindow(emptyList(), 0.0, 0.0, 0.0, 0.0),
-                position = 0.0,
-                emptyMessage = context.getString(R.string.field_no_route),
-                colorByGrade = settings.colorByGrade,
-            )
-        }
-
-        val zoom = settings.graphZoom
-        val window = Guidance.routeGraphWindow(route, along, zoom.lookaheadMeters)
-        return RouteGraphModel(
-            window = window,
-            position = along,
-            climbs = route.climbs,
-            pois = route.pois.map { GraphPoi(it.distanceAlongRoute, PoiLabels.label(context, it)) },
-            zoomLabel = zoomLabel(context, settings),
-            colorByGrade = settings.colorByGrade,
-        )
-    }
-
-    private fun zoomLabel(context: Context, settings: GuidageSettings): String {
-        val lookahead = settings.graphZoom.lookaheadMeters
-            ?: return context.getString(R.string.dashboard_zoom_whole_route)
-        return "${(lookahead / 1_000).toInt()} km"
-    }
-
-    /**
-     * Bandeau du haut : l'effort instantané, vitesse, cadence, puissance.
-     *
-     * Vitesse et puissance reçoivent un aplat de fond qui les situe d'un coup d'œil : vert
-     * ou rouge selon la moyenne de la sortie pour la première, couleur de zone Karoo pour
-     * la seconde. La cadence n'a pas de zones et reste sur fond noir.
-     */
-    private fun effortTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
-        Tile(
-            label = context.getString(R.string.dashboard_label_speed),
-            value = rideData.speed?.let { Format.speed(it, units) } ?: PLACEHOLDER,
-            background = rideData.speed?.let { Zones.speedColor(it, rideData.averageSpeed) },
-            icon = R.drawable.ic_speed,
-        ).splitDecimal(),
-        Tile(
-            label = context.getString(R.string.dashboard_label_cadence),
-            value = rideData.cadence?.toInt()?.toString() ?: PLACEHOLDER,
-            icon = R.drawable.ic_cadence,
-        ),
-        Tile(
-            label = context.getString(R.string.dashboard_label_power),
-            value = rideData.power?.toInt()?.toString() ?: PLACEHOLDER,
-            background = rideData.power?.let { Zones.powerColor(it, rideData.powerZones) },
-            icon = R.drawable.ic_power,
-        ),
-    )
-
-    /**
-     * Case de gauche sous la transmission : la fréquence cardiaque, à sa couleur de zone.
-     *
-     * Le numéro de zone est écrit à gauche de la valeur. L'aplat le disait déjà, mais de
-     * mémoire seulement : le chiffre le nomme. Il ne s'écrit que si les zones sont réglées
-     * dans le Karoo — sans elles, `zoneOf` rend zéro, qui ne veut rien dire.
-     */
-    private fun heartRateTile(context: Context, rideData: RideData): Tile = Tile(
-        label = context.getString(R.string.dashboard_label_heart_rate),
-        value = rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
-        leading = rideData.heartRate
-            ?.let { Zones.zoneOf(it, rideData.heartRateZones) }
-            ?.takeIf { it > 0 }
-            ?.toString(),
-        background = rideData.heartRate?.let { Zones.heartRateColor(it, rideData.heartRateZones) },
-        icon = R.drawable.ic_heart_rate,
-    )
-
-    /** La transmission, telle que la rapporte le groupe — vide s'il ne rapporte rien. */
-    private fun drivetrainModel(context: Context, rideData: RideData) = DrivetrainModel(
-        label = context.getString(R.string.dashboard_label_gears),
-        front = rideData.drivetrain.front,
-        frontCount = rideData.drivetrain.frontCount,
-        frontTeeth = rideData.drivetrain.frontTeeth,
-        rear = rideData.drivetrain.rear,
-        rearCount = rideData.drivetrain.rearCount,
-        rearTeeth = rideData.drivetrain.rearTeeth,
-        icon = R.drawable.ic_gears,
-    )
-
-    /** Rang sous la carte : distance parcourue à gauche, pente instantanée à droite. */
-    private fun midTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
-        Tile(
-            label = context.getString(R.string.dashboard_label_distance),
-            value = rideData.distance?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-            icon = R.drawable.ic_distance,
-        ).splitDecimal(),
-        Tile(
-            label = context.getString(R.string.dashboard_label_grade),
-            value = rideData.grade?.roundToInt()?.toString() ?: PLACEHOLDER,
-            suffix = "%",
-            icon = R.drawable.ic_grade,
-        ),
-    )
-
-    /** Ligne du bas : ce qu'il reste à parcourir. */
-    private fun footerTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
-        Tile(
-            label = context.getString(
-                R.string.dashboard_label_remaining,
-                remainingUnit(units).uppercase(),
-            ),
-            value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-            icon = R.drawable.ic_distance_remaining,
-        ).splitDecimal(),
-        Tile(
-            label = context.getString(R.string.dashboard_label_arrival),
-            value = rideData.arrivalTime?.let { Format.clock(it) } ?: PLACEHOLDER,
-            icon = R.drawable.ic_arrival,
-        ),
-    )
-
-    /**
-     * Détache la décimale, écrite ensuite en exposant et sans séparateur.
-     *
-     * « 38,5 » devient « 38 » et « 5 » : les chiffres qui portent l'information gardent leur
-     * pleine hauteur, et la virgule cesse d'occuper la largeur d'un chiffre pour ne rien
-     * dire — la décimale se reconnaît déjà à sa taille et à sa position.
-     */
-    private fun Tile.splitDecimal(): Tile {
-        val separator = value.indexOfLast { it == '.' || it == ',' }
-        if (separator < 0 || separator == value.lastIndex) return this
-        return copy(value = value.substring(0, separator), decimal = value.substring(separator + 1))
-    }
-
-    /**
-     * Distance restante sans son unité. Au-delà de 100, la décimale est abandonnée :
-     * « 123 » tient dans la case là où « 123,4 » obligerait à rapetisser les chiffres.
-     */
-    private fun remainingValue(meters: Double, units: Units): String {
-        val value = when (units) {
-            Units.METRIC -> meters / 1_000
-            Units.IMPERIAL -> meters / METERS_PER_MILE
-        }
-        return if (value >= 100) {
-            value.roundToInt().toString()
-        } else {
-            Format.longDistance(meters, units).substringBefore(' ')
-        }
-    }
-
-    private fun remainingUnit(units: Units): String = when (units) {
-        Units.METRIC -> "km"
-        Units.IMPERIAL -> "mi"
     }
 
     companion object {
         const val TYPE_ID = "tableau"
-        private const val PLACEHOLDER = "--"
-        private const val METERS_PER_MILE = 1609.344
 
         /**
          * Cadence de défilement de l'aperçu.
@@ -445,20 +157,5 @@ class DashboardDataType(
          * relevés seraient produits pour rien, et l'œil n'aurait pas le temps de lire.
          */
         private const val PREVIEW_INTERVAL_MS = 2_000L
-
-        /**
-         * Distance au pied à partir de laquelle le bandeau de montée apparaît (m).
-         *
-         * Trois cents mètres : de quoi choisir son braquet et se placer, pas de quoi
-         * occuper le bas de l'écran pendant un quart d'heure.
-         */
-        private const val CLIMB_BAND_LOOKAHEAD = 300.0
-
-        /** Longueur du bandeau, et part tenue derrière le coureur (m). */
-        private const val CLIMB_BAND_SPAN = 2_000.0
-        private const val CLIMB_BAND_BEHIND = 200.0
-
-        /** Rayon de lecture du fond de carte, en multiples de la portée affichée. */
-        private const val ROADS_RADIUS_FACTOR = 1.6
     }
 }

@@ -136,6 +136,51 @@ dans le module `:core`, sans dépendance Android : elle se teste sans SDK ni app
 ./gradlew :core:test
 ```
 
+## Le simulateur
+
+Avant d'envoyer un APK vers le Karoo, on peut voir le tableau de bord **en mouvement** sur
+une machine de bureau :
+
+```
+./gradlew :app:simulateur
+```
+
+Une fenêtre s'ouvre et joue une sortie fictive de douze kilomètres — deux côtes, une
+descente, un point d'eau — à huit fois la vitesse réelle. La carte défile, le ruban s'éteint
+derrière le coureur, les chevrons filent, le bandeau de côte avance, les aplats de zone
+changent de couleur avec l'effort.
+
+| Touche | Effet |
+| --- | --- |
+| `espace` | arrêt sur image |
+| `←` `→` | reculer / avancer de dix secondes de lecture |
+| `↑` `↓` | doubler / diviser la vitesse de lecture |
+| `z` | faire tourner la portée de la carte — 200 m, 500 m, 1 km |
+| `p` | passer de la carte au profil, et retour |
+| `h` | simuler la sortie d'itinéraire : le tracé passe au rouge |
+| `r` | revenir au départ |
+| `+` `-` | grossir ou réduire l'écran affiché |
+| `échap` | quitter |
+
+**Ce qu'il montre est le code de l'appareil.** Ce n'est pas une seconde écriture de
+l'affichage : le simulateur assemble l'état d'une sortie, puis appelle le constructeur de
+modèle et le rendu de l'extension — les mêmes classes exactement, dessinant dans le même
+`Canvas` d'Android. C'est ce qui le distingue des [planches](docs/planches.md), portées en
+JavaScript et qui, elles, peuvent dériver.
+
+Le `Canvas` d'Android n'existe pas sur une machine de bureau ; c'est Robolectric qui le
+fournit, avec le vrai moteur Skia — mais seulement sous un lanceur de tests. D'où la forme
+du simulateur : un test JUnit qui ouvre une fenêtre, et ne l'ouvre que si on la demande.
+
+Ce qu'il ne simule pas : la chaîne karoo-ext elle-même — souscriptions, cadence de
+rafraîchissement du système — et la carte hors ligne réelle, remplacée par un décor engendré
+autour du coureur. La mise en page, les couleurs, les zones, le couloir, les chevrons et le
+bandeau de côte, eux, sont ceux de l'appareil.
+
+Les mêmes tests tournent **sans fenêtre** à chaque poussée : ils vérifient que chaque portée
+dessine bien la trace, ce qu'une compilation ne dirait pas — un écran noir compile très bien.
+Les images de contrôle sont écrites dans `app/build/simulateur/`.
+
 ## Architecture
 
 ```
@@ -151,8 +196,10 @@ app/                         extension Android
   karoo/KarooFlows.kt        ponts callback → Flow de karoo-ext
   karoo/GuidanceProvider.kt  assemble l'état de guidage depuis les événements Karoo
   extension/                 service d'extension, champs de données, alertes
+  extension/DashboardModels  construit ce qu'affiche le tableau de bord — partagé avec le simulateur
   ui/                        rendu des champs (Canvas + Glance) et écran de réglages
   settings/                  persistance des réglages
+  src/test/…/sim/            le simulateur de bureau, hors de l'APK
 ```
 
 ### D'où viennent les données

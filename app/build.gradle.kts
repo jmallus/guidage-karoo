@@ -66,6 +66,44 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests {
+            // Robolectric lit les ressources fusionnées de l'application : sans elles, les
+            // libellés du tableau de bord et les icônes des cases manqueraient à l'appel.
+            isIncludeAndroidResources = true
+        }
+    }
+}
+
+/**
+ * Le simulateur de bureau.
+ *
+ * Il est logé dans un test JUnit, et ce n'est pas un détournement mais le seul chemin : le
+ * tableau de bord se dessine dans un `Canvas` d'Android, qui n'existe pas sur une machine de
+ * bureau. Robolectric le fournit — le vrai, celui de Skia — mais seulement sous un lanceur de
+ * tests. La fenêtre ne s'ouvre donc que si on la demande, et le CI, qui exécute les mêmes
+ * tests, ne la voit jamais.
+ */
+val simulateurDemande = gradle.startParameter.taskNames.any {
+    it.substringAfterLast(':') == "simulateur"
+}
+
+tasks.withType<Test>().configureEach {
+    if (simulateurDemande) {
+        systemProperty("guidage.simulateur", "1")
+        filter { includeTestsMatching("io.github.jmallus.guidage.sim.SimulateurTest") }
+        // Une fenêtre qu'on rouvre est une fenêtre qui doit se rouvrir, même si rien n'a
+        // changé depuis la dernière fois.
+        outputs.upToDateWhen { false }
+        testLogging { showStandardStreams = true }
+    }
+}
+
+tasks.register("simulateur") {
+    group = "guidage"
+    description = "Joue une sortie simulée dans une fenêtre, avec le rendu de l'appareil."
+    dependsOn("testDebugUnitTest")
 }
 
 dependencies {
@@ -92,4 +130,5 @@ dependencies {
     implementation(libs.androidx.glance.preview)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
 }

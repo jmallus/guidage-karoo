@@ -1,0 +1,288 @@
+package io.github.jmallus.guidage.sim
+
+import android.graphics.Bitmap
+import io.github.jmallus.guidage.core.GuidanceZoneType
+import io.github.jmallus.guidage.core.MapZoom
+import io.github.jmallus.guidage.ui.PreviewData
+import java.io.File
+import java.util.Locale
+import javax.imageio.ImageIO
+import kotlin.math.abs
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Assume
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/**
+ * Le simulateur de bureau, et le contrôle qui le tient droit.
+ *
+ * Le mode graphique est **natif** et non hérité : c'est ce qui fait que le dessin passe par
+ * le vrai Skia d'Android plutôt que par des ébauches vides. La différence n'est pas de
+ * finesse mais de nature — en mode hérité, `Paint.getFillPath` ne rend rien et les chevrons
+ * disparaîtraient sans que rien ne signale la perte.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class SimulateurTest {
+
+    private val context get() = RuntimeEnvironment.getApplication()
+
+    /* ------------------------------------------------------------- la sortie */
+
+    @Test
+    fun `la sortie simulee parcourt l'itineraire du depart a l'arrivee`() {
+        val sortie = SortieSimulee(PreviewData.route)
+
+        assertTrue("une sortie de douze kilomètres dure plus de dix minutes", sortie.duree > 600)
+        assertEquals(0.0, sortie.a(0.0).distance, 1.0)
+        assertEquals(sortie.distanceTotale, sortie.a(sortie.duree).distance, 1.0)
+
+        var precedente = -1.0
+        var pas = 0.0
+        while (pas <= sortie.duree) {
+            val instant = sortie.a(pas)
+            assertTrue("la distance recule à $pas s", instant.distance >= precedente)
+            assertTrue("vitesse nulle à $pas s", instant.vitesse > 0.0)
+            assertTrue("cap hors bornes à $pas s : ${instant.cap}", instant.cap in 0.0..360.0)
+            precedente = instant.distance
+            pas += 15.0
+        }
+    }
+
+    @Test
+    fun `le coureur monte moins vite qu'il ne descend`() {
+        val sortie = SortieSimulee(PreviewData.route)
+        // La première côte de l'itinéraire d'aperçu part du kilomètre 2,4 ; la descente qui
+        // suit son sommet est vers le kilomètre 6,5.
+        val montee = instantA(sortie, 3_500.0)
+        val descente = instantA(sortie, 6_500.0)
+
+        assertTrue("la pente de la montée vaut ${montee.pente} %", montee.pente > 2.0)
+        assertTrue("la pente de la descente vaut ${descente.pente} %", descente.pente < -1.0)
+        assertTrue(
+            "monter à ${montee.vitesse} m/s et descendre à ${descente.vitesse} m/s",
+            montee.vitesse < descente.vitesse,
+        )
+    }
+
+    @Test
+    fun `la frequence cardiaque suit l'effort avec retard`() {
+        val sortie = SortieSimulee(PreviewData.route)
+        val avant = instantA(sortie, 2_300.0)
+        val dansLaCote = instantA(sortie, 4_500.0)
+
+        assertTrue(
+            "le cœur passe de ${avant.cardiaque} à ${dansLaCote.cardiaque}",
+            dansLaCote.cardiaque > avant.cardiaque + 5,
+        )
+        assertTrue("fréquence invraisemblable : ${dansLaCote.cardiaque}", dansLaCote.cardiaque < 200)
+    }
+
+    /* --------------------------------------------------------------- le décor */
+
+    @Test
+    fun `le decor rend les memes voies a chaque appel`() {
+        val decor = DecorSimule(PreviewData.location.position)
+        val centre = PreviewData.location.position
+
+        val premier = decor.autour(centre, 800.0)
+        val second = decor.autour(centre, 800.0)
+
+        assertTrue("le décor ne compte que ${premier.size} tronçons", premier.size > 20)
+        assertEquals("le décor change d'un appel à l'autre", premier, second)
+    }
+
+    /* --------------------------------------------------------------- le rendu */
+
+    /**
+     * Le contrôle du CI : chaque configuration rend une image, et cette image montre la trace.
+     *
+     * Vérifier que le rendu ne lève pas d'exception ne suffirait pas — une carte entièrement
+     * noire n'en lève aucune. On compte donc les pixels du ruban bleu : s'ils manquent, c'est
+     * que le tracé n'est pas passé, et l'écran ne sert plus à rien.
+     */
+    @Test
+    fun `chaque configuration rend un tableau de bord ou la trace se voit`() {
+        val simulateur = Simulateur(context)
+        val dossier = File("build/simulateur").apply { mkdirs() }
+
+        for (portee in MapZoom.entries) {
+            simulateur.portee = portee
+            simulateur.zone = GuidanceZoneType.MAP
+            var vues = 0
+            for (part in PARTS_CONTROLEES) {
+                val image = simulateur.image(simulateur.sortie.duree * part)
+                assertEquals(Simulateur.LARGEUR, image.width)
+                assertEquals(Simulateur.HAUTEUR, image.height)
+                if (rubanVisible(image)) vues++
+                if (part == PARTS_CONTROLEES.first()) {
+                    ecrire(image, File(dossier, "carte-${portee.rangeMeters.toInt()}m.png"))
+                }
+            }
+            assertTrue(
+                "le ruban ne se voit qu'à $vues moments sur ${PARTS_CONTROLEES.size} " +
+                    "à la portée ${portee.rangeMeters.toInt()} m",
+                vues >= PARTS_CONTROLEES.size - 1,
+            )
+        }
+
+        // Le profil en portrait, l'autre zone de guidage.
+        simulateur.zone = GuidanceZoneType.PROFILE
+        val profil = simulateur.image(simulateur.sortie.duree * 0.3)
+        assertTrue("le profil ne montre presque rien", couleursDistinctes(profil) > 12)
+        ecrire(profil, File(dossier, "profil.png"))
+
+        // Et le tracé au rouge, quand le Karoo décroche de l'itinéraire.
+        simulateur.zone = GuidanceZoneType.MAP
+        simulateur.horsItineraire = true
+        val decroche = simulateur.image(simulateur.sortie.duree * 0.3)
+        assertFalse("le tracé reste bleu alors qu'on est hors itinéraire", rubanVisible(decroche))
+        ecrire(decroche, File(dossier, "hors-itineraire.png"))
+    }
+
+    /* -------------------------------------------------------------- la fenêtre */
+
+    /**
+     * Joue la sortie dans une fenêtre, jusqu'à ce qu'on la ferme.
+     *
+     * Ce n'est pas un test : c'est l'application, logée dans un test parce que le moteur
+     * graphique d'Android n'est disponible sur une machine de bureau que sous Robolectric.
+     * Elle ne s'ouvre donc que sur demande expresse — `./gradlew :app:simulateur` — et reste
+     * ignorée partout ailleurs, CI compris.
+     */
+    @Test
+    fun `la fenetre joue la sortie`() {
+        Assume.assumeTrue(
+            "fenêtre demandée seulement par ./gradlew :app:simulateur",
+            System.getProperty(PROPRIETE_FENETRE) != null,
+        )
+
+        val simulateur = Simulateur(context)
+        val fenetre = FenetreSimulateur()
+        var secondes = 0.0
+        var acceleration = 8.0
+        var enPause = false
+
+        while (fenetre.estOuverte) {
+            while (true) {
+                val commande = fenetre.prochaineCommande() ?: break
+                when (commande) {
+                    Commande.PAUSE -> enPause = !enPause
+                    Commande.RECULER -> secondes = (secondes - 10 * acceleration).coerceAtLeast(0.0)
+                    Commande.AVANCER -> secondes = avancer(secondes, 10 * acceleration, simulateur)
+                    Commande.PLUS_VITE -> acceleration = (acceleration * 2).coerceAtMost(64.0)
+                    Commande.MOINS_VITE -> acceleration = (acceleration / 2).coerceAtLeast(0.5)
+                    Commande.PORTEE -> simulateur.portee = simulateur.portee.next()
+                    Commande.ZONE -> simulateur.zone = when (simulateur.zone) {
+                        GuidanceZoneType.MAP -> GuidanceZoneType.PROFILE
+                        GuidanceZoneType.PROFILE -> GuidanceZoneType.MAP
+                    }
+                    Commande.HORS_ITINERAIRE ->
+                        simulateur.horsItineraire = !simulateur.horsItineraire
+                    Commande.RECOMMENCER -> secondes = 0.0
+                    Commande.AGRANDIR -> fenetre.agrandir(1.25)
+                    Commande.REDUIRE -> fenetre.agrandir(0.8)
+                }
+            }
+
+            if (!enPause) {
+                secondes = avancer(secondes, acceleration / IMAGES_PAR_SECONDE, simulateur)
+            }
+            fenetre.montrer(
+                simulateur.image(secondes),
+                ligneEtat(simulateur, secondes, acceleration, enPause),
+            )
+            Thread.sleep((1_000 / IMAGES_PAR_SECONDE).toLong())
+        }
+    }
+
+    /* -------------------------------------------------------------- outillage */
+
+    private fun avancer(secondes: Double, pas: Double, simulateur: Simulateur): Double =
+        (secondes + pas).coerceIn(0.0, simulateur.sortie.duree)
+
+    private fun ligneEtat(
+        simulateur: Simulateur,
+        secondes: Double,
+        acceleration: Double,
+        enPause: Boolean,
+    ): String {
+        val instant = simulateur.sortie.a(secondes)
+        return String.format(
+            Locale.FRANCE,
+            "%02d:%02d  %5.2f km  %5.1f km/h  %+5.1f %%  %3.0f bpm  %3.0f tr/min  " +
+                "portée %4d m  ×%s%s",
+            (secondes / 60).toInt(),
+            (secondes % 60).toInt(),
+            instant.distance / 1_000,
+            instant.vitesse * 3.6,
+            instant.pente,
+            instant.cardiaque,
+            instant.cadence,
+            simulateur.portee.rangeMeters.toInt(),
+            if (acceleration >= 1) acceleration.toInt().toString() else "½",
+            if (enPause) "  [pause]" else "",
+        )
+    }
+
+    /**
+     * Le ruban bleu se voit-il ?
+     *
+     * On ne cherche pas la teinte exacte : elle est composée sur le fond, et l'antialiasing
+     * la nuance sur ses bords. Un bleu franc et dominant suffit à distinguer le tracé du
+     * décor, qui n'a que des gris très sombres et une pointe de bleu sur l'eau — trop
+     * sombre, elle, pour passer le seuil.
+     */
+    private fun rubanVisible(image: Bitmap): Boolean {
+        var bleus = 0
+        val pixels = IntArray(image.width * image.height)
+        image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
+        for (pixel in pixels) {
+            val rouge = (pixel shr 16) and 0xFF
+            val vert = (pixel shr 8) and 0xFF
+            val bleu = pixel and 0xFF
+            if (bleu > 170 && bleu - rouge > 60 && bleu - vert > 40) bleus++
+        }
+        return bleus > 300
+    }
+
+    private fun couleursDistinctes(image: Bitmap): Int {
+        val pixels = IntArray(image.width * image.height)
+        image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
+        return pixels.toHashSet().size
+    }
+
+    private fun ecrire(image: Bitmap, fichier: File) {
+        ImageIO.write(versImageSwing(image), "png", fichier)
+    }
+
+    /** L'instant où le coureur passe à une distance donnée du départ. */
+    private fun instantA(sortie: SortieSimulee, metres: Double): InstantSortie {
+        var bas = 0.0
+        var haut = sortie.duree
+        repeat(40) {
+            val milieu = (bas + haut) / 2
+            if (sortie.a(milieu).distance < metres) bas = milieu else haut = milieu
+        }
+        val instant = sortie.a((bas + haut) / 2)
+        check(abs(instant.distance - metres) < 50) {
+            "le coureur ne passe pas à $metres m (trouvé ${instant.distance} m)"
+        }
+        return instant
+    }
+
+    private companion object {
+        /** Moments de la sortie où le rendu est contrôlé, en part de sa durée. */
+        val PARTS_CONTROLEES = listOf(0.05, 0.25, 0.5, 0.75, 0.95)
+
+        const val IMAGES_PAR_SECONDE = 10
+        const val PROPRIETE_FENETRE = "guidage.simulateur"
+    }
+}

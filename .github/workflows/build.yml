@@ -66,6 +66,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      # Le simulateur de bureau exécute le vrai rendu du tableau de bord sous Robolectric.
+      # Ses tests le tiennent droit sans fenêtre : ils vérifient que chaque portée dessine
+      # bien la trace, ce qu'une simple compilation ne dirait pas — un écran noir compile
+      # parfaitement. Les images produites sont attachées à la construction, ce qui donne un
+      # aperçu du champ à chaque poussée sans sortir le vélo.
+      - name: Contrôler le rendu du tableau de bord
+        if: steps.creds.outputs.available == 'true'
+        run: ./gradlew :app:testDebugUnitTest
+        env:
+          GITHUB_ACTOR: ${{ secrets.GPR_USER }}
+          GITHUB_TOKEN: ${{ secrets.GPR_KEY }}
+
       - if: steps.creds.outputs.available == 'true'
         run: ./gradlew :app:assembleRelease
         env:
