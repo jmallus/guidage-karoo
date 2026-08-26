@@ -37,8 +37,6 @@ data class MapModel(
     val roadsMessage: String? = null,
     /** Distance visible devant le coureur (m). */
     val rangeMeters: Double = 1_000.0,
-    /** Longueur de tracé, devant le coureur, sur laquelle les chevrons sont semés (m). */
-    val chevronRangeMeters: Double = 300.0,
     /** Vrai quand le Karoo estime qu'on a quitté l'itinéraire. */
     val offRoute: Boolean = false,
     val emptyMessage: String? = null,
@@ -51,12 +49,10 @@ data class MapModel(
  * Le fond est clair et les voies portent chacune la teinte de sa classe, comme sur une carte
  * routière ; elles s'effacent vers le fond à mesure qu'elles s'écartent de l'itinéraire, de
  * sorte que la carte ne montre qu'un couloir autour de ce qu'on va faire. Le tracé y est un
- * ruban bleu, d'une seule encre sur toute sa longueur, jalonné de doubles chevrons blancs.
- *
- * Ces chevrons disent deux choses à la fois. Le sens d'abord : à un carrefour en T, les deux
- * branches du ruban se ressemblent. La position ensuite — ils ne sont semés que devant, et
- * commencent donc à l'aplomb du coureur. C'est le seul repère de position, le ruban ne
- * changeant plus d'aspect derrière lui.
+ * ruban bleu, d'une seule encre sur toute sa longueur, portant en un seul endroit une marque :
+ * un double chevron blanc plein, posé sur le coureur, dont la pointe suit le tracé. C'est le
+ * seul repère de position — le ruban ne change d'aspect nulle part — et c'est aussi ce qui dit
+ * le sens.
  *
  * Tout est calculé sur l'appareil, sans réseau ni tuiles à télécharger.
  */
@@ -108,15 +104,9 @@ object MapRenderer {
             canvas = canvas,
             model = model,
             screenPath = screenPath,
-            area = area,
             width = routeWidth(model.rangeMeters),
             riderX = riderX,
             riderY = riderY,
-            chevronLimit = if (model.offRoute) {
-                Float.POSITIVE_INFINITY
-            } else {
-                (model.chevronRangeMeters * metersToPixels).toFloat()
-            },
         )
         drawPois(canvas, area, model, projection, palette)
         drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
@@ -333,7 +323,7 @@ object MapRenderer {
      * où l'on était et dans quel sens on allait, mais il coupait le ruban en deux à l'écran :
      * sur une épingle ou une boucle, la branche pâle du retour longe la branche pleine de
      * l'aller et l'on ne sait plus laquelle est l'itinéraire. Le ruban est donc plein partout,
-     * et ce sont les chevrons qui portent seuls le sens et la position.
+     * et c'est la marque de position qui porte seule le sens et l'endroit où l'on en est.
      *
      * Hors itinéraire, tout passe au rouge de rejointe du Karoo — mieux vaut le voir tout de
      * suite que de le découvrir au bout de deux kilomètres.
@@ -342,11 +332,9 @@ object MapRenderer {
         canvas: Canvas,
         model: MapModel,
         screenPath: List<PlanePoint>,
-        area: RectF,
         width: Float,
         riderX: Float,
         riderY: Float,
-        chevronLimit: Float,
     ) {
         if (screenPath.size < 2) return
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -360,119 +348,82 @@ object MapRenderer {
         val route = polyline(screenPath)
         canvas.drawPath(route, paint)
 
-        // Les chevrons ne sont semés que devant, à partir du point du tracé le plus proche du
-        // coureur : leur premier marque donc sa position.
+        // La marque part du point du tracé le plus proche du coureur et pointe vers ce qui
+        // reste à faire : c'est de là qu'elle tient et sa position et son sens.
         val here = anchor(screenPath, riderX, riderY)
         val ahead = buildList {
             add(here.point)
             addAll(screenPath.subList(here.index, screenPath.size))
         }
 
-        // Le ruban sert de gabarit aux chevrons. Leurs branches sont taillées à sa
-        // demi-largeur, si bien qu'elles s'arrêtent d'elles-mêmes au bord ; le gabarit ne
-        // fait que rogner ce que la courbure fait dépasser. Le ruban tourne, sa largeur
-        // perpendiculaire au chevron n'est pas tout à fait la sienne, et le coin du trait
-        // passait alors outre — le blanc débordant sur le fond clair, où il s'y confond.
+        // Le ruban sert de gabarit à la marque. Ses branches sont taillées à sa demi-largeur,
+        // si bien qu'elles s'arrêtent d'elles-mêmes au bord ; le gabarit ne fait que rogner ce
+        // que la courbure fait dépasser. Le ruban tourne, sa largeur perpendiculaire au chevron
+        // n'est pas tout à fait la sienne, et le coin du trait passait alors outre — le blanc
+        // débordant sur le fond clair, où il s'y confond.
         val ribbon = Path()
         paint.getFillPath(route, ribbon)
         val clip = canvas.save()
         canvas.clipPath(ribbon)
-        drawChevrons(canvas, area, ahead, width, chevronLimit)
+        drawPositionMark(canvas, ahead, width)
         canvas.restoreToCount(clip)
     }
 
     /**
-     * Doubles chevrons blancs semés le long de ce qui reste à faire.
+     * La marque de position : un double chevron blanc plein, posé sur le coureur.
      *
-     * Le ruban seul dit où passe l'itinéraire, non dans quel sens le prendre : à un carrefour
-     * en T, les deux branches se ressemblent. Il ne dit pas davantage où l'on en est, étant
-     * d'une seule encre d'un bout à l'autre. Les chevrons disent les deux : le sens par leur
-     * pointe, la position par leur commencement, qui tombe à l'aplomb du coureur.
+     * Le ruban est d'une seule encre du départ à l'arrivée : rien d'autre ne dit où l'on en
+     * est. Cette marque le dit, et dit du même coup le sens, sa pointe suivant le tracé.
      *
-     * Doubles parce qu'une pointe seule, à cette taille, se lit comme un accident du tracé ;
-     * deux qui se suivent ne peuvent être qu'un sens.
+     * Elle est **double et pleine**. Double parce qu'une pointe seule, à cette taille, se lit
+     * comme un accident du tracé ; pleine parce que deux traits laissés séparés se lisent
+     * comme deux jalons parmi d'autres. Le blanc coulé entre les deux les soude en une seule
+     * marque, qu'on retrouve du premier coup d'œil sur un ruban qui ne change plus d'aspect
+     * nulle part ailleurs.
      *
-     * Blancs, et non de la couleur du fond : le fond est clair, et un chevron de sa teinte
-     * disparaîtrait aux endroits où le ruban croise une route claire. Le blanc franc tient
-     * sur le bleu quoi qu'il y ait dessous.
+     * Blanche, et non de la couleur du fond : le fond est clair, et une marque de sa teinte
+     * disparaîtrait là où le ruban croise une route claire. Le blanc franc tient sur le bleu
+     * quoi qu'il y ait dessous.
      *
-     * Ils sont contenus dans la largeur du ruban. Débordants, ils mordaient sur le fond dans
-     * les virages — et sur les voies que le tracé croise.
+     * Elle n'a plus de jumelles semées devant elle. Elles jalonnaient ce qui restait à faire,
+     * pour dire le sens à prendre à un carrefour en T où les deux branches du ruban se
+     * ressemblent ; c'est la carte, désormais, qui doit le dire.
      */
-    private fun drawChevrons(
-        canvas: Canvas,
-        area: RectF,
-        points: List<PlanePoint>,
-        routeWidth: Float,
-        limitPixels: Float,
-    ) {
-        if (limitPixels <= 0f || points.size < 2) return
-        val spacing = routeWidth * CHEVRON_SPACING_RATIO
+    private fun drawPositionMark(canvas: Canvas, points: List<PlanePoint>, routeWidth: Float) {
         val gap = routeWidth * CHEVRON_GAP_RATIO
         val size = routeWidth * CHEVRON_SIZE_RATIO
         val stroke = routeWidth * CHEVRON_STROKE_RATIO
-        val margin = size * CHEVRON_SWEEP + stroke
 
-        // Le tracé est parcouru une fois, en abscisse curviligne, et pas plus loin que la
-        // borne : un itinéraire de cent kilomètres ne coûte donc pas plus qu'un de un.
-        val walk = ArrayList<PlanePoint>(64)
-        val along = ArrayList<Float>(64)
-        walk += points.first()
-        along += 0f
-        var total = 0f
-        for (index in 1 until points.size) {
-            total += hypot(
-                (points[index].x - points[index - 1].x).toFloat(),
-                (points[index].y - points[index - 1].y).toFloat(),
-            )
-            walk += points[index]
-            along += total
-            if (total > limitPixels + gap) break
-        }
-        if (total <= 0f) return
+        // La seconde pointe est posée à l'abscisse curviligne, non le long du segment
+        // courant : autrement elle disparaissait dès qu'elle tombait au-delà d'un sommet, ce
+        // qui, sur un tracé de route, arrive une fois sur deux.
+        val arriere = chevron(pointAlong(points, 0f) ?: return, size)
+        val avant = chevron(pointAlong(points, gap) ?: return, size)
 
-        // Les positions demandées ne font que croître : un curseur qui n'avance jamais en
-        // arrière suffit, sans quoi il faudrait rechercher le segment à chaque pointe.
-        var cursor = 1
-        fun locate(distance: Float): FloatArray? {
-            if (distance > along.last()) return null
-            while (cursor < along.size && along[cursor] < distance) cursor++
-            if (cursor >= along.size) return null
-            val from = walk[cursor - 1]
-            val to = walk[cursor]
-            val segment = along[cursor] - along[cursor - 1]
-            if (segment <= 0f) return null
-            val t = (distance - along[cursor - 1]) / segment
-            return floatArrayOf(
-                (from.x + (to.x - from.x) * t).toFloat(),
-                (from.y + (to.y - from.y) * t).toFloat(),
-                ((to.x - from.x) / segment).toFloat(),
-                ((to.y - from.y) / segment).toFloat(),
-            )
-        }
-
-        val chevrons = Path()
-        // La première paire est posée à l'abscisse zéro, c'est-à-dire sur le coureur lui-même,
-        // et non un intervalle plus loin. C'est elle qui dit où il en est : le ruban étant
-        // d'une seule encre, rien d'autre ne le dirait.
-        var start = 0f
-        while (start <= minOf(limitPixels, along.last())) {
-            // Les deux pointes d'une paire sont posées à l'abscisse curviligne, non le long
-            // du segment courant : autrement la seconde disparaissait dès qu'elle tombait
-            // au-delà d'un sommet, ce qui, sur un tracé de route, arrive une fois sur deux —
-            // et un double chevron qui se réduit à une pointe ne dit plus qu'un accident.
-            listOf(start, start + gap).forEach { distance ->
-                val at = locate(distance) ?: return@forEach
-                if (at[0] >= area.left - margin && at[0] <= area.right + margin &&
-                    at[1] >= area.top - margin && at[1] <= area.bottom + margin
-                ) {
-                    addChevron(chevrons, at[0], at[1], at[2], at[3], size)
-                }
-            }
-            start += spacing
-        }
+        // Le blanc entre les deux : le polygone que leurs lignes médianes délimitent. Les deux
+        // chevrons sont ensuite repassés par-dessus, ce qui lui rend l'épaisseur de leur trait
+        // et lui donne ses pointes.
         canvas.drawPath(
-            chevrons,
+            Path().apply {
+                moveTo(avant[0], avant[1])
+                lineTo(avant[2], avant[3])
+                lineTo(avant[4], avant[5])
+                lineTo(arriere[4], arriere[5])
+                lineTo(arriere[2], arriere[3])
+                lineTo(arriere[0], arriere[1])
+                close()
+            },
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = CHEVRON_COLOR
+            },
+        )
+
+        canvas.drawPath(
+            Path().apply {
+                addChevron(this, arriere)
+                addChevron(this, avant)
+            },
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
                 strokeWidth = stroke
@@ -483,7 +434,41 @@ object MapRenderer {
         )
     }
 
-    private fun addChevron(path: Path, x: Float, y: Float, ux: Float, uy: Float, size: Float) {
+    /**
+     * Point du tracé à [distance] de son début, et la direction qu'il y suit.
+     *
+     * Rendu en `[x, y, ux, uy]` : quatre nombres plutôt qu'un objet, pour une valeur qui ne
+     * sort jamais de ces deux fonctions.
+     */
+    private fun pointAlong(points: List<PlanePoint>, distance: Float): FloatArray? {
+        var walked = 0f
+        for (index in 1 until points.size) {
+            val from = points[index - 1]
+            val to = points[index]
+            val dx = (to.x - from.x).toFloat()
+            val dy = (to.y - from.y).toFloat()
+            val length = hypot(dx, dy)
+            if (length <= 0f) continue
+            if (walked + length >= distance) {
+                val t = (distance - walked) / length
+                return floatArrayOf(
+                    from.x.toFloat() + dx * t,
+                    from.y.toFloat() + dy * t,
+                    dx / length,
+                    dy / length,
+                )
+            }
+            walked += length
+        }
+        return null
+    }
+
+    /** Les trois sommets d'un chevron — bras, pointe, bras — en `[x, y, x, y, x, y]`. */
+    private fun chevron(at: FloatArray, size: Float): FloatArray {
+        val x = at[0]
+        val y = at[1]
+        val ux = at[2]
+        val uy = at[3]
         val px = -uy
         val py = ux
         val tipX = x + ux * size
@@ -492,9 +477,13 @@ object MapRenderer {
         val backY = tipY - uy * size * CHEVRON_SWEEP
         val armX = px * size * CHEVRON_ARM
         val armY = py * size * CHEVRON_ARM
-        path.moveTo(backX + armX, backY + armY)
-        path.lineTo(tipX, tipY)
-        path.lineTo(backX - armX, backY - armY)
+        return floatArrayOf(backX + armX, backY + armY, tipX, tipY, backX - armX, backY - armY)
+    }
+
+    private fun addChevron(path: Path, chevron: FloatArray) {
+        path.moveTo(chevron[0], chevron[1])
+        path.lineTo(chevron[2], chevron[3])
+        path.lineTo(chevron[4], chevron[5])
     }
 
     private fun polyline(points: List<PlanePoint>): Path = Path().apply {
@@ -649,9 +638,8 @@ object MapRenderer {
      * retenu. La demi-envergure vaut exactement la demi-largeur du ruban : chaque branche
      * s'arrête ainsi d'elle-même au bord, d'une coupe courte et perpendiculaire à elle.
      * Dessinée plus longue et laissée au gabarit, elle était coupée *le long* du bord et
-     * laissait un long coin noir qui longeait la bordure au lieu de s'y arrêter.
+     * laissait un long coin blanc qui longeait la bordure au lieu de s'y arrêter.
      */
-    private const val CHEVRON_SPACING_RATIO = 3.88f
     private const val CHEVRON_GAP_RATIO = 0.71f
     private const val CHEVRON_SIZE_RATIO = 0.556f
     private const val CHEVRON_STROKE_RATIO = 0.235f
@@ -660,7 +648,7 @@ object MapRenderer {
     private const val CHEVRON_SWEEP = 1.6f
     private const val CHEVRON_ARM = 0.9f
 
-    /** Le blanc des chevrons : la seule encre qui tienne sur le bleu par tous les temps. */
+    /** Le blanc de la marque : la seule encre qui tienne sur le bleu par tous les temps. */
     private const val CHEVRON_COLOR = 0xFFFFFFFF.toInt()
 
     /** Rouge du hors-itinéraire : celui du Karoo, pour dire la même chose de la même façon. */

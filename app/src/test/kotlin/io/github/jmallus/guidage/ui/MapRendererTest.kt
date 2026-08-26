@@ -63,17 +63,36 @@ class MapRendererTest {
         }
     }
 
-    /** Les chevrons sont blancs : c'est ce qui les fait tenir sur le bleu par tous les fonds. */
+    /**
+     * Une marque blanche, et une seule, posée sur le coureur.
+     *
+     * Deux choses à tenir. Qu'elle existe — un double chevron plein se compte en centaines de
+     * pixels, pas en dizaines. Et qu'elle soit **seule** : le tracé en était jalonné sur des
+     * centaines de mètres, ce qui déposait du blanc jusqu'en haut du cadre. Le contrôle borne
+     * donc l'encre blanche au voisinage du coureur, qui se tient à l'ordonnée 320.
+     */
     @Test
-    fun `des chevrons blancs jalonnent le trace`() {
+    fun `une seule marque blanche, sur le coureur`() {
         val image = rendre()
 
         var blancs = 0
+        var plusHaut = HAUTEUR
+        var plusBas = 0
         val pixels = IntArray(image.width * image.height)
         image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
-        for (pixel in pixels) if (pixel == BLANC) blancs++
+        for (index in pixels.indices) {
+            if (pixels[index] != BLANC) continue
+            blancs++
+            val y = index / image.width
+            if (y < plusHaut) plusHaut = y
+            if (y > plusBas) plusBas = y
+        }
 
         assertTrue("seulement $blancs pixels blancs sur la carte", blancs > 50)
+        assertTrue(
+            "du blanc traîne hors du coureur, entre les ordonnées $plusHaut et $plusBas",
+            plusHaut >= 280 && plusBas <= 345,
+        )
     }
 
     /**
@@ -112,7 +131,6 @@ class MapRendererTest {
             position = depart,
             heading = 0.0,
             rangeMeters = 200.0,
-            chevronRangeMeters = 300.0,
         )
         MapRenderer.draw(
             canvas = Canvas(image),
@@ -133,8 +151,8 @@ class MapRendererTest {
         /**
          * Quatre points sur le ruban derrière le coureur, entre deux voisins encombrants.
          *
-         * Ils commencent après la première paire de chevrons, dont les branches redescendent
-         * un peu en arrière du coureur, et s'arrêtent avant l'échelle, qui s'écrit tout en bas.
+         * Ils commencent sous la marque de position, dont les branches redescendent un peu en
+         * arrière du coureur, et s'arrêtent avant l'échelle, qui s'écrit tout en bas.
          */
         val ARRIERE = listOf(340, 352, 364, 376)
 

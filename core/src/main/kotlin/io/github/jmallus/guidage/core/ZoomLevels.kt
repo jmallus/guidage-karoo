@@ -28,16 +28,15 @@ enum class GraphZoom(val lookaheadMeters: Double?) {
  * vient, cinq cents pour la sortie du village, un kilomètre pour savoir où l'on va. Au-delà,
  * la carte native du Karoo fait mieux, et en deçà on ne voit plus assez loin pour anticiper.
  *
- * À chaque cran sa longueur de chevrons. Ils ne courent pas sur tout ce qui reste : sur un
- * parcours qui repasse par son départ, la branche du retour est là, à quelques mètres, et en
- * plein dans le couloir du fond — ses chevrons désigneraient une direction qui n'est pas celle
- * du moment. Bornés à ce qu'on atteindra dans la minute ou deux, ils ne montrent qu'un chemin
- * à la fois.
+ * Chaque cran portait aussi une longueur de chevrons, ceux-ci étant semés le long de ce qui
+ * restait à faire et devant s'arrêter avant qu'une boucle ne ramène l'itinéraire à côté de
+ * lui-même. Il ne reste qu'une marque, posée sur le coureur : il n'y a plus de longueur à
+ * borner.
  */
-enum class MapZoom(val rangeMeters: Double, val chevronMeters: Double) {
-    NEAR(200.0, 300.0),
-    MIDDLE(500.0, 800.0),
-    FAR(1_000.0, 1_300.0),
+enum class MapZoom(val rangeMeters: Double) {
+    NEAR(200.0),
+    MIDDLE(500.0),
+    FAR(1_000.0),
     ;
 
     fun next(): MapZoom = entries[(ordinal + 1) % entries.size]

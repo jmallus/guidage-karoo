@@ -182,7 +182,6 @@ object DashboardModels {
                 poi.position?.let { MapPoi(it, PoiLabels.label(context, poi)) }
             },
             rangeMeters = zoom.rangeMeters,
-            chevronRangeMeters = zoom.chevronMeters,
             offRoute = rideData.onRoute == false,
             emptyMessage = context.getString(
                 if (route == null) R.string.field_no_route else R.string.field_waiting_for_position,

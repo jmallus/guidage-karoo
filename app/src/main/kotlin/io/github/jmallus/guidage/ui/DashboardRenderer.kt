@@ -684,7 +684,7 @@ object DashboardRenderer {
         if (front == null && rear == null) {
             canvas.drawText(
                 PLACEHOLDER,
-                area.centerX() - teethPaint.measureText(PLACEHOLDER) / 2f,
+                right - teethPaint.measureText(PLACEHOLDER),
                 area.top + area.height() / 2f - (teethPaint.descent() + teethPaint.ascent()) / 2f,
                 teethPaint,
             )
@@ -710,13 +710,12 @@ object DashboardRenderer {
             drawComb(canvas, RectF(rearLeft, combTop, area.right, combBottom), it, barWidth, ascending = false, palette = palette)
         }
 
+        // Les dentures restent contre le bord droit, seules de toute la page à ne pas se
+        // centrer. Elles ne sont pas la valeur de la case — celle-ci est le schéma, qui prend
+        // toute la largeur — mais une légende posée dessous. Centrée, elle tombait sous le
+        // creux du peigne et se lisait comme la mesure de la barre qu'elle avait au-dessus.
         teeth?.let {
-            canvas.drawText(
-                it,
-                area.centerX() - teethPaint.measureText(it) / 2f,
-                area.bottom - teethPaint.descent(),
-                teethPaint,
-            )
+            canvas.drawText(it, right - teethPaint.measureText(it), area.bottom - teethPaint.descent(), teethPaint)
         }
     }
 
