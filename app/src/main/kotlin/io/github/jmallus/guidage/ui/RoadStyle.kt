@@ -10,16 +10,19 @@ import io.github.jmallus.guidage.core.map.RoadSurface
  * départementale reste une départementale à toutes les échelles, et qu'en dézoomant le
  * réseau s'affine au lieu de s'épaissir en bouillie.
  *
- * Le fond est noir et les voies blanches. C'est un renversement assumé : l'écran du Karoo
- * est transflectif, il réfléchit la lumière au lieu de s'éclairer, et un fond clair s'y lit
- * d'autant mieux qu'il fait jour — c'est pourquoi toutes les cartes de compteur en portent
- * un. Mais ce fond-ci n'est pas fait pour être lu comme une carte : il ne montre que le
- * voisinage immédiat de l'itinéraire, le reste s'éteignant vers le noir, et sur cette
- * poignée de voies le contraste maximal fait plus que la couleur.
+ * Le fond est clair, comme une carte papier, et non sombre. L'écran du Karoo est
+ * transflectif : en plein soleil il ne s'éclaire pas davantage, il **réfléchit**. Un fond
+ * noir n'y renvoie rien et l'écran devient un miroir ; un fond clair renvoie la lumière du
+ * jour et se lit d'autant mieux qu'il y en a. C'est l'inverse de ce qu'on attend d'un écran
+ * de téléphone, et c'est pour cela que toutes les cartes de compteur sont sur fond clair.
  *
- * Les classes ne se distinguent donc plus à la teinte mais à la seule épaisseur, qui reste
- * exprimée en mètres de terrain. Les surfaces passent à des gris très sombres : elles ne
- * servent plus qu'à situer, sans disputer au tracé le peu de lumière disponible.
+ * Le noir a été essayé — voies blanches, rang lu à la seule épaisseur. Le contraste y était
+ * maximal, mais on y perdait deux choses : la lumière du jour, que l'écran ne sait pas rendre
+ * sur du noir, et la classe des voies, qu'une épaisseur de un ou deux pixels d'écart ne dit
+ * pas à cinquante à l'heure. Les teintes sont donc revenues.
+ *
+ * Les voies restent sourdes malgré tout : le fond n'est pas là pour être regardé mais pour
+ * situer le tracé, qui doit rester la chose la plus visible de l'écran.
  */
 object RoadStyle {
 
@@ -44,25 +47,34 @@ object RoadStyle {
     }
 
     /**
-     * Couleur d'une voie : le blanc, pour toutes.
+     * Couleur d'une voie.
      *
-     * Les classes portaient chacune sa teinte, comme sur une carte routière. Ce codage
-     * supposait qu'on ait la carte entière sous les yeux et le temps de la lire ; ici le
-     * fond ne montre plus qu'un couloir autour de l'itinéraire, où il n'y a jamais qu'une
-     * poignée de voies. Leur rang se lit alors à l'épaisseur, et tout le contraste
-     * disponible sert à les détacher du noir plutôt qu'à les distinguer entre elles.
+     * Les classes ont chacune leur teinte, comme sur une carte routière : le rouge et
+     * l'orange pour ce qui roule vite, le gris pour la desserte, le brun pour ce qui n'est
+     * pas revêtu, le vert pour les voies cyclables. Sur un écran de six centimètres, la
+     * couleur distingue les classes bien plus vite que l'épaisseur seule.
+     *
+     * Trottoirs et escaliers sont volontairement à peine détachés du fond : ils forment
+     * le tiers du fichier et n'intéressent ni le gravel ni le VTT, mais les effacer
+     * complètement reviendrait à prétendre qu'il n'y a rien là où il y a quelque chose.
      */
     fun color(kind: RoadKind, surface: RoadSurface): Int = when (kind) {
-        // Trottoirs et escaliers restent sourds : ils forment le tiers du fichier et
-        // n'intéressent ni le gravel ni le VTT, mais les effacer reviendrait à prétendre
-        // qu'il n'y a rien là où il y a quelque chose.
+        RoadKind.MOTORWAY, RoadKind.TRUNK -> EXPRESSWAY
+        RoadKind.PRIMARY -> PRIMARY
+        RoadKind.SECONDARY, RoadKind.TERTIARY -> SECONDARY
+        RoadKind.UNCLASSIFIED, RoadKind.RESIDENTIAL -> MINOR
+        RoadKind.SERVICE -> SERVICE
         RoadKind.FOOTWAY, RoadKind.STEPS -> FAINT
+        RoadKind.CYCLEWAY -> CYCLEWAY
         RoadKind.STREAM -> WATER_LINE
         RoadKind.WATER -> WATER_FILL
         RoadKind.FOREST -> FOREST_FILL
         RoadKind.BUILT_UP -> BUILT_UP_FILL
         RoadKind.FARMLAND -> FARMLAND_FILL
-        else -> ROADWAY
+        // Chemins et sentiers : ce que le coureur cherche, donc le brun des cartes de
+        // randonnée, qui ne se confond avec aucune route.
+        RoadKind.TRACK, RoadKind.PATH, RoadKind.BRIDLEWAY ->
+            if (surface == RoadSurface.PAVED) MINOR else TRAIL
     }
 
     /** Un trait discontinu pour ce qui n'est pas revêtu : c'est la convention des cartes. */
@@ -72,33 +84,48 @@ object RoadStyle {
         else -> false
     }
 
-    /** Fond de la carte : le noir, sur lequel les voies s'éteignent en s'écartant du tracé. */
-    const val BACKGROUND = 0xFF000000.toInt()
+    /** Fond de la carte : le blanc cassé des cartes d'état-major, qui ne brûle pas les yeux. */
+    const val BACKGROUND = 0xFFF2EFE8.toInt()
 
-    /** Encre des mentions portées sur la carte — échelle, messages — sur ce fond noir. */
-    const val INK = 0xFFFFFFFF.toInt()
+    /** Encre des mentions portées sur la carte — échelle, messages — sur ce fond clair. */
+    const val INK = 0xFF2A2F33.toInt()
 
-    /** Toutes les chaussées, du chemin à l'autoroute : seule l'épaisseur les sépare. */
-    private const val ROADWAY = 0xFFFFFFFF.toInt()
+    private const val EXPRESSWAY = 0xFFD4573C.toInt()
+    private const val PRIMARY = 0xFFE8944A.toInt()
+    private const val SECONDARY = 0xFFD8B23F.toInt()
+    private const val MINOR = 0xFF7C8489.toInt()
+    private const val SERVICE = 0xFFA9AFB4.toInt()
+    private const val TRAIL = 0xFF9A6B33.toInt()
+    private const val CYCLEWAY = 0xFF2E7D6B.toInt()
 
     /**
-     * Surfaces : des gris très sombres, à peine détachés du noir.
+     * Surfaces : des teintes franches mais pâles.
      *
-     * Elles occupent de grandes plages derrière tout le reste. Éclaircies, elles feraient de
-     * la carte un damier gris sur lequel les voies blanches perdraient leur détachement ;
-     * c'est lui, et non la couleur, qui porte désormais toute la lecture.
-     *
-     * L'eau garde seule une pointe de bleu : c'est la seule surface qu'on cherche des yeux,
-     * un pont ou un gué ne se devinant pas.
+     * Elles occupent de grandes plages derrière tout le reste ; saturées, elles
+     * emporteraient le regard que le tracé doit garder. Ce sont les couleurs des cartes de
+     * randonnée, où l'on reconnaît l'eau et le bois sans avoir à y penser.
      */
-    private const val WATER_FILL = 0xFF12222E.toInt()
-    private const val WATER_LINE = 0xFF3E6B87.toInt()
-    private const val FOREST_FILL = 0xFF14200F.toInt()
-    private const val BUILT_UP_FILL = 0xFF1E1E1E.toInt()
+    private const val WATER_FILL = 0xFFB4D4E7.toInt()
+    private const val WATER_LINE = 0xFF6FA8CC.toInt()
+    // Teinte choisie sur l'appareil même : les essais plus pâles disparaissaient
+    // sur l'écran transflectif du Karoo, qui délave tout ce qui manque de saturation.
+    private const val FOREST_FILL = 0xFF9AD770.toInt()
+    private const val BUILT_UP_FILL = 0xFFE6DFD5.toInt()
 
-    /** Cultures et prairies : la plus étendue des surfaces, donc la plus discrète. */
-    private const val FARMLAND_FILL = 0xFF10160C.toInt()
+    /**
+     * Cultures et prairies : un vert de paille, plus jaune et plus clair que le bois.
+     *
+     * Les deux verts doivent se distinguer sans se disputer : la campagne couvre presque
+     * tout l'écran en Normandie, elle ne peut être qu'à peine teintée, tandis que le bois,
+     * plus rare et plus franc, se détache dessus. C'est la relation qu'ont ces deux verts
+     * sur les cartes au 25 000e, où l'on reconnaît la lisière sans avoir à la chercher.
+     *
+     * Les premiers essais, calqués sur le papier, étaient si proches du fond que les
+     * champs semblaient absents : l'écran transflectif délave les teintes pâles bien
+     * plus que l'impression. Celles-ci ont été arrêtées sur l'appareil même.
+     */
+    private const val FARMLAND_FILL = 0xFFCDD770.toInt()
 
     /** Trottoirs et escaliers : présents, mais sans prendre la lumière. */
-    private const val FAINT = 0xFF585C60.toInt()
+    private const val FAINT = 0xFFCFCAC0.toInt()
 }

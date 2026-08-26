@@ -48,11 +48,15 @@ data class MapModel(
  * Minicarte orientée « cap en haut », à la manière d'un GPS de voiture : le coureur est
  * fixe dans le bas de la vue, la carte tourne autour de lui, et ce qui est devant est en haut.
  *
- * Le fond est noir, les voies blanches, et elles s'éteignent vers le noir à mesure qu'elles
- * s'écartent de l'itinéraire : la carte ne montre qu'un couloir autour de ce qu'on va faire.
- * Le tracé y est un ruban bleu, plein devant le coureur et s'effaçant derrière lui, jalonné
- * de doubles chevrons noirs qui disent le sens de la marche. Pas de flèche de position : le
- * ruban est plein à partir du coureur et s'éteint derrière, ce qui dit déjà où il est.
+ * Le fond est clair et les voies portent chacune la teinte de sa classe, comme sur une carte
+ * routière ; elles s'effacent vers le fond à mesure qu'elles s'écartent de l'itinéraire, de
+ * sorte que la carte ne montre qu'un couloir autour de ce qu'on va faire. Le tracé y est un
+ * ruban bleu, d'une seule encre sur toute sa longueur, jalonné de doubles chevrons blancs.
+ *
+ * Ces chevrons disent deux choses à la fois. Le sens d'abord : à un carrefour en T, les deux
+ * branches du ruban se ressemblent. La position ensuite — ils ne sont semés que devant, et
+ * commencent donc à l'aplomb du coureur. C'est le seul repère de position, le ruban ne
+ * changeant plus d'aspect derrière lui.
  *
  * Tout est calculé sur l'appareil, sans réseau ni tuiles à télécharger.
  */
@@ -108,7 +112,6 @@ object MapRenderer {
             width = routeWidth(model.rangeMeters),
             riderX = riderX,
             riderY = riderY,
-            fadeLength = area.height() * BEHIND_FADE_FRACTION,
             chevronLimit = if (model.offRoute) {
                 Float.POSITIVE_INFINITY
             } else {
@@ -324,18 +327,13 @@ object MapRenderer {
     }
 
     /**
-     * Le tracé : un ruban bleu, plein devant le coureur, s'éteignant derrière lui.
+     * Le tracé : un ruban bleu d'une seule encre, du départ à l'arrivée.
      *
-     * Il ne porte plus ni chevron ni cerne. Les chevrons disaient le sens sur un fond clair
-     * où le ruban seul ne se distinguait pas assez ; sur fond noir, un bleu franc de dix-sept
-     * pixels se voit sans qu'on ait à le jalonner, et le fondu dit le sens à leur place — ce
-     * qui est plein est devant, ce qui s'efface est derrière. Le ruban reprend au passage
-     * l'épaisseur que l'amincissement lui avait prise, puisque c'est lui, désormais, qui
-     * porte seul le signal.
-     *
-     * Le fondu se compte le long du tracé, non en hauteur d'écran : sur une épingle, la
-     * branche qu'on vient de faire revient à côté de soi sans être plus bas, et un dégradé
-     * vertical l'aurait laissée pleine.
+     * La part déjà faite s'éteignait autrefois derrière le coureur. Le fondu disait à la fois
+     * où l'on était et dans quel sens on allait, mais il coupait le ruban en deux à l'écran :
+     * sur une épingle ou une boucle, la branche pâle du retour longe la branche pleine de
+     * l'aller et l'on ne sait plus laquelle est l'itinéraire. Le ruban est donc plein partout,
+     * et ce sont les chevrons qui portent seuls le sens et la position.
      *
      * Hors itinéraire, tout passe au rouge de rejointe du Karoo — mieux vaut le voir tout de
      * suite que de le découvrir au bout de deux kilomètres.
@@ -348,53 +346,58 @@ object MapRenderer {
         width: Float,
         riderX: Float,
         riderY: Float,
-        fadeLength: Float,
         chevronLimit: Float,
     ) {
         if (screenPath.size < 2) return
-        val tint = if (model.offRoute) OFF_ROUTE_COLOR else ROUTE_COLOR
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = width
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
-            color = tint
+            color = if (model.offRoute) OFF_ROUTE_COLOR else ROUTE_COLOR
         }
 
+        val route = polyline(screenPath)
+        canvas.drawPath(route, paint)
+
+        // Les chevrons ne sont semés que devant, à partir du point du tracé le plus proche du
+        // coureur : leur premier marque donc sa position.
         val here = anchor(screenPath, riderX, riderY)
         val ahead = buildList {
             add(here.point)
             addAll(screenPath.subList(here.index, screenPath.size))
         }
-        val aheadPath = polyline(ahead)
-        canvas.drawPath(aheadPath, paint)
 
         // Le ruban sert de gabarit aux chevrons. Leurs branches sont taillées à sa
         // demi-largeur, si bien qu'elles s'arrêtent d'elles-mêmes au bord ; le gabarit ne
         // fait que rogner ce que la courbure fait dépasser. Le ruban tourne, sa largeur
         // perpendiculaire au chevron n'est pas tout à fait la sienne, et le coin du trait
-        // passait alors outre — le noir débordant sur le fond, où il s'y confond.
+        // passait alors outre — le blanc débordant sur le fond clair, où il s'y confond.
         val ribbon = Path()
-        paint.getFillPath(aheadPath, ribbon)
+        paint.getFillPath(route, ribbon)
         val clip = canvas.save()
         canvas.clipPath(ribbon)
         drawChevrons(canvas, area, ahead, width, chevronLimit)
         canvas.restoreToCount(clip)
-
-        drawFadingBehind(canvas, screenPath, here, paint, tint, fadeLength)
     }
 
     /**
-     * Doubles chevrons noirs semés le long de ce qui reste à faire.
+     * Doubles chevrons blancs semés le long de ce qui reste à faire.
      *
      * Le ruban seul dit où passe l'itinéraire, non dans quel sens le prendre : à un carrefour
-     * en T, les deux branches se ressemblent. Les chevrons le disent, et le noir suffit — le
-     * ruban est plein sur tout l'avant, le fondu n'étant qu'en arrière, où l'on n'en sème pas.
+     * en T, les deux branches se ressemblent. Il ne dit pas davantage où l'on en est, étant
+     * d'une seule encre d'un bout à l'autre. Les chevrons disent les deux : le sens par leur
+     * pointe, la position par leur commencement, qui tombe à l'aplomb du coureur.
+     *
      * Doubles parce qu'une pointe seule, à cette taille, se lit comme un accident du tracé ;
      * deux qui se suivent ne peuvent être qu'un sens.
      *
+     * Blancs, et non de la couleur du fond : le fond est clair, et un chevron de sa teinte
+     * disparaîtrait aux endroits où le ruban croise une route claire. Le blanc franc tient
+     * sur le bleu quoi qu'il y ait dessous.
+     *
      * Ils sont contenus dans la largeur du ruban. Débordants, ils mordaient sur le fond dans
-     * les virages, où le noir se confond avec lui — et sur les voies que le tracé croise.
+     * les virages — et sur les voies que le tracé croise.
      */
     private fun drawChevrons(
         canvas: Canvas,
@@ -449,7 +452,10 @@ object MapRenderer {
         }
 
         val chevrons = Path()
-        var start = spacing
+        // La première paire est posée à l'abscisse zéro, c'est-à-dire sur le coureur lui-même,
+        // et non un intervalle plus loin. C'est elle qui dit où il en est : le ruban étant
+        // d'une seule encre, rien d'autre ne le dirait.
+        var start = 0f
         while (start <= minOf(limitPixels, along.last())) {
             // Les deux pointes d'une paire sont posées à l'abscisse curviligne, non le long
             // du segment courant : autrement la seconde disparaissait dès qu'elle tombait
@@ -489,69 +495,6 @@ object MapRenderer {
         path.moveTo(backX + armX, backY + armY)
         path.lineTo(tipX, tipY)
         path.lineTo(backX - armX, backY - armY)
-    }
-
-    /**
-     * La part déjà parcourue, remontée depuis le coureur et éteinte au fil des mètres.
-     *
-     * Elle est découpée en tronçons courts, chacun de son opacité : c'est plus fidèle qu'un
-     * dégradé posé sur toute la part faite, dont l'orientation ne suivrait pas les virages.
-     * Le découpage s'arrête dès que le fondu est consommé — quelques dizaines de pixels —
-     * de sorte qu'un itinéraire de cent kilomètres ne coûte pas plus cher qu'un de un.
-     */
-    private fun drawFadingBehind(
-        canvas: Canvas,
-        screenPath: List<PlanePoint>,
-        here: Anchor,
-        paint: Paint,
-        tint: Int,
-        fadeLength: Float,
-    ) {
-        if (fadeLength <= 0f) return
-        // Bout carré, et non rond : un tronçon à bout rond déborde d'une demi-épaisseur sur
-        // le suivant, et deux translucides qui se recouvrent font une perle plus sombre. Le
-        // ruban en paraissait chapeleté au lieu de s'éteindre.
-        paint.strokeCap = Paint.Cap.BUTT
-        var travelled = 0f
-        var toX = here.point.x.toFloat()
-        var toY = here.point.y.toFloat()
-        for (index in here.index - 1 downTo 0) {
-            val from = screenPath[index]
-            var fromX = from.x.toFloat()
-            var fromY = from.y.toFloat()
-            var length = hypot(toX - fromX, toY - fromY)
-            if (length < 0.01f) continue
-            // Le segment qui épuise le fondu est raccourci d'autant : au-delà, le ruban est
-            // transparent et le dessiner ne ferait que du travail perdu.
-            if (travelled + length > fadeLength) {
-                val keep = (fadeLength - travelled) / length
-                fromX = toX + (fromX - toX) * keep
-                fromY = toY + (fromY - toY) * keep
-                length = fadeLength - travelled
-            }
-            val steps = ((length / FADE_STEP).toInt() + 1).coerceAtMost(MAX_FADE_STEPS)
-            for (step in 0 until steps) {
-                val t0 = step.toFloat() / steps
-                // Un demi-pixel de recouvrement : deux tronçons à bout carré strictement
-                // jointifs laissent un cheveu entre eux, l'antialiasing ne couvrant
-                // complètement ni l'un ni l'autre — le ruban s'en trouvait rayé.
-                val t1 = ((step + 1).toFloat() / steps + SEAM_OVERLAP / length).coerceAtMost(1f)
-                val distance = travelled + length * (t0 + (step + 1).toFloat() / steps) / 2f
-                paint.color = tint
-                paint.alpha = (255f * (1f - distance / fadeLength)).toInt().coerceIn(0, 255)
-                canvas.drawLine(
-                    toX + (fromX - toX) * t0,
-                    toY + (fromY - toY) * t0,
-                    toX + (fromX - toX) * t1,
-                    toY + (fromY - toY) * t1,
-                    paint,
-                )
-            }
-            travelled += length
-            if (travelled >= fadeLength) return
-            toX = from.x.toFloat()
-            toY = from.y.toFloat()
-        }
     }
 
     private fun polyline(points: List<PlanePoint>): Path = Path().apply {
@@ -621,11 +564,13 @@ object MapRenderer {
     }
 
     /**
-     * Points d'intérêt : une pastille cerclée de blanc, avec son nom à côté.
+     * Points d'intérêt : une pastille cernée de la couleur du fond, avec son nom à côté.
      *
-     * Le cerne blanc et le halo du texte ne sont pas décoratifs : sans eux, la pastille se
-     * confond avec le tracé qu'elle jouxte et le nom devient illisible dès qu'il tombe sur
-     * une route. Ils sont dimensionnés d'après la case, pour rester lisibles en roulant.
+     * Le cerne et le halo du texte ne sont pas décoratifs : sans eux, la pastille se confond
+     * avec le tracé qu'elle jouxte et le nom devient illisible dès qu'il tombe sur une route.
+     * Ils prennent la teinte du fond de carte plutôt qu'un blanc fixe : c'est ce qui les fait
+     * tenir aussi bien sur le ruban bleu que sur une départementale orange, et ce qui les
+     * suivrait si le fond changeait de nouveau de couleur.
      */
     private fun drawPois(
         canvas: Canvas,
@@ -642,7 +587,7 @@ object MapRenderer {
             style = Paint.Style.FILL
         }
         val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFFFFFFF.toInt()
+            color = RoadStyle.BACKGROUND
             style = Paint.Style.STROKE
             strokeWidth = radius * 0.45f
         }
@@ -678,30 +623,24 @@ object MapRenderer {
     }
 
     /**
-     * Point d'intérêt : le violet que le Karoo emploie pour la destination.
+     * Point d'intérêt : le violet du Karoo, assombri pour un fond clair.
      *
-     * Le bleu qu'ils portaient est désormais celui du tracé ; le leur ne peut plus être
-     * une nuance du même, sous peine de faire croire à une bifurcation de l'itinéraire.
+     * Le bleu qu'ils portaient autrefois est désormais celui du tracé ; le leur ne peut plus
+     * être une nuance du même, sous peine de faire croire à une bifurcation de l'itinéraire.
+     * Le violet du Karoo est celui de la destination, mais tel quel — un lilas très pâle —
+     * il s'évanouit sur le crème du fond : c'est une teinte faite pour un écran noir. Celle-ci
+     * est la même en plus dense, assez foncée pour tenir sur le clair.
      */
-    private val POI_COLOR = FieldPalette.DESTINATION
+    private const val POI_COLOR = 0xFF7B3FA0.toInt()
 
     /**
      * Bleu du tracé.
      *
-     * Le jaune d'avant tenait sur le fond crème d'une carte papier ; sur fond noir c'est le
-     * bleu qui se détache le mieux sans crier, et il ne peut être confondu avec aucune voie,
-     * toutes blanches.
+     * Le jaune d'avant s'est révélé faible sur le fond crème, où il fallait le cerner de noir
+     * pour qu'il tienne. Ce bleu franc s'y détache seul, et aucune classe de voie ne le porte :
+     * une départementale orange ou un chemin brun ne peuvent pas être pris pour l'itinéraire.
      */
     private const val ROUTE_COLOR = 0xFF2E8BFF.toInt()
-
-    /**
-     * Longueur du fondu de la part parcourue, en part de la hauteur de la carte.
-     *
-     * Le coureur se tient aux quatre cinquièmes : un cinquième de hauteur seulement est
-     * derrière lui, et le fondu doit être consommé avant le bas du cadre, sans quoi le ruban
-     * s'y couperait net au lieu de s'y éteindre.
-     */
-    private const val BEHIND_FADE_FRACTION = 0.17f
 
     /**
      * Le double chevron, en part de l'épaisseur du ruban.
@@ -721,22 +660,8 @@ object MapRenderer {
     private const val CHEVRON_SWEEP = 1.6f
     private const val CHEVRON_ARM = 0.9f
 
-    /** Le noir du fond, percé dans le ruban : aucune encre ajoutée à la carte. */
-    private const val CHEVRON_COLOR = 0xFF000000.toInt()
-
-    /**
-     * Longueur d'un tronçon du fondu, et garde-fou contre un segment démesuré.
-     *
-     * À trois pixels, le fondu se consommait en dix-sept paliers d'opacité, soit six points
-     * par marche : sur un ruban de dix-sept pixels de large, ça se voit, et le ruban paraît
-     * rayé en travers. À un pixel et demi la marche passe sous le seuil, pour une trentaine
-     * de traits courts par image — rien du tout.
-     */
-    private const val FADE_STEP = 1.5f
-
-    /** Recouvrement entre deux tronçons du fondu, en pixels. */
-    private const val SEAM_OVERLAP = 0.5f
-    private const val MAX_FADE_STEPS = 48
+    /** Le blanc des chevrons : la seule encre qui tienne sur le bleu par tous les temps. */
+    private const val CHEVRON_COLOR = 0xFFFFFFFF.toInt()
 
     /** Rouge du hors-itinéraire : celui du Karoo, pour dire la même chose de la même façon. */
     private val OFF_ROUTE_COLOR = FieldPalette.REJOIN

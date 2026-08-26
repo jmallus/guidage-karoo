@@ -54,9 +54,9 @@ data class Tile(
      * Chiffre porté à gauche de la valeur, sur la même ligne de base : le numéro de zone.
      *
      * L'aplat de couleur dit déjà la zone, mais il faut connaître la palette par cœur pour
-     * la nommer — et le saumon de la zone 4 tient de près à l'orange de la zone 5. Le
-     * chiffre lève le doute sans rien coûter : la moitié gauche de cette ligne était vide,
-     * la valeur étant alignée à droite.
+     * la nommer — et le saumon de la zone 4 tient de près à l'orange de la zone 5. Le chiffre
+     * lève le doute. Il se tient en marge, contre le bord : la valeur se centre dans la place
+     * qui reste après lui, et non dans la case entière.
      */
     val leading: String? = null,
     /** Aplat de fond, ou null pour laisser le fond de l'écran. */
@@ -489,11 +489,14 @@ object DashboardRenderer {
     }
 
     /**
-     * Une case : l'icône calée à gauche, le libellé et la valeur alignés à droite.
+     * Une case : le titre centré, la valeur centrée sous lui.
      *
-     * L'alignement à droite fait tomber les unités et les chiffres des poids faibles sur
-     * une même verticale d'une case à l'autre : l'œil compare alors les valeurs sans avoir
-     * à les recentrer lui-même, ce que le centrage lui imposait.
+     * Les deux étaient alignés à droite, ce qui faisait tomber les unités et les chiffres des
+     * poids faibles sur une même verticale d'une case à l'autre. C'est une qualité de tableau,
+     * où l'on compare des colonnes de nombres ; ici les cases ne sont pas d'une même colonne,
+     * elles sont côte à côte et de largeurs différentes, et l'alignement à droite y rejetait
+     * chaque valeur contre le bord de la suivante. Centrée, chacune se tient dans sa case et
+     * l'œil la trouve là où il la cherche.
      *
      * Sur un aplat de couleur, l'encre passe au noir ou reste au blanc selon ce qui se lit
      * le mieux — le jaune de la zone 3 réclame du noir là où le rouge de la zone 6 non.
@@ -539,23 +542,29 @@ object DashboardRenderer {
         val labelHeight = labelPaint.descent() - labelPaint.ascent()
         val valueHeight = valuePaint.descent() - valuePaint.ascent()
         val top = labelTop(bounds, labelHeight)
-        val right = bounds.right - EDGE_INSET
 
-        drawLabelRow(context, canvas, bounds, right, tile, labelPaint, iconInk, top, labelSize)
+        drawLabelRow(context, canvas, bounds, tile, labelPaint, iconInk, top, labelSize)
 
-        // La valeur, sa décimale et son unité forment un bloc unique aligné à droite, centré
-        // dans ce qui reste sous le libellé : elle garde ainsi la place qu'elle occupait quand
-        // le bloc entier était centré.
+        // La valeur, sa décimale et son unité forment un bloc unique, centré dans ce qui reste
+        // sous le libellé.
         val valueWidth = valuePaint.measureText(tile.value)
         val tail = tile.decimal ?: tile.suffix
         val tailWidth = tail?.let { suffixPaint.measureText(it) } ?: 0f
-        val left = right - (valueWidth + tailWidth)
         val baseline = valueTop(bounds, top, labelHeight, valueHeight) - valuePaint.ascent()
 
-        // Le numéro de zone contre le bord gauche, à mi-corps de la valeur : assez gros pour
-        // se lire d'un coup d'œil, assez petit pour qu'on ne le confonde pas avec elle.
+        // Le numéro de zone garde le bord gauche : c'est un indice posé en marge, non un
+        // membre du nombre. La valeur se centre donc dans la place qui reste après lui —
+        // dans la case entière, elle viendrait s'écrire par-dessus dès que la case est
+        // étroite, ce qu'est justement celle de la fréquence cardiaque.
+        val leadingPaint =
+            paint(valueSize * LEADING_RATIO, translucent(ink, LEADING_ALPHA), Typeface.DEFAULT_BOLD)
+        val leadingWidth = tile.leading?.let { leadingPaint.measureText(it) + EDGE_INSET } ?: 0f
+        val bandLeft = bounds.left + EDGE_INSET + leadingWidth
+        val bandRight = bounds.right - EDGE_INSET
+        val left = (bandLeft + (bandRight - bandLeft - (valueWidth + tailWidth)) / 2f)
+            .coerceAtLeast(bandLeft)
+
         tile.leading?.let { leading ->
-            val leadingPaint = paint(valueSize * LEADING_RATIO, translucent(ink, LEADING_ALPHA), Typeface.DEFAULT_BOLD)
             canvas.drawText(leading, bounds.left + EDGE_INSET, baseline, leadingPaint)
         }
 
@@ -567,12 +576,21 @@ object DashboardRenderer {
         }
     }
 
-    /** L'icône contre le bord gauche de la case, le libellé aligné à droite comme la valeur. */
+    /**
+     * Le titre de la case, centré, son icône devant lui.
+     *
+     * L'icône et le mot forment un seul bloc, et c'est le bloc qui se centre. Rangée dans le
+     * coin gauche pendant que le mot se tient au milieu, l'icône se lisait comme un objet à
+     * part posé là ; contre lui, elle redevient ce qu'elle est — la marque du titre, qu'on
+     * reconnaît avant même d'avoir lu.
+     *
+     * Le bloc est retenu par le bord gauche s'il est plus large que la case : mieux vaut un
+     * titre décalé qu'un titre dont le début sort du cadre.
+     */
     private fun drawLabelRow(
         context: Context,
         canvas: Canvas,
         bounds: RectF,
-        right: Float,
         tile: Tile,
         labelPaint: Paint,
         iconInk: Int,
@@ -581,13 +599,14 @@ object DashboardRenderer {
     ) {
         val iconSize = labelSize * ICON_RATIO
         val labelWidth = labelPaint.measureText(tile.label)
+        val iconWidth = if (tile.icon != null) iconSize + LABEL_GAP else 0f
+        val left = (bounds.centerX() - (iconWidth + labelWidth) / 2f)
+            .coerceAtLeast(bounds.left + EDGE_INSET)
 
         tile.icon?.let { resource ->
             val drawable = ContextCompat.getDrawable(context, resource)
             if (drawable != null) {
-                // L'icône est plus grande que le libellé et se pose sur la même ligne médiane :
-                // à gauche de la case, elle sert de repère avant même qu'on lise le mot.
-                val left = bounds.left + EDGE_INSET
+                // L'icône est plus grande que le libellé et se pose sur la même ligne médiane.
                 val iconTop = top + (labelPaint.descent() - labelPaint.ascent() - iconSize) / 2f
                 drawable.setTint(iconInk)
                 drawable.setBounds(
@@ -600,7 +619,7 @@ object DashboardRenderer {
             }
         }
 
-        canvas.drawText(tile.label, right - labelWidth, top - labelPaint.ascent(), labelPaint)
+        canvas.drawText(tile.label, left + iconWidth, top - labelPaint.ascent(), labelPaint)
     }
 
     // --- Transmission ----------------------------------------------------------------------
@@ -633,7 +652,6 @@ object DashboardRenderer {
             context = context,
             canvas = canvas,
             bounds = bounds,
-            right = right,
             tile = Tile(label = model.label, value = "", icon = model.icon),
             labelPaint = labelPaint,
             iconInk = palette.iconTint,
@@ -655,10 +673,9 @@ object DashboardRenderer {
         val teethSize = valueSize * TEETH_RATIO
         val teethPaint = paint(teethSize, palette.textPrimary, LIGHT_TYPEFACE)
 
-        // Les barres montent depuis le bas de cette bande. Contrairement aux chiffres des
-        // autres cases, alignés à droite et qui ne rencontrent donc jamais l'icône, elles
-        // partent du bord gauche, juste sous elle : il faut leur réserver du blanc en haut,
-        // sans quoi la plus haute vient toucher le plateau dessiné.
+        // Les barres montent depuis le bas de cette bande et occupent toute sa largeur : elles
+        // passent donc sous le titre et son icône, que rien ne décale plus sur le côté. Il
+        // faut leur réserver du blanc en haut, sans quoi la plus haute vient le toucher.
         val combBottom = area.bottom - if (teeth == null) 0f else teethSize * TEETH_LEADING
         val combTop = (area.top + labelHeight * COMB_TOP_MARGIN).coerceAtMost(combBottom)
 
@@ -667,7 +684,7 @@ object DashboardRenderer {
         if (front == null && rear == null) {
             canvas.drawText(
                 PLACEHOLDER,
-                right - teethPaint.measureText(PLACEHOLDER),
+                area.centerX() - teethPaint.measureText(PLACEHOLDER) / 2f,
                 area.top + area.height() / 2f - (teethPaint.descent() + teethPaint.ascent()) / 2f,
                 teethPaint,
             )
@@ -694,7 +711,12 @@ object DashboardRenderer {
         }
 
         teeth?.let {
-            canvas.drawText(it, right - teethPaint.measureText(it), area.bottom - teethPaint.descent(), teethPaint)
+            canvas.drawText(
+                it,
+                area.centerX() - teethPaint.measureText(it) / 2f,
+                area.bottom - teethPaint.descent(),
+                teethPaint,
+            )
         }
     }
 
@@ -804,13 +826,11 @@ object DashboardRenderer {
     private const val COMB_TOP_MARGIN = 0.32f
 
     /**
-     * Plus grande taille de libellé laissant l'icône à découvert.
+     * Plus grande taille de titre tenant dans la case, icône comprise.
      *
-     * Le libellé est aligné à droite, l'icône calée à gauche : quand le mot est long et la
-     * case étroite, le premier vient recouvrir la seconde — et c'est l'icône qui fait
-     * reconnaître la case avant même qu'on ait lu le mot. Les trois cases du bandeau du haut
-     * font la moitié de la largeur des autres, « VITESSE 3S » y passait par-dessus le
-     * compteur.
+     * L'icône et le mot forment un bloc centré : ils ne peuvent plus se recouvrir, mais rien
+     * n'empêche le bloc entier de dépasser des deux côtés. Les trois cases du bandeau du haut
+     * font la moitié de la largeur des autres, et « VITESSE 3S » y sortait du cadre.
      *
      * L'icône étant dimensionnée d'après le libellé, les deux se réduisent ensemble : la
      * largeur totale est proportionnelle au corps, et une seule mise à l'échelle suffit.
