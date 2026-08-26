@@ -1,6 +1,5 @@
 package io.github.jmallus.guidage.sim
 
-import android.graphics.Bitmap
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension
@@ -39,10 +38,15 @@ enum class Commande {
  * La fenêtre du simulateur.
  *
  * Elle ne dessine rien du tableau de bord : elle reçoit des images déjà faites et les affiche.
- * Le partage est volontaire. Le rendu passe par le moteur graphique Android, qui vit sur le
- * fil du test ; l'interface Swing vit sur le sien. Faire dessiner Skia depuis le fil de
- * l'interface reviendrait à mêler deux mondes qui n'ont aucune raison de s'entendre, pour ne
- * gagner que la disparition d'un tampon.
+ *
+ * Elle ne connaît d'ailleurs rien d'Android — pas même le type de ses images, qui lui
+ * arrivent en tableau de pixels. Ce n'est pas de la prudence mais une nécessité : le rendu
+ * s'exécute dans un test unitaire d'Android, compilé contre « android.jar », d'où « java.awt »
+ * est absent. Les deux mondes ne peuvent donc se parler qu'en types communs — des entiers et
+ * une chaîne — et c'est très bien ainsi.
+ *
+ * Le fil compte aussi. Le rendu appartient au fil du test, l'interface Swing au sien : c'est
+ * pourquoi la fenêtre reçoit des pixels au lieu d'aller les chercher.
  */
 class FenetreSimulateur(agrandissement: Double = 1.0) {
 
@@ -78,8 +82,8 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
     init {
         toile.background = Color(0x20, 0x22, 0x24)
         toile.preferredSize = Dimension(
-            (Simulateur.LARGEUR * echelle).toInt() + 80,
-            (Simulateur.HAUTEUR * echelle).toInt() + 40,
+            (LARGEUR_ECRAN * echelle).toInt() + 80,
+            (HAUTEUR_ECRAN * echelle).toInt() + 40,
         )
 
         etat.font = Font(Font.MONOSPACED, Font.PLAIN, 12)
@@ -137,8 +141,9 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
     /** Retire la prochaine commande du clavier, ou null s'il n'y en a plus. */
     fun prochaineCommande(): Commande? = commandes.poll()
 
-    fun montrer(image: Bitmap, ligneEtat: String) {
-        affichee = versImageSwing(image)
+    /** Affiche une image, donnée en pixels ARGB rangés par lignes. */
+    fun montrer(pixels: IntArray, largeur: Int, hauteur: Int, ligneEtat: String) {
+        affichee = versImageSwing(pixels, largeur, hauteur)
         SwingUtilities.invokeLater {
             etat.text = " $ligneEtat"
             toile.repaint()
@@ -149,8 +154,8 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
         echelle = (echelle * facteur).coerceIn(0.5, 3.0)
         SwingUtilities.invokeLater {
             toile.preferredSize = Dimension(
-                (Simulateur.LARGEUR * echelle).toInt() + 80,
-                (Simulateur.HAUTEUR * echelle).toInt() + 40,
+                (LARGEUR_ECRAN * echelle).toInt() + 80,
+                (HAUTEUR_ECRAN * echelle).toInt() + 40,
             )
             cadre.pack()
             toile.repaint()
@@ -163,6 +168,10 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
     }
 
     private companion object {
+        /** L'écran du Karoo 3, en points : de quoi dimensionner la fenêtre avant la première image. */
+        const val LARGEUR_ECRAN = 480
+        const val HAUTEUR_ECRAN = 800
+
         const val AIDE =
             " espace pause · ←/→ ±10 s · ↑/↓ vitesse · z portée · p carte/profil · " +
                 "h hors-itinéraire · r au départ · +/- taille · échap quitter"
@@ -170,16 +179,12 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
 }
 
 /**
- * Une image Android en image Swing.
+ * Des pixels ARGB en image Swing.
  *
- * Le passage par un tableau de pixels est le seul chemin sûr : les deux mondes n'ont aucun
- * tampon en commun, et le format ARGB de l'un se lit tel quel dans celui de l'autre.
+ * Le format ARGB d'Android se lit tel quel dans celui de Swing : il n'y a rien à convertir,
+ * seulement à recopier.
  */
-fun versImageSwing(bitmap: Bitmap): BufferedImage {
-    val largeur = bitmap.width
-    val hauteur = bitmap.height
-    val pixels = IntArray(largeur * hauteur)
-    bitmap.getPixels(pixels, 0, largeur, 0, 0, largeur, hauteur)
+private fun versImageSwing(pixels: IntArray, largeur: Int, hauteur: Int): BufferedImage {
     val image = BufferedImage(largeur, hauteur, BufferedImage.TYPE_INT_ARGB)
     image.setRGB(0, 0, largeur, hauteur, pixels, 0, largeur)
     return image

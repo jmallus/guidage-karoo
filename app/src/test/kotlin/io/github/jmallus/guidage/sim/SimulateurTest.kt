@@ -5,8 +5,8 @@ import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.ui.PreviewData
 import java.io.File
+import java.io.FileOutputStream
 import java.util.Locale
-import javax.imageio.ImageIO
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -195,8 +195,11 @@ class SimulateurTest {
             if (!enPause) {
                 secondes = avancer(secondes, acceleration / IMAGES_PAR_SECONDE, simulateur)
             }
+            val image = simulateur.image(secondes)
             fenetre.montrer(
-                simulateur.image(secondes),
+                pixelsDe(image),
+                image.width,
+                image.height,
                 ligneEtat(simulateur, secondes, acceleration, enPause),
             )
             Thread.sleep((1_000 / IMAGES_PAR_SECONDE).toLong())
@@ -242,9 +245,7 @@ class SimulateurTest {
      */
     private fun rubanVisible(image: Bitmap): Boolean {
         var bleus = 0
-        val pixels = IntArray(image.width * image.height)
-        image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
-        for (pixel in pixels) {
+        for (pixel in pixelsDe(image)) {
             val rouge = (pixel shr 16) and 0xFF
             val vert = (pixel shr 8) and 0xFF
             val bleu = pixel and 0xFF
@@ -253,14 +254,25 @@ class SimulateurTest {
         return bleus > 300
     }
 
-    private fun couleursDistinctes(image: Bitmap): Int {
+    private fun couleursDistinctes(image: Bitmap): Int = pixelsDe(image).toHashSet().size
+
+    /** Les pixels ARGB de l'image, rangés par lignes. */
+    private fun pixelsDe(image: Bitmap): IntArray {
         val pixels = IntArray(image.width * image.height)
         image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
-        return pixels.toHashSet().size
+        return pixels
     }
 
+    /**
+     * Écrit une image de contrôle.
+     *
+     * L'encodage passe par Android lui-même et non par ImageIO : « javax.imageio » n'existe
+     * pas plus que « java.awt » dans un test unitaire d'Android.
+     */
     private fun ecrire(image: Bitmap, fichier: File) {
-        ImageIO.write(versImageSwing(image), "png", fichier)
+        FileOutputStream(fichier).use { sortie ->
+            image.compress(Bitmap.CompressFormat.PNG, 100, sortie)
+        }
     }
 
     /** L'instant où le coureur passe à une distance donnée du départ. */

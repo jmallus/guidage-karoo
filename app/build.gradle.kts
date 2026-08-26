@@ -131,4 +131,6 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    // La fenêtre du simulateur, hors de l'APK : « android.jar » n'a pas de java.awt.
+    testImplementation(project(":sim"))
 }

@@ -49,4 +49,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "guidage-karoo"
-include(":app", ":core", ":tools")
+// « :sim » n'entre pas dans l'APK : il ne porte que la fenêtre du simulateur de bureau,
+// que « :app » n'utilise qu'en testImplementation.
+include(":app", ":core", ":tools", ":sim")
