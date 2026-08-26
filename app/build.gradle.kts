@@ -90,8 +90,18 @@ val simulateurDemande = gradle.startParameter.taskNames.any {
 }
 
 tasks.withType<Test>().configureEach {
+    val tache = this
     if (simulateurDemande) {
         systemProperty("guidage.simulateur", "1")
+        // Le plugin Android lance ses tests unitaires « sans écran ». C'est le bon réglage
+        // partout ailleurs, et c'est exactement ce qui interdit d'ouvrir une fenêtre : le
+        // premier JFrame lève une HeadlessException. On le lève ici, pour cette tâche
+        // seulement, et seulement quand le simulateur est demandé.
+        //
+        // Dans un doFirst, et non dans la configuration : le plugin pose sa propre valeur,
+        // et rien ne garantit lequel des deux blocs de configuration s'exécute en dernier.
+        // Ici, la question ne se pose plus — l'exécution vient forcément après.
+        doFirst { tache.systemProperty("java.awt.headless", "false") }
         filter { includeTestsMatching("io.github.jmallus.guidage.sim.SimulateurTest") }
         // Une fenêtre qu'on rouvre est une fenêtre qui doit se rouvrir, même si rien n'a
         // changé depuis la dernière fois.
