@@ -4,6 +4,7 @@ import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.Font
+import java.awt.GraphicsEnvironment
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
@@ -188,4 +189,28 @@ private fun versImageSwing(pixels: IntArray, largeur: Int, hauteur: Int): Buffer
     val image = BufferedImage(largeur, hauteur, BufferedImage.TYPE_INT_ARGB)
     image.setRGB(0, 0, largeur, hauteur, pixels, 0, largeur)
     return image
+}
+
+/**
+ * Rend l'ouverture d'une fenêtre possible, à appeler avant d'en construire une.
+ *
+ * Un lanceur de tests tourne « sans écran » : c'est le bon réglage pour tous les autres
+ * tests, et c'est précisément ce qui fait lever une `HeadlessException` au premier `JFrame`.
+ * Le régler depuis le fichier de construction ne suffit pas — le plugin Android repose sa
+ * propre valeur, et l'ordre des deux ne se maîtrise pas.
+ *
+ * On s'en charge donc ici, en deux temps. La propriété d'abord ; puis la réponse que
+ * `java.awt` a peut-être déjà retenue, car elle n'est calculée qu'une seule fois, à la
+ * première question posée — après quoi changer la propriété ne change plus rien. L'ouverture
+ * du module `java.desktop` que réclame cet effacement est déclarée dans `app/build.gradle.kts`.
+ */
+fun rendreLAffichagePossible() {
+    System.setProperty("java.awt.headless", "false")
+    runCatching {
+        val retenue = GraphicsEnvironment::class.java.getDeclaredField("headless")
+        retenue.isAccessible = true
+        retenue.set(null, null)
+    }.onFailure {
+        println("Simulateur : l'état « sans écran » retenu n'a pas pu être effacé (${it.message})")
+    }
 }

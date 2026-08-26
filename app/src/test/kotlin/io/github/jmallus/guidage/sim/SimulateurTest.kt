@@ -167,6 +167,8 @@ class SimulateurTest {
             System.getProperty(PROPRIETE_FENETRE) != null,
         )
 
+        rendreLAffichagePossible()
+
         val simulateur = Simulateur(context)
         val fenetre = FenetreSimulateur()
         var secondes = 0.0
