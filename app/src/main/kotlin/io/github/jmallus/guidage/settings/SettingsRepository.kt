@@ -53,13 +53,8 @@ class SettingsRepository(context: Context) {
             graphZoom = GraphZoom.fromOrdinal(prefs.getInt(KEY_GRAPH_ZOOM, defaults.graphZoom.ordinal)),
             mapZoom = MapZoom.fromOrdinal(prefs.getInt(KEY_MAP_ZOOM, defaults.mapZoom.ordinal)),
             alerts = AlertSettings(
-                climbEnabled = prefs.getBoolean(KEY_CLIMB_ENABLED, defaults.alerts.climbEnabled),
-                climbDistance = prefs.getFloat(KEY_CLIMB_DISTANCE, defaults.alerts.climbDistance.toFloat()).toDouble(),
-                summitEnabled = prefs.getBoolean(KEY_SUMMIT_ENABLED, defaults.alerts.summitEnabled),
-                summitDistance = prefs.getFloat(KEY_SUMMIT_DISTANCE, defaults.alerts.summitDistance.toFloat()).toDouble(),
                 poiEnabled = prefs.getBoolean(KEY_POI_ENABLED, defaults.alerts.poiEnabled),
                 poiDistance = prefs.getFloat(KEY_POI_DISTANCE, defaults.alerts.poiDistance.toFloat()).toDouble(),
-                minimumClimbLength = defaults.alerts.minimumClimbLength,
             ),
         )
     }
@@ -71,10 +66,6 @@ class SettingsRepository(context: Context) {
             .putString(KEY_GUIDANCE_ZONE, settings.guidanceZone.name)
             .putInt(KEY_GRAPH_ZOOM, settings.graphZoom.ordinal)
             .putInt(KEY_MAP_ZOOM, settings.mapZoom.ordinal)
-            .putBoolean(KEY_CLIMB_ENABLED, settings.alerts.climbEnabled)
-            .putFloat(KEY_CLIMB_DISTANCE, settings.alerts.climbDistance.toFloat())
-            .putBoolean(KEY_SUMMIT_ENABLED, settings.alerts.summitEnabled)
-            .putFloat(KEY_SUMMIT_DISTANCE, settings.alerts.summitDistance.toFloat())
             .putBoolean(KEY_POI_ENABLED, settings.alerts.poiEnabled)
             .putFloat(KEY_POI_DISTANCE, settings.alerts.poiDistance.toFloat())
             .apply()
@@ -87,10 +78,10 @@ class SettingsRepository(context: Context) {
         const val KEY_GUIDANCE_ZONE = "guidance_zone"
         const val KEY_GRAPH_ZOOM = "graph_zoom"
         const val KEY_MAP_ZOOM = "map_zoom"
-        const val KEY_CLIMB_ENABLED = "climb_alerts"
-        const val KEY_CLIMB_DISTANCE = "climb_alert_distance"
-        const val KEY_SUMMIT_ENABLED = "summit_alerts"
-        const val KEY_SUMMIT_DISTANCE = "summit_alert_distance"
+        // Les clés « climb_alerts », « climb_alert_distance », « summit_alerts » et
+        // « summit_alert_distance » ont disparu avec les annonces de côte. Celles déjà écrites
+        // sur un appareil y restent, inertes : les relire pour les effacer coûterait une
+        // migration là où quelques octets oubliés ne gênent personne.
         const val KEY_POI_ENABLED = "poi_alerts"
         const val KEY_POI_DISTANCE = "poi_alert_distance"
     }

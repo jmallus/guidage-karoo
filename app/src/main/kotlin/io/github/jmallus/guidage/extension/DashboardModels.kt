@@ -106,9 +106,9 @@ object DashboardModels {
      * et c'est le profil qui défile dessous.
      *
      * Le rang de la côte reste porté quand il y en a une en vue, suivi de la distance qui reste
-     * jusqu'à son sommet — « 1/4 — 1,48 km du sommet ». Le rang seul disait combien de bosses
-     * restaient, jamais où l'on en était de celle-ci ; c'est pourtant la seule chose qu'on veut
-     * savoir en la montant.
+     * jusqu'à son sommet — « 1/4 — 1,48 km ». Le rang seul disait combien de bosses restaient,
+     * jamais où l'on en était de celle-ci ; c'est pourtant la seule chose qu'on veut savoir en
+     * la montant.
      */
     private fun climbBand(state: GuidanceState, units: Units): ClimbBandModel? {
         val route = state.route ?: return null
@@ -136,12 +136,17 @@ object DashboardModels {
      * Le formateur commun arrondit au dixième, ce qui suffit partout ailleurs — mais dans une
      * côte on regarde ce chiffre toutes les vingt secondes, et un dixième de kilomètre y reste
      * figé assez longtemps pour donner l'impression qu'on n'avance plus. Sous le kilomètre, on
-     * revient aux mètres : « 480 m du sommet » se lit mieux que « 0,48 km ».
+     * revient aux mètres : « 480 m » se lit mieux que « 0,48 km ».
+     *
+     * La mention « du sommet » qui suivait a sauté. Elle disait ce que le rang de la côte, écrit
+     * juste devant, dit déjà : dans une côte numérotée, une distance ne peut aller qu'à son
+     * sommet. Elle prenait le tiers d'une bande qui n'a qu'une ligne — et elle était écrite en
+     * français dans le code, seul texte de l'extension à ne pas passer par les ressources.
      */
     private fun toSummit(meters: Double, units: Units): String = when {
-        units != Units.METRIC -> "${Format.distance(meters, units)} du sommet"
-        meters < 1_000 -> "${(meters / 10).roundToInt() * 10} m du sommet"
-        else -> String.format(Locale.getDefault(), "%.2f km du sommet", meters / 1_000)
+        units != Units.METRIC -> Format.distance(meters, units)
+        meters < 1_000 -> "${(meters / 10).roundToInt() * 10} m"
+        else -> String.format(Locale.getDefault(), "%.2f km", meters / 1_000)
     }
 
     private fun mapModel(

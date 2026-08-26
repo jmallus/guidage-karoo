@@ -2,7 +2,8 @@
 
 Extension Karoo (Karoo 2 / Karoo 3) qui enrichit le **guidage d'itinéraire** : elle lit
 l'itinéraire chargé dans le Karoo et en tire un profil altimétrique à venir, des informations
-sur la prochaine côte, la distance au prochain point d'intérêt, et des annonces à l'écran.
+sur la prochaine côte, la distance au prochain point d'intérêt, et une annonce à l'écran à
+l'approche de celui-ci.
 
 Tout est calculé **sur l'appareil**, à partir des données que Karoo OS fournit déjà :
 aucune connexion réseau, aucun compte, rien à synchroniser.
@@ -32,12 +33,15 @@ dans le profil de page. Tous affichent un aperçu réaliste dans l'écran d'édi
 
 Pendant l'enregistrement d'une sortie :
 
-- **Côte** — « Côte dans 300 m — 1,8 km à 6,5 % • +120 m »
-- **Sommet** — « Sommet dans 200 m — Encore +35 m »
 - **Point d'intérêt** — « Fontaine — Dans 500 m »
 
-Chaque annonce n'est émise qu'une fois par côte / par point, et les distances de
-déclenchement sont réglables. Les côtes plus courtes que 200 m sont ignorées.
+Chaque annonce n'est émise qu'une fois par point, et la distance de déclenchement est
+réglable.
+
+Les côtes n'en déclenchent plus. Elles en avaient deux — une au pied, une avant le sommet —
+qui couvraient l'écran au moment précis où l'on regarde le bandeau de profil pour savoir ce
+qui reste à monter. La bande est là en permanence et porte déjà le rang de la côte et la
+distance au sommet : l'annonce ne disait rien de plus, elle le disait par-dessus.
 
 ### Action bonus
 
@@ -51,7 +55,7 @@ prochaine côte, prochain point) et permet de régler :
 
 - la portée du profil affiché (1 à 15 km) ;
 - la coloration du profil selon la pente ;
-- l'activation et la distance d'annonce des côtes, des sommets et des points d'intérêt.
+- l'activation et la distance d'annonce des points d'intérêt.
 
 Les changements sont pris en compte immédiatement, sans redémarrer l'extension.
 

@@ -44,7 +44,6 @@
     <string name="alert_climb_title">Côte dans %1$s</string>
     <string name="alert_climb_detail">%1$s à %2$s • +%3$s</string>
     <string name="alert_summit_title">Sommet dans %1$s</string>
-    <string name="alert_summit_detail">Encore +%1$s</string>
     <string name="alert_poi_detail">Dans %1$s</string>
     <string name="action_next_climb">Annoncer la prochaine côte</string>
 
@@ -78,10 +77,6 @@
     <string name="settings_title">Réglages</string>
     <string name="settings_lookahead">Portée du profil : %1$s</string>
     <string name="settings_color_by_grade">Colorer le profil selon la pente</string>
-    <string name="settings_climb_alerts">Annoncer les côtes</string>
-    <string name="settings_climb_distance">Annonce avant la côte : %1$s</string>
-    <string name="settings_summit_alerts">Annoncer les sommets</string>
-    <string name="settings_summit_distance">Annonce avant le sommet : %1$s</string>
     <string name="settings_poi_alerts">Annoncer les points d\'intérêt</string>
     <string name="settings_poi_distance">Annonce avant le point : %1$s</string>
 </resources>

@@ -15,35 +15,6 @@ import io.hammerhead.karooext.models.InRideAlert
 class AlertPresenter(private val context: Context) {
 
     fun toInRideAlert(alert: GuidanceAlert, units: Units): InRideAlert? = when (alert.kind) {
-        AlertKind.CLIMB_APPROACH -> alert.climb?.let { climb ->
-            build(
-                id = alert.key,
-                icon = R.drawable.ic_climb,
-                title = context.getString(
-                    R.string.alert_climb_title,
-                    Format.distance(climb.distanceToStart, units),
-                ),
-                detail = climbDetail(climb, units),
-                background = R.color.alert_climb,
-            )
-        }
-
-        AlertKind.CLIMB_TOP -> alert.climb?.let { climb ->
-            build(
-                id = alert.key,
-                icon = R.drawable.ic_summit,
-                title = context.getString(
-                    R.string.alert_summit_title,
-                    Format.distance(climb.distanceToTop, units),
-                ),
-                detail = context.getString(
-                    R.string.alert_summit_detail,
-                    Format.elevation(climb.elevationToTop, units),
-                ),
-                background = R.color.alert_summit,
-            )
-        }
-
         AlertKind.POI_APPROACH -> alert.poi?.let { poi ->
             build(
                 id = alert.key,
@@ -58,7 +29,13 @@ class AlertPresenter(private val context: Context) {
         }
     }
 
-    /** Description d'une côte, réutilisée par l'alerte et par l'action bonus. */
+    /**
+     * Description d'une côte, pour l'action bonus.
+     *
+     * Elle servait aussi à l'annonce automatique du pied de côte, qui n'existe plus. L'action
+     * bonus, elle, reste : demandée d'un bouton, elle arrive quand le coureur la veut et non
+     * au milieu de ce qu'il regardait.
+     */
     fun climbDetail(climb: ClimbStatus, units: Units): String = context.getString(
         R.string.alert_climb_detail,
         Format.distance(climb.climb.length, units),

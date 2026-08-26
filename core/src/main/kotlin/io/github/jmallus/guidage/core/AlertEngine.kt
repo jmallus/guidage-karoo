@@ -2,27 +2,26 @@ package io.github.jmallus.guidage.core
 
 /** Réglages des alertes de guidage. */
 data class AlertSettings(
-    val climbEnabled: Boolean = true,
-    /** Distance d'annonce avant le pied de la côte (m). */
-    val climbDistance: Double = 300.0,
-    val summitEnabled: Boolean = true,
-    /** Distance d'annonce avant le sommet (m). */
-    val summitDistance: Double = 200.0,
     val poiEnabled: Boolean = true,
     /** Distance d'annonce avant un point d'intérêt (m). */
     val poiDistance: Double = 500.0,
-    /** Longueur minimale d'une côte pour déclencher une annonce (m). */
-    val minimumClimbLength: Double = 200.0,
 )
 
-/** Type d'alerte à présenter au coureur. */
-enum class AlertKind { CLIMB_APPROACH, CLIMB_TOP, POI_APPROACH }
+/**
+ * Type d'alerte à présenter au coureur.
+ *
+ * Les côtes n'en déclenchent plus. Elles en avaient deux — une au pied, une avant le sommet —
+ * qui couvraient l'écran au moment précis où l'on regarde le bandeau de profil pour savoir ce
+ * qui reste à monter. La bande, elle, est là en permanence et porte le rang de la côte et la
+ * distance au sommet : l'annonce ne disait rien de plus, elle le disait par-dessus. Le bouton
+ * « prochaine côte » reste, lui, pour la demander quand on la veut.
+ */
+enum class AlertKind { POI_APPROACH }
 
 /** Alerte prête à être affichée. Le texte est construit côté Android (ressources traduites). */
 data class GuidanceAlert(
     val key: String,
     val kind: AlertKind,
-    val climb: ClimbStatus? = null,
     val poi: PoiStatus? = null,
 )
 
@@ -65,23 +64,6 @@ class AlertEngine(private var settings: AlertSettings = AlertSettings()) {
         }
 
         val alerts = mutableListOf<GuidanceAlert>()
-
-        Guidance.climbStatus(route, along)?.let { climb ->
-            if (climb.climb.length >= settings.minimumClimbLength) {
-                if (settings.climbEnabled &&
-                    !climb.onClimb &&
-                    climb.distanceToStart <= settings.climbDistance
-                ) {
-                    add(alerts, GuidanceAlert("climb-${climb.number}", AlertKind.CLIMB_APPROACH, climb = climb))
-                }
-                if (settings.summitEnabled &&
-                    climb.onClimb &&
-                    climb.distanceToTop <= settings.summitDistance
-                ) {
-                    add(alerts, GuidanceAlert("top-${climb.number}", AlertKind.CLIMB_TOP, climb = climb))
-                }
-            }
-        }
 
         if (settings.poiEnabled) {
             Guidance.nextPoi(route, along)?.let { poi ->

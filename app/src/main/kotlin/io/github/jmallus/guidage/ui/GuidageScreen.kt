@@ -169,46 +169,6 @@ private fun SettingsCard(
             )
 
             SwitchRow(
-                label = stringResource(R.string.settings_climb_alerts),
-                checked = settings.alerts.climbEnabled,
-                onCheckedChange = { onChange(settings.copy(alerts = settings.alerts.copy(climbEnabled = it))) },
-            )
-            if (settings.alerts.climbEnabled) {
-                SliderRow(
-                    label = stringResource(
-                        R.string.settings_climb_distance,
-                        "${settings.alerts.climbDistance.roundToInt()} m",
-                    ),
-                    value = settings.alerts.climbDistance.toFloat(),
-                    range = 100f..1_500f,
-                    steps = 13,
-                    onValueChange = {
-                        onChange(settings.copy(alerts = settings.alerts.copy(climbDistance = it.toDouble())))
-                    },
-                )
-            }
-
-            SwitchRow(
-                label = stringResource(R.string.settings_summit_alerts),
-                checked = settings.alerts.summitEnabled,
-                onCheckedChange = { onChange(settings.copy(alerts = settings.alerts.copy(summitEnabled = it))) },
-            )
-            if (settings.alerts.summitEnabled) {
-                SliderRow(
-                    label = stringResource(
-                        R.string.settings_summit_distance,
-                        "${settings.alerts.summitDistance.roundToInt()} m",
-                    ),
-                    value = settings.alerts.summitDistance.toFloat(),
-                    range = 50f..1_000f,
-                    steps = 18,
-                    onValueChange = {
-                        onChange(settings.copy(alerts = settings.alerts.copy(summitDistance = it.toDouble())))
-                    },
-                )
-            }
-
-            SwitchRow(
                 label = stringResource(R.string.settings_poi_alerts),
                 checked = settings.alerts.poiEnabled,
                 onCheckedChange = { onChange(settings.copy(alerts = settings.alerts.copy(poiEnabled = it))) },

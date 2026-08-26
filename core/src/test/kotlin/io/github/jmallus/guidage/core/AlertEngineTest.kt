@@ -20,45 +20,8 @@ class AlertEngineTest {
     private fun state(along: Double) = GuidanceState(route, along, route.totalDistance - along)
 
     @Test
-    fun `climb approach fires once within the alert distance`() {
-        val engine = AlertEngine(AlertSettings(climbDistance = 300.0, poiEnabled = false))
-
-        assertTrue(engine.evaluate(state(1000.0)).isEmpty())
-
-        val alerts = engine.evaluate(state(1800.0))
-        assertEquals(1, alerts.size)
-        assertEquals(AlertKind.CLIMB_APPROACH, alerts.first().kind)
-        assertEquals(1, alerts.first().climb!!.number)
-
-        assertTrue(engine.evaluate(state(1900.0)).isEmpty())
-    }
-
-    @Test
-    fun `summit alert fires close to the top`() {
-        val engine = AlertEngine(
-            AlertSettings(climbEnabled = false, summitDistance = 200.0, poiEnabled = false),
-        )
-
-        assertTrue(engine.evaluate(state(3000.0)).isEmpty())
-
-        val alerts = engine.evaluate(state(3900.0))
-        assertEquals(1, alerts.size)
-        assertEquals(AlertKind.CLIMB_TOP, alerts.first().kind)
-    }
-
-    @Test
-    fun `short climbs are ignored`() {
-        val engine = AlertEngine(
-            AlertSettings(climbDistance = 300.0, poiEnabled = false, minimumClimbLength = 200.0),
-        )
-
-        // Deuxième côte : 100 m seulement, sous le seuil.
-        assertTrue(engine.evaluate(state(7800.0)).isEmpty())
-    }
-
-    @Test
     fun `poi alert fires once`() {
-        val engine = AlertEngine(AlertSettings(climbEnabled = false, summitEnabled = false, poiDistance = 500.0))
+        val engine = AlertEngine(AlertSettings(poiDistance = 500.0))
 
         assertTrue(engine.evaluate(state(2000.0)).isEmpty())
 
@@ -72,33 +35,48 @@ class AlertEngineTest {
 
     @Test
     fun `alerts can fire again after switching route`() {
-        val engine = AlertEngine(AlertSettings(poiEnabled = false))
+        val engine = AlertEngine(AlertSettings(poiDistance = 500.0))
 
-        assertEquals(1, engine.evaluate(state(1800.0)).size)
+        assertEquals(1, engine.evaluate(state(2600.0)).size)
 
         val otherRoute = route.copy(name = "Autre parcours")
-        val alerts = engine.evaluate(GuidanceState(otherRoute, 1800.0, 8200.0))
+        val alerts = engine.evaluate(GuidanceState(otherRoute, 2600.0, 7400.0))
 
         assertEquals(1, alerts.size)
     }
 
     @Test
     fun `stopping navigation resets the engine`() {
-        val engine = AlertEngine(AlertSettings(poiEnabled = false))
+        val engine = AlertEngine(AlertSettings(poiDistance = 500.0))
 
-        assertEquals(1, engine.evaluate(state(1800.0)).size)
+        assertEquals(1, engine.evaluate(state(2600.0)).size)
         assertTrue(engine.evaluate(GuidanceState.IDLE).isEmpty())
-        assertEquals(1, engine.evaluate(state(1800.0)).size)
+        assertEquals(1, engine.evaluate(state(2600.0)).size)
     }
 
     @Test
     fun `disabled alerts never fire`() {
-        val engine = AlertEngine(
-            AlertSettings(climbEnabled = false, summitEnabled = false, poiEnabled = false),
-        )
+        val engine = AlertEngine(AlertSettings(poiEnabled = false))
 
         assertTrue(engine.evaluate(state(1800.0)).isEmpty())
         assertTrue(engine.evaluate(state(2600.0)).isEmpty())
         assertTrue(engine.evaluate(state(3900.0)).isEmpty())
+    }
+
+    /**
+     * Approcher une côte, l'entamer et en atteindre le sommet ne déclenche plus rien.
+     *
+     * Les trois abscisses sont celles qui faisaient partir les deux annonces supprimées :
+     * 1 800 m, à deux cents mètres du pied ; 3 000 m, en pleine montée ; 3 900 m, à cent
+     * mètres du sommet. Le contrôle n'a de sens qu'ainsi placé — sur un itinéraire quelconque
+     * il passerait tout seul, sans rien dire de ce qu'on a voulu enlever.
+     */
+    @Test
+    fun `climbs no longer raise any alert`() {
+        val engine = AlertEngine(AlertSettings(poiEnabled = false))
+
+        listOf(1_800.0, 3_000.0, 3_900.0).forEach { along ->
+            assertTrue("une côte annonce encore quelque chose à $along m", engine.evaluate(state(along)).isEmpty())
+        }
     }
 }
