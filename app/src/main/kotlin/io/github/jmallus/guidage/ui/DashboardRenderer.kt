@@ -535,9 +535,9 @@ object DashboardRenderer {
         // vert n'ayant aucune raison d'être lisible sur les sept couleurs de la palette.
         val iconInk = if (tile.background == null) palette.iconTint else labelInk
 
-        val labelPaint = paint(labelSize, labelInk, Typeface.DEFAULT_BOLD)
-        val valuePaint = paint(valueSize, ink, LIGHT_TYPEFACE)
-        val suffixPaint = paint(valueSize * SUFFIX_RATIO, ink, LIGHT_TYPEFACE)
+        val labelPaint = paint(labelSize, labelInk, LABEL_TYPEFACE)
+        val valuePaint = paint(valueSize, ink, VALUE_TYPEFACE)
+        val suffixPaint = paint(valueSize * SUFFIX_RATIO, ink, VALUE_TYPEFACE)
 
         val labelHeight = labelPaint.descent() - labelPaint.ascent()
         val valueHeight = valuePaint.descent() - valuePaint.ascent()
@@ -646,8 +646,8 @@ object DashboardRenderer {
         valueSize: Float,
         labelSize: Float,
     ) {
-        val labelPaint = paint(labelSize, palette.textSecondary, Typeface.DEFAULT_BOLD)
-        val valuePaint = paint(valueSize, 0, LIGHT_TYPEFACE)
+        val labelPaint = paint(labelSize, palette.textSecondary, LABEL_TYPEFACE)
+        val valuePaint = paint(valueSize, 0, VALUE_TYPEFACE)
         val labelHeight = labelPaint.descent() - labelPaint.ascent()
         val valueHeight = valuePaint.descent() - valuePaint.ascent()
         val top = labelTop(bounds, labelHeight)
@@ -676,7 +676,7 @@ object DashboardRenderer {
 
         val teeth = teethLabel(model)
         val teethSize = valueSize * TEETH_RATIO
-        val teethPaint = paint(teethSize, palette.textPrimary, LIGHT_TYPEFACE)
+        val teethPaint = paint(teethSize, palette.textPrimary, VALUE_TYPEFACE)
 
         // Les barres montent depuis le bas de cette bande et occupent toute sa largeur : elles
         // passent donc sous le titre et son icône, que rien ne décale plus sur le côté. Il
@@ -881,7 +881,7 @@ object DashboardRenderer {
         val size = preferredSize.coerceIn(MINIMUM_LABEL_SIZE, MAXIMUM_LABEL_SIZE)
         if (label.isEmpty() || maxWidth <= 0f) return size
         val icon = if (hasIcon) size * ICON_RATIO + LABEL_GAP else 0f
-        val measured = paint(size, 0, Typeface.DEFAULT_BOLD).measureText(label) + icon
+        val measured = paint(size, 0, LABEL_TYPEFACE).measureText(label) + icon
         if (measured <= maxWidth || measured <= 0f) return size
         return (size * maxWidth / measured).coerceAtLeast(MINIMUM_LABEL_SIZE)
     }
@@ -899,8 +899,8 @@ object DashboardRenderer {
         val tail = tile.decimal ?: tile.suffix
         // Le numéro de zone occupe la gauche de la même ligne : il entre dans le compte,
         // sinon la valeur viendrait s'écrire par-dessus dans les cases étroites.
-        val measured = paint(size, 0, LIGHT_TYPEFACE).measureText(tile.value) +
-            (tail?.let { paint(size * SUFFIX_RATIO, 0, LIGHT_TYPEFACE).measureText(it) } ?: 0f) +
+        val measured = paint(size, 0, VALUE_TYPEFACE).measureText(tile.value) +
+            (tail?.let { paint(size * SUFFIX_RATIO, 0, VALUE_TYPEFACE).measureText(it) } ?: 0f) +
             (tile.leading?.let {
                 paint(size * LEADING_RATIO, 0, Typeface.DEFAULT_BOLD).measureText(it) + EDGE_INSET
             } ?: 0f)
@@ -956,7 +956,21 @@ object DashboardRenderer {
      * bord paraîtrait tombé de la case voisine.
      */
     private const val LABEL_TOP_RATIO = 0.6f
-    private val LIGHT_TYPEFACE: Typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+    /**
+     * Les deux graisses du système visuel, prises dans les fontes d'Android.
+     *
+     * Le Karoo écrit ses libellés en **Medium** et ses données en **Regular** — la planche
+     * *Typography* donne « Data Label : Medium 32 » et « Data 5 / 7 / 10 : Regular 75 / 55 /
+     * 30 ». Les fontes elles-mêmes, *Hammerhead Relative* et *Ping*, sont sous licence et ne
+     * peuvent pas voyager dans l'APK ; leurs graisses, elles, se reprennent telles quelles.
+     *
+     * Le gras d'Android tenait lieu de Medium et pesait un cran de trop : deux libellés
+     * voisins formaient une ligne noire là où le système ne pose qu'une mention discrète. Les
+     * valeurs, à l'inverse, étaient en Light — un cheveu trop maigre pour un écran
+     * transflectif, qui délave tout ce qui manque de matière dès qu'il fait grand jour.
+     */
+    private val LABEL_TYPEFACE: Typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+    private val VALUE_TYPEFACE: Typeface = Typeface.create("sans-serif", Typeface.NORMAL)
 
     // --- Colonne de guidage en mode profil ------------------------------------------------
 
