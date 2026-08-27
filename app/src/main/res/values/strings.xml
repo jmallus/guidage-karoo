@@ -79,4 +79,10 @@
     <string name="settings_color_by_grade">Colorer le profil selon la pente</string>
     <string name="settings_poi_alerts">Annoncer les points d\'intérêt</string>
     <string name="settings_poi_distance">Annonce avant le point : %1$s</string>
+
+    <string name="field_report_title">Place allouée au champ</string>
+    <string name="field_report_none">Posez le champ Guidage sur une page, ouvrez-la, puis revenez ici.</string>
+    <string name="field_report_ride">En roulant : %1$s</string>
+    <string name="field_report_editor">À l\'édition : %1$s</string>
+    <string name="field_report_line">%1$d × %2$d px · grille %3$d × %4$d sur 60 · corps %5$d sp</string>
 </resources>

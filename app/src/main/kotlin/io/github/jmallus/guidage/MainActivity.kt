@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.jmallus.guidage.extension.FieldReport
+import io.github.jmallus.guidage.extension.FieldReportStore
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
@@ -39,6 +41,7 @@ class MainActivity : ComponentActivity() {
 class MainViewModel(
     private val karooSystem: KarooSystemService,
     private val settingsRepository: SettingsRepository,
+    fieldReports: FieldReportStore,
 ) : ViewModel() {
 
     private val provider = GuidanceProvider(karooSystem, viewModelScope)
@@ -50,6 +53,15 @@ class MainViewModel(
 
     val settings: StateFlow<GuidageSettings> = settingsRepository.settings
         .stateIn(viewModelScope, SharingStarted.Eagerly, settingsRepository.read())
+
+    /**
+     * La place que le système a donnée au champ, lue une fois à l'ouverture de l'écran.
+     *
+     * Pas de flux : le champ et cet écran ne s'affichent jamais ensemble, et rien ne peut
+     * donc changer sous les yeux du lecteur.
+     */
+    val fieldInRide: FieldReport? = fieldReports.read(preview = false)
+    val fieldInEditor: FieldReport? = fieldReports.read(preview = true)
 
     init {
         karooSystem.connect { connected -> _connected.value = connected }
@@ -70,6 +82,7 @@ class MainViewModel(
                 return MainViewModel(
                     KarooSystemService(context),
                     SettingsRepository(context),
+                    FieldReportStore(context),
                 ) as T
             }
         }

@@ -202,13 +202,21 @@ rangs plus espacés, chiffres plus grands que ce qu'on lira en roulant.
 ./gradlew :app:simulateur -Pguidage.hauteur=744
 ```
 
-Pour relever la valeur, l'appareil branché en USB :
+Pour relever la valeur, **sans rien brancher** : poser le champ Guidage sur une page, ouvrir
+cette page une fois, puis lancer l'application Guidage depuis le launcher du Karoo. La carte
+« Place allouée au champ », en bas de l'écran de configuration, donne les dimensions telles
+que le système les a réellement accordées — en roulant et à l'édition, notées séparément car
+rien ne garantit qu'elles coïncident.
+
+Avec `adb`, la même chose se lit au journal :
 
 ```bash
-adb exec-out screencap -p > karoo.png
+adb logcat -s GuidageExtension:D | grep "champ ouvert"
 ```
 
-et mesurer la hauteur de la bande dans l'image — la hauteur du champ est 800 moins celle-là.
+Dans les deux cas s'affiche aussi le **corps natif** en sp, celui que le Karoo emploie pour un
+champ numérique de cette taille : c'est la référence typographique de l'appareil, plus sûre
+que celle d'une maquette.
 
 | Touche | Effet |
 | --- | --- |

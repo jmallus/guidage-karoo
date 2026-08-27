@@ -27,6 +27,7 @@ import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.Units
+import io.github.jmallus.guidage.extension.FieldReport
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
 import kotlin.math.roundToInt
@@ -53,6 +54,7 @@ fun GuidageScreen(viewModel: MainViewModel) {
             )
             StatusCard(connected, snapshot)
             SettingsCard(settings, snapshot.units, viewModel::update)
+            FieldReportCard(viewModel.fieldInRide, viewModel.fieldInEditor)
         }
     }
 }
@@ -122,6 +124,48 @@ private fun StatusCard(connected: Boolean, snapshot: GuidanceSnapshot) {
         }
     }
 }
+
+/**
+ * La place que le Karoo donne au champ.
+ *
+ * Ce n'est pas un réglage mais un relevé, et il ne sert qu'une fois : le banc d'essai de
+ * bureau ne peut pas deviner la hauteur qui reste au champ une fois la bande d'état
+ * prélevée, et l'appareil est le seul à la connaître. Trois nombres lus ici valent une
+ * mesure au pixel près sur une capture d'écran — et évitent d'avoir à brancher un câble.
+ */
+@Composable
+private fun FieldReportCard(inRide: FieldReport?, inEditor: FieldReport?) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.field_report_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            if (inRide == null && inEditor == null) {
+                Text(
+                    text = stringResource(R.string.field_report_none),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                return@Column
+            }
+            inRide?.let { Text(stringResource(R.string.field_report_ride, describe(it))) }
+            inEditor?.let { Text(stringResource(R.string.field_report_editor, describe(it))) }
+        }
+    }
+}
+
+@Composable
+private fun describe(report: FieldReport): String = stringResource(
+    R.string.field_report_line,
+    report.width,
+    report.height,
+    report.gridColumns,
+    report.gridRows,
+    report.textSize,
+)
 
 @Composable
 private fun SettingsCard(

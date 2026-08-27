@@ -59,9 +59,9 @@ class DashboardDataType(
     private val roadSource: RoadSource = InstalledRoadMap()
 
     override fun startView(context: Context, config: ViewConfig, emitter: ViewEmitter) {
-        // La seule fenêtre sur les dimensions réelles du champ. Le simulateur, lui, tourne
-        // hors de l'appareil et ne peut que les recopier : sans cette trace il faudrait les
-        // mesurer sur une capture d'écran, au pixel près et à la main.
+        // La seule fenêtre sur les dimensions réelles du champ : le simulateur tourne hors de
+        // l'appareil et ne peut que les recopier. Deux façons de les lire — le journal pour
+        // qui a un câble et adb, l'écran de configuration pour tous les autres.
         //     adb logcat -s GuidageExtension:D | grep "champ ouvert"
         Log.d(
             TAG,
@@ -70,6 +70,9 @@ class DashboardDataType(
                 "corps natif ${config.textSize} sp, aperçu ${config.preview}",
         )
         val job = CoroutineScope(Dispatchers.IO).launch {
+            // Dans la coroutine, et non au-dessus : la première lecture des préférences touche
+            // le disque, et startView s'exécute sur le fil qui sert le système.
+            FieldReportStore(context).record(config)
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
             combine(
