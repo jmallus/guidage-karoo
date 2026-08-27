@@ -24,37 +24,73 @@ data class Palette(
     val iconTint: Int,
 )
 
+/**
+ * Les couleurs du système visuel de Hammerhead, avec le sens qu'il leur donne.
+ *
+ * Ce ne sont pas des goûts mais un vocabulaire : sur le Karoo, le jaune veut dire itinéraire
+ * et le vert vif donnée vive, dans l'extension comme dans les champs natifs. S'en écarter,
+ * c'est dire autre chose que ce qu'on croit — un tracé bleu, dans cette langue, annonce une
+ * courbe d'altitude ou une côte.
+ *
+ * Les valeurs sont relevées sur les planches exportées du fichier, à quelques unités près.
+ * Elles sont rassemblées ici, nommées comme dans le fichier, pour que la correction d'un
+ * relevé se fasse en un seul endroit.
+ */
+object KarooColors {
+
+    /** Libellés **et icônes** de champ. Le fichier l'impose, sans alternative. */
+    const val POWDER_BLUE = 0xFFA8BFCC.toInt()
+
+    /** Courbes d'altitude, quand on veut les distinguer d'un autre tracé. */
+    const val AEGEAN_BLUE = 0xFF2C4A5E.toInt()
+
+    /** Itinéraire, passé comme à venir. */
+    const val LEMON_YELLOW = 0xFFF2D600.toInt()
+
+    /** État d'erreur. Le fichier l'impose. */
+    const val UI_RED = 0xFFF2554E.toInt()
+
+    /** Tours. */
+    const val UI_PURPLE = 0xFF8E2FC4.toInt()
+
+    /** Donnée vive : ce qui vient d'un capteur, à l'instant. */
+    const val HIGH_VIS_GREEN = 0xFF00E515.toInt()
+
+    /** Côtes. */
+    const val HIGH_VIS_BLUE = 0xFF0092DC.toInt()
+
+    /** Graphique jamais alimenté — capteur absent, par opposition à capteur muet. */
+    const val NEVER_POPULATED = 0xFF808080.toInt()
+
+    /** Métadonnées : le blanc, réservé à ce qui décrit la donnée sans être elle. */
+    const val METADATA = 0xFFFFFFFF.toInt()
+}
+
 object FieldPalette {
 
     private val LIGHT = Palette(
         textPrimary = 0xFF11181C.toInt(),
-        textSecondary = 0xFF5F6A6F.toInt(),
+        // Le Powder Blue est fait pour un fond noir ; sur du blanc il s'évanouit. Le thème
+        // clair prend donc le même bleu assombri, qui garde la teinte en changeant de valeur.
+        textSecondary = 0xFF43606F.toInt(),
         outline = 0xFF37474F.toInt(),
         track = 0xFFE0E4E6.toInt(),
         position = 0xFF1565C0.toInt(),
-        routeLine = 0xFFE6E24C.toInt(),
+        routeLine = KarooColors.LEMON_YELLOW,
         routeOutline = 0xFF1A1A1A.toInt(),
-        iconTint = ICON_TINT,
+        iconTint = 0xFF43606F.toInt(),
     )
 
     private val DARK = Palette(
         textPrimary = 0xFFFFFFFF.toInt(),
-        textSecondary = 0xFFB0BEC5.toInt(),
+        textSecondary = KarooColors.POWDER_BLUE,
         outline = 0xFFECEFF1.toInt(),
         track = 0xFF37474F.toInt(),
         position = 0xFF64B5F6.toInt(),
-        routeLine = 0xFFE6E24C.toInt(),
+        routeLine = KarooColors.LEMON_YELLOW,
         routeOutline = 0xFF1A1A1A.toInt(),
-        iconTint = ICON_TINT,
+        iconTint = KarooColors.POWDER_BLUE,
     )
-
-    /**
-     * Vert des icônes de champ, repris de Barberfish.
-     *
-     * Il reste le même en thème clair comme en sombre : assez soutenu pour tenir sur du
-     * blanc, assez lumineux pour tenir sur du noir.
-     */
-    private const val ICON_TINT = 0xFF31E09A.toInt()
 
     /**
      * Palette adaptée au thème courant du Karoo.
@@ -74,8 +110,13 @@ object FieldPalette {
      */
     fun gradeColor(grade: Double): Int = Zones.gradeColor(grade) ?: NEUTRAL
 
-    /** Rouge du Karoo quand il faut rejoindre l'itinéraire. */
-    const val REJOIN = 0xFFFC292B.toInt()
+    /**
+     * Rouge du Karoo quand il faut rejoindre l'itinéraire.
+     *
+     * C'est l'UI Red du système, que celui-ci réserve aux états d'erreur : être hors de
+     * l'itinéraire en est un.
+     */
+    const val REJOIN = KarooColors.UI_RED
 
     /** Violet du Karoo pour la destination. */
     const val DESTINATION = 0xFFDDACFA.toInt()

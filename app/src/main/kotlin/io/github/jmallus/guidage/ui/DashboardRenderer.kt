@@ -577,12 +577,16 @@ object DashboardRenderer {
     }
 
     /**
-     * Le titre de la case, centré, son icône devant lui.
+     * Le titre de la case, calé en haut à droite, son icône à l'extrême droite.
      *
-     * L'icône et le mot forment un seul bloc, et c'est le bloc qui se centre. Rangée dans le
-     * coin gauche pendant que le mot se tient au milieu, l'icône se lisait comme un objet à
-     * part posé là ; contre lui, elle redevient ce qu'elle est — la marque du titre, qu'on
-     * reconnaît avant même d'avoir lu.
+     * Ce n'est pas un choix mais une règle du système visuel de Hammerhead : « Labels are
+     * always locked in the upper right hand corner to match the rest of the in-ride design
+     * language. » Un champ d'extension qui range ses titres ailleurs se dénonce comme
+     * étranger au milieu des champs natifs.
+     *
+     * L'icône passe donc **après** le mot et non devant. C'est l'ordre du système, et il se
+     * défend : contre le bord, elle marque la fin du titre là où l'œil revient, et deux cases
+     * voisines alignent leurs icônes sur une même verticale.
      *
      * Le bloc est retenu par le bord gauche s'il est plus large que la case : mieux vaut un
      * titre décalé qu'un titre dont le début sort du cadre.
@@ -600,26 +604,27 @@ object DashboardRenderer {
         val iconSize = labelSize * ICON_RATIO
         val labelWidth = labelPaint.measureText(tile.label)
         val iconWidth = if (tile.icon != null) iconSize + LABEL_GAP else 0f
-        val left = (bounds.centerX() - (iconWidth + labelWidth) / 2f)
+        val left = (bounds.right - EDGE_INSET - iconWidth - labelWidth)
             .coerceAtLeast(bounds.left + EDGE_INSET)
+
+        canvas.drawText(tile.label, left, top - labelPaint.ascent(), labelPaint)
 
         tile.icon?.let { resource ->
             val drawable = ContextCompat.getDrawable(context, resource)
             if (drawable != null) {
                 // L'icône est plus grande que le libellé et se pose sur la même ligne médiane.
+                val iconLeft = left + labelWidth + LABEL_GAP
                 val iconTop = top + (labelPaint.descent() - labelPaint.ascent() - iconSize) / 2f
                 drawable.setTint(iconInk)
                 drawable.setBounds(
-                    left.roundToInt(),
+                    iconLeft.roundToInt(),
                     iconTop.roundToInt(),
-                    (left + iconSize).roundToInt(),
+                    (iconLeft + iconSize).roundToInt(),
                     (iconTop + iconSize).roundToInt(),
                 )
                 drawable.draw(canvas)
             }
         }
-
-        canvas.drawText(tile.label, left + iconWidth, top - labelPaint.ascent(), labelPaint)
     }
 
     // --- Transmission ----------------------------------------------------------------------
@@ -757,25 +762,49 @@ object DashboardRenderer {
         val (current, count) = comb
         if (area.width() <= 0f) return
         val pitch = area.width() / count
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-        val radius = barWidth / 2f
+        val stroke = (barWidth * BAR_STROKE_FRACTION).coerceIn(1.5f, 4f)
+
+        // Contour pour tous, remplissage pour le seul rapport engagé : c'est le dessin du
+        // système visuel de Hammerhead, et il dit deux choses là où nos barres pleines n'en
+        // disaient qu'une — le contour donne la denture disponible, le remplissage l'endroit
+        // où l'on se trouve dedans.
+        val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = stroke
+            color = palette.textPrimary
+        }
+        // Le vert vif est celui que le système réserve à la donnée vive — « High Vis Green :
+        // use to relate a datavis element to any given live data source ». Le rapport engagé
+        // en est une : il change à chaque coup de manette. J'avais écarté le vert de peur d'en
+        // faire un voyant ; le système en fait précisément cela, et c'est sa langue.
+        val engaged = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = KarooColors.HIGH_VIS_GREEN
+        }
 
         for (index in 1..count) {
             val step = if (count == 1) 1f else (index - 1).toFloat() / (count - 1)
             val ratio = if (ascending) step else 1f - step
             val height = area.height() * (BAR_MIN_HEIGHT + (1f - BAR_MIN_HEIGHT) * ratio)
             val left = area.left + (index - 1) * pitch + (pitch - barWidth) / 2f
-            // La barre engagée est en blanc, la couleur des valeurs : c'est un chiffre qu'on
-            // lit, pas un voyant. Le vert des icônes la faisait passer pour un état.
-            paint.color =
-                if (index == current) palette.textPrimary else translucent(palette.textSecondary, BAR_ALPHA)
+            val bar = RectF(left, area.bottom - height, left + barWidth, area.bottom)
             // Bouts arrondis : à cette taille, des angles vifs font des barres sales.
-            canvas.drawRoundRect(
-                RectF(left, area.bottom - height, left + barWidth, area.bottom),
-                radius,
-                radius,
-                paint,
-            )
+            val radius = barWidth / 2f
+
+            if (index == current) {
+                canvas.drawRoundRect(bar, radius, radius, engaged)
+            } else {
+                // Le contour se dessine sur la ligne médiane du trait : il faut donc rentrer
+                // le rectangle d'une demi-épaisseur, sans quoi les barres se touchent et
+                // débordent du bas de la bande.
+                val demi = stroke / 2f
+                canvas.drawRoundRect(
+                    RectF(bar.left + demi, bar.top + demi, bar.right - demi, bar.bottom - demi),
+                    radius,
+                    radius,
+                    outline,
+                )
+            }
         }
     }
 
@@ -793,14 +822,23 @@ object DashboardRenderer {
 
     private const val PLACEHOLDER = "--"
 
-    /** Part de la case revenant aux plateaux, l'écart et les pignons se partageant le reste. */
     /** Écart entre les plateaux et la cassette, en part de la largeur du schéma. */
     private const val COMB_GAP_FRACTION = 0.08f
-    private const val BAR_WIDTH_FRACTION = 0.62f
+
+    /**
+     * Largeur d'une barre, en part du pas.
+     *
+     * Elle a été élargie en passant au contour : une barre pleine se voit par sa surface, une
+     * barre creuse par son seul trait, et onze traits fins de deux pixels sur cette largeur
+     * faisaient une grille plutôt qu'un peigne.
+     */
+    private const val BAR_WIDTH_FRACTION = 0.74f
+
+    /** Épaisseur du contour, en part de la largeur de la barre. */
+    private const val BAR_STROKE_FRACTION = 0.22f
 
     /** Hauteur de la plus petite barre, en part de la plus grande. */
     private const val BAR_MIN_HEIGHT = 0.35f
-    private const val BAR_ALPHA = 0x66
 
     /**
      * Taille des dentures, en part de celle des chiffres des autres cases.

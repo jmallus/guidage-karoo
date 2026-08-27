@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.ui.FieldPalette
+import io.github.jmallus.guidage.ui.KarooColors
 import io.github.jmallus.guidage.ui.PreviewData
 import java.io.File
 import java.io.FileOutputStream
@@ -170,6 +171,43 @@ class SimulateurTest {
         val palette = FieldPalette.of(context)
 
         assertEquals("les valeurs ne sont pas en blanc", 0xFFFFFFFF.toInt(), palette.textPrimary)
+    }
+
+    /**
+     * Les libellés et leurs icônes portent le bleu que le système leur impose.
+     *
+     * « Powder Blue must be used for label and icon » — c'est une des quatre couleurs que le
+     * fichier de Hammerhead donne comme obligatoires, et non recommandées. L'icône a longtemps
+     * été verte ici : d'un vert de la colonne UI Green, que le même fichier proscrit dans les
+     * champs de données. Deux fautes d'un coup, dans la couleur et dans le rôle.
+     */
+    @Test
+    fun `les titres et leurs icones portent le bleu du systeme`() {
+        val palette = FieldPalette.of(context)
+
+        assertEquals("le libellé n'est pas en Powder Blue", KarooColors.POWDER_BLUE, palette.textSecondary)
+        assertEquals("l'icône n'est pas en Powder Blue", KarooColors.POWDER_BLUE, palette.iconTint)
+        assertEquals("l'erreur n'est pas en UI Red", KarooColors.UI_RED, FieldPalette.REJOIN)
+    }
+
+    /**
+     * Le rapport engagé s'allume au vert vif des données vives.
+     *
+     * Le système réserve ce vert à ce qui vient d'un capteur à l'instant — « use to relate a
+     * datavis element to any given live data source » — et le rapport engagé en est : il change
+     * à chaque coup de manette. Le contrôle compte les pixels de cette teinte exacte sur le
+     * tableau de bord entier ; aucune autre couleur de la palette ne la porte, de sorte qu'ils
+     * ne peuvent venir que de la barre allumée.
+     */
+    @Test
+    fun `le rapport engage s'allume au vert des donnees vives`() {
+        val simulateur = Simulateur(context)
+        val image = simulateur.image(simulateur.sortie.duree * 0.3)
+
+        var verts = 0
+        for (pixel in pixelsDe(image)) if (pixel == KarooColors.HIGH_VIS_GREEN) verts++
+
+        assertTrue("le rapport engagé ne couvre que $verts pixels de vert vif", verts > 50)
     }
 
     /**
