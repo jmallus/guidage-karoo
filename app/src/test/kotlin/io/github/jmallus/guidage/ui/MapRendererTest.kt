@@ -99,7 +99,7 @@ class MapRendererTest {
         assertTrue("la flèche ne couvre que $blancs pixels", blancs > 50)
         assertTrue(
             "le blanc de la flèche traîne hors du coureur, des ordonnées $plusHaut à $plusBas",
-            plusHaut >= 275 && plusBas <= 350,
+            plusHaut >= 270 && plusBas <= 365,
         )
     }
 
@@ -218,10 +218,11 @@ class MapRendererTest {
         /**
          * Quatre points sur le ruban derrière le coureur, entre deux voisins encombrants.
          *
-         * Ils commencent sous la pastille de position, qui déborde d'un rayon en arrière du
-         * coureur, et s'arrêtent avant l'échelle, qui s'écrit tout en bas.
+         * La place est comptée : la pastille de position déborde de quarante points en arrière
+         * du coureur, l'échelle s'écrit tout en bas, et il ne reste qu'une vingtaine de points
+         * entre les deux. C'est assez pour qu'un dégradé, s'il revenait, s'y voie.
          */
-        val ARRIERE = listOf(350, 360, 370, 378)
+        val ARRIERE = listOf(366, 372, 378, 384)
 
         const val NOIR = 0xFF000000.toInt()
 

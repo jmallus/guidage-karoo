@@ -533,7 +533,7 @@ object MapRenderer {
      * elle : rien à projeter, rien à orienter.
      */
     private fun drawRider(canvas: Canvas, x: Float, y: Float, height: Float) {
-        val rayon = (height * RIDER_HEIGHT_FRACTION).coerceIn(11f, 20f)
+        val rayon = (height * RIDER_HEIGHT_FRACTION).coerceIn(22f, 40f)
         val anneau = rayon * RING_FRACTION
 
         canvas.drawCircle(
@@ -856,7 +856,14 @@ object MapRenderer {
      * tout l'intérêt : le double chevron blanc qui l'avait remplacée était de la même famille
      * qu'eux, et se cherchait au milieu d'eux.
      */
-    private const val RIDER_HEIGHT_FRACTION = 0.06f
+    /**
+     * Rayon de la pastille de position, en part de la hauteur de la carte.
+     *
+     * Doublé après essai, comme la rose des vents avant elle. Une marque de position n'a pas
+     * à être discrète : c'est le seul point de l'écran qu'on cherche des yeux sans y penser,
+     * et le seul qu'on doive trouver sans le chercher.
+     */
+    private const val RIDER_HEIGHT_FRACTION = 0.12f
 
     /**
      * Le blanc de la flèche et de son anneau, le sombre du disque qui les porte.
