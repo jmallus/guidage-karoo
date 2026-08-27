@@ -191,23 +191,23 @@ class SimulateurTest {
     }
 
     /**
-     * Le rapport engagé s'allume au vert vif des données vives.
+     * Aucune couleur vive ne se pose sur le tableau de bord hors des aplats de zone.
      *
-     * Le système réserve ce vert à ce qui vient d'un capteur à l'instant — « use to relate a
-     * datavis element to any given live data source » — et le rapport engagé en est : il change
-     * à chaque coup de manette. Le contrôle compte les pixels de cette teinte exacte sur le
-     * tableau de bord entier ; aucune autre couleur de la palette ne la porte, de sorte qu'ils
-     * ne peuvent venir que de la barre allumée.
+     * Le rapport engagé a porté un instant le vert que le système réserve à la donnée vive.
+     * Il est revenu au blanc des valeurs : le contour porte déjà toute la distinction — creux
+     * partout, plein à un seul endroit — et l'écran compte assez de signaux colorés avec les
+     * sept aplats de zone. Le contrôle garde trace de cette décision : que ce vert réapparaisse
+     * quelque part et il faudra l'avoir voulu.
      */
     @Test
-    fun `le rapport engage s'allume au vert des donnees vives`() {
+    fun `le tableau de bord ne porte pas le vert des donnees vives`() {
         val simulateur = Simulateur(context)
         val image = simulateur.image(simulateur.sortie.duree * 0.3)
 
         var verts = 0
         for (pixel in pixelsDe(image)) if (pixel == KarooColors.HIGH_VIS_GREEN) verts++
 
-        assertTrue("le rapport engagé ne couvre que $verts pixels de vert vif", verts > 50)
+        assertEquals("le vert vif se pose sur $verts pixels", 0, verts)
     }
 
     /**

@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import androidx.annotation.DrawableRes
@@ -158,9 +159,6 @@ object DashboardRenderer {
 
     /** Taille du suffixe, en part de celle de la valeur. */
     private const val SUFFIX_RATIO = 0.52f
-
-    /** Élévation de la décimale, en part de la hauteur des chiffres. */
-    private const val DECIMAL_RISE = 0.42f
 
     /** Hauteur du bandeau de profil, qui mange le dixième bas de l'écran. */
     private const val CLIMB_BAND_FRACTION = 0.10f
@@ -571,9 +569,30 @@ object DashboardRenderer {
         canvas.drawText(tile.value, left, baseline, valuePaint)
         if (tail != null) {
             // La décimale monte en exposant, l'unité reste sur la ligne de base.
-            val rise = if (tile.decimal != null) -valuePaint.ascent() * DECIMAL_RISE else 0f
+            val rise = if (tile.decimal == null) 0f else decimalRise(tile.value, tail, valuePaint, suffixPaint)
             canvas.drawText(tail, left + valueWidth, baseline - rise, suffixPaint)
         }
+    }
+
+    /**
+     * De combien la décimale monte au-dessus de la ligne de base : juste assez pour que son
+     * sommet tombe sur celui des chiffres qui la précèdent.
+     *
+     * Elle montait auparavant d'une fraction fixe de la hauteur des chiffres, réglée à l'œil.
+     * Une fraction ne peut pas convenir partout : le rapport entre le corps de la valeur et
+     * celui de la décimale est constant, mais la hauteur des chiffres varie d'un rang à
+     * l'autre, et la décimale flottait tantôt sous le sommet, tantôt au-dessus.
+     *
+     * Les deux sommets sont donc mesurés sur l'encre elle-même plutôt que calculés : la
+     * hauteur des chiffres n'est pas celle que la fonte annonce — l'ascendante réserve de la
+     * place pour des accents que les chiffres n'ont pas.
+     */
+    private fun decimalRise(value: String, decimal: String, valuePaint: Paint, decimalPaint: Paint): Float {
+        val ink = Rect()
+        valuePaint.getTextBounds(value, 0, value.length, ink)
+        val sommetValeur = ink.top
+        decimalPaint.getTextBounds(decimal, 0, decimal.length, ink)
+        return (ink.top - sommetValeur).toFloat()
     }
 
     /**
@@ -773,13 +792,14 @@ object DashboardRenderer {
             strokeWidth = stroke
             color = palette.textPrimary
         }
-        // Le vert vif est celui que le système réserve à la donnée vive — « High Vis Green :
-        // use to relate a datavis element to any given live data source ». Le rapport engagé
-        // en est une : il change à chaque coup de manette. J'avais écarté le vert de peur d'en
-        // faire un voyant ; le système en fait précisément cela, et c'est sa langue.
+        // Le rapport engagé est rempli de blanc, non du vert vif que le système réserve à la
+        // donnée vive. C'est un écart assumé : le contour porte déjà toute la distinction —
+        // creux partout, plein à un seul endroit — et la couleur n'y ajoutait qu'un signal de
+        // plus, là où l'écran en compte déjà sept avec les aplats de zone. Le blanc est celui
+        // des valeurs : le rapport engagé est un chiffre qu'on lit, pas un voyant.
         val engaged = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
-            color = KarooColors.HIGH_VIS_GREEN
+            color = palette.textPrimary
         }
 
         for (index in 1..count) {
