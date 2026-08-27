@@ -86,12 +86,12 @@ class MapRendererTest {
         var plusBas = 0
         for ((index, pixel) in pixelsDe(image).withIndex()) {
             if (pixel != BLANC_FLECHE) continue
-            // Seule la colonne du coureur est examinée : la rose des vents est blanche elle
-            // aussi, mais elle vit dans le coin haut droit et n'a rien à voir ici.
+            // Seuls la colonne du coureur et le bas de la carte sont examinés : la rose des
+            // vents est blanche elle aussi, et large, mais elle vit dans le coin haut droit.
             val x = index % image.width
-            if (abs(x - MILIEU) > COLONNE) continue
-            blancs++
             val y = index / image.width
+            if (abs(x - MILIEU) > COLONNE || y < MOITIE_BASSE) continue
+            blancs++
             if (y < plusHaut) plusHaut = y
             if (y > plusBas) plusBas = y
         }
@@ -121,7 +121,7 @@ class MapRendererTest {
             if (pixel != KarooColors.UI_RED) continue
             val x = index % image.width
             val y = index / image.width
-            if (x > image.width * 2 / 3 && y < image.height / 4) rouges++ else ailleurs++
+            if (x > image.width / 2 && y < image.height / 3) rouges++ else ailleurs++
         }
 
         assertTrue("l'aiguille du nord ne couvre que $rouges pixels", rouges > 20)
@@ -211,6 +211,9 @@ class MapRendererTest {
 
         /** Demi-largeur de la colonne où l'on cherche la pastille de position. */
         const val COLONNE = 40
+
+        /** En deçà, on est dans le ciel de la carte : la rose y règne, le coureur non. */
+        const val MOITIE_BASSE = 200
 
         /**
          * Quatre points sur le ruban derrière le coureur, entre deux voisins encombrants.

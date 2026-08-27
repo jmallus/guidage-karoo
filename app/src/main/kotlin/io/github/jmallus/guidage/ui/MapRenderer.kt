@@ -154,7 +154,7 @@ object MapRenderer {
      * l'échelle le bas.
      */
     private fun drawCompass(canvas: Canvas, area: RectF, heading: Double) {
-        val rayon = (area.height() * COMPASS_RADIUS_FRACTION).coerceIn(9f, 16f)
+        val rayon = (area.height() * COMPASS_RADIUS_FRACTION).coerceIn(27f, 48f)
         val cx = area.right - COMPASS_INSET - rayon
         val cy = area.top + COMPASS_INSET + rayon
 
@@ -204,8 +204,18 @@ object MapRenderer {
         aiguille(1f, COMPASS_NORTH)
     }
 
-    /** Rayon de la rose, en part de la hauteur de la carte, et sa marge au coin. */
-    private const val COMPASS_RADIUS_FRACTION = 0.045f
+    /**
+     * Rayon de la rose, en part de la hauteur de la carte, et sa marge au coin.
+     *
+     * Triplé après essai : au tiers de cette taille, l'aiguille tenait dans une trentaine de
+     * points et il fallait la chercher pour la lire. Une orientation qu'on doit chercher ne
+     * sert à rien — on la consulte d'un coup d'œil ou pas du tout.
+     *
+     * Elle occupe désormais un bon tiers de la largeur de la carte. C'est beaucoup, et c'est
+     * le prix : elle est dessinée en dernier et couvre donc le fond, voire le ruban là où
+     * l'itinéraire part vers la droite juste devant le coureur.
+     */
+    private const val COMPASS_RADIUS_FRACTION = 0.135f
     private const val COMPASS_INSET = 6f
 
     /** Longueur d'une demi-aiguille et demi-largeur de sa base, en part du rayon. */
