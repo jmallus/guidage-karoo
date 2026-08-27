@@ -27,7 +27,10 @@ import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.Units
+import io.github.jmallus.guidage.extension.ClimbDataType
+import io.github.jmallus.guidage.extension.DashboardDataType
 import io.github.jmallus.guidage.extension.FieldReport
+import io.github.jmallus.guidage.extension.ProfileDataType
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
 import kotlin.math.roundToInt
@@ -40,6 +43,7 @@ fun GuidageScreen(viewModel: MainViewModel) {
     val connected by viewModel.connected.collectAsStateWithLifecycle()
     val snapshot by viewModel.snapshot.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val fields by viewModel.fields.collectAsStateWithLifecycle()
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -60,7 +64,7 @@ fun GuidageScreen(viewModel: MainViewModel) {
             }
             StatusCard(connected, snapshot)
             SettingsCard(settings, snapshot.units, viewModel::update)
-            FieldReportCard(viewModel.fieldInRide, viewModel.fieldInEditor)
+            FieldReportCard(fields)
         }
     }
 }
@@ -132,15 +136,20 @@ private fun StatusCard(connected: Boolean, snapshot: GuidanceSnapshot) {
 }
 
 /**
- * La place que le Karoo donne au champ.
+ * La place que le Karoo donne à chaque champ.
  *
- * Ce n'est pas un réglage mais un relevé, et il ne sert qu'une fois : le banc d'essai de
- * bureau ne peut pas deviner la hauteur qui reste au champ une fois la bande d'état
- * prélevée, et l'appareil est le seul à la connaître. Trois nombres lus ici valent une
- * mesure au pixel près sur une capture d'écran — et évitent d'avoir à brancher un câble.
+ * Ce n'est pas un réglage mais un relevé : le banc d'essai de bureau ne peut pas deviner la
+ * hauteur qui reste au champ une fois la bande d'état prélevée, et l'appareil est le seul à
+ * la connaître. Trois nombres lus ici valent une mesure au pixel près sur une capture
+ * d'écran — et évitent d'avoir à brancher un câble.
+ *
+ * Tous les champs posés y figurent, pas seulement celui qu'on cherche à régler : une carte
+ * qui n'afficherait que le tableau de bord serait muette dans deux cas très différents — le
+ * relevé n'a pas eu lieu, ou c'est un autre champ qui a été posé — sans permettre de les
+ * distinguer.
  */
 @Composable
-private fun FieldReportCard(inRide: FieldReport?, inEditor: FieldReport?) {
+private fun FieldReportCard(reports: List<FieldReport>) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -150,28 +159,41 @@ private fun FieldReportCard(inRide: FieldReport?, inEditor: FieldReport?) {
                 text = stringResource(R.string.field_report_title),
                 style = MaterialTheme.typography.titleMedium,
             )
-            if (inRide == null && inEditor == null) {
+            if (reports.isEmpty()) {
                 Text(
                     text = stringResource(R.string.field_report_none),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 return@Column
             }
-            inRide?.let { Text(stringResource(R.string.field_report_ride, describe(it))) }
-            inEditor?.let { Text(stringResource(R.string.field_report_editor, describe(it))) }
+            reports.forEach { report ->
+                Text(
+                    text = stringResource(
+                        if (report.preview) R.string.field_report_editor else R.string.field_report_ride,
+                        stringResource(fieldName(report.typeId)),
+                        stringResource(
+                            R.string.field_report_line,
+                            report.width,
+                            report.height,
+                            report.gridColumns,
+                            report.gridRows,
+                            report.textSize,
+                        ),
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
     }
 }
 
-@Composable
-private fun describe(report: FieldReport): String = stringResource(
-    R.string.field_report_line,
-    report.width,
-    report.height,
-    report.gridColumns,
-    report.gridRows,
-    report.textSize,
-)
+/** Le nom que le sélecteur de champs du Karoo affiche, pour que la ligne se reconnaisse. */
+private fun fieldName(typeId: String): Int = when (typeId) {
+    DashboardDataType.TYPE_ID -> R.string.field_dashboard_name
+    ProfileDataType.TYPE_ID -> R.string.field_profile_name
+    ClimbDataType.TYPE_ID -> R.string.field_climb_name
+    else -> R.string.field_poi_name
+}
 
 @Composable
 private fun SettingsCard(

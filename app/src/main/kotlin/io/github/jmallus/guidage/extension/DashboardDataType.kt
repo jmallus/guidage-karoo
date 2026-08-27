@@ -72,7 +72,7 @@ class DashboardDataType(
         val job = CoroutineScope(Dispatchers.IO).launch {
             // Dans la coroutine, et non au-dessus : la première lecture des préférences touche
             // le disque, et startView s'exécute sur le fil qui sert le système.
-            FieldReportStore(context).record(config)
+            FieldReportStore(context).record(TYPE_ID, config)
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
             combine(

@@ -70,6 +70,7 @@ class ClimbDataType(
 
     override fun startView(context: Context, config: ViewConfig, emitter: ViewEmitter) {
         val job = CoroutineScope(Dispatchers.IO).launch {
+            FieldReportStore(context).record(TYPE_ID, config)
             // Le champ dessine son propre en-tête (« Côte 2/5 »), celui du système est masqué.
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 

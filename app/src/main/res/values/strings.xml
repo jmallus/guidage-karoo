@@ -82,8 +82,8 @@
 
     <string name="app_version">Version %1$s</string>
     <string name="field_report_title">Place allouée au champ</string>
-    <string name="field_report_none">Posez le champ Guidage sur une page, ouvrez-la, puis revenez ici.</string>
-    <string name="field_report_ride">En roulant : %1$s</string>
-    <string name="field_report_editor">À l\'édition : %1$s</string>
+    <string name="field_report_none">Aucun champ ouvert depuis l\'installation. Posez « Tableau de bord » sur une page du profil, ouvrez cette page, puis revenez ici.</string>
+    <string name="field_report_ride">%1$s, en roulant : %2$s</string>
+    <string name="field_report_editor">%1$s, à l\'édition : %2$s</string>
     <string name="field_report_line">%1$d × %2$d px · grille %3$d × %4$d sur 60 · corps %5$d sp</string>
 </resources>

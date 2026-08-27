@@ -63,13 +63,13 @@ class MainViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, settingsRepository.read())
 
     /**
-     * La place que le système a donnée au champ, lue une fois à l'ouverture de l'écran.
+     * La place que le système a donnée à chaque champ posé sur une page.
      *
-     * Pas de flux : le champ et cet écran ne s'affichent jamais ensemble, et rien ne peut
-     * donc changer sous les yeux du lecteur.
+     * En flux, et non lu une fois : le relevé a lieu précisément entre deux passages sur cet
+     * écran, et l'activité étant en `singleTop`, son ViewModel survit à l'aller-retour.
      */
-    val fieldInRide: FieldReport? = fieldReports.read(preview = false)
-    val fieldInEditor: FieldReport? = fieldReports.read(preview = true)
+    val fields: StateFlow<List<FieldReport>> = fieldReports.reports
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), fieldReports.all())
 
     init {
         karooSystem.connect { connected -> _connected.value = connected }

@@ -45,6 +45,7 @@ class ProfileDataType(
 
     override fun startView(context: Context, config: ViewConfig, emitter: ViewEmitter) {
         val job = CoroutineScope(Dispatchers.IO).launch {
+            FieldReportStore(context).record(TYPE_ID, config)
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
             combine(provider.snapshot, settingsRepository.settings) { snapshot, settings ->
