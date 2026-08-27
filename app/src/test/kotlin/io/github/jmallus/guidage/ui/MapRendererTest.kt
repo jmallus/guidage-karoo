@@ -7,6 +7,7 @@ import android.graphics.RectF
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.map.RoadKind
 import io.github.jmallus.guidage.core.map.RoadSurface
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -20,9 +21,10 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Ce que la minicarte doit montrer, vérifié sur les pixels qu'elle produit.
  *
- * Les trois contrôles portent sur des choses qui se sont déjà perdues en chemin et qu'aucune
- * compilation ne rattraperait : un ruban qui s'éteint là où il devrait être plein, des
- * chevrons de la couleur du fond, une carte redevenue monochrome.
+ * Les contrôles portent sur des choses qui se sont déjà perdues en chemin et qu'aucune
+ * compilation ne rattraperait : un ruban qui s'éteint là où il devrait être plein, une marque
+ * de position semée partout, des chevrons de la couleur du fond, une carte redevenue
+ * monochrome.
  *
  * Le rendu est appelé directement, sur une image à lui : c'est le seul moyen de savoir où
  * tombe le coureur — aux quatre cinquièmes de la hauteur — et donc de distinguer l'avant de
@@ -36,11 +38,14 @@ class MapRendererTest {
     private val context get() = RuntimeEnvironment.getApplication()
 
     /**
-     * Le ruban est de la même encre devant et derrière.
+     * Derrière le coureur, le ruban est d'une encre unie.
      *
-     * La part parcourue s'éteignait autrefois au fil des mètres. Un dégradé ne se voit pas
-     * dans un test qui compte des couleurs : on lit donc quatre points échelonnés derrière le
-     * coureur, et l'on demande qu'ils soient identiques et pleinement opaques.
+     * Il y est plus clair que devant, et c'est voulu : on lit du premier coup d'œil ce qui est
+     * fait. Ce qu'on refuse, c'est le **dégradé** qu'il a porté un temps, qui s'éteignait vers
+     * le transparent au fil des mètres et laissait une branche fantôme le long de celle qui
+     * compte. Un dégradé ne se voit pas dans un test qui compte des couleurs : on lit donc
+     * quatre points échelonnés derrière le coureur, et l'on demande qu'ils soient identiques
+     * entre eux et pleinement opaques.
      */
     @Test
     fun `le ruban ne s'eteint pas derriere le coureur`() {
@@ -81,6 +86,10 @@ class MapRendererTest {
         var plusBas = 0
         for ((index, pixel) in pixelsDe(image).withIndex()) {
             if (pixel != BLANC_FLECHE) continue
+            // Seule la colonne du coureur est examinée : la rose des vents est blanche elle
+            // aussi, mais elle vit dans le coin haut droit et n'a rien à voir ici.
+            val x = index % image.width
+            if (abs(x - MILIEU) > COLONNE) continue
             blancs++
             val y = index / image.width
             if (y < plusHaut) plusHaut = y
@@ -92,6 +101,31 @@ class MapRendererTest {
             "le blanc de la flèche traîne hors du coureur, des ordonnées $plusHaut à $plusBas",
             plusHaut >= 275 && plusBas <= 350,
         )
+    }
+
+    /**
+     * La rose des vents rend le nord, dans le coin haut droit.
+     *
+     * La carte tourne avec le coureur : elle est lisible en roulant, mais on y perd
+     * l'orientation absolue. L'aiguille la rend. Le contrôle la cherche à son rouge, que rien
+     * d'autre ne porte sur une carte dont on suit l'itinéraire — le ruban ne vire au rouge que
+     * lorsqu'on l'a quitté.
+     */
+    @Test
+    fun `la rose des vents se tient dans le coin haut droit`() {
+        val image = rendre()
+
+        var rouges = 0
+        var ailleurs = 0
+        for ((index, pixel) in pixelsDe(image).withIndex()) {
+            if (pixel != KarooColors.UI_RED) continue
+            val x = index % image.width
+            val y = index / image.width
+            if (x > image.width * 2 / 3 && y < image.height / 4) rouges++ else ailleurs++
+        }
+
+        assertTrue("l'aiguille du nord ne couvre que $rouges pixels", rouges > 20)
+        assertEquals("du rouge se pose ailleurs que dans la rose", 0, ailleurs)
     }
 
     /**
@@ -174,6 +208,9 @@ class MapRendererTest {
 
         /** Le coureur est au milieu en largeur, aux quatre cinquièmes en hauteur : 320. */
         const val MILIEU = LARGEUR / 2
+
+        /** Demi-largeur de la colonne où l'on cherche la pastille de position. */
+        const val COLONNE = 40
 
         /**
          * Quatre points sur le ruban derrière le coureur, entre deux voisins encombrants.

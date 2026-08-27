@@ -13,8 +13,10 @@ import io.github.jmallus.guidage.core.map.RoadKind
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.core.map.RoadSurface
 import io.github.jmallus.guidage.core.map.fromMicroDegrees
+import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.ln
+import kotlin.math.sin
 
 /** Un point d'intérêt à poser sur la carte. */
 data class MapPoi(val position: GeoPoint, val label: String)
@@ -53,10 +55,11 @@ data class MapModel(
  * éteindre le reste ne faisait plus qu'effacer ce qu'on est venu chercher — un carrefour à
  * cent mètres du tracé est précisément ce qu'on regarde.
  *
- * Le tracé est un ruban bleu, d'une seule encre sur toute sa longueur, jalonné de doubles
- * chevrons noirs qui disent le sens à prendre : à un carrefour en T, les deux branches du
- * ruban se ressemblent. La position, elle, est une pastille ronde à flèche, posée à la place
- * fixe du coureur — une forme et des couleurs que rien d'autre ne porte sur cette carte.
+ * Le tracé est un ruban bleu, franc devant le coureur et clair derrière lui, jalonné de
+ * doubles chevrons noirs qui disent le sens à prendre : à un carrefour en T, les deux branches
+ * du ruban se ressemblent. La position est une pastille ronde à flèche, posée à la place fixe
+ * du coureur ; les points d'intérêt en sont d'autres, magenta, portant un repère de carte ; et
+ * une rose des vents, en haut à droite, rend le nord que la vue « cap en haut » efface.
  *
  * Tout est calculé sur l'appareil, sans réseau ni tuiles à télécharger.
  */
@@ -109,6 +112,7 @@ object MapRenderer {
         )
         drawPois(canvas, area, model, projection, palette)
         drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
+        drawCompass(canvas, area, heading)
 
         canvas.restore()
     }
@@ -133,6 +137,91 @@ object MapRenderer {
 
     /** La mention du fond absent s'efface derrière le tracé : c'est une note, pas une alerte. */
     private const val NOTICE_ALPHA = 0x9E
+
+    /**
+     * La rose des vents, en haut à droite : une aiguille dans une pastille, moitié rouge vers
+     * le nord et moitié blanche vers le sud.
+     *
+     * La carte tourne avec le coureur — c'est ce qui la rend lisible en roulant, ce qui est
+     * devant étant en haut — mais on y perd le nord au sens propre. Une carte papier dépliée
+     * sur le bord de la route, un panneau, le souvenir d'un versant : tout cela se raccroche
+     * à une orientation absolue que la vue « cap en haut » efface.
+     *
+     * Le nord est à l'angle **moins le cap** de la verticale, puisque la vue a été tournée
+     * d'autant : cap nul, l'aiguille pointe en haut ; cap à l'est, elle pointe à gauche.
+     *
+     * Le coin haut droit est le seul libre : la mention du fond absent occupe le gauche,
+     * l'échelle le bas.
+     */
+    private fun drawCompass(canvas: Canvas, area: RectF, heading: Double) {
+        val rayon = (area.height() * COMPASS_RADIUS_FRACTION).coerceIn(9f, 16f)
+        val cx = area.right - COMPASS_INSET - rayon
+        val cy = area.top + COMPASS_INSET + rayon
+
+        canvas.drawCircle(
+            cx,
+            cy,
+            rayon,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = BADGE_COLOR
+            },
+        )
+        val anneau = rayon * RING_FRACTION
+        canvas.drawCircle(
+            cx,
+            cy,
+            rayon - anneau / 2f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = anneau
+                color = COMPASS_RING
+            },
+        )
+
+        val radians = Math.toRadians(heading)
+        val nordX = (-sin(radians)).toFloat()
+        val nordY = (-cos(radians)).toFloat()
+        val longueur = rayon * NEEDLE_LENGTH
+        val demiBase = rayon * NEEDLE_BASE
+
+        fun aiguille(sens: Float, teinte: Int) {
+            canvas.drawPath(
+                Path().apply {
+                    moveTo(cx + nordX * longueur * sens, cy + nordY * longueur * sens)
+                    lineTo(cx - nordY * demiBase, cy + nordX * demiBase)
+                    lineTo(cx + nordY * demiBase, cy - nordX * demiBase)
+                    close()
+                },
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.FILL
+                    color = teinte
+                },
+            )
+        }
+
+        aiguille(-1f, COMPASS_SOUTH)
+        aiguille(1f, COMPASS_NORTH)
+    }
+
+    /** Rayon de la rose, en part de la hauteur de la carte, et sa marge au coin. */
+    private const val COMPASS_RADIUS_FRACTION = 0.045f
+    private const val COMPASS_INSET = 6f
+
+    /** Longueur d'une demi-aiguille et demi-largeur de sa base, en part du rayon. */
+    private const val NEEDLE_LENGTH = 0.70f
+    private const val NEEDLE_BASE = 0.26f
+
+    /**
+     * Le rouge du nord et le blanc du sud, convention de toutes les boussoles.
+     *
+     * Le rouge est celui que le système réserve aux erreurs. Sur une aiguille de quelques
+     * pixels, dans un coin, il ne peut pas se confondre avec un ruban devenu rouge : c'est la
+     * forme qui parle, et une boussole rouge et blanche ne se lit pas autrement.
+     */
+    private val COMPASS_NORTH = KarooColors.UI_RED
+    private const val COMPASS_SOUTH = 0xFFFFFFFF.toInt()
+    private const val COMPASS_RING = 0xFFFFFFFF.toInt()
 
     /** Position géographique → pixels, cap en haut et coureur fixe. */
     private class Projection(
@@ -251,16 +340,16 @@ object MapRenderer {
     private const val MAX_ROAD_WIDTH = 26f
 
     /**
-     * Le tracé : un ruban bleu d'une seule encre, du départ à l'arrivée.
+     * Le tracé : un ruban bleu, plus clair derrière le coureur que devant.
      *
-     * La part déjà faite s'éteignait autrefois derrière le coureur. Le fondu disait à la fois
-     * où l'on était et dans quel sens on allait, mais il coupait le ruban en deux à l'écran :
-     * sur une épingle ou une boucle, la branche pâle du retour longe la branche pleine de
-     * l'aller et l'on ne sait plus laquelle est l'itinéraire. Le ruban est donc plein partout,
-     * et ce sont les chevrons qui portent le sens et l'endroit où l'on en est.
+     * Il a été d'une seule encre, après avoir été d'un dégradé qui s'éteignait vers le
+     * transparent. Le dégradé avait un vrai défaut — sur une épingle, la branche évanouie du
+     * retour longeait la branche pleine de l'aller et l'on ne savait plus laquelle était
+     * l'itinéraire. Deux bleus francs n'ont pas ce défaut : le clair reste un ruban, il ne
+     * disparaît pas, et l'on voit du premier coup d'œil ce qui est fait et ce qui reste.
      *
-     * Hors itinéraire, tout passe au rouge de rejointe du Karoo — mieux vaut le voir tout de
-     * suite que de le découvrir au bout de deux kilomètres.
+     * Hors itinéraire, tout passe au rouge de rejointe du Karoo, d'un seul tenant : ce n'est
+     * plus le moment de savoir où l'on en est du parcours, mais qu'on n'y est plus.
      */
     private fun drawPath(
         canvas: Canvas,
@@ -278,18 +367,31 @@ object MapRenderer {
             strokeWidth = width
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
-            color = if (model.offRoute) OFF_ROUTE_COLOR else ROUTE_COLOR
         }
 
-        val route = polyline(screenPath)
-        canvas.drawPath(route, paint)
-
-        // Marque et jalons partent tous du point du tracé le plus proche du coureur, et se
-        // comptent le long de ce qui reste à faire.
+        // Marque, jalons et coupure des deux bleus partent tous du point du tracé le plus
+        // proche du coureur.
         val here = anchor(screenPath, riderX, riderY)
         val ahead = buildList {
             add(here.point)
             addAll(screenPath.subList(here.index, screenPath.size))
+        }
+        val behind = buildList {
+            addAll(screenPath.subList(0, here.index))
+            add(here.point)
+        }
+
+        val route = polyline(screenPath)
+        if (model.offRoute) {
+            paint.color = OFF_ROUTE_COLOR
+            canvas.drawPath(route, paint)
+        } else {
+            // La part faite d'abord, celle qui reste par-dessus : leur point commun est
+            // l'aplomb du coureur, et c'est le bout rond du second qui recouvre la couture.
+            paint.color = ROUTE_BEHIND_COLOR
+            canvas.drawPath(polyline(behind), paint)
+            paint.color = ROUTE_COLOR
+            canvas.drawPath(polyline(ahead), paint)
         }
 
         // Le ruban sert de gabarit aux chevrons. Leurs branches sont taillées à sa
@@ -560,7 +662,17 @@ object MapRenderer {
     }
 
     /**
-     * Points d'intérêt : une pastille cernée de la couleur du fond, avec son nom à côté.
+     * Points d'intérêt : une pastille magenta portant un repère de carte, avec son nom à côté.
+     *
+     * Ce n'était qu'un point coloré. Un point ne dit que « ici », et il faut savoir d'avance
+     * ce qu'il désigne pour ne pas le prendre pour un carrefour ou un sommet du tracé. Le
+     * repère, lui, se reconnaît sans qu'on l'ait appris : c'est le pictogramme qu'emploient
+     * toutes les cartes du monde, et il a une pointe, qui désigne un endroit précis là où un
+     * disque ne fait que le couvrir.
+     *
+     * Le magenta n'est pris par rien d'autre. C'est ce qui l'a fait choisir : le bleu est
+     * celui du tracé, le jaune celui de l'itinéraire dans le système de Hammerhead, le violet
+     * celui des tours, le rouge celui des erreurs.
      *
      * Le cerne et le halo du texte ne sont pas décoratifs : sans eux, la pastille se confond
      * avec le tracé qu'elle jouxte et le nom devient illisible dès qu'il tombe sur une route.
@@ -576,7 +688,7 @@ object MapRenderer {
     ) {
         if (model.pois.isEmpty()) return
         val labelSize = (area.height() * 0.062f).coerceIn(12f, 20f)
-        val radius = (area.height() * 0.026f).coerceIn(5f, 10f)
+        val radius = (area.height() * POI_RADIUS_FRACTION).coerceIn(8f, 14f)
         val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = POI_COLOR
             style = Paint.Style.FILL
@@ -584,7 +696,7 @@ object MapRenderer {
         val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = RoadStyle.INK
             style = Paint.Style.STROKE
-            strokeWidth = radius * 0.45f
+            strokeWidth = radius * 0.22f
         }
         val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = RoadStyle.BACKGROUND
@@ -607,6 +719,7 @@ object MapRenderer {
             if (x < area.left - 20 || x > area.right + 20 || y < area.top - 20 || y > area.bottom + 20) return@forEach
             canvas.drawCircle(x, y, radius, dot)
             canvas.drawCircle(x, y, radius, ring)
+            drawPoiPin(canvas, x, y, radius)
 
             // Le nom se met à gauche quand il déborderait à droite : la carte est étroite.
             val width = text.measureText(poi.label)
@@ -618,18 +731,66 @@ object MapRenderer {
     }
 
     /**
-     * Point d'intérêt : un point blanc, cerné de sombre.
+     * Le repère de carte posé dans la pastille : une goutte blanche, percée en son centre.
      *
-     * Il a porté du bleu, puis le violet du Karoo. Aucune de ces teintes ne disait rien de
-     * plus que « ici » — et chacune entrait en conflit avec un sens déjà pris : le bleu est
-     * celui du tracé, le violet celui des tours dans le système de Hammerhead. Le blanc ne
-     * prétend à rien : c'est un repère, pas une catégorie.
+     * Le trou n'est pas un détail. Sans lui, la goutte n'est qu'une tache blanche vaguement
+     * pointue ; avec, on reconnaît le pictogramme sans y penser — c'est l'anneau, et non la
+     * silhouette, qui le fait lire. Il est percé en repeignant la teinte de la pastille
+     * par-dessus, ce qui coûte un cercle et évite un chemin à deux contours.
      *
-     * C'est le cerne qui le fait tenir, et il passe donc au sombre : un point blanc cerné de
-     * crème disparaîtrait sur le fond crème, alors que sombre il tient partout — sur le fond,
-     * sur le ruban, sur une départementale orange.
+     * La tête et la pointe forment deux sous-chemins qui se recouvrent : remplis ensemble en
+     * mode non nul, leur réunion donne la goutte sans qu'il faille calculer les tangentes.
      */
-    private const val POI_COLOR = 0xFFFFFFFF.toInt()
+    private fun drawPoiPin(canvas: Canvas, x: Float, y: Float, radius: Float) {
+        val tete = radius * PIN_HEAD
+        val centre = y - radius * PIN_LIFT
+        val pointe = y + radius * PIN_TIP
+
+        canvas.drawPath(
+            Path().apply {
+                fillType = Path.FillType.WINDING
+                addCircle(x, centre, tete, Path.Direction.CW)
+                moveTo(x - tete * PIN_SHOULDER, centre + tete * PIN_SHOULDER)
+                lineTo(x + tete * PIN_SHOULDER, centre + tete * PIN_SHOULDER)
+                lineTo(x, pointe)
+                close()
+            },
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = PIN_COLOR
+            },
+        )
+        canvas.drawCircle(
+            x,
+            centre,
+            tete * PIN_HOLE,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = POI_COLOR
+            },
+        )
+    }
+
+    /**
+     * Point d'intérêt : le magenta, seule teinte que rien d'autre ne revendique.
+     *
+     * Il a porté du bleu, puis le violet du Karoo, puis du blanc. Chacune de ces teintes
+     * entrait en conflit avec un sens déjà pris — le bleu est celui du tracé, le violet celui
+     * des tours dans le système de Hammerhead, le blanc celui de la position. Le magenta n'est
+     * revendiqué par rien, et il se voit sur le crème comme sur les verts de la campagne.
+     */
+    private const val POI_COLOR = 0xFFE31C96.toInt()
+
+    /** Le blanc du repère, et ses proportions en part du rayon de la pastille. */
+    private const val PIN_COLOR = 0xFFFFFFFF.toInt()
+    private const val PIN_HEAD = 0.38f
+    private const val PIN_LIFT = 0.16f
+    private const val PIN_TIP = 0.58f
+    private const val PIN_SHOULDER = 0.74f
+    private const val PIN_HOLE = 0.44f
+
+    /** Rayon de la pastille, en part de la hauteur de la carte. */
+    private const val POI_RADIUS_FRACTION = 0.040f
 
     /**
      * Bleu du tracé.
@@ -639,6 +800,15 @@ object MapRenderer {
      * une départementale orange ou un chemin brun ne peuvent pas être pris pour l'itinéraire.
      */
     private const val ROUTE_COLOR = 0xFF2E8BFF.toInt()
+
+    /**
+     * Le bleu clair de ce qui est déjà fait.
+     *
+     * Assez pâle pour qu'on distingue au premier coup d'œil l'avant de l'arrière, assez franc
+     * pour rester un ruban : c'est là que le dégradé d'autrefois échouait, en s'éteignant vers
+     * le transparent jusqu'à laisser une branche fantôme le long de celle qui compte.
+     */
+    private const val ROUTE_BEHIND_COLOR = 0xFF9CC7FF.toInt()
 
     /**
      * Le double chevron, en part de l'épaisseur du ruban.
