@@ -189,8 +189,8 @@ du simulateur : un test JUnit qui ouvre une fenêtre, et ne l'ouvre que si on la
 
 Ce qu'il ne simule pas : la chaîne karoo-ext elle-même — souscriptions, cadence de
 rafraîchissement du système — et la carte hors ligne réelle, remplacée par un décor engendré
-autour du coureur. La mise en page, les couleurs, les zones, le couloir, les chevrons et le
-bandeau de côte, eux, sont ceux de l'appareil.
+autour du coureur. La mise en page, les couleurs, les zones, les chevrons et le bandeau de
+côte, eux, sont ceux de l'appareil.
 
 Les mêmes tests tournent **sans fenêtre** à chaque poussée : ils vérifient que chaque portée
 dessine bien la trace, ce qu'une compilation ne dirait pas — un écran noir compile très bien.

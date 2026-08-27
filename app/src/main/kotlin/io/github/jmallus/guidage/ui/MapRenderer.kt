@@ -4,8 +4,6 @@ import android.graphics.Canvas
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.graphics.Typeface
 import io.github.jmallus.guidage.core.Geo
@@ -17,7 +15,6 @@ import io.github.jmallus.guidage.core.map.RoadSurface
 import io.github.jmallus.guidage.core.map.fromMicroDegrees
 import kotlin.math.hypot
 import kotlin.math.ln
-import kotlin.math.pow
 
 /** Un point d'intérêt à poser sur la carte. */
 data class MapPoi(val position: GeoPoint, val label: String)
@@ -49,15 +46,17 @@ data class MapModel(
  * fixe dans le bas de la vue, la carte tourne autour de lui, et ce qui est devant est en haut.
  *
  * Le fond est clair et les voies portent chacune la teinte de sa classe, comme sur une carte
- * routière ; elles s'effacent vers le fond à mesure qu'elles s'écartent de l'itinéraire, de
- * sorte que la carte ne montre qu'un couloir autour de ce qu'on va faire. Le tracé y est un
- * ruban bleu, d'une seule encre sur toute sa longueur, portant deux sortes de chevrons.
+ * routière, jusqu'aux bords du cadre. Elles s'effaçaient autrefois à mesure qu'elles
+ * s'écartaient de l'itinéraire, ne laissant qu'un couloir autour de lui : c'était une réponse
+ * au fond noir, où tout ce qui n'était pas le tracé faisait du bruit blanc. Sur un fond en
+ * couleur, les classes se distinguent d'elles-mêmes et le tracé se détache par sa teinte ;
+ * éteindre le reste ne faisait plus qu'effacer ce qu'on est venu chercher — un carrefour à
+ * cent mètres du tracé est précisément ce qu'on regarde.
  *
- * Un **blanc et plein**, unique, posé sur le coureur : c'est le repère de position, le ruban
- * ne changeant d'aspect nulle part ailleurs. Des **noirs et creux**, semés devant lui sur les
- * prochaines centaines de mètres : ils disent le sens à prendre, ce que le ruban seul ne dit
- * pas — à un carrefour en T, ses deux branches se ressemblent. Deux rôles, deux encres : on
- * ne cherche pas sa position parmi des jalons qui lui ressembleraient.
+ * Le tracé est un ruban bleu, d'une seule encre sur toute sa longueur, jalonné de doubles
+ * chevrons noirs qui disent le sens à prendre : à un carrefour en T, les deux branches du
+ * ruban se ressemblent. La position, elle, est une pastille ronde à flèche, posée à la place
+ * fixe du coureur — une forme et des couleurs que rien d'autre ne porte sur cette carte.
  *
  * Tout est calculé sur l'appareil, sans réseau ni tuiles à télécharger.
  */
@@ -91,19 +90,8 @@ object MapRenderer {
             drawBasemapNotice(canvas, area, model.roadsMessage)
         } else {
             val (areas, lines) = model.roads.partition { it.kind.isArea }
-            // Le fond entier est dessiné dans un calque, dont l'opacité est ensuite
-            // multipliée par celle du couloir. C'est le seul moyen d'obtenir un fondu qui
-            // suive l'itinéraire sans avoir à calculer, pour chacun des milliers de sommets
-            // du fond, sa distance à la trace — ce qui serait à refaire à chaque image.
-            val ground = canvas.saveLayer(area, null)
             drawAreas(canvas, areas, projection)
             drawRoads(canvas, lines, projection, metersToPixels)
-            if (screenPath.size >= 2) {
-                val corridor = canvas.saveLayer(area, CORRIDOR_PAINT)
-                drawCorridor(canvas, screenPath, area.width())
-                canvas.restoreToCount(corridor)
-            }
-            canvas.restoreToCount(ground)
         }
         drawPath(
             canvas = canvas,
@@ -263,71 +251,6 @@ object MapRenderer {
     private const val MAX_ROAD_WIDTH = 26f
 
     /**
-     * Le couloir : le fondu du fond de carte à mesure qu'on s'écarte de l'itinéraire.
-     *
-     * Il est dessiné comme une suite d'anneaux — la trace repassée de plus en plus large et
-     * de moins en moins encrée — plutôt que comme un trait unique qu'on flouterait. Un flou
-     * gaussien assez large pour couvrir la carte donne un plateau d'opacité pleine sur toute
-     * la surface visible, et sa décroissance tombe hors du cadre : on obtient un fond
-     * uniforme, c'est-à-dire exactement le contraire d'un dégradé. Les anneaux, eux, donnent
-     * la décroissance point par point.
-     *
-     * Les largeurs sont en part de la largeur de la carte, non en pixels : le fondu occupe
-     * ainsi la même place quelle que soit la taille de la case.
-     *
-     * Les opacités posées ne sont pas celles qu'on veut obtenir : chaque anneau se pose sur
-     * les précédents, du plus large au plus étroit, d'où a = (cible − acquis) / (1 − acquis).
-     *
-     * Seize paliers, et non six : à six, chaque marche vaut une dizaine de points d'opacité
-     * et se voit sur une chaussée large, qui traverse plusieurs anneaux d'un coup — la route
-     * paraît alors carrelée. À seize, la marche passe sous le seuil de perception.
-     */
-    private const val CORRIDOR_STEPS = 16
-    private const val CORRIDOR_WIDEST = 1.05f
-    private const val CORRIDOR_NARROWEST = 0.06f
-
-    /** Opacité au bord du couloir : le fondu doux, retenu sur planche. */
-    private const val CORRIDOR_EDGE = 0.36f
-
-    /**
-     * Exposant de la courbe d'opacité.
-     *
-     * En deçà de 1, l'encre remonte vite en quittant le bord puis s'aplatit : le lointain
-     * garde sa lisibilité et c'est le voisinage immédiat du tracé qui gagne le contraste.
-     */
-    private const val CORRIDOR_CURVE = 0.7f
-
-    private val CORRIDOR_RINGS: List<Pair<Float, Float>> = buildList {
-        var reached = 0f
-        for (index in 0 until CORRIDOR_STEPS) {
-            val t = index.toFloat() / (CORRIDOR_STEPS - 1)
-            val widthRatio = CORRIDOR_WIDEST - (CORRIDOR_WIDEST - CORRIDOR_NARROWEST) * t
-            val target = CORRIDOR_EDGE + (1f - CORRIDOR_EDGE) * t.pow(CORRIDOR_CURVE)
-            add(widthRatio to (target - reached) / (1f - reached))
-            reached = target
-        }
-    }
-
-    /** Le calque du couloir ne garde du fond que ce qu'il recouvre. */
-    private val CORRIDOR_PAINT =
-        Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN) }
-
-    private fun drawCorridor(canvas: Canvas, points: List<PlanePoint>, width: Float) {
-        val path = polyline(points)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeCap = Paint.Cap.ROUND
-            strokeJoin = Paint.Join.ROUND
-            color = 0xFF000000.toInt()
-        }
-        CORRIDOR_RINGS.forEach { (widthRatio, opacity) ->
-            paint.strokeWidth = width * widthRatio
-            paint.alpha = (opacity * 255f).toInt().coerceIn(0, 255)
-            canvas.drawPath(path, paint)
-        }
-    }
-
-    /**
      * Le tracé : un ruban bleu d'une seule encre, du départ à l'arrivée.
      *
      * La part déjà faite s'éteignait autrefois derrière le coureur. Le fondu disait à la fois
@@ -481,50 +404,66 @@ object MapRenderer {
     }
 
     /**
-     * Flèche de position reprenant celle de la navigation Karoo : une pointe large, presque
-     * aussi étalée que haute, échancrée à la base, cernée de sombre pour rester lisible
-     * au-dessus du tracé.
+     * La marque de position : une pastille ronde portant une flèche, comme sur les compteurs
+     * qui savent se faire trouver.
      *
-     * L'écartement des branches est relevé sur l'appareil : une flèche étroite se confond
-     * avec les chevrons du tracé, alors que celle-ci se lit d'emblée comme « moi ». C'est
-     * précisément ce qui lui vaut de revenir : le double chevron blanc qui l'avait remplacée
-     * était de la même famille que les jalons noirs semés devant, et il fallait le chercher.
+     * La flèche nue qui la précédait avait le défaut de sa forme : posée sur un ruban qu'elle
+     * dépassait à peine, entre des chevrons de même famille, elle se cherchait. Le disque la
+     * détache du fond quel qu'il soit — c'est lui qui la fait voir, la flèche ne servant plus
+     * qu'à dire le sens.
+     *
+     * Le disque est sombre et la flèche blanche, l'anneau blanc aussi. Un disque de couleur
+     * serait plus voyant encore, mais toutes les couleurs sont prises : le rouge dit l'erreur,
+     * le jaune l'itinéraire, le vert la donnée vive, le violet les tours. Le sombre ne dit
+     * rien, et c'est ce qu'on lui demande.
      *
      * Elle se pose à la place fixe du coureur et pointe vers le haut, la carte tournant sous
      * elle : rien à projeter, rien à orienter.
-     *
-     * Les angles sont adoucis en épaississant le contour au lieu d'arrondir le tracé point
-     * par point : une jointure ronde d'épaisseur *r* arrondit d'un rayon *r* les quatre
-     * sommets d'un coup. Le contour étant tracé vers l'extérieur, la silhouette est calculée
-     * en retrait d'autant pour que la flèche garde sa taille.
      */
     private fun drawRider(canvas: Canvas, x: Float, y: Float, height: Float) {
-        val size = (height * RIDER_HEIGHT_FRACTION).coerceIn(14f, 30f)
-        val radius = size * CORNER_RATIO
-        val body = size - radius
-        val arrow = Path().apply {
-            moveTo(x, y - body)
-            lineTo(x + body * ARROW_HALF_WIDTH, y + body * ARROW_BASE)
-            lineTo(x, y + body * ARROW_NOTCH)
-            lineTo(x - body * ARROW_HALF_WIDTH, y + body * ARROW_BASE)
-            close()
-        }
-        canvas.drawPath(
-            arrow,
+        val rayon = (height * RIDER_HEIGHT_FRACTION).coerceIn(11f, 20f)
+        val anneau = rayon * RING_FRACTION
+
+        canvas.drawCircle(
+            x,
+            y,
+            rayon,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = ARROW_BORDER_COLOR
-                style = Paint.Style.STROKE
-                strokeWidth = radius * 2 + ARROW_BORDER_WIDTH * 2
-                strokeJoin = Paint.Join.ROUND
-                strokeCap = Paint.Cap.ROUND
+                style = Paint.Style.FILL
+                color = BADGE_COLOR
             },
         )
+        // L'anneau se dessine sur la ligne médiane du trait : il faut donc rentrer son rayon
+        // d'une demi-épaisseur pour qu'il reste dans le disque au lieu de le déborder.
+        canvas.drawCircle(
+            x,
+            y,
+            rayon - anneau / 2f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = anneau
+                color = ARROW_COLOR
+            },
+        )
+
+        // La flèche garde la silhouette d'avant — pointe large, base échancrée — réduite pour
+        // tenir dans l'anneau. Ses angles sont adoucis en épaississant le contour plutôt qu'en
+        // arrondissant le tracé point par point : une jointure ronde d'épaisseur *r* arrondit
+        // d'un rayon *r* les quatre sommets d'un coup.
+        val corps = rayon * ARROW_FRACTION
+        val adouci = corps * CORNER_RATIO
         canvas.drawPath(
-            arrow,
+            Path().apply {
+                moveTo(x, y - corps)
+                lineTo(x + corps * ARROW_HALF_WIDTH, y + corps * ARROW_BASE)
+                lineTo(x, y + corps * ARROW_NOTCH)
+                lineTo(x - corps * ARROW_HALF_WIDTH, y + corps * ARROW_BASE)
+                close()
+            },
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = ARROW_COLOR
                 style = Paint.Style.FILL_AND_STROKE
-                strokeWidth = radius * 2
+                strokeWidth = adouci * 2
                 strokeJoin = Paint.Join.ROUND
                 strokeCap = Paint.Cap.ROUND
             },
@@ -737,20 +676,22 @@ object MapRenderer {
      * tout l'intérêt : le double chevron blanc qui l'avait remplacée était de la même famille
      * qu'eux, et se cherchait au milieu d'eux.
      */
-    private const val RIDER_HEIGHT_FRACTION = 0.085f
+    private const val RIDER_HEIGHT_FRACTION = 0.06f
 
     /**
-     * Le blanc de la flèche, et le sombre de son cerne.
+     * Le blanc de la flèche et de son anneau, le sombre du disque qui les porte.
      *
-     * Elle a porté du jaune, la couleur que le système réserve à l'itinéraire : la position
-     * du coureur n'est pas l'itinéraire, et la teinte disait donc autre chose que la forme.
-     * Le blanc ne prétend à rien. C'est le cerne qui la fait tenir, sur le ruban bleu comme
-     * sur le fond crème, et c'est lui qui l'empêche de se confondre avec les points d'intérêt,
-     * blancs eux aussi mais ronds et bien plus petits.
+     * La flèche a porté du jaune, la couleur que le système réserve à l'itinéraire : la
+     * position du coureur n'est pas l'itinéraire, et la teinte disait donc autre chose que la
+     * forme. Le blanc ne prétend à rien, et le disque sombre lui donne le contraste qu'un
+     * simple cerne ne suffisait pas à lui donner.
      */
     private const val ARROW_COLOR = 0xFFFFFFFF.toInt()
-    private const val ARROW_BORDER_COLOR = 0xFF1E1E1E.toInt()
-    private const val ARROW_BORDER_WIDTH = 2.5f
+    private const val BADGE_COLOR = 0xFF1E1E1E.toInt()
+
+    /** Épaisseur de l'anneau, et taille de la flèche, en part du rayon du disque. */
+    private const val RING_FRACTION = 0.16f
+    private const val ARROW_FRACTION = 0.62f
 
     /** Rayon d'adoucissement des angles de la flèche, en part de sa taille. */
     private const val CORNER_RATIO = 0.10f

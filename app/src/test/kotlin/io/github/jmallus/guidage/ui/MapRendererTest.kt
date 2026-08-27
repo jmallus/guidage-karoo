@@ -64,10 +64,10 @@ class MapRendererTest {
     }
 
     /**
-     * La flèche de position, et elle seule, à la place du coureur.
+     * La pastille de position, et elle seule, à la place du coureur.
      *
-     * Deux choses à tenir. Qu'elle existe — une pointe pleine se compte en centaines de
-     * pixels, pas en dizaines. Et qu'elle reste **là où elle doit être** : le coureur est à
+     * Deux choses à tenir. Qu'elle existe — un anneau et une flèche se comptent en centaines
+     * de pixels, pas en dizaines. Et qu'elle reste **là où elle doit être** : le coureur est à
      * l'ordonnée 320, et son blanc ne doit se trouver nulle part ailleurs. Cette carte-ci n'a
      * ni voie ni point d'intérêt, de sorte que rien d'autre n'y est blanc ; sur un vrai fond,
      * les voies le seraient aussi et le contrôle ne dirait plus rien.
@@ -178,15 +178,15 @@ class MapRendererTest {
         /**
          * Quatre points sur le ruban derrière le coureur, entre deux voisins encombrants.
          *
-         * Ils commencent sous la marque de position, dont les branches redescendent un peu en
-         * arrière du coureur, et s'arrêtent avant l'échelle, qui s'écrit tout en bas.
+         * Ils commencent sous la pastille de position, qui déborde d'un rayon en arrière du
+         * coureur, et s'arrêtent avant l'échelle, qui s'écrit tout en bas.
          */
-        val ARRIERE = listOf(340, 352, 364, 376)
+        val ARRIERE = listOf(350, 360, 370, 378)
 
         const val NOIR = 0xFF000000.toInt()
 
         /**
-         * Le blanc de la flèche de position, recopié depuis le rendu.
+         * Le blanc de l'anneau et de la flèche, recopié depuis le rendu.
          *
          * Recopier une constante privée est le prix à payer pour lire le résultat en pixels
          * plutôt qu'en appels de fonction : si elle change là-bas sans changer ici, le
