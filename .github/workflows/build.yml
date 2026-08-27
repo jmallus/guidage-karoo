@@ -114,7 +114,8 @@ jobs:
           ci-dessous, puis le partager vers l'application Hammerhead Companion.
           L'écran d'installation s'affiche ensuite sur le Karoo.
 
-          Une fois installée : Profils → une page → ajouter un champ de données → Guidage.
+          Une fois installée : Profils → une page → ajouter un champ de données →
+          extension **Guidage** → champ **Tableau de bord**.
           NOTES
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             gh release create "$GITHUB_REF_NAME" guidage-karoo.apk \
