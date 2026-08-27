@@ -276,7 +276,10 @@ class SimulateurTest {
         preparerLAffichage()
 
         val simulateur = Simulateur(context)
-        val fenetre = FenetreSimulateur(hauteurChamp = Simulateur.HAUTEUR)
+        val fenetre = FenetreSimulateur(
+            largeurChamp = Simulateur.LARGEUR,
+            hauteurChamp = Simulateur.HAUTEUR,
+        )
         var secondes = 0.0
         var acceleration = 8.0
         var enPause = false

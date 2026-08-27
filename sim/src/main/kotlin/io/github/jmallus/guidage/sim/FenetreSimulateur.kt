@@ -57,6 +57,11 @@ enum class Commande {
 class FenetreSimulateur(
     agrandissement: Double = 1.0,
     /**
+     * Largeur du champ en pixels du Karoo. Deux points de moins que l'écran : le système
+     * garde un liseré de chaque côté.
+     */
+    private val largeurChamp: Int = LARGEUR_ECRAN,
+    /**
      * Hauteur du champ en pixels du Karoo, qui n'est pas celle de l'écran : le bandeau d'état
      * en garde une bande en haut. Elle ne sert qu'à dimensionner la fenêtre avant la première
      * image ; ensuite, c'est l'image reçue qui commande.
@@ -247,7 +252,7 @@ class FenetreSimulateur(
     }
 
     private fun tailleVoulue() = Dimension(
-        (LARGEUR_ECRAN * facteur).toInt() + MARGE_REGLE + 24,
+        (largeurChamp * facteur).toInt() + MARGE_REGLE + 24,
         (hauteurChamp * facteur).toInt() + 24,
     )
 
@@ -258,7 +263,7 @@ class FenetreSimulateur(
      * règle : trente et un millimètres, et c'est celle de l'appareil.
      */
     private fun ligneAide(): String {
-        val largeurMm = LARGEUR_ECRAN * facteur / (pointsParPouce / MM_PAR_POUCE)
+        val largeurMm = largeurChamp * facteur / (pointsParPouce / MM_PAR_POUCE)
         return " %.1f mm de large (×%.2f, écran déclaré à %.0f ppp) · %s".format(
             largeurMm,
             echelle,

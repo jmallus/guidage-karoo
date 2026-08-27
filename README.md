@@ -190,19 +190,26 @@ vraie règle : si les millimètres coïncident, le tableau de bord est à sa tai
 sinon, `+` et `-` l'ajustent par pas de cinq pour cent, et la ligne du bas affiche la largeur
 obtenue.
 
-### La hauteur du champ
+### La taille du champ
 
-Le champ plein écran n'a pas les huit cents points de l'écran : le Karoo en garde une bande
-en haut pour l'heure et la batterie. Sur l'appareil la question ne se pose pas —
-`ViewConfig.viewSize` donne la place réellement allouée et le rendu s'y ajuste — mais le banc
-d'essai doit la connaître, faute de quoi il montre une mise en page plus haute que la vraie :
-rangs plus espacés, chiffres plus grands que ce qu'on lira en roulant.
+Le champ plein écran n'a pas les 480 × 800 points de l'écran : le Karoo garde une bande de
+158 points en haut pour l'heure et la batterie, et un liseré d'un point de chaque côté. La
+place réellement laissée, relevée sur un Karoo 3, est de **478 × 642** — soit près d'un
+cinquième de la hauteur en moins.
+
+Sur l'appareil la question ne se pose pas : `ViewConfig.viewSize` donne la place allouée et
+le rendu s'y ajuste. Le banc d'essai, lui, doit la connaître, et il l'a longtemps ignorée —
+il montrait une mise en page plus haute que la vraie : rangs plus espacés, chiffres plus
+grands que ce qu'on lira en roulant.
+
+La valeur est figée dans `Simulateur`, et se change sans recompiler pour un autre appareil
+ou un autre gabarit de page :
 
 ```
 ./gradlew :app:simulateur -Pguidage.hauteur=744
 ```
 
-Pour relever la valeur, **sans rien brancher** : poser le champ **« Tableau de bord »** (dans
+Pour la relever, **sans rien brancher** : poser le champ **« Tableau de bord »** (dans
 le sélecteur, « Guidage » est le nom de l'extension, pas celui du champ) sur une page, ouvrir
 cette page une fois, puis lancer l'application Guidage depuis le launcher du Karoo. La carte
 « Place allouée au champ », en bas de l'écran de configuration, donne les dimensions telles

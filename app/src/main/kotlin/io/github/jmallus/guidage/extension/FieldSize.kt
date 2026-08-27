@@ -17,11 +17,11 @@ object FieldSize {
     /**
      * Plus grande dimension rendue, au-delà de laquelle le bitmap est réduit.
      *
-     * Elle valait 640, ce qui était plus petit que le champ plein écran : celui-ci occupe
-     * toute la hauteur de l'écran du Karoo, bandeau d'état déduit, soit sept cent et quelques
-     * pixels. Le tableau de bord était donc dessiné sur 640 lignes puis étiré sur les
-     * dernières, ce qui adoucit les traits et fait mentir toutes les tailles calculées en part
-     * de la hauteur — la moitié de ce qu'on règle ici.
+     * Elle valait 640, ce qui était plus petit que le champ plein écran : celui-ci mesure
+     * 478 × 642 sur un Karoo 3, bandeau d'état déduit. Le tableau de bord était donc dessiné
+     * sur 640 lignes puis étiré sur les deux dernières, ce qui adoucit les traits et fait
+     * mentir toutes les tailles calculées en part de la hauteur — la moitié de ce qu'on
+     * règle ici.
      *
      * Mille vingt-quatre laisse la place à l'écran entier sans rien étirer. Un bitmap de
      * 480 × 800 en ARGB pèse un mégaoctet et demi, ce qui n'est rien pour une image par
