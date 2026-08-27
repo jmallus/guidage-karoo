@@ -54,7 +54,15 @@ enum class Commande {
  * Le fil compte aussi. Le rendu appartient au fil du test, l'interface Swing au sien : c'est
  * pourquoi la fenêtre reçoit des pixels au lieu d'aller les chercher.
  */
-class FenetreSimulateur(agrandissement: Double = 1.0) {
+class FenetreSimulateur(
+    agrandissement: Double = 1.0,
+    /**
+     * Hauteur du champ en pixels du Karoo, qui n'est pas celle de l'écran : le bandeau d'état
+     * en garde une bande en haut. Elle ne sert qu'à dimensionner la fenêtre avant la première
+     * image ; ensuite, c'est l'image reçue qui commande.
+     */
+    private val hauteurChamp: Int = HAUTEUR_ECRAN,
+) {
 
     private val ouverte = AtomicBoolean(true)
     private val commandes = ConcurrentLinkedQueue<Commande>()
@@ -240,7 +248,7 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
 
     private fun tailleVoulue() = Dimension(
         (LARGEUR_ECRAN * facteur).toInt() + MARGE_REGLE + 24,
-        (HAUTEUR_ECRAN * facteur).toInt() + 24,
+        (hauteurChamp * facteur).toInt() + 24,
     )
 
     /**

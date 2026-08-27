@@ -97,6 +97,12 @@ tasks.withType<Test>().configureEach {
         // à une taille plausible mais fausse ; avec, elle s'ouvre à celle de l'appareil.
         //     ./gradlew :app:simulateur -Pguidage.ppp=125
         (project.findProperty("guidage.ppp") as String?)?.let { systemProperty("guidage.ppp", it) }
+        // La hauteur laissée au champ, bandeau d'état du Karoo déduit. Sur l'appareil elle
+        // vient de ViewConfig ; ici il faut la dire, le temps de l'avoir relevée.
+        //     ./gradlew :app:simulateur -Pguidage.hauteur=744
+        (project.findProperty("guidage.hauteur") as String?)?.let {
+            systemProperty("guidage.hauteur", it)
+        }
         // Le lanceur de tests tourne « sans écran », et le premier JFrame lève alors une
         // HeadlessException. Poser la propriété d'ici ne suffit pas : le plugin Android
         // repose la sienne, et l'ordre des deux ne se maîtrise pas. Le simulateur s'en

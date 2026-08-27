@@ -123,9 +123,29 @@ class Simulateur(
     }
 
     companion object {
-        /** L'écran du Karoo 3, en points. */
+        /** La largeur de l'écran du Karoo 3, que le champ occupe entièrement. */
         const val LARGEUR = 480
-        const val HAUTEUR = 800
+
+        /**
+         * La hauteur laissée au champ, bandeau d'état déduit.
+         *
+         * L'écran fait huit cents points, mais le Karoo en garde une bande en haut pour
+         * l'heure et la batterie : le champ n'a jamais toute la hauteur. Sur l'appareil, la
+         * question ne se pose pas — `ViewConfig.viewSize` donne la place réellement allouée,
+         * et le rendu s'y ajuste. Ici il faut la connaître, et le banc d'essai l'a longtemps
+         * ignorée : il montrait une mise en page plus haute que la vraie, donc des rangs plus
+         * espacés et des chiffres plus grands que ce qu'on lira en roulant.
+         *
+         * La valeur se règle sans recompiler, le temps de la relever sur l'appareil :
+         * `./gradlew :app:simulateur -Pguidage.hauteur=744`
+         */
+        val HAUTEUR: Int =
+            System.getProperty(PROPRIETE_HAUTEUR)?.toIntOrNull()?.takeIf { it > 0 } ?: HAUTEUR_ECRAN
+
+        /** Hauteur totale de l'écran, faute de mieux tant que la bande n'est pas mesurée. */
+        private const val HAUTEUR_ECRAN = 800
+
+        const val PROPRIETE_HAUTEUR = "guidage.hauteur"
 
         /**
          * Un mardi de septembre à neuf heures moins le quart.

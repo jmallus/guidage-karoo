@@ -190,6 +190,26 @@ vraie règle : si les millimètres coïncident, le tableau de bord est à sa tai
 sinon, `+` et `-` l'ajustent par pas de cinq pour cent, et la ligne du bas affiche la largeur
 obtenue.
 
+### La hauteur du champ
+
+Le champ plein écran n'a pas les huit cents points de l'écran : le Karoo en garde une bande
+en haut pour l'heure et la batterie. Sur l'appareil la question ne se pose pas —
+`ViewConfig.viewSize` donne la place réellement allouée et le rendu s'y ajuste — mais le banc
+d'essai doit la connaître, faute de quoi il montre une mise en page plus haute que la vraie :
+rangs plus espacés, chiffres plus grands que ce qu'on lira en roulant.
+
+```
+./gradlew :app:simulateur -Pguidage.hauteur=744
+```
+
+Pour relever la valeur, l'appareil branché en USB :
+
+```bash
+adb exec-out screencap -p > karoo.png
+```
+
+et mesurer la hauteur de la bande dans l'image — la hauteur du champ est 800 moins celle-là.
+
 | Touche | Effet |
 | --- | --- |
 | **clic** sur l'image | faire tourner la portée de la carte, comme l'appui du doigt sur le champ |
