@@ -92,6 +92,11 @@ val simulateurDemande = gradle.startParameter.taskNames.any {
 tasks.withType<Test>().configureEach {
     if (simulateurDemande) {
         systemProperty("guidage.simulateur", "1")
+        // La densité de l'écran hôte, que Java ne sait pas mesurer : sur macOS il déclare
+        // soixante-douze points au pouce quel que soit l'écran. Sans elle, la fenêtre s'ouvre
+        // à une taille plausible mais fausse ; avec, elle s'ouvre à celle de l'appareil.
+        //     ./gradlew :app:simulateur -Pguidage.ppp=125
+        (project.findProperty("guidage.ppp") as String?)?.let { systemProperty("guidage.ppp", it) }
         // Le lanceur de tests tourne « sans écran », et le premier JFrame lève alors une
         // HeadlessException. Poser la propriété d'ici ne suffit pas : le plugin Android
         // repose la sienne, et l'ordre des deux ne se maîtrise pas. Le simulateur s'en

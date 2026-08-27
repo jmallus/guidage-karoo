@@ -298,8 +298,10 @@ class SimulateurTest {
                     Commande.HORS_ITINERAIRE ->
                         simulateur.horsItineraire = !simulateur.horsItineraire
                     Commande.RECOMMENCER -> secondes = 0.0
-                    Commande.AGRANDIR -> fenetre.agrandir(1.25)
-                    Commande.REDUIRE -> fenetre.agrandir(0.8)
+                    // Pas fins : la fenêtre s'ouvre à la taille physique de l'appareil, et
+                    // ces touches servent à la corriger à la règle, non à confortablement zoomer.
+                    Commande.AGRANDIR -> fenetre.agrandir(1.05)
+                    Commande.REDUIRE -> fenetre.agrandir(1 / 1.05)
                 }
             }
 

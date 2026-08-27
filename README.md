@@ -164,6 +164,32 @@ descente, un point d'eau — à huit fois la vitesse réelle. La carte défile s
 marque de position glisse dessus et les chevrons filent devant elle, le bandeau de côte
 avance, les aplats de zone changent de couleur avec l'effort.
 
+### La taille réelle
+
+La fenêtre s'ouvre à la taille **physique** de l'écran du Karoo 3 — 31,3 mm de large sur
+52,2 mm de haut, deux pouces et demi de diagonale. C'est tout l'intérêt du banc d'essai :
+juger d'un corps de police ou d'une épaisseur de trait sur une image trois fois trop grande
+ne dit rien de ce qu'on lira en roulant.
+
+Encore faut-il connaître la densité de l'écran hôte, et **Java ne sait pas la mesurer** :
+sur macOS il déclare soixante-douze points au pouce quel que soit l'écran, valeur héritée de
+la typographie et sans rapport avec la réalité, qui tourne plutôt autour de 110 à 130 sur un
+portable récent. La fenêtre s'ouvre donc à une taille plausible mais fausse tant qu'on ne la
+lui a pas dite :
+
+```
+./gradlew :app:simulateur -Pguidage.ppp=125
+```
+
+Pour trouver la valeur : divisez la largeur de votre écran **en points** (celle que le
+système affiche dans ses réglages d'affichage) par sa largeur **en pouces**. Sur un MacBook
+Pro 14 pouces en résolution par défaut : 1512 points pour 12,05 pouces, soit 125.
+
+À défaut, la **règle graduée** à gauche de l'image est à la même échelle qu'elle. Posez-y une
+vraie règle : si les millimètres coïncident, le tableau de bord est à sa taille physique ;
+sinon, `+` et `-` l'ajustent par pas de cinq pour cent, et la ligne du bas affiche la largeur
+obtenue.
+
 | Touche | Effet |
 | --- | --- |
 | **clic** sur l'image | faire tourner la portée de la carte, comme l'appui du doigt sur le champ |
@@ -174,7 +200,7 @@ avance, les aplats de zone changent de couleur avec l'effort.
 | `p` | passer de la carte au profil, et retour |
 | `h` | simuler la sortie d'itinéraire : le tracé passe au rouge |
 | `r` | revenir au départ |
-| `+` `-` | grossir ou réduire l'écran affiché |
+| `+` `-` | ajuster l'échelle par pas de 5 %, la règle en témoin |
 | `échap` | quitter |
 
 **Ce qu'il montre est le code de l'appareil.** Ce n'est pas une seconde écriture de

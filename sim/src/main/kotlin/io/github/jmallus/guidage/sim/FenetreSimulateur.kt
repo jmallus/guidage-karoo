@@ -8,6 +8,7 @@ import java.awt.GraphicsEnvironment
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.awt.Toolkit
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
@@ -60,6 +61,28 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
 
     private var echelle = agrandissement
 
+    /**
+     * Points logiques par pouce de l'écran hôte.
+     *
+     * Java ne sait pas mesurer un écran. `Toolkit.getScreenResolution` rend ce que le système
+     * déclare, et macOS déclare soixante-douze quel que soit l'écran — une valeur héritée de
+     * la typographie, sans rapport avec la densité réelle, qui tourne plutôt autour de cent
+     * dix à cent trente points logiques au pouce sur les portables actuels.
+     *
+     * D'où la règle graduée à côté de l'image, et la propriété qui permet de fixer la valeur
+     * une bonne fois : `-Dguidage.ppp=125`. Pour la trouver, diviser la largeur de l'écran en
+     * points par sa largeur en pouces.
+     */
+    private val pointsParPouce: Double =
+        System.getProperty(PROPRIETE_PPP)?.toDoubleOrNull()
+            ?: Toolkit.getDefaultToolkit().screenResolution.toDouble()
+
+    /** Points logiques par pixel du Karoo pour que l'image ait la taille physique de l'écran. */
+    private val tailleReelle: Double = (pointsParPouce / MM_PAR_POUCE) / PIXELS_PAR_MM
+
+    /** Le facteur effectivement appliqué : la taille réelle, corrigée à la main si besoin. */
+    private val facteur: Double get() = tailleReelle * echelle
+
     private val toile = object : JPanel() {
         override fun paintComponent(graphics: Graphics) {
             super.paintComponent(graphics)
@@ -67,18 +90,51 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
             val plan = graphics as Graphics2D
             plan.setRenderingHint(
                 RenderingHints.KEY_INTERPOLATION,
-                RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR,
             )
-            val largeur = (image.width * echelle).toInt()
-            val hauteur = (image.height * echelle).toInt()
+            val largeur = (image.width * facteur).toInt()
+            val hauteur = (image.height * facteur).toInt()
             val x = (width - largeur) / 2
             val y = (height - hauteur) / 2
             plan.drawImage(image, x, y, largeur, hauteur, null)
+            dessinerRegle(plan, x, y, hauteur)
+        }
+    }
+
+    /**
+     * La règle graduée en millimètres, contre le bord gauche de l'image.
+     *
+     * Elle est à l'échelle de l'image et non de l'écran : c'est tout son intérêt. Posez une
+     * vraie règle à côté ; si les millimètres coïncident, le tableau de bord est à sa taille
+     * physique, et sinon les touches + et - la corrigent. Aucune interrogation du système ne
+     * peut remplacer cette vérification-là, aucun système ne sachant dire la taille de son
+     * écran en millimètres.
+     */
+    private fun dessinerRegle(plan: Graphics2D, imageX: Int, imageY: Int, hauteur: Int) {
+        val parMm = facteur * PIXELS_PAR_MM
+        if (parMm < 0.8) return
+        plan.color = Color(0x94, 0x8C, 0x7C)
+        plan.font = Font(Font.MONOSPACED, Font.PLAIN, 9)
+        val droite = imageX - 5
+        var mm = 0
+        while (mm * parMm <= hauteur) {
+            val y = imageY + (mm * parMm).toInt()
+            val longueur = when {
+                mm % 10 == 0 -> 9
+                mm % 5 == 0 -> 6
+                else -> 3
+            }
+            plan.drawLine(droite - longueur, y, droite, y)
+            if (mm % 10 == 0 && mm > 0) {
+                val texte = mm.toString()
+                plan.drawString(texte, droite - longueur - 3 - plan.fontMetrics.stringWidth(texte), y + 3)
+            }
+            mm++
         }
     }
 
     private val etat = JLabel(" ")
-    private val aide = JLabel(AIDE)
+    private val aide = JLabel(" ")
     private val cadre = JFrame("Guidage — simulateur")
 
     @Volatile
@@ -86,13 +142,11 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
 
     init {
         toile.background = Color(0x20, 0x22, 0x24)
-        toile.preferredSize = Dimension(
-            (LARGEUR_ECRAN * echelle).toInt() + 80,
-            (HAUTEUR_ECRAN * echelle).toInt() + 40,
-        )
+        toile.preferredSize = tailleVoulue()
 
         etat.font = Font(Font.MONOSPACED, Font.PLAIN, 12)
         etat.foreground = Color(0xE8, 0xE4, 0xDA)
+        aide.text = ligneAide()
         aide.font = Font(Font.MONOSPACED, Font.PLAIN, 11)
         aide.foreground = Color(0x94, 0x8C, 0x7C)
 
@@ -167,16 +221,42 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
         }
     }
 
-    fun agrandir(facteur: Double) {
-        echelle = (echelle * facteur).coerceIn(0.5, 3.0)
+    /**
+     * Corrige l'échelle à la main, par pas fins.
+     *
+     * Les pas étaient grossiers du temps où l'on cherchait seulement une image confortable.
+     * Ils servent maintenant à retomber sur la taille physique de l'appareil, la règle en
+     * témoin : un pas de vingt-cinq pour cent la dépasse à tous les coups.
+     */
+    fun agrandir(pas: Double) {
+        echelle = (echelle * pas).coerceIn(0.25, 6.0)
         SwingUtilities.invokeLater {
-            toile.preferredSize = Dimension(
-                (LARGEUR_ECRAN * echelle).toInt() + 80,
-                (HAUTEUR_ECRAN * echelle).toInt() + 40,
-            )
+            aide.text = ligneAide()
+            toile.preferredSize = tailleVoulue()
             cadre.pack()
             toile.repaint()
         }
+    }
+
+    private fun tailleVoulue() = Dimension(
+        (LARGEUR_ECRAN * facteur).toInt() + MARGE_REGLE + 24,
+        (HAUTEUR_ECRAN * facteur).toInt() + 24,
+    )
+
+    /**
+     * La ligne d'aide, qui porte aussi la largeur physique obtenue.
+     *
+     * C'est le seul endroit où l'on peut dire si l'on est à la bonne taille sans sortir une
+     * règle : trente et un millimètres, et c'est celle de l'appareil.
+     */
+    private fun ligneAide(): String {
+        val largeurMm = LARGEUR_ECRAN * facteur / (pointsParPouce / MM_PAR_POUCE)
+        return " %.1f mm de large (×%.2f, écran déclaré à %.0f ppp) · %s".format(
+            largeurMm,
+            echelle,
+            pointsParPouce,
+            AIDE,
+        )
     }
 
     fun fermer() {
@@ -190,8 +270,22 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
         const val HAUTEUR_ECRAN = 800
 
         const val AIDE =
-            " clic ou z portée · espace pause · ←/→ ±10 s · ↑/↓ vitesse · p carte/profil · " +
-                "h hors-itinéraire · r au départ · +/- taille · échap quitter"
+            "clic ou z portée · espace pause · ←/→ ±10 s · ↑/↓ vitesse · p carte/profil · " +
+                "h hors-itinéraire · r au départ · +/- ajuster · échap quitter"
+
+        /** Largeur de l'écran du Karoo 3, en millimètres : deux pouces et demi de diagonale. */
+        const val LARGEUR_MM = 31.34
+
+        const val MM_PAR_POUCE = 25.4
+
+        /** Pixels du Karoo par millimètre de son écran. */
+        const val PIXELS_PAR_MM = LARGEUR_ECRAN / LARGEUR_MM
+
+        /** Place réservée à gauche de l'image pour la règle graduée. */
+        const val MARGE_REGLE = 34
+
+        /** Propriété qui fixe la densité de l'écran hôte, faute que le système sache la dire. */
+        const val PROPRIETE_PPP = "guidage.ppp"
     }
 }
 

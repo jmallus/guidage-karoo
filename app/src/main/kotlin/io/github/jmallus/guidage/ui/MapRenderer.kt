@@ -698,7 +698,7 @@ object MapRenderer {
     ) {
         if (model.pois.isEmpty()) return
         val labelSize = (area.height() * 0.062f).coerceIn(12f, 20f)
-        val radius = (area.height() * POI_RADIUS_FRACTION).coerceIn(8f, 14f)
+        val radius = (area.height() * POI_RADIUS_FRACTION).coerceIn(16f, 28f)
         val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = POI_COLOR
             style = Paint.Style.FILL
@@ -799,8 +799,14 @@ object MapRenderer {
     private const val PIN_SHOULDER = 0.74f
     private const val PIN_HOLE = 0.44f
 
-    /** Rayon de la pastille, en part de la hauteur de la carte. */
-    private const val POI_RADIUS_FRACTION = 0.040f
+    /**
+     * Rayon de la pastille, en part de la hauteur de la carte.
+     *
+     * Doublé comme celle de la position et comme la rose des vents. Un repère de carte n'a
+     * d'intérêt qu'à la taille où l'on distingue sa forme : plus petit, il redevient le point
+     * coloré qu'il remplace, et le trou qui le fait reconnaître disparaît le premier.
+     */
+    private const val POI_RADIUS_FRACTION = 0.080f
 
     /**
      * Bleu du tracé.
