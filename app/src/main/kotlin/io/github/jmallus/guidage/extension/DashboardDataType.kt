@@ -1,6 +1,7 @@
 package io.github.jmallus.guidage.extension
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.glance.GlanceModifier
@@ -58,6 +59,16 @@ class DashboardDataType(
     private val roadSource: RoadSource = InstalledRoadMap()
 
     override fun startView(context: Context, config: ViewConfig, emitter: ViewEmitter) {
+        // La seule fenêtre sur les dimensions réelles du champ. Le simulateur, lui, tourne
+        // hors de l'appareil et ne peut que les recopier : sans cette trace il faudrait les
+        // mesurer sur une capture d'écran, au pixel près et à la main.
+        //     adb logcat -s GuidageExtension:D | grep "champ ouvert"
+        Log.d(
+            TAG,
+            "champ ouvert : ${config.viewSize.first} × ${config.viewSize.second} px, " +
+                "grille ${config.gridSize.first} × ${config.gridSize.second} sur 60, " +
+                "corps natif ${config.textSize} sp, aperçu ${config.preview}",
+        )
         val job = CoroutineScope(Dispatchers.IO).launch {
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
@@ -149,6 +160,9 @@ class DashboardDataType(
 
     companion object {
         const val TYPE_ID = "tableau"
+
+        /** Le même que celui de l'extension : une seule étiquette à filtrer dans logcat. */
+        private const val TAG = "GuidageExtension"
 
         /**
          * Cadence de défilement de l'aperçu.
