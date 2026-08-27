@@ -67,9 +67,10 @@ class MapRendererTest {
      * Une marque blanche, et une seule, posée sur le coureur.
      *
      * Deux choses à tenir. Qu'elle existe — un double chevron plein se compte en centaines de
-     * pixels, pas en dizaines. Et qu'elle soit **seule** : le tracé en était jalonné sur des
-     * centaines de mètres, ce qui déposait du blanc jusqu'en haut du cadre. Le contrôle borne
-     * donc l'encre blanche au voisinage du coureur, qui se tient à l'ordonnée 320.
+     * pixels, pas en dizaines. Et qu'elle soit **seule de sa couleur** : les jalons du sens
+     * sont noirs, et si le blanc se retrouvait semé le long du tracé, on aurait à chercher sa
+     * position parmi eux. Le contrôle borne donc l'encre blanche au voisinage du coureur, qui
+     * se tient à l'ordonnée 320.
      */
     @Test
     fun `une seule marque blanche, sur le coureur`() {
@@ -78,10 +79,8 @@ class MapRendererTest {
         var blancs = 0
         var plusHaut = HAUTEUR
         var plusBas = 0
-        val pixels = IntArray(image.width * image.height)
-        image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
-        for (index in pixels.indices) {
-            if (pixels[index] != BLANC) continue
+        for ((index, pixel) in pixelsDe(image).withIndex()) {
+            if (pixel != BLANC) continue
             blancs++
             val y = index / image.width
             if (y < plusHaut) plusHaut = y
@@ -93,6 +92,33 @@ class MapRendererTest {
             "du blanc traîne hors du coureur, entre les ordonnées $plusHaut et $plusBas",
             plusHaut >= 280 && plusBas <= 345,
         )
+    }
+
+    /**
+     * Des chevrons noirs jalonnent ce qui reste à faire.
+     *
+     * Ils sont cherchés **au-dessus** de la marque de position : le coureur est à l'ordonnée
+     * 320, le cap est au nord, donc ce qui est devant lui monte. Rien d'autre sur cette carte
+     * n'est d'un noir pur — le fond est crème, ses encres sont ardoise, ses voies colorées —
+     * de sorte que ces pixels-là ne peuvent venir que des jalons.
+     */
+    @Test
+    fun `des chevrons noirs jalonnent la route devant`() {
+        val image = rendre()
+
+        var devant = 0
+        for ((index, pixel) in pixelsDe(image).withIndex()) {
+            if (pixel == NOIR && index / image.width < 280) devant++
+        }
+
+        assertTrue("seulement $devant pixels noirs devant le coureur", devant > 50)
+    }
+
+    /** Les pixels ARGB de l'image, rangés par lignes. */
+    private fun pixelsDe(image: Bitmap): IntArray {
+        val pixels = IntArray(image.width * image.height)
+        image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
+        return pixels
     }
 
     /**
@@ -131,6 +157,7 @@ class MapRendererTest {
             position = depart,
             heading = 0.0,
             rangeMeters = 200.0,
+            chevronRangeMeters = 300.0,
         )
         MapRenderer.draw(
             canvas = Canvas(image),
@@ -157,6 +184,7 @@ class MapRendererTest {
         val ARRIERE = listOf(340, 352, 364, 376)
 
         const val BLANC = 0xFFFFFFFF.toInt()
+        const val NOIR = 0xFF000000.toInt()
 
         /** Cent mètres de latitude, à peu de chose près. */
         const val PAS_DEGRES = 0.000898

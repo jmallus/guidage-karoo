@@ -161,8 +161,8 @@ avant de le regarder.
 
 Une fenêtre s'ouvre et joue une sortie fictive de douze kilomètres — deux côtes, une
 descente, un point d'eau — à huit fois la vitesse réelle. La carte défile sous le ruban, la
-marque de position glisse dessus, le bandeau de côte avance, les aplats de zone changent de
-couleur avec l'effort.
+marque de position glisse dessus et les chevrons filent devant elle, le bandeau de côte
+avance, les aplats de zone changent de couleur avec l'effort.
 
 | Touche | Effet |
 | --- | --- |
@@ -188,8 +188,8 @@ du simulateur : un test JUnit qui ouvre une fenêtre, et ne l'ouvre que si on la
 
 Ce qu'il ne simule pas : la chaîne karoo-ext elle-même — souscriptions, cadence de
 rafraîchissement du système — et la carte hors ligne réelle, remplacée par un décor engendré
-autour du coureur. La mise en page, les couleurs, les zones, le couloir, la marque de position
-et le bandeau de côte, eux, sont ceux de l'appareil.
+autour du coureur. La mise en page, les couleurs, les zones, le couloir, les chevrons et le
+bandeau de côte, eux, sont ceux de l'appareil.
 
 Les mêmes tests tournent **sans fenêtre** à chaque poussée : ils vérifient que chaque portée
 dessine bien la trace, ce qu'une compilation ne dirait pas — un écran noir compile très bien.
