@@ -64,33 +64,33 @@ class MapRendererTest {
     }
 
     /**
-     * Une marque blanche, et une seule, posée sur le coureur.
+     * La flèche de position, et elle seule, à la place du coureur.
      *
-     * Deux choses à tenir. Qu'elle existe — un double chevron plein se compte en centaines de
-     * pixels, pas en dizaines. Et qu'elle soit **seule de sa couleur** : les jalons du sens
-     * sont noirs, et si le blanc se retrouvait semé le long du tracé, on aurait à chercher sa
-     * position parmi eux. Le contrôle borne donc l'encre blanche au voisinage du coureur, qui
-     * se tient à l'ordonnée 320.
+     * Deux choses à tenir. Qu'elle existe — une pointe pleine se compte en centaines de
+     * pixels, pas en dizaines. Et qu'elle reste **là où elle doit être** : le coureur est à
+     * l'ordonnée 320, et son jaune ne doit se trouver nulle part ailleurs sur la carte. Un
+     * double chevron blanc a tenu ce rôle un temps ; il était de la même famille que les
+     * jalons noirs semés devant lui, et se cherchait au milieu d'eux.
      */
     @Test
-    fun `une seule marque blanche, sur le coureur`() {
+    fun `la fleche de position se tient a la place du coureur`() {
         val image = rendre()
 
-        var blancs = 0
+        var jaunes = 0
         var plusHaut = HAUTEUR
         var plusBas = 0
         for ((index, pixel) in pixelsDe(image).withIndex()) {
-            if (pixel != BLANC) continue
-            blancs++
+            if (pixel != JAUNE_FLECHE) continue
+            jaunes++
             val y = index / image.width
             if (y < plusHaut) plusHaut = y
             if (y > plusBas) plusBas = y
         }
 
-        assertTrue("seulement $blancs pixels blancs sur la carte", blancs > 50)
+        assertTrue("la flèche ne couvre que $jaunes pixels", jaunes > 50)
         assertTrue(
-            "du blanc traîne hors du coureur, entre les ordonnées $plusHaut et $plusBas",
-            plusHaut >= 280 && plusBas <= 345,
+            "le jaune de la flèche traîne hors du coureur, des ordonnées $plusHaut à $plusBas",
+            plusHaut >= 275 && plusBas <= 350,
         )
     }
 
@@ -183,8 +183,16 @@ class MapRendererTest {
          */
         val ARRIERE = listOf(340, 352, 364, 376)
 
-        const val BLANC = 0xFFFFFFFF.toInt()
         const val NOIR = 0xFF000000.toInt()
+
+        /**
+         * Le jaune de la flèche de position, recopié depuis le rendu.
+         *
+         * Recopier une constante privée est le prix à payer pour lire le résultat en pixels
+         * plutôt qu'en appels de fonction : si elle change là-bas sans changer ici, le
+         * contrôle tombe — et c'est bien ce qu'on veut d'un contrôle d'aspect.
+         */
+        const val JAUNE_FLECHE = 0xFFE6E24C.toInt()
 
         /** Cent mètres de latitude, à peu de chose près. */
         const val PAS_DEGRES = 0.000898

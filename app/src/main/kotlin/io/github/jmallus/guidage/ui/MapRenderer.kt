@@ -379,8 +379,11 @@ object MapRenderer {
         val clip = canvas.save()
         canvas.clipPath(ribbon)
         drawChevrons(canvas, area, ahead, width, chevronLimit)
-        drawPositionMark(canvas, ahead, width)
         canvas.restoreToCount(clip)
+
+        // La flèche, elle, n'est pas rognée par le ruban : elle est plus large que lui et se
+        // pose par-dessus, comme sur la carte native du Karoo.
+        drawRider(canvas, riderX, riderY, area.height())
     }
 
     /**
@@ -478,91 +481,54 @@ object MapRenderer {
     }
 
     /**
-     * La marque de position : un double chevron blanc plein, posé sur le coureur.
+     * Flèche de position reprenant celle de la navigation Karoo : une pointe large, presque
+     * aussi étalée que haute, échancrée à la base, cernée de sombre pour rester lisible
+     * au-dessus du tracé.
      *
-     * Le ruban est d'une seule encre du départ à l'arrivée : rien d'autre ne dit où l'on en
-     * est. Cette marque le dit.
+     * L'écartement des branches est relevé sur l'appareil : une flèche étroite se confond
+     * avec les chevrons du tracé, alors que celle-ci se lit d'emblée comme « moi ». C'est
+     * précisément ce qui lui vaut de revenir : le double chevron blanc qui l'avait remplacée
+     * était de la même famille que les jalons noirs semés devant, et il fallait le chercher.
      *
-     * Elle est **pleine**, là où les jalons du sens sont creux : deux traits laissés séparés
-     * se liraient comme une paire de jalons de plus. Le blanc coulé entre les deux pointes les
-     * soude en une seule marque, qu'on retrouve du premier coup d'œil.
+     * Elle se pose à la place fixe du coureur et pointe vers le haut, la carte tournant sous
+     * elle : rien à projeter, rien à orienter.
      *
-     * Blanche, et non de la couleur du fond : le fond est clair, et une marque de sa teinte
-     * disparaîtrait là où le ruban croise une route claire. Le blanc franc tient sur le bleu
-     * quoi qu'il y ait dessous, et il ne peut être confondu avec le noir des jalons.
+     * Les angles sont adoucis en épaississant le contour au lieu d'arrondir le tracé point
+     * par point : une jointure ronde d'épaisseur *r* arrondit d'un rayon *r* les quatre
+     * sommets d'un coup. Le contour étant tracé vers l'extérieur, la silhouette est calculée
+     * en retrait d'autant pour que la flèche garde sa taille.
      */
-    private fun drawPositionMark(canvas: Canvas, points: List<PlanePoint>, routeWidth: Float) {
-        val gap = routeWidth * CHEVRON_GAP_RATIO
-        val size = routeWidth * CHEVRON_SIZE_RATIO
-        val stroke = routeWidth * CHEVRON_STROKE_RATIO
-
-        // La seconde pointe est posée à l'abscisse curviligne, non le long du segment
-        // courant : autrement elle disparaissait dès qu'elle tombait au-delà d'un sommet, ce
-        // qui, sur un tracé de route, arrive une fois sur deux.
-        val arriere = chevron(pointAlong(points, 0f) ?: return, size)
-        val avant = chevron(pointAlong(points, gap) ?: return, size)
-
-        // Le blanc entre les deux : le polygone que leurs lignes médianes délimitent. Les deux
-        // chevrons sont ensuite repassés par-dessus, ce qui lui rend l'épaisseur de leur trait
-        // et lui donne ses pointes.
-        canvas.drawPath(
-            Path().apply {
-                moveTo(avant[0], avant[1])
-                lineTo(avant[2], avant[3])
-                lineTo(avant[4], avant[5])
-                lineTo(arriere[4], arriere[5])
-                lineTo(arriere[2], arriere[3])
-                lineTo(arriere[0], arriere[1])
-                close()
-            },
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                color = MARK_COLOR
-            },
-        )
-
-        canvas.drawPath(
-            Path().apply {
-                addChevron(this, arriere)
-                addChevron(this, avant)
-            },
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = stroke
-                strokeCap = Paint.Cap.BUTT
-                strokeJoin = Paint.Join.MITER
-                color = MARK_COLOR
-            },
-        )
-    }
-
-    /**
-     * Point du tracé à [distance] de son début, et la direction qu'il y suit.
-     *
-     * Rendu en `[x, y, ux, uy]` : quatre nombres plutôt qu'un objet, pour une valeur qui ne
-     * sort jamais de ces deux fonctions.
-     */
-    private fun pointAlong(points: List<PlanePoint>, distance: Float): FloatArray? {
-        var walked = 0f
-        for (index in 1 until points.size) {
-            val from = points[index - 1]
-            val to = points[index]
-            val dx = (to.x - from.x).toFloat()
-            val dy = (to.y - from.y).toFloat()
-            val length = hypot(dx, dy)
-            if (length <= 0f) continue
-            if (walked + length >= distance) {
-                val t = (distance - walked) / length
-                return floatArrayOf(
-                    from.x.toFloat() + dx * t,
-                    from.y.toFloat() + dy * t,
-                    dx / length,
-                    dy / length,
-                )
-            }
-            walked += length
+    private fun drawRider(canvas: Canvas, x: Float, y: Float, height: Float) {
+        val size = (height * RIDER_HEIGHT_FRACTION).coerceIn(14f, 30f)
+        val radius = size * CORNER_RATIO
+        val body = size - radius
+        val arrow = Path().apply {
+            moveTo(x, y - body)
+            lineTo(x + body * ARROW_HALF_WIDTH, y + body * ARROW_BASE)
+            lineTo(x, y + body * ARROW_NOTCH)
+            lineTo(x - body * ARROW_HALF_WIDTH, y + body * ARROW_BASE)
+            close()
         }
-        return null
+        canvas.drawPath(
+            arrow,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = ARROW_BORDER_COLOR
+                style = Paint.Style.STROKE
+                strokeWidth = radius * 2 + ARROW_BORDER_WIDTH * 2
+                strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.ROUND
+            },
+        )
+        canvas.drawPath(
+            arrow,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = ARROW_COLOR
+                style = Paint.Style.FILL_AND_STROKE
+                strokeWidth = radius * 2
+                strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.ROUND
+            },
+        )
     }
 
     /** Les trois sommets d'un chevron — bras, pointe, bras — en `[x, y, x, y, x, y]`. */
@@ -659,9 +625,8 @@ object MapRenderer {
      *
      * Le cerne et le halo du texte ne sont pas décoratifs : sans eux, la pastille se confond
      * avec le tracé qu'elle jouxte et le nom devient illisible dès qu'il tombe sur une route.
-     * Ils prennent la teinte du fond de carte plutôt qu'un blanc fixe : c'est ce qui les fait
-     * tenir aussi bien sur le ruban bleu que sur une départementale orange, et ce qui les
-     * suivrait si le fond changeait de nouveau de couleur.
+     * Le cerne prend l'encre de la carte, le halo du texte sa couleur de fond : chacun se pose
+     * ainsi sur ce qu'il doit détacher, et tous deux suivraient un changement de fond.
      */
     private fun drawPois(
         canvas: Canvas,
@@ -678,7 +643,7 @@ object MapRenderer {
             style = Paint.Style.FILL
         }
         val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = RoadStyle.BACKGROUND
+            color = RoadStyle.INK
             style = Paint.Style.STROKE
             strokeWidth = radius * 0.45f
         }
@@ -714,15 +679,18 @@ object MapRenderer {
     }
 
     /**
-     * Point d'intérêt : le violet du Karoo, assombri pour un fond clair.
+     * Point d'intérêt : un point blanc, cerné de sombre.
      *
-     * Le bleu qu'ils portaient autrefois est désormais celui du tracé ; le leur ne peut plus
-     * être une nuance du même, sous peine de faire croire à une bifurcation de l'itinéraire.
-     * Le violet du Karoo est celui de la destination, mais tel quel — un lilas très pâle —
-     * il s'évanouit sur le crème du fond : c'est une teinte faite pour un écran noir. Celle-ci
-     * est la même en plus dense, assez foncée pour tenir sur le clair.
+     * Il a porté du bleu, puis le violet du Karoo. Aucune de ces teintes ne disait rien de
+     * plus que « ici » — et chacune entrait en conflit avec un sens déjà pris : le bleu est
+     * celui du tracé, le violet celui des tours dans le système de Hammerhead. Le blanc ne
+     * prétend à rien : c'est un repère, pas une catégorie.
+     *
+     * C'est le cerne qui le fait tenir, et il passe donc au sombre : un point blanc cerné de
+     * crème disparaîtrait sur le fond crème, alors que sombre il tient partout — sur le fond,
+     * sur le ruban, sur une départementale orange.
      */
-    private const val POI_COLOR = 0xFF7B3FA0.toInt()
+    private const val POI_COLOR = 0xFFFFFFFF.toInt()
 
     /**
      * Bleu du tracé.
@@ -743,28 +711,49 @@ object MapRenderer {
      * laissait un long coin qui longeait la bordure au lieu de s'y arrêter.
      *
      * Le pas entre deux paires vaut près de quatre fois la largeur du ruban : assez pour
-     * qu'aucun jalon ne vienne se poser sur la marque de position, qui tient les premiers
-     * pixels.
+     * qu'aucun jalon ne vienne se poser sur la flèche de position.
+     *
+     * Le trait s'est affiné d'un tiers. À sa première épaisseur, le double chevron mangeait
+     * presque toute la largeur du ruban : il ne jalonnait plus le tracé, il le hachurait, et
+     * le bleu ne se voyait plus qu'entre deux paires. Une marque doit se poser sur ce qu'elle
+     * marque, pas le remplacer.
      */
     private const val CHEVRON_SPACING_RATIO = 3.88f
     private const val CHEVRON_GAP_RATIO = 0.71f
     private const val CHEVRON_SIZE_RATIO = 0.556f
-    private const val CHEVRON_STROKE_RATIO = 0.235f
+    private const val CHEVRON_STROKE_RATIO = 0.155f
 
     /** Recul des branches derrière la pointe, et leur écartement, en part de la taille. */
     private const val CHEVRON_SWEEP = 1.6f
     private const val CHEVRON_ARM = 0.9f
 
-    /**
-     * Deux encres pour deux rôles.
-     *
-     * Le noir jalonne le sens : il perce le ruban sans rien ajouter à la carte, et se lit
-     * comme une marque portée *sur* le tracé. Le blanc, réservé à la position, est la seule
-     * encre qui tienne franchement sur le bleu par tous les temps — et surtout la seule qu'on
-     * ne puisse pas prendre pour un jalon de plus.
-     */
+    /** Le noir des jalons : il perce le ruban sans rien ajouter à la carte. */
     private const val CHEVRON_COLOR = 0xFF000000.toInt()
-    private const val MARK_COLOR = 0xFFFFFFFF.toInt()
+
+    /**
+     * La flèche de position, et sa hauteur en part de celle de la carte.
+     *
+     * Elle ne partage rien avec les jalons — ni la forme, ni la couleur, ni le contour. C'est
+     * tout l'intérêt : le double chevron blanc qui l'avait remplacée était de la même famille
+     * qu'eux, et se cherchait au milieu d'eux.
+     */
+    private const val RIDER_HEIGHT_FRACTION = 0.085f
+    private const val ARROW_COLOR = 0xFFE6E24C.toInt()
+    private const val ARROW_BORDER_COLOR = 0xFF1E1E1E.toInt()
+    private const val ARROW_BORDER_WIDTH = 2.5f
+
+    /** Rayon d'adoucissement des angles de la flèche, en part de sa taille. */
+    private const val CORNER_RATIO = 0.10f
+
+    /**
+     * Demi-envergure, hauteur de la base et profondeur de l'échancrure, en part du corps.
+     *
+     * Relevés sur l'appareil : une flèche étroite se confond avec les chevrons du tracé,
+     * celle-ci se lit d'emblée comme « moi ».
+     */
+    private const val ARROW_HALF_WIDTH = 0.82f
+    private const val ARROW_BASE = 0.72f
+    private const val ARROW_NOTCH = 0.19f
 
     /** Rouge du hors-itinéraire : celui du Karoo, pour dire la même chose de la même façon. */
     private val OFF_ROUTE_COLOR = FieldPalette.REJOIN

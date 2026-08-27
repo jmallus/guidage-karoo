@@ -43,24 +43,71 @@ object PreviewData {
         }
     }
 
+    /**
+     * Les sommets du parcours d'aperçu : sa forme d'ensemble, et rien d'autre.
+     *
+     * Le faux plat du départ, le raidillon du troisième kilomètre, la descente du sixième, le
+     * long ressaut de la fin. Les contrôles s'y réfèrent par leurs distances.
+     */
+    private val sommets = listOf(
+        ProfilePoint(0.0, 180.0),
+        ProfilePoint(1_000.0, 190.0),
+        ProfilePoint(2_000.0, 210.0),
+        ProfilePoint(3_000.0, 300.0),
+        ProfilePoint(4_000.0, 420.0),
+        ProfilePoint(5_000.0, 470.0),
+        ProfilePoint(6_000.0, 430.0),
+        ProfilePoint(8_000.0, 330.0),
+        ProfilePoint(10_000.0, 380.0),
+        ProfilePoint(12_000.0, 300.0),
+    )
+
+    /** Pas d'échantillonnage du profil, du même ordre que celui d'un relevé réel. */
+    private const val PROFILE_STEP = 20.0
+
+    /**
+     * Le profil, échantillonné tous les vingt mètres.
+     *
+     * Il ne portait que les dix sommets ci-dessus, soit un point par kilomètre ou deux. Sur
+     * les deux kilomètres que montre le bandeau de côte, cela faisait une ou deux droites :
+     * une côte au cordeau, comme aucun terrain n'en présente. Un relevé d'itinéraire réel
+     * porte un point tous les dix à trente mètres, et c'est cette densité-là qu'il faut au banc
+     * d'essai pour montrer ce que le coureur verra.
+     *
+     * Entre deux sommets, le fond reste la droite qui les joint — la forme d'ensemble ne
+     * bouge pas. Ce qui s'y ajoute est le relief : deux ondes de longueurs incommensurables,
+     * l'une de quinze cents mètres et l'autre de six cents, qui ne se répètent donc jamais
+     * ensemble. Leurs amplitudes sont choisies pour se voir sur une bande de quelques
+     * dizaines de pixels — quelques mètres — sans dénaturer les pentes : chacune ne pèse que
+     * deux points de pourcentage, de sorte qu'un raidillon à douze reste un raidillon.
+     */
+    private val profilDetaille: List<ProfilePoint> by lazy {
+        val fin = sommets.last().distance
+        var index = 1
+        buildList {
+            var distance = 0.0
+            while (distance <= fin) {
+                while (index < sommets.size - 1 && sommets[index].distance < distance) index++
+                val avant = sommets[index - 1]
+                val apres = sommets[index]
+                val portee = apres.distance - avant.distance
+                val part = if (portee <= 0) 0.0 else (distance - avant.distance) / portee
+                val fond = avant.elevation + (apres.elevation - avant.elevation) * part
+                add(ProfilePoint(distance, fond + relief(distance)))
+                distance += PROFILE_STEP
+            }
+        }
+    }
+
+    /** Le relief posé sur la forme d'ensemble, en mètres. */
+    private fun relief(distance: Double): Double =
+        5.0 * sin(distance / 300.0 + 0.6) + 1.8 * sin(distance / 95.0 + 2.3)
+
     val route: Route by lazy {
         Route(
             name = "Aperçu",
             totalDistance = 12_000.0,
-            profile = ElevationProfile(
-                listOf(
-                    ProfilePoint(0.0, 180.0),
-                    ProfilePoint(1_000.0, 190.0),
-                    ProfilePoint(2_000.0, 210.0),
-                    ProfilePoint(3_000.0, 300.0),
-                    ProfilePoint(4_000.0, 420.0),
-                    ProfilePoint(5_000.0, 470.0),
-                    ProfilePoint(6_000.0, 430.0),
-                    ProfilePoint(8_000.0, 330.0),
-                    ProfilePoint(10_000.0, 380.0),
-                    ProfilePoint(12_000.0, 300.0),
-                ),
-            ),
+            profile = ElevationProfile(profilDetaille),
             climbs = listOf(
                 RouteClimb(startDistance = 2_400.0, length = 2_600.0, grade = 6.5, totalElevation = 260.0),
                 RouteClimb(startDistance = 8_000.0, length = 2_000.0, grade = 2.5, totalElevation = 50.0),
