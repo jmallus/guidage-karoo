@@ -166,10 +166,11 @@ avance, les aplats de zone changent de couleur avec l'effort.
 
 | Touche | Effet |
 | --- | --- |
+| **clic** sur l'image | faire tourner la portée de la carte, comme l'appui du doigt sur le champ |
 | `espace` | arrêt sur image |
 | `←` `→` | reculer / avancer de dix secondes de lecture |
 | `↑` `↓` | doubler / diviser la vitesse de lecture |
-| `z` | faire tourner la portée de la carte — 200 m, 500 m, 1 km |
+| `z` | la même chose au clavier — 300 m, 500 m, 1 km |
 | `p` | passer de la carte au profil, et retour |
 | `h` | simuler la sortie d'itinéraire : le tracé passe au rouge |
 | `r` | revenir au départ |

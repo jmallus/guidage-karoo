@@ -16,7 +16,7 @@ class MapZoomTest {
     @Test
     fun `la portee la plus courte est celle de depart`() {
         assertEquals(MapZoom.NEAR, MapZoom.fromOrdinal(0))
-        assertEquals(200.0, MapZoom.NEAR.rangeMeters, 1e-9)
+        assertEquals(300.0, MapZoom.NEAR.rangeMeters, 1e-9)
         assertEquals(500.0, MapZoom.MIDDLE.rangeMeters, 1e-9)
         assertEquals(1_000.0, MapZoom.FAR.rangeMeters, 1e-9)
         // Un réglage enregistré par une version qui en aurait davantage ne doit pas planter.
@@ -41,7 +41,7 @@ class MapZoomTest {
         }
         // Le cadre décuple entre le premier et le dernier cran, la longueur de chevrons non :
         // c'est une durée de route, pas une fraction de l'écran.
-        assertEquals(300.0, MapZoom.NEAR.chevronMeters, 1e-9)
+        assertEquals(450.0, MapZoom.NEAR.chevronMeters, 1e-9)
         assertEquals(1_300.0, MapZoom.FAR.chevronMeters, 1e-9)
         assertTrue(MapZoom.FAR.chevronMeters < MapZoom.FAR.rangeMeters * 2)
     }

@@ -738,7 +738,17 @@ object MapRenderer {
      * qu'eux, et se cherchait au milieu d'eux.
      */
     private const val RIDER_HEIGHT_FRACTION = 0.085f
-    private const val ARROW_COLOR = 0xFFE6E24C.toInt()
+
+    /**
+     * Le blanc de la flèche, et le sombre de son cerne.
+     *
+     * Elle a porté du jaune, la couleur que le système réserve à l'itinéraire : la position
+     * du coureur n'est pas l'itinéraire, et la teinte disait donc autre chose que la forme.
+     * Le blanc ne prétend à rien. C'est le cerne qui la fait tenir, sur le ruban bleu comme
+     * sur le fond crème, et c'est lui qui l'empêche de se confondre avec les points d'intérêt,
+     * blancs eux aussi mais ronds et bien plus petits.
+     */
+    private const val ARROW_COLOR = 0xFFFFFFFF.toInt()
     private const val ARROW_BORDER_COLOR = 0xFF1E1E1E.toInt()
     private const val ARROW_BORDER_WIDTH = 2.5f
 
@@ -763,7 +773,7 @@ object MapRenderer {
     private const val ROUTE_WIDTH_FAR = 8.0
 
     /** Bornes de la plage de portées, reprises de ZoomLevels. */
-    private const val MIN_RANGE = 200.0
+    private const val MIN_RANGE = 300.0
     private const val MAX_RANGE = 10_000.0
 
     private fun drawScaleBar(

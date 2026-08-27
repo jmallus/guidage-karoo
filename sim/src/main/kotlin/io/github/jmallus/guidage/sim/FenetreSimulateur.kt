@@ -10,6 +10,8 @@ import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.awt.image.BufferedImage
@@ -133,6 +135,18 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
                 commandes.add(commande)
             }
         })
+
+        // Le clic sur l'image fait tourner la portée, comme l'appui du doigt sur le champ le
+        // fait sur le Karoo. C'est la seule commande de l'appareil qui existe pour de bon —
+        // tout le reste du clavier est du confort de banc d'essai, sans équivalent en roulant.
+        // Le cadre reprend le focus juste après : sans cela, un clic couperait le clavier.
+        toile.addMouseListener(object : MouseAdapter() {
+            override fun mousePressed(event: MouseEvent) {
+                commandes.add(Commande.PORTEE)
+                cadre.requestFocus()
+            }
+        })
+
         cadre.pack()
         cadre.setLocationRelativeTo(null)
         cadre.isVisible = true
@@ -176,7 +190,7 @@ class FenetreSimulateur(agrandissement: Double = 1.0) {
         const val HAUTEUR_ECRAN = 800
 
         const val AIDE =
-            " espace pause · ←/→ ±10 s · ↑/↓ vitesse · z portée · p carte/profil · " +
+            " clic ou z portée · espace pause · ←/→ ±10 s · ↑/↓ vitesse · p carte/profil · " +
                 "h hors-itinéraire · r au départ · +/- taille · échap quitter"
     }
 }

@@ -24,9 +24,13 @@ enum class GraphZoom(val lookaheadMeters: Double?) {
 /**
  * Distance visible devant le coureur sur la minicarte, parcourue par appui sur le champ.
  *
- * Trois crans seulement, relevés en roulant : deux cents mètres pour le carrefour qui
+ * Trois crans seulement, relevés en roulant : trois cents mètres pour le carrefour qui
  * vient, cinq cents pour la sortie du village, un kilomètre pour savoir où l'on va. Au-delà,
  * la carte native du Karoo fait mieux, et en deçà on ne voit plus assez loin pour anticiper.
+ *
+ * Le cran le plus court était à deux cents mètres. À trente à l'heure ils passent en vingt-quatre
+ * secondes : le temps de lire la carte, ce qu'on y avait vu était derrière. Trois cents en
+ * donnent trente-six, et le carrefour a le temps d'arriver.
  *
  * À chaque cran sa longueur de chevrons. Ils ne courent pas sur tout ce qui reste : sur un
  * parcours qui repasse par son départ, la branche du retour est là, à quelques mètres, et en
@@ -35,7 +39,7 @@ enum class GraphZoom(val lookaheadMeters: Double?) {
  * à la fois.
  */
 enum class MapZoom(val rangeMeters: Double, val chevronMeters: Double) {
-    NEAR(200.0, 300.0),
+    NEAR(300.0, 450.0),
     MIDDLE(500.0, 800.0),
     FAR(1_000.0, 1_300.0),
     ;

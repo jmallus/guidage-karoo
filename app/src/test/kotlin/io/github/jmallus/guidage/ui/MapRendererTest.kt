@@ -68,28 +68,28 @@ class MapRendererTest {
      *
      * Deux choses à tenir. Qu'elle existe — une pointe pleine se compte en centaines de
      * pixels, pas en dizaines. Et qu'elle reste **là où elle doit être** : le coureur est à
-     * l'ordonnée 320, et son jaune ne doit se trouver nulle part ailleurs sur la carte. Un
-     * double chevron blanc a tenu ce rôle un temps ; il était de la même famille que les
-     * jalons noirs semés devant lui, et se cherchait au milieu d'eux.
+     * l'ordonnée 320, et son blanc ne doit se trouver nulle part ailleurs. Cette carte-ci n'a
+     * ni voie ni point d'intérêt, de sorte que rien d'autre n'y est blanc ; sur un vrai fond,
+     * les voies le seraient aussi et le contrôle ne dirait plus rien.
      */
     @Test
     fun `la fleche de position se tient a la place du coureur`() {
         val image = rendre()
 
-        var jaunes = 0
+        var blancs = 0
         var plusHaut = HAUTEUR
         var plusBas = 0
         for ((index, pixel) in pixelsDe(image).withIndex()) {
-            if (pixel != JAUNE_FLECHE) continue
-            jaunes++
+            if (pixel != BLANC_FLECHE) continue
+            blancs++
             val y = index / image.width
             if (y < plusHaut) plusHaut = y
             if (y > plusBas) plusBas = y
         }
 
-        assertTrue("la flèche ne couvre que $jaunes pixels", jaunes > 50)
+        assertTrue("la flèche ne couvre que $blancs pixels", blancs > 50)
         assertTrue(
-            "le jaune de la flèche traîne hors du coureur, des ordonnées $plusHaut à $plusBas",
+            "le blanc de la flèche traîne hors du coureur, des ordonnées $plusHaut à $plusBas",
             plusHaut >= 275 && plusBas <= 350,
         )
     }
@@ -186,13 +186,13 @@ class MapRendererTest {
         const val NOIR = 0xFF000000.toInt()
 
         /**
-         * Le jaune de la flèche de position, recopié depuis le rendu.
+         * Le blanc de la flèche de position, recopié depuis le rendu.
          *
          * Recopier une constante privée est le prix à payer pour lire le résultat en pixels
          * plutôt qu'en appels de fonction : si elle change là-bas sans changer ici, le
          * contrôle tombe — et c'est bien ce qu'on veut d'un contrôle d'aspect.
          */
-        const val JAUNE_FLECHE = 0xFFE6E24C.toInt()
+        const val BLANC_FLECHE = 0xFFFFFFFF.toInt()
 
         /** Cent mètres de latitude, à peu de chose près. */
         const val PAS_DEGRES = 0.000898
