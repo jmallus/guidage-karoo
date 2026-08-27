@@ -80,6 +80,7 @@
     <string name="settings_poi_alerts">Announce points of interest</string>
     <string name="settings_poi_distance">Announce point at: %1$s</string>
 
+    <string name="app_version">Version %1$s</string>
     <string name="field_report_title">Space allocated to the field</string>
     <string name="field_report_none">Place the Guidage field on a page, open it, then come back here.</string>
     <string name="field_report_ride">While riding: %1$s</string>

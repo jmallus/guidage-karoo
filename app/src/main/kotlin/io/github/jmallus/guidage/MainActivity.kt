@@ -42,6 +42,14 @@ class MainViewModel(
     private val karooSystem: KarooSystemService,
     private val settingsRepository: SettingsRepository,
     fieldReports: FieldReportStore,
+    /**
+     * La version installée, affichée en tête de l'écran.
+     *
+     * Sans elle, rien ne distingue une fonction absente d'une fonction présente mais muette :
+     * on cherche un défaut dans le code alors que l'appareil porte encore la construction
+     * d'avant. Une ligne suffit à trancher.
+     */
+    val version: String,
 ) : ViewModel() {
 
     private val provider = GuidanceProvider(karooSystem, viewModelScope)
@@ -79,10 +87,14 @@ class MainViewModel(
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 val context = activity.applicationContext
+                val version = runCatching {
+                    context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                }.getOrNull().orEmpty()
                 return MainViewModel(
                     KarooSystemService(context),
                     SettingsRepository(context),
                     FieldReportStore(context),
+                    version,
                 ) as T
             }
         }

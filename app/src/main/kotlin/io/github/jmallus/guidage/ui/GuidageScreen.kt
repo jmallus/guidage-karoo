@@ -52,6 +52,12 @@ fun GuidageScreen(viewModel: MainViewModel) {
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineSmall,
             )
+            if (viewModel.version.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.app_version, viewModel.version),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
             StatusCard(connected, snapshot)
             SettingsCard(settings, snapshot.units, viewModel::update)
             FieldReportCard(viewModel.fieldInRide, viewModel.fieldInEditor)
