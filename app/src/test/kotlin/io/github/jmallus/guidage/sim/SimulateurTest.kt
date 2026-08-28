@@ -47,7 +47,7 @@ class SimulateurTest {
     fun `la sortie simulee parcourt l'itineraire du depart a l'arrivee`() {
         val sortie = SortieSimulee(PreviewData.route)
 
-        assertTrue("une sortie de douze kilomètres dure plus de dix minutes", sortie.duree > 600)
+        assertTrue("une sortie de trente-deux kilomètres dure plus d'une demi-heure", sortie.duree > 1_600)
         assertEquals(0.0, sortie.a(0.0).distance, 1.0)
         assertEquals(sortie.distanceTotale, sortie.a(sortie.duree).distance, 1.0)
 
@@ -337,7 +337,7 @@ class SimulateurTest {
             hauteurChamp = Simulateur.HAUTEUR,
         )
         var secondes = 0.0
-        var acceleration = 8.0
+        var acceleration = 16.0
         var enPause = false
 
         while (fenetre.estOuverte) {

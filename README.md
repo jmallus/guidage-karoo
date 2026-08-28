@@ -26,12 +26,19 @@ sans construire un APK.
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
 | **Budget d'effort** | graphique | Ce que coûte le reste, en kilojoules, découpé par poste : le roulant, puis chaque côte. Déduit du temps estimé de chaque poste et de la puissance tenue dans ce régime. Demande un capteur de puissance. |
-| **Virages** | graphique | Les virages des trois prochains kilomètres sur la route redressée : une barre par virage, vers le haut ou vers le bas selon son sens, longue et rouge selon son rayon. |
+| **Virages** | graphique, **pleine page** | Les virages des trois prochains kilomètres sur la route redressée : une barre par virage, longue et rouge selon son rayon. Sur une page, la route se dresse à la verticale — la distance monte, le coureur est en bas. |
 | **Suivant la sortie** | graphique | Un champ dont la moitié basse change avec ce que fait la sortie — montée, descente, ravitaillement, roulage — la moitié haute restant fixe. |
-| **Revêtement** | graphique | Route, chemin ou voie verte sur les cinq prochains kilomètres, en posant le tracé sur le fond de carte embarqué. |
+| **Revêtement** | graphique, **pleine page** | Route, chemin ou voie verte sur les cinq prochains kilomètres, en posant le tracé sur le fond de carte embarqué, avec la légende des classes rencontrées. |
+| **Réserve** | graphique, **pleine page** | Après quel point de ravitaillement il n'y a plus rien. La ligne porte l'itinéraire entier : points passés en gris, prochain en blanc, dernier utile cerclé de jaune, et à sa droite un segment rouge qui ne porte rien. |
 
 « Profil à venir » et « Prochaine côte » s'adaptent à la taille et à l'alignement configurés
 dans le profil de page. Tous affichent un aperçu réaliste dans l'écran d'édition des pages.
+
+Trois champs sont marqués **pleine page**. Ils fonctionnent posés sur un demi-rang, mais ne
+portent pas une valeur : une répartition — les virages d'une descente, les revêtements d'une
+portion, l'espacement des ravitaillements. Réduits à une bande, il ne leur reste que leurs
+deux chiffres, c'est-à-dire ce que les champs numériques disent déjà. Leur mise en page
+change au-delà d'un rapport hauteur/largeur d'un dixième au-dessus du carré.
 
 ### L'échelle du profil
 
@@ -209,8 +216,9 @@ Le premier prend une minute ou deux : le module se compile, puis les tests de co
 passent avant que la fenêtre s'ouvre. C'est voulu — si le rendu est cassé, on l'apprend
 avant de le regarder.
 
-Une fenêtre s'ouvre et joue une sortie fictive de douze kilomètres — deux côtes, une
-descente, un point d'eau — à huit fois la vitesse réelle. La carte défile sous le ruban, la
+Une fenêtre s'ouvre et joue une sortie fictive de trente-deux kilomètres — trois côtes dont
+un col, deux descentes, trois points de ravitaillement groupés au début puis vingt-six
+kilomètres sans rien — à seize fois la vitesse réelle. La carte défile sous le ruban, la
 marque de position glisse dessus et les chevrons filent devant elle, le bandeau de côte
 avance, les aplats de zone changent de couleur avec l'effort.
 
@@ -302,7 +310,7 @@ soixante et restent donc des approximations, jusqu'à ce qu'on pose ces champs s
 qu'on lise la carte « Place allouée au champ ».
 
 L'horloge du champ « Suivant la sortie » est celle de la sortie jouée, non celle de la
-machine : sa bascule attend qu'un état se confirme, et à huit fois la vitesse réelle une
+machine : sa bascule attend qu'un état se confirme, et à seize fois la vitesse réelle une
 hystérésis de trois secondes en durerait moins d'une demie.
 
 **Ce qu'il montre est le code de l'appareil.** Ce n'est pas une seconde écriture de

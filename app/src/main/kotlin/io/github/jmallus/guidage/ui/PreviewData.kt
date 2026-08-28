@@ -34,8 +34,8 @@ object PreviewData {
      * plutôt qu'à une ligne droite.
      */
     private val previewPath: List<GeoPoint> by lazy {
-        (0..120).map { step ->
-            val meters = step * 60.0
+        (0..(LONGUEUR / PAS_TRACE).toInt()).map { step ->
+            val meters = step * PAS_TRACE
             val wander = sin(step / 6.0) * 250.0
             GeoPoint(
                 lat = location.position.lat + (meters * cos(Math.toRadians(30.0)) + wander) / 110_540.0,
@@ -45,10 +45,28 @@ object PreviewData {
     }
 
     /**
+     * Longueur du parcours d'aperçu.
+     *
+     * Trente-deux kilomètres, et non les douze d'origine. Douze ne suffisaient pas au champ
+     * « Réserve » : une traversée ne s'annonce qu'au-delà de quinze kilomètres sans
+     * ravitaillement, si bien que son alerte — ce pour quoi le champ existe — ne pouvait
+     * jamais s'afficher au banc d'essai. Un parcours d'aperçu qui ne peut pas montrer un état
+     * du champ ne le juge pas.
+     *
+     * Les douze premiers kilomètres n'ont pas bougé d'un mètre : les contrôles s'y réfèrent
+     * par leurs distances, et le raidillon du troisième est toujours au troisième.
+     */
+    private const val LONGUEUR = 32_000.0
+
+    /** Pas du tracé fictif, en mètres. */
+    private const val PAS_TRACE = 60.0
+
+    /**
      * Les sommets du parcours d'aperçu : sa forme d'ensemble, et rien d'autre.
      *
      * Le faux plat du départ, le raidillon du troisième kilomètre, la descente du sixième, le
-     * long ressaut de la fin. Les contrôles s'y réfèrent par leurs distances.
+     * long ressaut du douzième — puis le col du vingt-cinquième, qui donne au profil œil de
+     * poisson un lointain à comprimer. Les contrôles s'y réfèrent par leurs distances.
      */
     private val sommets = listOf(
         ProfilePoint(0.0, 180.0),
@@ -61,6 +79,14 @@ object PreviewData {
         ProfilePoint(8_000.0, 330.0),
         ProfilePoint(10_000.0, 380.0),
         ProfilePoint(12_000.0, 300.0),
+        ProfilePoint(14_500.0, 260.0),
+        ProfilePoint(17_000.0, 245.0),
+        ProfilePoint(20_000.0, 250.0),
+        ProfilePoint(23_000.0, 380.0),
+        ProfilePoint(26_500.0, 610.0),
+        ProfilePoint(28_000.0, 560.0),
+        ProfilePoint(30_500.0, 350.0),
+        ProfilePoint(32_000.0, 260.0),
     )
 
     /** Pas d'échantillonnage du profil, du même ordre que celui d'un relevé réel. */
@@ -101,17 +127,22 @@ object PreviewData {
     }
 
     /** Le relief posé sur la forme d'ensemble, en mètres. */
+    /** Le point du tracé fictif le plus proche d'une distance donnée. */
+    private fun pointA(distance: Double): GeoPoint? =
+        previewPath.getOrNull((distance / PAS_TRACE).toInt())
+
     private fun relief(distance: Double): Double =
         5.0 * sin(distance / 300.0 + 0.6) + 1.8 * sin(distance / 95.0 + 2.3)
 
     val route: Route by lazy {
         Route(
             name = "Aperçu",
-            totalDistance = 12_000.0,
+            totalDistance = LONGUEUR,
             profile = ElevationProfile(profilDetaille),
             climbs = listOf(
                 RouteClimb(startDistance = 2_400.0, length = 2_600.0, grade = 6.5, totalElevation = 260.0),
                 RouteClimb(startDistance = 8_000.0, length = 2_000.0, grade = 2.5, totalElevation = 50.0),
+                RouteClimb(startDistance = 20_000.0, length = 6_500.0, grade = 5.5, totalElevation = 360.0),
             ),
             pois = listOf(
                 RoutePoi(
@@ -119,7 +150,7 @@ object PreviewData {
                     name = "Fontaine",
                     type = "water",
                     distanceAlongRoute = 2_000.0,
-                    position = previewPath.getOrNull(16),
+                    position = pointA(2_000.0),
                 ),
                 // Deux points de plus, pour que le champ « Réserve » ait une répartition à
                 // montrer et non un point isolé : c'est l'espacement qu'il donne à lire.
@@ -128,14 +159,14 @@ object PreviewData {
                     name = "Café du Pont",
                     type = "coffee",
                     distanceAlongRoute = 4_200.0,
-                    position = previewPath.getOrNull(34),
+                    position = pointA(4_200.0),
                 ),
                 RoutePoi(
                     id = "preview-store",
                     name = "Épicerie",
                     type = "convenience_store",
                     distanceAlongRoute = 5_600.0,
-                    position = previewPath.getOrNull(45),
+                    position = pointA(5_600.0),
                 ),
             ),
             path = previewPath,
