@@ -132,7 +132,11 @@ object ProfileRenderer {
 
             fill.color = if (model.colorByGrade) FieldPalette.gradeColor(grade) else FieldPalette.NEUTRAL
             val x = (first + column).toFloat()
-            val crestY = y(crest)
+            // Au moins un pixel de haut, toujours. Sur un plat au bas de l'échelle, le relief
+            // d'une colonne vaut une fraction de pixel : sans plancher, le rectangle n'est pas
+            // tracé du tout et la silhouette se troue — précisément là où le terrain est le
+            // plus régulier, c'est-à-dire là où un trou ressemble le moins à un accident.
+            val crestY = min(y(crest), bottom - 1f)
             canvas.drawRect(x, crestY, x + 1f, bottom, fill)
             if (column == 0) ridge.moveTo(x, crestY) else ridge.lineTo(x + 0.5f, crestY)
         }
