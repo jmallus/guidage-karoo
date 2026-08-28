@@ -30,15 +30,6 @@ data class LearnedPace(
     /** Temps d'observation cumulé (s) derrière chacune des deux vitesses. */
     val flatSeconds: Double = 0.0,
     val climbSeconds: Double = 0.0,
-    /**
-     * Puissance tenue dans chacun des deux régimes (W), quand un capteur la rapporte.
-     *
-     * Elle s'apprend au même endroit et de la même façon que les vitesses, parce qu'elle
-     * répond à la même question sous un autre angle : ce que coûte ce qui reste. On ne la
-     * déduit pas d'une masse et d'une physique supposée — on mesure ce que le coureur fait.
-     */
-    val flatPower: Double? = null,
-    val climbPower: Double? = null,
 ) {
     companion object {
         val UNKNOWN = LearnedPace()
@@ -88,8 +79,6 @@ class PaceLearner(private val tauSeconds: Double = TAU_SECONDS) {
 
     private val flat = Ewma()
     private val climb = Ewma()
-    private val flatWatts = Ewma()
-    private val climbWatts = Ewma()
 
     /**
      * Range un relevé.
@@ -100,12 +89,7 @@ class PaceLearner(private val tauSeconds: Double = TAU_SECONDS) {
      * @param speedMetersPerSecond vitesse instantanée, ou null si le capteur se tait.
      * @param gradePercent pente mesurée, ou null de même.
      */
-    fun observe(
-        deltaSeconds: Double,
-        speedMetersPerSecond: Double?,
-        gradePercent: Double?,
-        powerWatts: Double? = null,
-    ) {
+    fun observe(deltaSeconds: Double, speedMetersPerSecond: Double?, gradePercent: Double?) {
         if (deltaSeconds <= 0.0 || deltaSeconds > MAX_SAMPLE_SECONDS) return
         val speed = speedMetersPerSecond ?: return
         val grade = gradePercent ?: return
@@ -117,10 +101,8 @@ class PaceLearner(private val tauSeconds: Double = TAU_SECONDS) {
         val weight = 1.0 - exp(-deltaSeconds / tauSeconds)
         if (grade >= CLIMB_GRADE) {
             climb.add(speed * grade / 100.0, weight, deltaSeconds)
-            powerWatts?.let { climbWatts.add(it, weight, deltaSeconds) }
         } else {
             flat.add(speed, weight, deltaSeconds)
-            powerWatts?.let { flatWatts.add(it, weight, deltaSeconds) }
         }
     }
 
@@ -128,8 +110,6 @@ class PaceLearner(private val tauSeconds: Double = TAU_SECONDS) {
     fun reset() {
         flat.reset()
         climb.reset()
-        flatWatts.reset()
-        climbWatts.reset()
     }
 
     val pace: LearnedPace
@@ -140,8 +120,6 @@ class PaceLearner(private val tauSeconds: Double = TAU_SECONDS) {
             climbSpread = climb.spread,
             flatSeconds = flat.seconds,
             climbSeconds = climb.seconds,
-            flatPower = flatWatts.mean.takeIf { flatWatts.seconds >= FLAT_WARMUP_SECONDS && it > 0.0 },
-            climbPower = climbWatts.mean.takeIf { climbWatts.seconds >= CLIMB_WARMUP_SECONDS && it > 0.0 },
         )
 
     /** Moyenne et variance glissantes, du même poids l'une que l'autre. */

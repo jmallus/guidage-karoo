@@ -93,21 +93,10 @@ object RoadStyle {
     private const val EXPRESSWAY = 0xFFD4573C.toInt()
     private const val PRIMARY = 0xFFE8944A.toInt()
     private const val SECONDARY = 0xFFD8B23F.toInt()
-    /**
-     * Les trois teintes que le champ « Revêtement » reprend au fond de carte.
-     *
-     * Elles sont exposées plutôt que recopiées : la bande du champ et les voies de la
-     * minicarte doivent parler la même langue, et une seconde écriture de la même couleur
-     * finit toujours par diverger de la première.
-     */
-    const val MINOR_ROAD = 0xFF7C8489.toInt()
-    const val TRAIL_ROAD = 0xFF9A6B33.toInt()
-    const val CYCLEWAY_ROAD = 0xFF2E7D6B.toInt()
-
-    private const val MINOR = MINOR_ROAD
+    private const val MINOR = 0xFF7C8489.toInt()
     private const val SERVICE = 0xFFA9AFB4.toInt()
-    private const val TRAIL = TRAIL_ROAD
-    private const val CYCLEWAY = CYCLEWAY_ROAD
+    private const val TRAIL = 0xFF9A6B33.toInt()
+    private const val CYCLEWAY = 0xFF2E7D6B.toInt()
 
     /**
      * Surfaces : des teintes franches mais pâles.

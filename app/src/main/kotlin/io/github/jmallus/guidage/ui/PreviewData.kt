@@ -232,19 +232,6 @@ object PreviewData {
         climbSpread = 0.16,
         flatSeconds = 2_400.0,
         climbSeconds = 900.0,
-        flatPower = 190.0,
-        climbPower = 265.0,
-    )
-
-    /**
-     * Le relevé de l'aperçu du budget d'effort.
-     *
-     * Il ne suffit pas d'une allure : le budget veut aussi une distance restante, faute de
-     * quoi l'aperçu montrerait le message d'attente au lieu du champ qu'on vient choisir.
-     */
-    val effortSample: RideData = RideData(
-        distanceRemaining = 24_300.0,
-        pace = previewPace,
     )
 
     private fun sample(
