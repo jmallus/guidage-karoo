@@ -100,6 +100,8 @@
     <string name="field_bends_label">VIRAGES</string>
     <string name="field_bends_summary">%1$d sur %2$s</string>
     <string name="field_bends_none">Rien de serré devant</string>
+    <string name="field_bends_left">GAUCHE</string>
+    <string name="field_bends_right">DROITE</string>
     <string name="field_bends_hairpin">ÉPINGLE</string>
     <string name="field_bends_tight">SERRÉ</string>
     <string name="field_bends_bend">VIRAGE</string>
@@ -112,6 +114,9 @@
     <string name="field_surface_description">Ce que l\'itinéraire réserve comme sol sur les cinq prochains kilomètres, en posant le tracé sur le fond de carte embarqué : route, chemin, voie verte, à l\'échelle de leur longueur. Pour le gravel, c\'est l\'information qui manque partout — non pas où l\'on est, mais quand on quitte le bitume et pour combien de temps. Demande le fond de carte hors ligne.</string>
     <string name="field_surface_label">REVÊTEMENT</string>
     <string name="field_surface_unknown">Aucune voie reconnue</string>
+    <string name="field_surface_road">Route</string>
+    <string name="field_surface_trail">Chemin</string>
+    <string name="field_surface_cycleway">Voie verte</string>
     <string name="field_surface_then">puis %1$s</string>
     <string name="field_surface_next_trail">CHEMIN DANS</string>
     <string name="field_surface_next_cycleway">VOIE VERTE DANS</string>

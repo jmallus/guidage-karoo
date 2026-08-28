@@ -35,6 +35,9 @@ data class BendFieldModel(
     val calloutValue: String? = null,
     val calloutColor: Int? = null,
     val emptyMessage: String? = null,
+    /** Sens des barres, écrit sous la colonne en pleine page : « GAUCHE » et « DROITE ». */
+    val leftCaption: String? = null,
+    val rightCaption: String? = null,
 )
 
 /**
@@ -66,7 +69,15 @@ object BendRenderer {
             return bitmap
         }
 
-        val labelSize = (height * 0.13f).coerceIn(9f, 18f)
+        // Une page entière n'est pas une bande étirée. Sur un champ haut, la route se
+        // redresse à la verticale — la distance monte, le coureur est en bas — et les
+        // libellés cessent d'être plafonnés à dix-huit points, taille faite pour un demi-rang.
+        val vertical = height > width * VERTICAL_RATIO
+        val labelSize = if (vertical) {
+            (min(width, height) * 0.058f).coerceIn(10f, 30f)
+        } else {
+            (height * 0.13f).coerceIn(9f, 18f)
+        }
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.textSecondary
             textSize = labelSize
@@ -80,16 +91,123 @@ object BendRenderer {
 
         // Le bandeau du bas prend sa place avant tout le reste : c'est lui qu'on lit en
         // roulant, et il ne doit jamais être celui qu'on rogne.
-        val calloutHeight = if (model.callout == null) 0f else (height * 0.22f).coerceIn(16f, 60f)
+        val calloutHeight = when {
+            model.callout == null -> 0f
+            vertical -> (height * 0.14f).coerceIn(40f, 120f)
+            else -> (height * 0.22f).coerceIn(16f, 60f)
+        }
         val bandTop = headerBaseline + padding
         val bandBottom = height - padding - calloutHeight
         if (bandBottom > bandTop) {
-            drawBand(canvas, model, left, bandTop, right, bandBottom, labelSize, palette)
+            if (vertical) {
+                drawColumn(canvas, model, left, bandTop, right, bandBottom, labelSize, palette)
+            } else {
+                drawBand(canvas, model, left, bandTop, right, bandBottom, labelSize, palette)
+            }
         }
         if (calloutHeight > 0f) {
             drawCallout(canvas, model, 0f, height - calloutHeight, width.toFloat(), height.toFloat(), palette)
         }
         return bitmap
+    }
+
+    /**
+     * La route redressée à la verticale, pour un champ en pleine page.
+     *
+     * La distance monte : le coureur est en bas, ce qui arrive est au-dessus. C'est le sens
+     * d'une descente qu'on lit d'en bas, et il laisse à chaque virage toute la largeur du
+     * champ pour dire sa sévérité — là où la bande horizontale ne lui donnait qu'une demi-
+     * hauteur de rang.
+     */
+    private fun drawColumn(
+        canvas: Canvas,
+        model: BendFieldModel,
+        left: Float,
+        top: Float,
+        right: Float,
+        bottom: Float,
+        labelSize: Float,
+        palette: Palette,
+    ) {
+        val sideRoom = labelSize * 1.6f
+        val axisTop = top + labelSize
+        val axisBottom = bottom - sideRoom
+        if (axisBottom <= axisTop) return
+
+        val middle = (left + right) / 2f
+        val half = (right - left) / 2f
+        fun y(position: Float) = axisBottom - position.coerceIn(0f, 1f) * (axisBottom - axisTop)
+
+        // Les graduations d'abord : elles passent sous la route et sous les barres.
+        if (model.ticks.isNotEmpty()) {
+            val rule = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = palette.textSecondary
+                alpha = TICK_RULE_ALPHA
+                strokeWidth = 2f
+            }
+            val tick = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = palette.textSecondary
+                textSize = labelSize * 0.82f
+            }
+            model.ticks.forEach { (position, text) ->
+                val lineY = y(position)
+                canvas.drawLine(left, lineY, right, lineY, rule)
+                canvas.drawText(text, left, lineY - tick.descent() - 2f, tick)
+            }
+        }
+
+        canvas.drawLine(
+            middle, axisTop, middle, axisBottom,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = palette.track
+                strokeWidth = (half * 0.05f).coerceIn(4f, 12f)
+                strokeCap = Paint.Cap.ROUND
+            },
+        )
+
+        val barHeight = ((axisBottom - axisTop) * 0.035f).coerceIn(6f, 26f)
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 3f
+            color = palette.textPrimary
+        }
+        model.marks.forEach { mark ->
+            val centerY = y(mark.position)
+            val length = half * mark.extent.coerceIn(0.15f, 1f)
+            val bar = if (mark.direction < 0) {
+                RectF(middle - length, centerY - barHeight / 2f, middle, centerY + barHeight / 2f)
+            } else {
+                RectF(middle, centerY - barHeight / 2f, middle + length, centerY + barHeight / 2f)
+            }
+            fill.color = mark.color
+            canvas.drawRect(bar, fill)
+            if (mark.highlighted) {
+                canvas.drawRect(
+                    RectF(bar.left - 4f, bar.top - 4f, bar.right + 4f, bar.bottom + 4f),
+                    ring,
+                )
+            }
+        }
+
+        canvas.drawCircle(
+            middle, axisBottom, (barHeight * 0.7f).coerceAtLeast(5f),
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = palette.textPrimary },
+        )
+
+        // Le sens, écrit sous la colonne : une barre qui part à gauche est un virage à gauche,
+        // et rien d'autre sur cet écran ne le dit.
+        val side = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = palette.textSecondary
+            textSize = labelSize * 0.82f
+            letterSpacing = 0.08f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        val baseline = bottom - side.descent()
+        model.leftCaption?.let { canvas.drawText(it, left, baseline, side) }
+        model.rightCaption?.let {
+            canvas.drawText(it, right - side.measureText(it), baseline, side)
+        }
     }
 
     private fun drawBand(
@@ -206,6 +324,17 @@ object BendRenderer {
         val y = height / 2f - (paint.descent() + paint.ascent()) / 2f
         canvas.drawText(text, max(x, 0f), y, paint)
     }
+
+    /**
+     * Rapport hauteur/largeur au-delà duquel la route se redresse à la verticale.
+     *
+     * Un dixième de plus que le carré : en deçà, la bande horizontale reste la bonne réponse,
+     * et c'est celle des demi-rangs où ce champ est le plus souvent posé.
+     */
+    private const val VERTICAL_RATIO = 1.1f
+
+    /** Opacité des graduations, qui passent sous la route sans la disputer. */
+    private const val TICK_RULE_ALPHA = 0x59
 
     private const val TICK_GAP = 8f
     private const val EDGE = 6f

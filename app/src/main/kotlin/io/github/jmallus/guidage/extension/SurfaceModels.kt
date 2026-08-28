@@ -16,6 +16,7 @@ import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.RoadStyle
 import io.github.jmallus.guidage.ui.SurfaceBand
 import io.github.jmallus.guidage.ui.SurfaceFieldModel
+import io.github.jmallus.guidage.ui.SurfaceLegendEntry
 import kotlin.math.abs
 
 /**
@@ -115,6 +116,13 @@ class SurfaceModels(private val roads: (GeoPoint, Double) -> List<RoadSegment>) 
             caption = next?.let {
                 context.getString(R.string.field_surface_then, Format.longDistance(it.length, units))
             },
+            legend = runs.map { it.surface }.distinct().map { surface ->
+                SurfaceLegendEntry(
+                    label = context.getString(legendLabel(surface)),
+                    color = color(surface),
+                    hatched = surface == SurfaceClass.TRAIL,
+                )
+            },
             bands = runs.map { run ->
                 SurfaceBand(
                     share = (run.length / total).toFloat(),
@@ -124,6 +132,14 @@ class SurfaceModels(private val roads: (GeoPoint, Double) -> List<RoadSegment>) 
                 )
             },
         )
+    }
+
+    /** Le nom d'une classe pour la légende — le mot seul, sans le « DANS » de l'annonce. */
+    private fun legendLabel(surface: SurfaceClass): Int = when (surface) {
+        SurfaceClass.TRAIL -> R.string.field_surface_trail
+        SurfaceClass.CYCLEWAY -> R.string.field_surface_cycleway
+        SurfaceClass.ROAD -> R.string.field_surface_road
+        SurfaceClass.UNKNOWN -> R.string.field_surface_unknown
     }
 
     private fun nextLabel(surface: SurfaceClass): Int = when (surface) {

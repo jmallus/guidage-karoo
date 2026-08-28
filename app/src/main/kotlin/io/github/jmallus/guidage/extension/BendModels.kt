@@ -81,6 +81,8 @@ class BendModels {
             callout = sharpest?.let { context.getString(calloutTitle(it.bend.radius)) },
             calloutValue = sharpest?.let { Format.distance(it.distance, units) },
             calloutColor = sharpest?.let { FieldPalette.bendColor(it.bend.radius) },
+            leftCaption = context.getString(R.string.field_bends_left),
+            rightCaption = context.getString(R.string.field_bends_right),
         )
     }
 

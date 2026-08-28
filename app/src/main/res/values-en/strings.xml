@@ -100,6 +100,8 @@
     <string name="field_bends_label">BENDS</string>
     <string name="field_bends_summary">%1$d over %2$s</string>
     <string name="field_bends_none">Nothing tight ahead</string>
+    <string name="field_bends_left">LEFT</string>
+    <string name="field_bends_right">RIGHT</string>
     <string name="field_bends_hairpin">HAIRPIN</string>
     <string name="field_bends_tight">TIGHT</string>
     <string name="field_bends_bend">BEND</string>
@@ -112,6 +114,9 @@
     <string name="field_surface_description">What the route has underfoot for the next five kilometres, by laying the track over the on-board map: road, track, cycleway, each to the scale of its length. For gravel this is the information missing everywhere — not where you are, but when you leave the tarmac and for how long. Needs the offline map.</string>
     <string name="field_surface_label">SURFACE</string>
     <string name="field_surface_unknown">No way recognised</string>
+    <string name="field_surface_road">Road</string>
+    <string name="field_surface_trail">Track</string>
+    <string name="field_surface_cycleway">Cycleway</string>
     <string name="field_surface_then">then %1$s</string>
     <string name="field_surface_next_trail">TRACK IN</string>
     <string name="field_surface_next_cycleway">CYCLEWAY IN</string>

@@ -8,6 +8,9 @@ import android.graphics.Typeface
 import kotlin.math.max
 import kotlin.math.min
 
+/** Une entrée de légende : le nom d'une classe de sol et la teinte qui la porte. */
+data class SurfaceLegendEntry(val label: String, val color: Int, val hatched: Boolean = false)
+
 /** Une portion de la bande, avec ce qui s'écrit dessous. */
 data class SurfaceBand(
     /** Part de la bande, entre 0 et 1. */
@@ -26,6 +29,14 @@ data class SurfaceFieldModel(
     /** Ce qui suit la bascule : « puis 2,1 km de chemin ». */
     val caption: String? = null,
     val bands: List<SurfaceBand> = emptyList(),
+    /**
+     * Les classes présentes, nommées.
+     *
+     * Elle n'est portée qu'en pleine page. Sur une bande, les couleurs se lisent à leur place
+     * dans l'ordre du parcours et une légende volerait la moitié du champ ; sur une page,
+     * rien ne dit qu'un brun est un chemin à qui ne l'a pas encore appris.
+     */
+    val legend: List<SurfaceLegendEntry> = emptyList(),
     val emptyMessage: String? = null,
 )
 
@@ -56,7 +67,14 @@ object SurfaceRenderer {
             return bitmap
         }
 
-        val labelSize = (height * 0.13f).coerceIn(9f, 18f)
+        // Une page n'est pas une bande étirée : les libellés cessent d'y être plafonnés à
+        // dix-huit points, et la bande de couleur cesse de prendre tout ce qui reste.
+        val page = height > width * PAGE_RATIO
+        val labelSize = if (page) {
+            (min(width, height) * 0.058f).coerceIn(10f, 30f)
+        } else {
+            (height * 0.13f).coerceIn(9f, 18f)
+        }
         val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.textSecondary
             textSize = labelSize
@@ -83,13 +101,65 @@ object SurfaceRenderer {
             canvas.drawText(it, right - label.measureText(it), y, label)
         }
 
-        val bandTop = y + padding
+        val bandTop = y + padding * 2
         val labelRoom = if (model.bands.any { it.label != null }) labelSize * 1.3f else 0f
-        val bandBottom = height - padding - labelRoom
+        val bandBottom = if (page) {
+            min(bandTop + (height * PAGE_BAND_FRACTION), height - padding - labelRoom)
+        } else {
+            height - padding - labelRoom
+        }
         if (bandBottom > bandTop) {
             drawBands(canvas, model, left, bandTop, right, bandBottom, labelSize, palette)
         }
+        if (page && model.legend.isNotEmpty()) {
+            drawLegend(canvas, model, left, bandBottom + labelRoom + padding * 2, right, labelSize, palette)
+        }
         return bitmap
+    }
+
+    /**
+     * La légende, sous la bande : une pastille par classe de sol présente.
+     *
+     * Seules les classes que le parcours traverse y figurent. Une légende complète
+     * apprendrait à reconnaître un revêtement qu'on ne rencontrera pas, ce qui est du bruit
+     * sur un écran qu'on regarde en roulant.
+     */
+    private fun drawLegend(
+        canvas: Canvas,
+        model: SurfaceFieldModel,
+        left: Float,
+        top: Float,
+        right: Float,
+        labelSize: Float,
+        palette: Palette,
+    ) {
+        val swatch = labelSize * 1.15f
+        val step = labelSize * 2.1f
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = palette.textPrimary
+            textSize = labelSize
+        }
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        val hatch = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = swatch * 0.16f
+        }
+        model.legend.forEachIndexed { index, entry ->
+            val y = top + index * step
+            if (y + swatch > canvas.height) return@forEachIndexed
+            fill.color = entry.color
+            canvas.drawRect(RectF(left, y, left + swatch * 1.6f, y + swatch), fill)
+            if (entry.hatched) {
+                hatch.color = palette.textPrimary
+                hatch.alpha = HATCH_ALPHA
+                var x = left
+                while (x < left + swatch * 1.6f) {
+                    canvas.drawLine(x, y + swatch, x + swatch, y, hatch)
+                    x += swatch * 0.5f
+                }
+            }
+            canvas.drawText(entry.label, left + swatch * 2.2f, y + swatch * 0.82f, text)
+        }
     }
 
     private fun drawBands(
@@ -175,5 +245,14 @@ object SurfaceRenderer {
     }
 
     /** Encre de la trame du chemin : la teinte de la piste, assombrie. */
+    /** Rapport hauteur/largeur au-delà duquel le champ se compose en page. */
+    private const val PAGE_RATIO = 1.1f
+
+    /** Hauteur de la bande de couleur en pleine page, en part de celle du champ. */
+    private const val PAGE_BAND_FRACTION = 0.17f
+
+    /** Opacité des hachures d'une pastille de légende. */
+    private const val HATCH_ALPHA = 0x8C
+
     private const val HATCH_INK = 0xFF6B4A22.toInt()
 }
