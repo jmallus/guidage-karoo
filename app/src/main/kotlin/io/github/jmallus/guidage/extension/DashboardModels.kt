@@ -16,7 +16,6 @@ import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.settings.GuidageSettings
-import io.github.jmallus.guidage.ui.ClimbBandModel
 import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DrivetrainModel
 import io.github.jmallus.guidage.ui.FieldPalette
@@ -24,10 +23,10 @@ import io.github.jmallus.guidage.ui.GraphPoi
 import io.github.jmallus.guidage.ui.GuidanceZone
 import io.github.jmallus.guidage.ui.MapModel
 import io.github.jmallus.guidage.ui.MapPoi
+import io.github.jmallus.guidage.ui.ProfileFieldModel
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.RouteGraphModel
 import io.github.jmallus.guidage.ui.Tile
-import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -89,67 +88,36 @@ object DashboardModels {
             heartRateTile = heartRateTile(context, rideData),
             midTiles = midTiles(context, units, rideData),
             footerTiles = footerTiles(context, units, rideData, state, nowMillis),
-            climbBand = climbBand(state, units),
+            profileBand = profileBand(context, snapshot, settings, preview),
             palette = FieldPalette.of(context),
         )
     }
 
     /**
-     * Le bandeau du bas : les deux kilomètres qui entourent le coureur, toujours affichés.
+     * Bandeau du bas : le champ « Profil à venir », tel quel.
      *
      * Il ne dépend pas de la présence d'une côte. Un bandeau qui apparaît au pied d'une bosse
      * et disparaît au sommet oblige à réapprendre la mise en page de l'écran chaque fois qu'il
-     * surgit, et se dérobe précisément quand on voudrait savoir si le faux plat qu'on subit en
-     * est un. Deux kilomètres de profil permanents règlent les deux.
+     * surgit, et se dérobe précisément quand on voudrait savoir si le faux plat qu'on subit
+     * en est un.
      *
-     * La fenêtre est calée sur le coureur, non sur la côte : deux cents mètres derrière lui et
-     * mille huit cents devant. Son repère reste donc immobile au dixième gauche de la bande,
-     * et c'est le profil qui défile dessous.
+     * Il portait deux kilomètres calés sur le coureur, à échelle régulière. Ce cadrage
+     * répondait à « qu'est-ce que je monte », jamais à « qu'est-ce qui reste » — et la
+     * première question a déjà ses réponses ailleurs sur l'écran : la pente dans son rang, la
+     * distance au sommet dans le champ de côte. Le bandeau montre donc tout le parcours
+     * restant, sur l'échelle comprimée au loin, les côtes y étant surlignées comme dans le
+     * champ homonyme.
      *
-     * Le rang de la côte reste porté quand il y en a une en vue, suivi de la distance qui reste
-     * jusqu'à son sommet — « 1/4 — 1,48 km ». Le rang seul disait combien de bosses restaient,
-     * jamais où l'on en était de celle-ci ; c'est pourtant la seule chose qu'on veut savoir en
-     * la montant.
+     * C'est le modèle de ce champ, sans rien de recopié : les deux montrent la même chose et
+     * doivent continuer de le faire.
      */
-    private fun climbBand(state: GuidanceState, units: Units): ClimbBandModel? {
-        val route = state.route ?: return null
-        val along = state.distanceAlongRoute ?: return null
-        val window = Guidance.profileWindow(
-            route,
-            (along - CLIMB_BAND_BEHIND).coerceAtLeast(0.0),
-            lookahead = CLIMB_BAND_SPAN,
-        )
-        if (window.isEmpty) return null
-
-        return ClimbBandModel(
-            window = window,
-            position = along,
-            positionElevation = route.profile?.elevationAt(along),
-            label = Guidance.climbStatus(route, along)
-                ?.takeIf { it.onClimb || it.distanceToStart <= CLIMB_BAND_LOOKAHEAD }
-                ?.let { "${it.number}/${it.totalClimbs} — ${toSummit(it.distanceToTop, units)}" },
-        )
-    }
-
-    /**
-     * Distance au sommet, au centième de kilomètre au-delà du kilomètre.
-     *
-     * Le formateur commun arrondit au dixième, ce qui suffit partout ailleurs — mais dans une
-     * côte on regarde ce chiffre toutes les vingt secondes, et un dixième de kilomètre y reste
-     * figé assez longtemps pour donner l'impression qu'on n'avance plus. Sous le kilomètre, on
-     * revient aux mètres : « 480 m » se lit mieux que « 0,48 km ».
-     *
-     * La mention « du sommet » qui suivait a sauté. Elle disait ce que le rang de la côte, écrit
-     * juste devant, dit déjà : dans une côte numérotée, une distance ne peut aller qu'à son
-     * sommet. Elle prenait le tiers d'une bande qui n'a qu'une ligne — et elle était écrite en
-     * français dans le code, seul texte de l'extension à ne pas passer par les ressources.
-     */
-    private fun toSummit(meters: Double, units: Units): String = when {
-        units != Units.METRIC -> Format.distance(meters, units)
-        meters < 1_000 -> "${(meters / 10).roundToInt() * 10} m"
-        else -> String.format(Locale.getDefault(), "%.2f km", meters / 1_000)
-    }
-
+    private fun profileBand(
+        context: Context,
+        snapshot: GuidanceSnapshot,
+        settings: GuidageSettings,
+        preview: Boolean,
+    ): ProfileFieldModel? =
+        FieldModels.profile(context, snapshot, settings, preview).takeIf { !it.window.isEmpty }
     private fun mapModel(
         context: Context,
         snapshot: GuidanceSnapshot,
@@ -382,18 +350,6 @@ object DashboardModels {
 
     private const val PLACEHOLDER = "--"
     private const val METERS_PER_MILE = 1609.344
-
-    /**
-     * Distance au pied à partir de laquelle le bandeau de montée apparaît (m).
-     *
-     * Trois cents mètres : de quoi choisir son braquet et se placer, pas de quoi occuper le
-     * bas de l'écran pendant un quart d'heure.
-     */
-    private const val CLIMB_BAND_LOOKAHEAD = 300.0
-
-    /** Longueur du bandeau, et part tenue derrière le coureur (m). */
-    private const val CLIMB_BAND_SPAN = 2_000.0
-    private const val CLIMB_BAND_BEHIND = 200.0
 
     /** Rayon de lecture du fond de carte, en multiples de la portée affichée. */
     private const val ROADS_RADIUS_FACTOR = 1.6

@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.Typeface
 import io.github.jmallus.guidage.core.FisheyeScale
 import io.github.jmallus.guidage.core.Format
@@ -53,31 +54,47 @@ object ProfileRenderer {
 
     fun render(width: Int, height: Int, model: ProfileFieldModel, palette: Palette): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
+        draw(
+            Canvas(bitmap),
+            RectF(0f, 0f, width.toFloat(), height.toFloat()),
+            model,
+            palette,
+        )
+        return bitmap
+    }
 
+    /**
+     * Le même profil, dessiné dans une zone d'un canevas plutôt que dans une image à lui.
+     *
+     * C'est ce qui permet au tableau de bord de porter ce champ en bandeau sans le composer
+     * dans un bitmap intermédiaire : une image de plus par seconde, et surtout une seconde
+     * écriture du profil, qui aurait dérivé de celle-ci.
+     */
+    fun draw(canvas: Canvas, area: RectF, model: ProfileFieldModel, palette: Palette) {
+        val width = area.width()
+        val height = area.height()
         val labelSize = (height * 0.16f).coerceIn(9f, 20f)
         val padding = (min(width, height) * 0.04f).coerceIn(2f, 8f)
         val tickSize = (labelSize * TICK_TEXT_RATIO).coerceAtLeast(MIN_TICK_TEXT)
         val labelled = height >= tickSize * LABELLED_AXIS_HEIGHTS
         val axis = if (labelled) TICK_LENGTH + tickSize * 1.35f else TICK_LENGTH
 
-        val top = padding + labelSize
-        val bottom = height - padding - axis
-        val left = padding
-        val right = width - padding
+        val top = area.top + padding + labelSize
+        val bottom = area.bottom - padding - axis
+        val left = area.left + padding
+        val right = area.right - padding
 
         val scale = FisheyeScale(model.window.distanceSpan)
         if (model.window.isEmpty || !scale.usable || bottom <= top || right <= left) {
-            drawEmpty(canvas, width, height, model.emptyMessage, palette)
-            return bitmap
+            drawEmpty(canvas, area, model.emptyMessage, palette)
+            return
         }
 
         drawProfile(canvas, model, scale, left, top, right, bottom, palette)
         drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         drawPositionMarker(canvas, left, top, bottom, palette)
-        drawLabels(canvas, model, left, right, padding + labelSize, labelSize, palette)
-        return bitmap
+        drawLabels(canvas, model, left, right, top, labelSize, palette)
     }
 
     /**
@@ -296,15 +313,15 @@ object ProfileRenderer {
         }
     }
 
-    private fun drawEmpty(canvas: Canvas, width: Int, height: Int, message: String?, palette: Palette) {
+    private fun drawEmpty(canvas: Canvas, area: RectF, message: String?, palette: Palette) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.textSecondary
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
-            textSize = (height * 0.22f).coerceIn(10f, 26f)
+            textSize = (area.height() * 0.22f).coerceIn(10f, 26f)
         }
-        val centerY = height / 2f - (paint.descent() + paint.ascent()) / 2f
-        canvas.drawText(message ?: "—", width / 2f, centerY, paint)
+        val centerY = area.centerY() - (paint.descent() + paint.ascent()) / 2f
+        canvas.drawText(message ?: "—", area.centerX(), centerY, paint)
     }
 
     /** Le point le plus haut entre deux distances, bornes comprises. */

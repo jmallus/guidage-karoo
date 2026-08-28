@@ -11,7 +11,6 @@ import android.graphics.Typeface
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import io.github.jmallus.guidage.core.Contrast
-import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
 import kotlin.math.max
@@ -84,22 +83,6 @@ data class DrivetrainModel(
     @DrawableRes val icon: Int? = null,
 )
 
-/**
- * Bandeau du bas : les deux kilomètres de profil qui entourent le coureur.
- *
- * Il est affiché en permanence, et non seulement au voisinage d'une côte : un bandeau qui
- * surgit et disparaît oblige à réapprendre la mise en page de l'écran à chaque fois.
- */
-data class ClimbBandModel(
-    val window: ProfileWindow,
-    /** Position courante sur l'itinéraire (m), pour placer le repère du coureur. */
-    val position: Double,
-    /** Altitude à cette position (m) ; sans elle le repère se pose sur le profil. */
-    val positionElevation: Double?,
-    /** Rang de la côte sur l'itinéraire, façon « 1/5 ». */
-    val label: String? = null,
-)
-
 /** Ce qu'on affiche dans la colonne de guidage, à droite des mesures. */
 sealed interface GuidanceZone {
     data class Map(val model: MapModel) : GuidanceZone
@@ -126,8 +109,16 @@ data class DashboardModel(
     val midTiles: List<Tile> = emptyList(),
     /** Dernier rang : distance restante et heure d'arrivée. */
     val footerTiles: List<Tile> = emptyList(),
-    /** Les deux kilomètres de profil autour du coureur, sous la dernière ligne. */
-    val climbBand: ClimbBandModel? = null,
+    /**
+     * Bandeau du bas : le champ « Profil à venir », tel quel.
+     *
+     * Il portait les deux kilomètres qui entourent le coureur, à échelle régulière. Ce
+     * cadrage-là répondait à « qu'est-ce que je monte », jamais à « qu'est-ce qui reste » —
+     * et la première question a déjà sa réponse ailleurs sur l'écran, dans la pente et la
+     * distance au sommet. Le bandeau montre donc maintenant tout le parcours restant, sur
+     * l'échelle comprimée au loin du champ homonyme, dont il exécute le rendu même.
+     */
+    val profileBand: ProfileFieldModel? = null,
     val palette: Palette,
 )
 
@@ -137,7 +128,7 @@ object DashboardRenderer {
     private const val TILE_COLUMN_FRACTION = 0.5f
 
     /** Hauteur d'un rang de la grille, en part de la hauteur utile ; le reste va au pied. */
-    private const val ROW_HEIGHT_FRACTION = 0.2116f
+    private const val ROW_HEIGHT_FRACTION = 0.227f
 
     /** Nombre de rangs avant la dernière ligne. */
     private const val GRID_ROWS = 4
@@ -160,8 +151,23 @@ object DashboardRenderer {
     /** Taille du suffixe, en part de celle de la valeur. */
     private const val SUFFIX_RATIO = 0.52f
 
-    /** Hauteur du bandeau de profil, qui mange le dixième bas de l'écran. */
-    private const val CLIMB_BAND_FRACTION = 0.10f
+    /**
+     * Hauteur du bandeau de profil.
+     *
+     * Un sixième, contre un dixième du temps où il ne montrait que deux kilomètres. Le
+     * parcours entier y tient désormais, et une bande de soixante points n'aurait pas de quoi
+     * porter à la fois une silhouette et les graduations qui disent la compression.
+     */
+    private const val PROFILE_BAND_FRACTION = 0.16f
+
+    /**
+     * Hauteur du rang « distance et pente », plus courte que les autres.
+     *
+     * C'est à lui qu'on prend la place donnée au bandeau, et non à parts égales sur tous les
+     * rangs. La distance parcourue et la pente sont deux nombres courts, que leur case tenait
+     * trop au large ; le bandeau, lui, dessine.
+     */
+    private const val MID_ROW_FRACTION = 0.154f
 
     fun render(context: Context, width: Int, height: Int, model: DashboardModel): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
@@ -173,11 +179,15 @@ object DashboardRenderer {
 
         // Le bandeau mange le bas de l'écran ; tout le reste se serre au-dessus. Il est là
         // dès qu'on navigue, de sorte que la mise en page ne bouge plus en cours de route.
-        val bandHeight = if (model.climbBand == null) 0f else height * CLIMB_BAND_FRACTION
+        val bandHeight = if (model.profileBand == null) 0f else height * PROFILE_BAND_FRACTION
         val contentHeight = height - bandHeight
-        val rowHeight = (contentHeight - 2 * padding) * ROW_HEIGHT_FRACTION
+        val usableHeight = contentHeight - 2 * padding
+        val rowHeight = usableHeight * ROW_HEIGHT_FRACTION
         fun row(index: Int) = padding + index * rowHeight
-        val footerTop = row(GRID_ROWS)
+        // Le rang de la distance et de la pente a sa propre hauteur, plus courte : les rangs
+        // au-dessus gardent ainsi leur taille malgré le bandeau agrandi.
+        val midTop = row(GRID_ROWS - 1)
+        val footerTop = midTop + usableHeight * MID_ROW_FRACTION
         val footerBottom = contentHeight - padding
 
         // Rang du haut : l'effort instantané, trois cases côte à côte. Il a sa propre taille
@@ -213,7 +223,7 @@ object DashboardRenderer {
         model.midTiles.take(2).forEachIndexed { index, tile ->
             gridTiles += tile
             val left = if (index == 0) padding else columnSplit
-            gridBounds += RectF(left, row(3), if (index == 0) columnSplit else right, footerTop)
+            gridBounds += RectF(left, midTop, if (index == 0) columnSplit else right, footerTop)
         }
 
         // Une seule taille de chiffres pour ces cases-là : d'un rang à l'autre, les valeurs
@@ -268,9 +278,10 @@ object DashboardRenderer {
             labelFraction = FOOTER_LABEL_HEIGHT_FRACTION,
         )
 
-        // Tout en bas : le profil de la côte, sur toute la largeur.
-        model.climbBand?.let { band ->
-            drawClimbBand(
+        // Tout en bas : le parcours restant, sur toute la largeur, par le rendu du champ
+        // « Profil à venir » lui-même. Le redessiner ici en aurait fait une seconde écriture.
+        model.profileBand?.let { band ->
+            ProfileRenderer.draw(
                 canvas = canvas,
                 area = RectF(padding, contentHeight, width - padding, height.toFloat()),
                 model = band,
@@ -279,176 +290,6 @@ object DashboardRenderer {
         }
         return bitmap
     }
-
-    // --- Bandeau de montée -----------------------------------------------------------------
-
-    /**
-     * Profil de la côte : une silhouette colorée par la pente, surmontée d'un filet, avec
-     * un repère à la position du coureur et le rang de la côte sur l'itinéraire.
-     *
-     * La couleur est portée par la silhouette plutôt que par une courbe : c'est ce qui se
-     * lit d'un coup d'œil sur une bande de quelques dizaines de pixels de haut.
-     */
-    private fun drawClimbBand(canvas: Canvas, area: RectF, model: ClimbBandModel, palette: Palette) {
-        val window = model.window
-        if (window.isEmpty || area.width() <= 0 || area.height() <= 0) return
-        val distanceSpan = window.distanceSpan.takeIf { it > 0 } ?: return
-        val elevationSpan = window.elevationSpan.takeIf { it > 0 } ?: return
-
-        fun x(distance: Double) =
-            area.left + ((distance - window.start) / distanceSpan * area.width()).toFloat()
-
-        fun y(elevation: Double) =
-            area.bottom - ((elevation - window.minElevation) / elevationSpan * area.height()).toFloat()
-
-        val points = window.points
-
-        // La couleur est posée par tranches de cent mètres, et non d'un sommet du relevé au
-        // suivant : un itinéraire porte un point tous les dix à trente mètres, ce qui donnait
-        // des lamelles trop étroites pour qu'on y distingue une couleur, et une pente si
-        // bruitée que deux tranches voisines pouvaient sauter deux zones. Les aplats se
-        // touchent sans séparation, découpés d'un seul tenant sous la silhouette : ils sont
-        // tracés pleine hauteur puis rognés par elle, ce qui évite d'avoir à faire coïncider
-        // le bord de chacun avec la ligne de crête.
-        val silhouette = Path().apply {
-            moveTo(x(points.first().distance), area.bottom)
-            points.forEach { lineTo(x(it.distance), y(it.elevation)) }
-            lineTo(x(points.last().distance), area.bottom)
-            close()
-        }
-        canvas.save()
-        canvas.clipPath(silhouette)
-        val fill = Paint().apply { style = Paint.Style.FILL }
-        var sliceStart = window.start
-        while (sliceStart < window.end) {
-            val sliceEnd = (sliceStart + SLICE_METERS).coerceAtMost(window.end)
-            val length = sliceEnd - sliceStart
-            if (length <= 0) break
-            val rise = elevationAt(points, sliceEnd) - elevationAt(points, sliceStart)
-            fill.color = FieldPalette.gradeColor(rise / length * 100.0)
-            // Un demi-pixel de recouvrement : deux aplats strictement jointifs laissent voir
-            // le fond entre eux, l'antialiasing ne remplissant complètement ni l'un ni l'autre.
-            canvas.drawRect(x(sliceStart), area.top, x(sliceEnd) + 0.5f, area.bottom, fill)
-            sliceStart = sliceEnd
-        }
-        // Ce qui est déjà fait passe en sourdine. Sans cela, le repère collé au dixième
-        // gauche de la bande ne dirait pas que c'est le profil qui défile sous lui.
-        if (model.position > window.start) {
-            canvas.drawRect(
-                area.left,
-                area.top,
-                x(model.position),
-                area.bottom,
-                Paint().apply { color = FieldPalette.translucent(0xFF000000.toInt(), BEHIND_DIM_ALPHA) },
-            )
-        }
-        canvas.restore()
-
-        val ridge = Path()
-        points.forEachIndexed { index, point ->
-            if (index == 0) {
-                ridge.moveTo(x(point.distance), y(point.elevation))
-            } else {
-                ridge.lineTo(x(point.distance), y(point.elevation))
-            }
-        }
-        canvas.drawPath(
-            ridge,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = 2.5f
-                strokeJoin = Paint.Join.ROUND
-                color = RIDGE_LINE
-            },
-        )
-
-        val markerRadius = (area.height() * 0.13f).coerceIn(4f, 9f)
-        if (model.position in window.start..window.end) {
-            val elevation = model.positionElevation ?: elevationAt(points, model.position)
-            drawMarker(canvas, x(model.position), y(elevation), markerRadius, RIDER_MARKER)
-        }
-
-        // Le rang de la côte se pose en haut à gauche, le coin le moins souvent occupé. La
-        // fenêtre n'étant plus cadrée sur la côte, le profil peut désormais y passer : le
-        // cerne sombre du libellé est ce qui le garde lisible dans ce cas.
-        model.label?.let { label ->
-            // Le libellé ne porte plus seulement un rang mais une phrase — « 1/4 — 1,48 km du
-            // sommet » —, et le corps qui allait pour « 1/4 » la ferait courir jusqu'au milieu
-            // de la bande, par-dessus le profil. Il se réduit jusqu'à tenir dans sa part.
-            var size = (area.height() * 0.42f).coerceIn(11f, 22f)
-            val maxWidth = area.width() * CLIMB_LABEL_WIDTH
-            val measured = paint(size, 0, Typeface.DEFAULT_BOLD).measureText(label)
-            if (measured > maxWidth) size = (size * maxWidth / measured).coerceAtLeast(9f)
-            val x = area.left + 4f
-            val baseline = area.top + size
-            canvas.drawText(
-                label,
-                x,
-                baseline,
-                paint(size, MARKER_BORDER, Typeface.DEFAULT_BOLD).apply {
-                    style = Paint.Style.STROKE
-                    strokeWidth = size * 0.22f
-                    strokeJoin = Paint.Join.ROUND
-                },
-            )
-            canvas.drawText(label, x, baseline, paint(size, palette.textPrimary, Typeface.DEFAULT_BOLD))
-        }
-    }
-
-    /** Repère circulaire cerné de sombre, pour rester visible sur toutes les pentes. */
-    private fun drawMarker(canvas: Canvas, x: Float, y: Float, radius: Float, color: Int) {
-        canvas.drawCircle(
-            x,
-            y,
-            radius,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = color
-                style = Paint.Style.FILL
-            },
-        )
-        canvas.drawCircle(
-            x,
-            y,
-            radius,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = MARKER_BORDER
-                style = Paint.Style.STROKE
-                strokeWidth = 1.5f
-            },
-        )
-    }
-
-    /** Altitude interpolée sur les points de la fenêtre, faute de mesure directe. */
-    private fun elevationAt(points: List<ProfilePoint>, distance: Double): Double {
-        val next = points.indexOfFirst { it.distance >= distance }
-        if (next <= 0) return points.first().elevation
-        val before = points[next - 1]
-        val after = points[next]
-        val span = after.distance - before.distance
-        if (span <= 0) return after.elevation
-        val ratio = (distance - before.distance) / span
-        return before.elevation + (after.elevation - before.elevation) * ratio
-    }
-
-    /**
-     * Ligne de crête et repère : du blanc, cerné de noir.
-     *
-     * La bande porte sept couleurs de pente, du vert foncé au violet ; aucune teinte ne se
-     * détache sur les sept à la fois, seul le blanc le fait. Le bleu de montée du Karoo,
-     * qu'elle portait avant, disparaissait sur l'orange comme sur le rouge.
-     */
-    private const val RIDGE_LINE = 0xFFFFFFFF.toInt()
-    private const val RIDER_MARKER = 0xFFFFFFFF.toInt()
-    private const val MARKER_BORDER = 0xFF000000.toInt()
-
-    /** Longueur d'une tranche de couleur, en mètres de terrain. */
-    private const val SLICE_METERS = 100.0
-
-    /** Voile posé sur la part déjà parcourue du bandeau. */
-    private const val BEHIND_DIM_ALPHA = 0x9E
-
-    /** Part de la largeur du bandeau laissée au libellé de côte. */
-    private const val CLIMB_LABEL_WIDTH = 0.62f
 
     // --- Cases de chiffres ---------------------------------------------------------------
 
@@ -515,18 +356,13 @@ object DashboardRenderer {
             translucent(ink, LABEL_ALPHA)
         }
 
-        // L'aplat est cerné de noir : sans cela deux cases colorées voisines se touchent et
-        // leurs couleurs se contaminent à l'œil.
+        // L'aplat est posé sans cerne. Il en portait un, noir, contre la contamination de deux
+        // couleurs voisines à l'œil ; mais dans cette mise en page les cases colorées ne se
+        // touchent jamais — la cadence sépare la vitesse de la puissance, le cœur est seul
+        // dans sa colonne — et le cerne ne séparait donc rien. Il enfermait seulement chaque
+        // valeur dans une boîte.
         tile.background?.let { background ->
             canvas.drawRect(bounds, Paint().apply { color = background })
-            canvas.drawRect(
-                bounds,
-                Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = TILE_BORDER
-                    style = Paint.Style.STROKE
-                    strokeWidth = TILE_BORDER_WIDTH
-                },
-            )
         }
 
         // Sur fond neutre l'icône est verte ; sur un aplat de zone elle suit l'encre, le
@@ -938,9 +774,6 @@ object DashboardRenderer {
     /** Le numéro de zone s'efface un peu : c'est la fréquence qu'on lit d'abord. */
     private const val LEADING_ALPHA = 0xB0
 
-    /** Cerne des cases colorées. */
-    private const val TILE_BORDER = 0xFF000000.toInt()
-    private const val TILE_BORDER_WIDTH = 3f
     private const val ICON_RATIO = 1.15f
 
     /** Marge entre le bord de la case et ce qu'elle contient. */
