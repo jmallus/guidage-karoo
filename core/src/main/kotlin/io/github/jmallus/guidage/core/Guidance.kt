@@ -100,6 +100,16 @@ object Guidance {
     )
 
     /**
+     * Fenêtre de profil de la position courante jusqu'à l'arrivée.
+     *
+     * Sans portée à passer : c'est tout ce qui reste, et c'est le dessin qui se charge de le
+     * faire tenir en comprimant le lointain. Une portée demandait de choisir entre voir la
+     * rampe qui arrive et voir la journée ; il n'y a plus de choix à faire.
+     */
+    fun profileToFinish(route: Route, distanceAlongRoute: Double): ProfileWindow =
+        window(route = route, from = distanceAlongRoute, to = routeLength(route))
+
+    /**
      * Fenêtre du graphe de parcours : la totalité de l'itinéraire quand [lookahead] est null,
      * sinon la portion à venir sur la distance demandée.
      *

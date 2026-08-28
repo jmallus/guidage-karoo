@@ -22,12 +22,34 @@ sans construire un APK.
 | Champ | Type | Contenu |
 | --- | --- | --- |
 | **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance parcourue, pente, distance restante, heure d'arrivée **avec sa marge**, et le profil de la côte en cours. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
-| **Profil à venir** | graphique | Le profil altimétrique de la portion devant vous (portée réglable de 1 à 15 km), rempli en couleur selon la pente, côtes de l'itinéraire surlignées avec leur pente moyenne, dénivelé positif restant sur la fenêtre. |
+| **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Rempli en couleur selon la pente, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
 
 « Profil à venir » et « Prochaine côte » s'adaptent à la taille et à l'alignement configurés
 dans le profil de page. Tous affichent un aperçu réaliste dans l'écran d'édition des pages.
+
+### L'échelle du profil
+
+Le champ « Profil à venir » avait une portée réglable, de un à quinze kilomètres. Ce réglage
+était l'aveu d'un choix impossible : à cinq kilomètres on voit la rampe qui arrive mais plus
+la journée, à quinze on voit la journée mais la rampe tient dans deux pixels. Et le choix se
+pose en roulant, c'est-à-dire au moment où l'on ne veut rien régler.
+
+L'échelle horizontale n'est donc plus proportionnelle. La distance est projetée par un
+logarithme translaté, fin sur les premières centaines de mètres et de plus en plus comprimé
+ensuite : la bande couvre **tout ce qui reste**, du premier mètre à l'arrivée, et les deux
+cents premiers mètres y occupent autant de largeur que les vingt derniers kilomètres.
+
+Cette compression ne se voit pas d'elle-même — un œil qui suppose une échelle régulière lit
+un faux relief. Ce sont les graduations sous l'axe qui la disent : leur espacement inégal est
+le seul aveu que la bande ne soit pas plate, et c'est pourquoi leurs traits subsistent même
+sur un champ trop court pour porter les chiffres.
+
+Le lointain est une **crête** et non une courbe : une colonne de pixels y couvre parfois deux
+kilomètres, dont on retient le point le plus haut. Un sommet ne peut donc pas disparaître
+entre deux colonnes, mais un col suivi d'une descente courte s'y lit comme un plateau. À cette
+échelle, c'est ce qu'on veut savoir.
 
 ### L'heure d'arrivée
 
@@ -78,7 +100,6 @@ L'action **« Annoncer la prochaine côte »** peut être assignée à un bouton
 L'application « Guidage » du launcher affiche l'état courant (itinéraire, distance restante,
 prochaine côte, prochain point) et permet de régler :
 
-- la portée du profil affiché (1 à 15 km) ;
 - la coloration du profil selon la pente ;
 - l'activation et la distance d'annonce des points d'intérêt.
 
@@ -291,6 +312,7 @@ core/                        module JVM pur, testable — aucune dépendance And
   ElevationProfile.kt        profil altimétrique : interpolation, extraction, D+
   Route.kt                   itinéraire, côtes, POI, état de guidage
   Guidance.kt                côte en cours/à venir, prochain POI, fenêtre de profil
+  FisheyeScale.kt            l'échelle du profil : fine devant, comprimée au loin
   AlertEngine.kt             décide quelles annonces déclencher, sans répétition
   Pacing.kt                  apprend les deux allures, en déduit l'arrivée et sa marge
   Resupply.kt                la réserve : dernier point avant la prochaine traversée

@@ -113,6 +113,22 @@ class GuidanceTest {
     }
 
     @Test
+    fun `la fenêtre jusqu'à l'arrivée part de la position et finit au bout`() {
+        val window = Guidance.profileToFinish(route, 6500.0)
+
+        assertEquals(6500.0, window.start, 1e-6)
+        assertEquals(10000.0, window.end, 1e-6)
+        assertEquals(3500.0, window.distanceSpan, 1e-6)
+        assertFalse(window.isEmpty)
+    }
+
+    /** Arrivé au bout, il n'y a plus de profil à montrer — et surtout rien à projeter. */
+    @Test
+    fun `la fenêtre jusqu'à l'arrivée est vide au bout du parcours`() {
+        assertTrue(Guidance.profileToFinish(route, 10000.0).isEmpty)
+    }
+
+    @Test
     fun `profile window keeps a minimum elevation span on flat terrain`() {
         val window = Guidance.profileWindow(route, 0.0, lookahead = 1000.0)
 

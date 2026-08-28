@@ -13,8 +13,6 @@ import kotlinx.coroutines.flow.conflate
 
 /** Réglages de l'extension, modifiables depuis l'application. */
 data class GuidageSettings(
-    /** Distance affichée devant le coureur dans le champ « profil » (m). */
-    val lookaheadMeters: Double = 5_000.0,
     /** Colorer le profil selon la pente. */
     val colorByGrade: Boolean = true,
     val alerts: AlertSettings = AlertSettings(),
@@ -47,7 +45,6 @@ class SettingsRepository(context: Context) {
     fun read(): GuidageSettings {
         val defaults = GuidageSettings()
         return GuidageSettings(
-            lookaheadMeters = prefs.getFloat(KEY_LOOKAHEAD, defaults.lookaheadMeters.toFloat()).toDouble(),
             colorByGrade = prefs.getBoolean(KEY_COLOR_BY_GRADE, defaults.colorByGrade),
             guidanceZone = GuidanceZoneType.fromName(prefs.getString(KEY_GUIDANCE_ZONE, null)),
             graphZoom = GraphZoom.fromOrdinal(prefs.getInt(KEY_GRAPH_ZOOM, defaults.graphZoom.ordinal)),
@@ -61,7 +58,6 @@ class SettingsRepository(context: Context) {
 
     fun write(settings: GuidageSettings) {
         prefs.edit()
-            .putFloat(KEY_LOOKAHEAD, settings.lookaheadMeters.toFloat())
             .putBoolean(KEY_COLOR_BY_GRADE, settings.colorByGrade)
             .putString(KEY_GUIDANCE_ZONE, settings.guidanceZone.name)
             .putInt(KEY_GRAPH_ZOOM, settings.graphZoom.ordinal)
@@ -73,15 +69,15 @@ class SettingsRepository(context: Context) {
 
     private companion object {
         const val PREFS_NAME = "guidage-settings"
-        const val KEY_LOOKAHEAD = "lookahead_meters"
         const val KEY_COLOR_BY_GRADE = "color_by_grade"
         const val KEY_GUIDANCE_ZONE = "guidance_zone"
         const val KEY_GRAPH_ZOOM = "graph_zoom"
         const val KEY_MAP_ZOOM = "map_zoom"
         // Les clés « climb_alerts », « climb_alert_distance », « summit_alerts » et
-        // « summit_alert_distance » ont disparu avec les annonces de côte. Celles déjà écrites
-        // sur un appareil y restent, inertes : les relire pour les effacer coûterait une
-        // migration là où quelques octets oubliés ne gênent personne.
+        // « summit_alert_distance » ont disparu avec les annonces de côte, « lookahead_meters »
+        // avec la portée réglable du profil. Celles déjà écrites sur un appareil y restent,
+        // inertes : les relire pour les effacer coûterait une migration là où quelques octets
+        // oubliés ne gênent personne.
         const val KEY_POI_ENABLED = "poi_alerts"
         const val KEY_POI_DISTANCE = "poi_alert_distance"
     }

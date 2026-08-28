@@ -26,7 +26,6 @@ import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceZoneType
-import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.extension.ClimbDataType
 import io.github.jmallus.guidage.extension.DashboardDataType
 import io.github.jmallus.guidage.extension.FieldReport
@@ -63,7 +62,7 @@ fun GuidageScreen(viewModel: MainViewModel) {
                 )
             }
             StatusCard(connected, snapshot)
-            SettingsCard(settings, snapshot.units, viewModel::update)
+            SettingsCard(settings, viewModel::update)
             FieldReportCard(fields)
         }
     }
@@ -198,7 +197,6 @@ private fun fieldName(typeId: String): Int = when (typeId) {
 @Composable
 private fun SettingsCard(
     settings: GuidageSettings,
-    units: Units,
     onChange: (GuidageSettings) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -211,17 +209,8 @@ private fun SettingsCard(
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            SliderRow(
-                label = stringResource(
-                    R.string.settings_lookahead,
-                    Format.longDistance(settings.lookaheadMeters, units),
-                ),
-                value = settings.lookaheadMeters.toFloat(),
-                range = 1_000f..15_000f,
-                steps = 13,
-                onValueChange = { onChange(settings.copy(lookaheadMeters = it.toDouble())) },
-            )
-
+            // Le réglage de portée du profil a disparu : l'échelle du champ est désormais
+            // comprimée au loin, et montre tout ce qui reste sans qu'on ait à choisir.
             SwitchRow(
                 label = stringResource(R.string.settings_guidance_map),
                 checked = settings.guidanceZone == GuidanceZoneType.MAP,

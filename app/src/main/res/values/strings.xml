@@ -78,7 +78,6 @@
     <string name="status_next_poi">Prochain point : %1$s dans %2$s</string>
 
     <string name="settings_title">Réglages</string>
-    <string name="settings_lookahead">Portée du profil : %1$s</string>
     <string name="settings_color_by_grade">Colorer le profil selon la pente</string>
     <string name="settings_poi_alerts">Annoncer les points d\'intérêt</string>
     <string name="settings_poi_distance">Annonce avant le point : %1$s</string>

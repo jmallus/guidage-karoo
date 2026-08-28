@@ -31,8 +31,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
- * Champ graphique « Profil à venir » : la portion d'itinéraire devant le coureur,
- * colorée selon la pente, avec les côtes surlignées.
+ * Champ graphique « Profil à venir » : tout ce qui reste de l'itinéraire, coloré selon la
+ * pente, avec les côtes surlignées.
+ *
+ * Tout ce qui reste, et non une portée choisie : l'échelle horizontale est comprimée au loin
+ * (voir `FisheyeScale`), de sorte que la rampe dans trois cents mètres et le col de la
+ * quatrième heure tiennent dans la même bande.
  */
 @OptIn(ExperimentalGlanceRemoteViewsApi::class)
 class ProfileDataType(
@@ -81,7 +85,7 @@ class ProfileDataType(
 
         // La position est arrondie pour éviter de redessiner à chaque mètre parcouru.
         val quantized = (along / POSITION_STEP_METERS).toInt() * POSITION_STEP_METERS
-        val window = Guidance.profileWindow(route, quantized, settings.lookaheadMeters)
+        val window = Guidance.profileToFinish(route, quantized)
         val units = snapshot.units
         val ascent = route.profile?.ascentBetween(window.start, window.end)
 
@@ -92,6 +96,7 @@ class ProfileDataType(
             rangeLabel = rangeLabel(window.distanceSpan, units),
             emptyMessage = context.getString(R.string.field_no_route),
             colorByGrade = settings.colorByGrade,
+            units = units,
         )
     }
 

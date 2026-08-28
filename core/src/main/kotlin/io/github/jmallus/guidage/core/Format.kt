@@ -47,6 +47,28 @@ object Format {
         }
     }
 
+    /** L'unité de [longDistance], à écrire une seule fois pour tout un axe. */
+    fun longDistanceUnit(units: Units): String = when (units) {
+        Units.METRIC -> "km"
+        Units.IMPERIAL -> "mi"
+    }
+
+    /** Combien de mètres vaut cette unité : de quoi graduer un axe rondement. */
+    fun longDistanceUnitMeters(units: Units): Double = when (units) {
+        Units.METRIC -> 1000.0
+        Units.IMPERIAL -> METERS_PER_MILE
+    }
+
+    /**
+     * Graduation d'axe : le nombre seul, déjà compté dans l'unité du coureur.
+     *
+     * Sans unité, parce qu'un axe la porte une fois et non à chaque repère. Une décimale
+     * seulement sous l'unité, où « 0,5 » dit ce que « 1 » cacherait ; au-delà, la décimale
+     * n'apporte rien et vole de la place à un axe qui en manque.
+     */
+    fun axisValue(value: Double, locale: Locale = Locale.getDefault()): String =
+        if (value < 1.0) String.format(locale, "%.1f", value) else String.format(locale, "%.0f", value)
+
     /** Dénivelé : « 120 m » ou « 394 ft ». */
     fun elevation(meters: Double, units: Units): String {
         return when (units) {
