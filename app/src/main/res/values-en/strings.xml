@@ -8,6 +8,8 @@
     <string name="field_profile_description">Elevation profile of the route ahead, coloured by gradient.</string>
     <string name="field_fisheye_name">Profile to the finish</string>
     <string name="field_fisheye_description">The whole remaining profile on one band, on a non-linear scale: the first two kilometres take nearly half the width, the rest compresses behind them. The ramp ahead and the fourth-hour col show at once, with no range to change. The unevenly spaced ticks are what tells you the scale is compressed.</string>
+    <string name="field_effort_name">Effort budget</string>
+    <string name="field_effort_description">What the rest of the route still costs, in kilojoules rather than kilometres, split by item: the rolling terrain, then each remaining climb. The total comes from the estimated time of each item and the power you actually hold in that regime — two measured quantities, none assumed. Needs a power meter.</string>
     <string name="field_climb_name">Next climb</string>
     <string name="field_climb_description">Distance to the next climb, or to the summit of the current one, with gradient and elevation.</string>
     <string name="field_poi_name">Next point of interest</string>
@@ -47,6 +49,11 @@
     <string name="alert_climb_title">Climb in %1$s</string>
     <string name="alert_climb_detail">%1$s at %2$s • +%3$s</string>
     <string name="alert_summit_title">Summit in %1$s</string>
+    <string name="field_effort_label">STILL TO PAY</string>
+    <string name="field_effort_waiting">Learning your pace</string>
+    <string name="field_effort_climb">Climb %1$d — %2$s</string>
+    <string name="field_effort_kilojoules">%1$d kJ</string>
+    <string name="unit_kilojoule">kJ</string>
     <string name="alert_poi_detail">In %1$s</string>
     <string name="alert_resupply_title">Last resupply</string>
     <string name="alert_resupply_detail">%1$s — nothing for %2$s</string>

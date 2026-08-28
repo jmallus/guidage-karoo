@@ -8,6 +8,8 @@
     <string name="field_profile_description">Profil altimétrique de la portion d\'itinéraire devant vous, coloré selon la pente.</string>
     <string name="field_fisheye_name">Profil jusqu\'à l\'arrivée</string>
     <string name="field_fisheye_description">Tout le profil restant sur une seule bande, à échelle non linéaire : les deux premiers kilomètres prennent près de la moitié de la largeur, le reste se comprime derrière. On y voit la rampe qui arrive et le col de la quatrième heure sans changer de portée. Les graduations, inégalement espacées, disent la compression.</string>
+    <string name="field_effort_name">Budget d\'effort</string>
+    <string name="field_effort_description">Ce que coûte encore le parcours, en kilojoules plutôt qu\'en kilomètres, découpé par poste : le terrain roulant, puis chaque côte qui reste. Le total se déduit du temps estimé de chaque poste et de la puissance que vous tenez dans ce régime — deux grandeurs mesurées, aucune supposée. Demande un capteur de puissance.</string>
     <string name="field_climb_name">Prochaine côte</string>
     <string name="field_climb_description">Distance jusqu\'à la prochaine côte, ou jusqu\'au sommet de celle en cours, avec pente et dénivelé.</string>
     <string name="field_poi_name">Prochain point d\'intérêt</string>
@@ -47,6 +49,11 @@
     <string name="alert_climb_title">Côte dans %1$s</string>
     <string name="alert_climb_detail">%1$s à %2$s • +%3$s</string>
     <string name="alert_summit_title">Sommet dans %1$s</string>
+    <string name="field_effort_label">RESTE À PAYER</string>
+    <string name="field_effort_waiting">Allure en cours d\'apprentissage</string>
+    <string name="field_effort_climb">Côte %1$d — %2$s</string>
+    <string name="field_effort_kilojoules">%1$d kJ</string>
+    <string name="unit_kilojoule">kJ</string>
     <string name="alert_poi_detail">Dans %1$s</string>
     <string name="alert_resupply_title">Dernier ravitaillement</string>
     <string name="alert_resupply_detail">%1$s — rien avant %2$s</string>

@@ -45,6 +45,7 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
             ProfileDataType(provider, settingsRepository, extension),
             FisheyeDataType(provider, settingsRepository, extension),
             ClimbDataType(provider, extension),
+            EffortDataType(provider, rideDataProvider, extension),
             PoiDataType(provider, extension),
         )
     }

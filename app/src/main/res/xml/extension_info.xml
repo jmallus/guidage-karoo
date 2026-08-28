@@ -39,6 +39,13 @@
         icon="@drawable/ic_climb" />
 
     <DataType
+        typeId="effort"
+        displayName="@string/field_effort_name"
+        description="@string/field_effort_description"
+        graphical="true"
+        icon="@drawable/ic_power" />
+
+    <DataType
         typeId="poi"
         displayName="@string/field_poi_name"
         description="@string/field_poi_description"
