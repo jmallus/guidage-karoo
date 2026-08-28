@@ -75,10 +75,22 @@ class ProfileRendererTest {
     private val teintesDeRelief: Set<Int> =
         ((-25..25).map { FieldPalette.gradeColor(it.toDouble()) } + FieldPalette.NEUTRAL).toSet()
 
+    /**
+     * La silhouette, c'est le remplissage **et** le trait qui la souligne.
+     *
+     * Le trait fait deux pixels et le remplissage descend parfois à un seul — sur un fond de
+     * vallée, sous un col qui tient toute l'échelle des altitudes. Le trait recouvre alors le
+     * remplissage entièrement : la colonne est bien dessinée, mais elle ne porte plus aucune
+     * teinte de pente. Ne chercher que les teintes reviendrait à l'appeler vide.
+     */
+    private val teintesDeSilhouette: Set<Int> get() = teintesDeRelief + palette.outline
+
     /** Hauteur du sommet de la silhouette dans chaque colonne, ou la hauteur si elle est vide. */
-    private fun crete(image: Bitmap): List<Int> = (0 until image.width).map { x ->
-        (0 until image.height).firstOrNull { y -> image.getPixel(x, y) in teintesDeRelief }
-            ?: image.height
+    private fun crete(image: Bitmap): List<Int> {
+        val teintes = teintesDeSilhouette
+        return (0 until image.width).map { x ->
+            (0 until image.height).firstOrNull { y -> image.getPixel(x, y) in teintes } ?: image.height
+        }
     }
 
     /** La promesse : le col de la fin n'est pas avalé par la compression. */
