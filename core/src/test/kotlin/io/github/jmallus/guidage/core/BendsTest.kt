@@ -85,7 +85,34 @@ class BendsTest {
         val bend = bends.single()
         assertEquals("le rayon lu vaut ${bend.radius}", 40.0, bend.radius, 8.0)
         assertEquals("le virage n'est pas à droite", 1, bend.direction)
-        assertTrue("l'angle balayé vaut ${bend.sweepDegrees}", bend.sweepDegrees > 60.0)
+        // L'angle balayé est mesuré au milieu du virage : les échantillons des deux bouts
+        // n'ont pas de voisin des deux côtés et ne portent donc pas de rotation. Un quart de
+        // cercle en rend un peu moins de la moitié, et c'est attendu.
+        assertTrue("l'angle balayé vaut ${bend.sweepDegrees}", bend.sweepDegrees > 30.0)
+    }
+
+    @Test
+    fun `un angle droit court est vu, et c est pour lui que le pas est court`() {
+        // Vingt-cinq mètres de rayon : l'angle droit d'une route de campagne, quarante
+        // mètres de bitume en tout. Un pas de mesure de vingt mètres n'en voyait rien.
+        val bend = Bends.of(positions(quarterTurn(radius = 25.0))).single()
+
+        assertEquals(25.0, bend.radius, 5.0)
+    }
+
+    @Test
+    fun `une epingle rend son rayon`() {
+        val trace = mutableListOf<Metres>()
+        var arc = 0.0
+        while (arc <= 12.0 * Math.PI) {
+            val angle = arc / 12.0
+            trace += Metres(12.0 * (1 - cos(angle)), 12.0 * sin(angle))
+            arc += 3.0
+        }
+
+        val bend = Bends.of(positions(trace)).single()
+
+        assertEquals(12.0, bend.radius, 3.0)
     }
 
     @Test

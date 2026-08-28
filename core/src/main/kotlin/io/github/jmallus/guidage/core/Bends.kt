@@ -33,26 +33,30 @@ data class BendStatus(
  * Tout le travail est dans le bruit. Un point GPS vaut à quelques mètres près, et l'angle
  * entre deux points voisins de dix mètres est presque entièrement du bruit : calculé cru, il
  * ferait voir des virages sur une ligne droite. On rééchantillonne donc le tracé à pas
- * constant, assez long pour que le bruit s'y noie et assez court pour qu'une épingle
- * survive, puis on mesure la rotation du cap sur cette longueur-là.
+ * constant, puis on mesure la rotation du cap sur cette longueur-là.
+ *
+ * Le choix de ce pas est le seul réglage qui compte, et il se paie des deux côtés. Trop
+ * court, le bruit domine l'angle mesuré. Trop long, un virage plus court que le pas devient
+ * invisible faute d'échantillons — un angle droit de vingt-cinq mètres de rayon tient dans
+ * quarante mètres de bitume, et un pas de vingt mètres n'en voyait rien. Quinze mètres
+ * laissent deux mètres d'erreur latérale peser moins de huit degrés, et suffisent à voir un
+ * virage de quarante mètres. Le prix en est qu'au-delà de quatre-vingt-dix mètres de rayon,
+ * la rotation mesurée retombe sous le bruit : ces courbes-là ne sont pas annoncées, ce qui
+ * tombe bien, elles se prennent sans lever les mains du guidon.
  */
 object Bends {
 
-    /**
-     * Pas de rééchantillonnage (m).
-     *
-     * Vingt mètres : en deçà, le bruit du GPS domine l'angle mesuré ; au-delà, une épingle
-     * de vingt mètres de rayon se lisse en courbe douce et disparaît.
-     */
-    const val STEP_METERS = 20.0
+    /** Pas de rééchantillonnage (m), et base sur laquelle la rotation se mesure. */
+    const val STEP_METERS = 15.0
 
     /**
      * Rayon au-delà duquel un virage n'en est plus un (m).
      *
-     * Cent vingt mètres se prennent sans lever les mains du guidon : les annoncer noierait
-     * les vrais virages dans une liste de courbes.
+     * Quatre-vingt-dix mètres se prennent sans lever les mains du guidon, et c'est aussi là
+     * que la mesure s'arrête : sur quinze mètres de base, une telle courbe tourne de neuf
+     * degrés et demi, à peine plus que ce qu'un point GPS mal placé produirait.
      */
-    const val MAX_RADIUS_METERS = 120.0
+    const val MAX_RADIUS_METERS = 90.0
 
     /** Rotation minimale pour qu'un virage compte (degrés). */
     const val MIN_SWEEP_DEGREES = 25.0
@@ -185,8 +189,8 @@ object Bends {
     /**
      * Rotation en deçà de laquelle on tient le pas pour droit.
      *
-     * C'est le seuil de bruit : sur vingt mètres, trois degrés valent un mètre d'écart
-     * latéral, soit l'incertitude ordinaire d'un point GPS.
+     * C'est le seuil de bruit : sur quinze mètres, deux mètres d'écart latéral — l'ordinaire
+     * d'un point GPS mal placé — font sept degrés et demi. Neuf laisse la marge.
      */
-    private const val ROTATION_FLOOR_DEGREES = 3.0
+    private const val ROTATION_FLOOR_DEGREES = 9.0
 }
