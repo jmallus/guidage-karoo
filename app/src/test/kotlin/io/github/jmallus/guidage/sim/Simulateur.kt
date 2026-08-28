@@ -11,14 +11,19 @@ import io.github.jmallus.guidage.core.PaceLearner
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.DashboardModels
+import io.github.jmallus.guidage.extension.FieldModels
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.settings.GuidageSettings
+import io.github.jmallus.guidage.ui.ClimbRenderer
 import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
+import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.PreviewData
+import io.github.jmallus.guidage.ui.ProfileRenderer
+import io.hammerhead.karooext.models.ViewConfig
 
 /**
  * Le tableau de bord de l'extension, joué sur une sortie simulée.
@@ -95,6 +100,58 @@ class Simulateur(
         return apprentissage.pace
     }
 
+    /**
+     * L'état de la sortie à cet instant, tel que l'extension le recevrait du Karoo.
+     *
+     * Les trois champs graphiques en partent tous : ils doivent montrer le même instant, sinon
+     * les comparer n'apprend rien — et c'est pour les comparer qu'ils sont côte à côte.
+     */
+    private fun instantane(secondes: Double): GuidanceSnapshot {
+        val instant = sortie.a(secondes)
+        val maintenant = departMillis + (secondes * 1_000).toLong()
+        val etat = GuidanceState(
+            route = PreviewData.route,
+            distanceAlongRoute = instant.distance,
+            distanceRemaining = instant.distanceRestante,
+            currentGrade = instant.pente,
+        )
+        // Le point est daté de l'instant courant : l'extrapolation qui rattrape le retard du
+        // GPS n'a donc rien à rattraper. C'est voulu — le simulateur montre la trajectoire
+        // telle qu'elle est, non telle qu'on la devine.
+        return GuidanceSnapshot(
+            state = etat,
+            units = Units.METRIC,
+            location = RiderLocation(instant.position, instant.cap, receivedAtMillis = maintenant),
+        )
+    }
+
+    private fun reglages() = GuidageSettings(guidanceZone = zone, mapZoom = portee)
+
+    /** Le champ « Profil à venir », avec son échelle comprimée au loin. */
+    fun imageProfil(
+        secondes: Double,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR_PROFIL,
+    ): Bitmap = ProfileRenderer.render(
+        largeur,
+        hauteur,
+        FieldModels.profile(context, instantane(secondes), reglages(), preview = false),
+        FieldPalette.of(context),
+    )
+
+    /** Le champ « Prochaine côte ». */
+    fun imageCote(
+        secondes: Double,
+        largeur: Int = LARGEUR_ANNEXE,
+        hauteur: Int = HAUTEUR_COTE,
+    ): Bitmap = ClimbRenderer.render(
+        largeur,
+        hauteur,
+        FieldModels.climb(context, instantane(secondes), preview = false),
+        ViewConfig.Alignment.RIGHT,
+        FieldPalette.of(context),
+    )
+
     fun modele(secondes: Double): DashboardModel {
         val instant = sortie.a(secondes)
         val maintenant = departMillis + (secondes * 1_000).toLong()
@@ -116,27 +173,11 @@ class Simulateur(
             pace = allure(secondes),
         )
 
-        val etat = GuidanceState(
-            route = PreviewData.route,
-            distanceAlongRoute = instant.distance,
-            distanceRemaining = instant.distanceRestante,
-            currentGrade = instant.pente,
-        )
-
-        // Le point est daté de l'instant courant : l'extrapolation qui rattrape le retard du
-        // GPS n'a donc rien à rattraper. C'est voulu — le simulateur montre la trajectoire
-        // telle qu'elle est, non telle qu'on la devine.
-        val instantane = GuidanceSnapshot(
-            state = etat,
-            units = Units.METRIC,
-            location = RiderLocation(instant.position, instant.cap, receivedAtMillis = maintenant),
-        )
-
         return DashboardModels.build(
             context = context,
-            snapshot = instantane,
+            snapshot = instantane(secondes),
             rideData = releve,
-            settings = GuidageSettings(guidanceZone = zone, mapZoom = portee),
+            settings = reglages(),
             preview = false,
             roadSource = source,
             nowMillis = maintenant,
@@ -185,6 +226,26 @@ class Simulateur(
 
         /** La hauteur relevée sur l'appareil pour un champ occupant toute la grille. */
         private const val HAUTEUR_CHAMP = 642
+
+        /**
+         * Les tailles des champs annexes, déduites de la grille et non relevées.
+         *
+         * Le Karoo découpe l'écran sur une grille de soixante : un champ pleine largeur sur un
+         * quart de hauteur vaut 60 × 15, une demi-largeur 30 × 15. Ces valeurs s'en déduisent
+         * de la seule mesure qu'on ait — les 478 × 642 du plein écran — et ce sont donc des
+         * approximations, à la différence de celle-là.
+         *
+         * Les relever ne coûte rien maintenant : poser ces deux champs sur une page, l'ouvrir,
+         * et lire la carte « Place allouée au champ » de l'application, qui note désormais
+         * chaque champ graphique séparément.
+         */
+        const val LARGEUR_ANNEXE = LARGEUR / 2
+
+        /** Un champ pleine largeur sur un quart de hauteur : 60 × 15 sur la grille. */
+        val HAUTEUR_PROFIL: Int = HAUTEUR / 4
+
+        /** Un champ demi-largeur sur un quart de hauteur : 30 × 15. */
+        val HAUTEUR_COTE: Int = HAUTEUR / 4
 
         /**
          * Le corps que le Karoo emploie lui-même pour un champ numérique de cette taille.

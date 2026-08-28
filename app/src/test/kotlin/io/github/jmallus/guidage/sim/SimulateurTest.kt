@@ -256,6 +256,44 @@ class SimulateurTest {
         ecrire(decroche, File(dossier, "hors-itineraire.png"))
     }
 
+    /**
+     * Les deux champs annexes, que la fenêtre montre à côté du tableau de bord.
+     *
+     * Ils passent par les mêmes constructions de modèle et les mêmes rendus que l'appareil :
+     * ce qu'on vérifie ici, c'est qu'ils dessinent réellement quelque chose à chaque moment de
+     * la sortie. Un champ vide ne lève aucune exception et se compile parfaitement — et il
+     * n'échouerait qu'à l'écran, où personne ne le regarderait avant une sortie.
+     */
+    @Test
+    fun `les champs annexes se dessinent tout au long de la sortie`() {
+        val simulateur = Simulateur(context)
+        val dossier = File("build/simulateur").apply { mkdirs() }
+
+        for (part in PARTS_CONTROLEES) {
+            val secondes = simulateur.sortie.duree * part
+            val profil = simulateur.imageProfil(secondes)
+            assertEquals(Simulateur.LARGEUR, profil.width)
+            assertEquals(Simulateur.HAUTEUR_PROFIL, profil.height)
+            assertTrue(
+                "le profil ne montre presque rien à ${(part * 100).toInt()} %",
+                couleursDistinctes(profil) > 6,
+            )
+
+            val cote = simulateur.imageCote(secondes)
+            assertEquals(Simulateur.LARGEUR_ANNEXE, cote.width)
+            assertEquals(Simulateur.HAUTEUR_COTE, cote.height)
+            assertTrue(
+                "la côte ne montre presque rien à ${(part * 100).toInt()} %",
+                couleursDistinctes(cote) > 3,
+            )
+
+            if (part == PARTS_CONTROLEES.first()) {
+                ecrire(profil, File(dossier, "champ-profil.png"))
+                ecrire(cote, File(dossier, "champ-cote.png"))
+            }
+        }
+    }
+
     /* -------------------------------------------------------------- la fenêtre */
 
     /**
@@ -311,11 +349,8 @@ class SimulateurTest {
             if (!enPause) {
                 secondes = avancer(secondes, acceleration / IMAGES_PAR_SECONDE, simulateur)
             }
-            val image = simulateur.image(secondes)
             fenetre.montrer(
-                pixelsDe(image),
-                image.width,
-                image.height,
+                champs(simulateur, secondes),
                 ligneEtat(simulateur, secondes, acceleration, enPause),
             )
             Thread.sleep((1_000 / IMAGES_PAR_SECONDE).toLong())
@@ -323,6 +358,21 @@ class SimulateurTest {
     }
 
     /* -------------------------------------------------------------- outillage */
+
+    /**
+     * Tous les champs graphiques de l'extension, au même instant de la sortie.
+     *
+     * Le champ « Prochain point d'intérêt » n'y est pas : il est numérique, le Karoo le dessine
+     * lui-même à partir d'une valeur, et l'extension n'en produit aucune image à montrer.
+     */
+    private fun champs(simulateur: Simulateur, secondes: Double): List<Champ> = listOf(
+        champ("Tableau de bord", simulateur.image(secondes)),
+        champ("Profil à venir", simulateur.imageProfil(secondes)),
+        champ("Prochaine côte", simulateur.imageCote(secondes)),
+    )
+
+    private fun champ(nom: String, image: Bitmap) =
+        Champ(nom, pixelsDe(image), image.width, image.height)
 
     private fun avancer(secondes: Double, pas: Double, simulateur: Simulateur): Double =
         (secondes + pas).coerceIn(0.0, simulateur.sortie.duree)

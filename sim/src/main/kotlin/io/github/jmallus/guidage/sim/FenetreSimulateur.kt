@@ -18,12 +18,28 @@ import java.awt.event.WindowEvent
 import java.awt.image.BufferedImage
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.max
 import javax.swing.JFrame
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import javax.swing.UIManager
 import javax.swing.plaf.metal.MetalLookAndFeel
+
+/**
+ * Un champ à afficher, tel que l'appareil le dessinerait.
+ *
+ * Les pixels sont donnés en ARGB rangés par lignes, et non en image : la fenêtre vit dans un
+ * module qui ne connaît pas Android, et le rendu dans un test compilé contre « android.jar ».
+ * Un tableau d'entiers est le plus riche des types que les deux mondes partagent.
+ */
+class Champ(
+    /** Le nom du champ dans le sélecteur du Karoo, écrit au-dessus de son image. */
+    val nom: String,
+    val pixels: IntArray,
+    val largeur: Int,
+    val hauteur: Int,
+)
 
 /** Ce que le clavier demande au simulateur, lu par la boucle de rendu. */
 enum class Commande {
@@ -96,21 +112,49 @@ class FenetreSimulateur(
     /** Le facteur effectivement appliqué : la taille réelle, corrigée à la main si besoin. */
     private val facteur: Double get() = tailleReelle * echelle
 
+    /**
+     * Le tableau de bord à gauche, les autres champs empilés à droite.
+     *
+     * Tous au **même facteur** : c'est la seule disposition qui permette de juger des tailles
+     * de texte d'un champ à l'autre. Les mettre chacun à sa taille confortable donnerait des
+     * chiffres qui paraissent comparables et ne le sont pas — le défaut même qu'on a passé la
+     * journée à corriger sur la hauteur du champ.
+     */
     private val toile = object : JPanel() {
         override fun paintComponent(graphics: Graphics) {
             super.paintComponent(graphics)
-            val image = affichee ?: return
+            if (affiches.isEmpty()) return
             val plan = graphics as Graphics2D
             plan.setRenderingHint(
                 RenderingHints.KEY_INTERPOLATION,
                 RenderingHints.VALUE_INTERPOLATION_BILINEAR,
             )
+            plan.font = Font(Font.SANS_SERIF, Font.PLAIN, 11)
+
+            val (premier, autres) = affiches.first() to affiches.drop(1)
+            val hauteurTotale = (premier.second.height * facteur).toInt()
+            val y = (height - hauteurTotale) / 2
+            val x = MARGE_REGLE + 12
+
+            plan.dessiner(premier, x, y)
+            dessinerRegle(plan, x, y, hauteurTotale)
+
+            var colonne = x + (premier.second.width * facteur).toInt() + ECART_COLONNES
+            var haut = y
+            autres.forEach { champ ->
+                plan.dessiner(champ, colonne, haut)
+                haut += (champ.second.height * facteur).toInt() + ECART_CHAMPS + LIBELLE
+            }
+        }
+
+        /** Le champ, et son nom juste au-dessus : sans lui, on juge une image sans savoir laquelle. */
+        private fun Graphics2D.dessiner(champ: Pair<String, BufferedImage>, x: Int, y: Int) {
+            val (nom, image) = champ
             val largeur = (image.width * facteur).toInt()
             val hauteur = (image.height * facteur).toInt()
-            val x = (width - largeur) / 2
-            val y = (height - hauteur) / 2
-            plan.drawImage(image, x, y, largeur, hauteur, null)
-            dessinerRegle(plan, x, y, hauteur)
+            color = Color(0x94, 0x8C, 0x7C)
+            drawString("$nom · ${image.width}×${image.height}", x, y - 5)
+            drawImage(image, x, y, largeur, hauteur, null)
         }
     }
 
@@ -151,7 +195,10 @@ class FenetreSimulateur(
     private val cadre = JFrame("Guidage — simulateur")
 
     @Volatile
-    private var affichee: BufferedImage? = null
+    private var affiches: List<Pair<String, BufferedImage>> = emptyList()
+
+    /** Vrai dès que la fenêtre a été redimensionnée sur les champs réellement reçus. */
+    private var ajustee = false
 
     init {
         toile.background = Color(0x20, 0x22, 0x24)
@@ -225,11 +272,23 @@ class FenetreSimulateur(
     /** Retire la prochaine commande du clavier, ou null s'il n'y en a plus. */
     fun prochaineCommande(): Commande? = commandes.poll()
 
-    /** Affiche une image, donnée en pixels ARGB rangés par lignes. */
-    fun montrer(pixels: IntArray, largeur: Int, hauteur: Int, ligneEtat: String) {
-        affichee = versImageSwing(pixels, largeur, hauteur)
+    /**
+     * Affiche les champs, le premier tenant la colonne de gauche.
+     *
+     * Tous à la fois et non l'un après l'autre : un champ ne se juge pas seul. Le tableau de
+     * bord donne l'échelle des chiffres, le profil et la côte doivent s'y accorder, et une
+     * touche qui ferait défiler les vues obligerait à comparer de mémoire.
+     */
+    fun montrer(champs: List<Champ>, ligneEtat: String) {
+        if (champs.isEmpty()) return
+        affiches = champs.map { it.nom to versImageSwing(it.pixels, it.largeur, it.hauteur) }
         SwingUtilities.invokeLater {
             etat.text = " $ligneEtat"
+            if (!ajustee) {
+                ajustee = true
+                toile.preferredSize = tailleVoulue()
+                cadre.pack()
+            }
             toile.repaint()
         }
     }
@@ -251,10 +310,29 @@ class FenetreSimulateur(
         }
     }
 
-    private fun tailleVoulue() = Dimension(
-        (largeurChamp * facteur).toInt() + MARGE_REGLE + 24,
-        (hauteurChamp * facteur).toInt() + 24,
-    )
+    /**
+     * La taille de la fenêtre.
+     *
+     * Avant la première image, seul le champ principal est connu — d'où les dimensions passées
+     * au constructeur, qui ne servent qu'à ouvrir la fenêtre à peu près juste. Dès que les
+     * champs arrivent, elle se recalcule sur eux et la fenêtre se réajuste une fois.
+     */
+    private fun tailleVoulue(): Dimension {
+        val images = affiches.map { it.second }
+        val principal = images.firstOrNull()
+        val largeurPrincipale = ((principal?.width ?: largeurChamp) * facteur).toInt()
+        val hauteurPrincipale = ((principal?.height ?: hauteurChamp) * facteur).toInt()
+
+        val annexes = images.drop(1)
+        val largeurAnnexes = annexes.maxOfOrNull { (it.width * facteur).toInt() } ?: 0
+        val hauteurAnnexes = annexes.sumOf { (it.height * facteur).toInt() + ECART_CHAMPS + LIBELLE }
+
+        return Dimension(
+            MARGE_REGLE + 12 + largeurPrincipale +
+                (if (annexes.isEmpty()) 0 else ECART_COLONNES + largeurAnnexes) + 24,
+            max(hauteurPrincipale, hauteurAnnexes) + LIBELLE + 24,
+        )
+    }
 
     /**
      * La ligne d'aide, qui porte aussi la largeur physique obtenue.
@@ -296,6 +374,15 @@ class FenetreSimulateur(
 
         /** Place réservée à gauche de l'image pour la règle graduée. */
         const val MARGE_REGLE = 34
+
+        /** Blanc entre la colonne du tableau de bord et celle des autres champs. */
+        const val ECART_COLONNES = 28
+
+        /** Blanc entre deux champs empilés. */
+        const val ECART_CHAMPS = 10
+
+        /** Hauteur réservée au nom écrit au-dessus de chaque champ. */
+        const val LIBELLE = 18
 
         /** Propriété qui fixe la densité de l'écran hôte, faute que le système sache la dire. */
         const val PROPRIETE_PPP = "guidage.ppp"

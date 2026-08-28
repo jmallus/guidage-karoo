@@ -4,19 +4,10 @@ import android.content.Context
 import androidx.compose.ui.unit.DpSize
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
-import io.github.jmallus.guidage.R
-import io.github.jmallus.guidage.core.ClimbStatus
-import io.github.jmallus.guidage.core.Format
-import io.github.jmallus.guidage.core.Guidance
-import io.github.jmallus.guidage.core.GuidanceState
-import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.karoo.GuidanceProvider
-import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.ui.BitmapField
-import io.github.jmallus.guidage.ui.ClimbFieldModel
 import io.github.jmallus.guidage.ui.ClimbRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
-import io.github.jmallus.guidage.ui.PreviewData
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.internal.ViewEmitter
@@ -51,7 +42,7 @@ class ClimbDataType(
     override fun startStream(emitter: Emitter<StreamState>) {
         val job = CoroutineScope(Dispatchers.IO).launch {
             provider.snapshot
-                .map { snapshot -> climbStatus(snapshot.state) }
+                .map { snapshot -> FieldModels.climbStatus(snapshot.state) }
                 .map { status ->
                     if (status == null) {
                         StreamState.NotAvailable
@@ -75,7 +66,7 @@ class ClimbDataType(
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
             provider.snapshot
-                .map { snapshot -> buildModel(context, snapshot, config) }
+                .map { snapshot -> FieldModels.climb(context, snapshot, config.preview) }
                 .distinctUntilChanged()
                 .map { model ->
                     val (width, height) = FieldSize.of(config)
@@ -88,50 +79,6 @@ class ClimbDataType(
         }
         emitter.setCancellable { job.cancel() }
     }
-
-    private fun climbStatus(state: GuidanceState): ClimbStatus? {
-        val route = state.route ?: return null
-        val along = state.distanceAlongRoute ?: return null
-        return Guidance.climbStatus(route, along)
-    }
-
-    private fun buildModel(context: Context, snapshot: GuidanceSnapshot, config: ViewConfig): ClimbFieldModel {
-        val state = if (config.preview && !snapshot.state.navigating) {
-            GuidanceState(PreviewData.route, PreviewData.DISTANCE_ALONG_ROUTE, null, null)
-        } else {
-            snapshot.state
-        }
-        val status = climbStatus(state)
-            ?: return ClimbFieldModel(
-                primary = "—",
-                caption = context.getString(
-                    if (state.navigating) R.string.field_no_climb_ahead else R.string.field_no_route,
-                ),
-            )
-
-        val units = snapshot.units
-        return if (status.onClimb) {
-            ClimbFieldModel(
-                header = context.getString(R.string.field_climb_in_progress),
-                primary = Format.distance(status.distanceToTop, units),
-                secondaryTop = Format.grade(status.climb.grade),
-                secondaryBottom = "+${Format.elevation(status.elevationToTop, units)}",
-                progress = status.progress.toFloat(),
-                accentGrade = status.climb.grade,
-            )
-        } else {
-            ClimbFieldModel(
-                header = context.getString(R.string.field_climb_number, status.number, status.totalClimbs),
-                primary = Format.distance(status.distanceToStart, units),
-                secondaryTop = Format.grade(status.climb.grade),
-                secondaryBottom = climbSizeLabel(status, units),
-                accentGrade = status.climb.grade,
-            )
-        }
-    }
-
-    private fun climbSizeLabel(status: ClimbStatus, units: Units): String =
-        "${Format.distance(status.climb.length, units)} · +${Format.elevation(status.climb.totalElevation, units)}"
 
     companion object {
         const val TYPE_ID = "cote"

@@ -285,9 +285,20 @@ que celle d'une maquette.
 | `+` `-` | ajuster l'échelle par pas de 5 %, la règle en témoin |
 | `échap` | quitter |
 
+**Les trois champs graphiques à la fois.** Le tableau de bord tient la colonne de gauche, le
+profil et la prochaine côte s'empilent à droite, tous alimentés par le même instant de la
+sortie et tracés **au même facteur**. C'est la seule disposition qui permette de juger des
+tailles de texte d'un champ à l'autre : les mettre chacun à sa taille confortable donnerait
+des chiffres qui paraissent comparables sans l'être. Le champ « Prochain point d'intérêt »
+n'y figure pas — il est numérique, et c'est le Karoo qui le dessine.
+
+Seule la taille du plein écran est un relevé. Celles des deux autres se déduisent de la
+grille de soixante (60 × 15 et 30 × 15) et restent donc des approximations, jusqu'à ce qu'on
+pose ces champs sur une page et qu'on lise la carte « Place allouée au champ ».
+
 **Ce qu'il montre est le code de l'appareil.** Ce n'est pas une seconde écriture de
-l'affichage : le simulateur assemble l'état d'une sortie, puis appelle le constructeur de
-modèle et le rendu de l'extension — les mêmes classes exactement, dessinant dans le même
+l'affichage : le simulateur assemble l'état d'une sortie, puis appelle les constructeurs de
+modèle et les rendus de l'extension — les mêmes classes exactement, dessinant dans le même
 `Canvas` d'Android. C'est ce qui le distingue des [planches](docs/planches.md), portées en
 JavaScript et qui, elles, peuvent dériver.
 

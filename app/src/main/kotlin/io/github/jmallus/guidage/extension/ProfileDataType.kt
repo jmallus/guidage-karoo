@@ -4,20 +4,10 @@ import android.content.Context
 import androidx.compose.ui.unit.DpSize
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
-import io.github.jmallus.guidage.R
-import io.github.jmallus.guidage.core.Format
-import io.github.jmallus.guidage.core.Guidance
-import io.github.jmallus.guidage.core.GuidanceState
-import io.github.jmallus.guidage.core.ProfileWindow
-import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.karoo.GuidanceProvider
-import io.github.jmallus.guidage.karoo.GuidanceSnapshot
-import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.settings.SettingsRepository
 import io.github.jmallus.guidage.ui.BitmapField
 import io.github.jmallus.guidage.ui.FieldPalette
-import io.github.jmallus.guidage.ui.PreviewData
-import io.github.jmallus.guidage.ui.ProfileFieldModel
 import io.github.jmallus.guidage.ui.ProfileRenderer
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
@@ -53,7 +43,7 @@ class ProfileDataType(
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
             combine(provider.snapshot, settingsRepository.settings) { snapshot, settings ->
-                buildModel(context, snapshot, settings, config)
+                FieldModels.profile(context, snapshot, settings, config.preview)
             }
                 .distinctUntilChanged()
                 .map { model ->
@@ -68,51 +58,7 @@ class ProfileDataType(
         emitter.setCancellable { job.cancel() }
     }
 
-    private fun buildModel(
-        context: Context,
-        snapshot: GuidanceSnapshot,
-        settings: GuidageSettings,
-        config: ViewConfig,
-    ): ProfileFieldModel {
-        val state = if (config.preview && !snapshot.state.navigating) {
-            GuidanceState(PreviewData.route, PreviewData.DISTANCE_ALONG_ROUTE, null, null)
-        } else {
-            snapshot.state
-        }
-        val route = state.route
-        val along = state.distanceAlongRoute
-        if (route == null || along == null) return emptyModel(context, settings)
-
-        // La position est arrondie pour éviter de redessiner à chaque mètre parcouru.
-        val quantized = (along / POSITION_STEP_METERS).toInt() * POSITION_STEP_METERS
-        val window = Guidance.profileToFinish(route, quantized)
-        val units = snapshot.units
-        val ascent = route.profile?.ascentBetween(window.start, window.end)
-
-        return ProfileFieldModel(
-            window = window,
-            climbs = route.climbs,
-            ascentLabel = ascent?.let { "+${Format.elevation(it, units)}" },
-            rangeLabel = rangeLabel(window.distanceSpan, units),
-            emptyMessage = context.getString(R.string.field_no_route),
-            colorByGrade = settings.colorByGrade,
-            units = units,
-        )
-    }
-
-    private fun emptyModel(context: Context, settings: GuidageSettings) = ProfileFieldModel(
-        window = ProfileWindow(emptyList(), 0.0, 0.0, 0.0, 0.0),
-        emptyMessage = context.getString(R.string.field_no_route),
-        colorByGrade = settings.colorByGrade,
-    )
-
-    private fun rangeLabel(span: Double, units: Units): String? {
-        if (span <= 0.0) return null
-        return Format.longDistance(span, units)
-    }
-
     companion object {
         const val TYPE_ID = "profil"
-        private const val POSITION_STEP_METERS = 10.0
     }
 }
