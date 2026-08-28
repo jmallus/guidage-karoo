@@ -76,7 +76,7 @@ class RideDataProvider(
         gears(),
         climb(),
     ) { values, profile, drivetrain, climb ->
-        observePace(speed = values[0], grade = values[5], distance = values[6])
+        observePace(speed = values[0], grade = values[5], power = values[2], distance = values[6])
         RideData(
             speed = values[0],
             averageSpeed = values[1],
@@ -171,7 +171,7 @@ class RideDataProvider(
      * Le compteur de distance qui recule est le seul signal fiable de départ : l'état de la
      * sortie passe aussi par « en pause », d'où l'on repart sans avoir rien oublié.
      */
-    private fun observePace(speed: Double?, grade: Double?, distance: Double?) {
+    private fun observePace(speed: Double?, grade: Double?, power: Double?, distance: Double?) {
         val now = clock()
         if (distance != null) {
             val previous = lastDistance
@@ -188,6 +188,7 @@ class RideDataProvider(
             deltaSeconds = (now - previousMillis) / 1_000.0,
             speedMetersPerSecond = speed,
             gradePercent = grade,
+            powerWatts = power,
         )
     }
 

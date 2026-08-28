@@ -127,4 +127,20 @@ object FieldPalette {
 
     /** Couleur neutre utilisée quand la coloration par pente est désactivée. */
     const val NEUTRAL = 0xFF78909C.toInt()
+
+    /**
+     * Couleur d'un virage selon son rayon (m).
+     *
+     * Les seuils sont ceux qu'on prend au frein : en deçà de quinze mètres c'est une
+     * épingle, en deçà de trente il faut ralentir franchement, en deçà de soixante on lève
+     * du gaz. Au-delà, le virage se prend sans y penser et prend la teinte neutre plutôt
+     * que le blanc — dans la langue du Karoo le blanc dit « métadonnée », et un virage
+     * roulant n'a aucune raison d'être ce qui brille le plus à l'écran.
+     */
+    fun bendColor(radiusMeters: Double): Int = when {
+        radiusMeters < 15.0 -> KarooColors.UI_RED
+        radiusMeters < 30.0 -> Zones.POWER_COLORS[4]
+        radiusMeters < 60.0 -> Zones.POWER_COLORS[2]
+        else -> NEUTRAL
+    }
 }
