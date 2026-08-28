@@ -60,6 +60,13 @@
         icon="@drawable/ic_distance" />
 
     <DataType
+        typeId="reserve"
+        displayName="@string/field_resupply_name"
+        description="@string/field_resupply_description"
+        graphical="true"
+        icon="@drawable/ic_poi" />
+
+    <DataType
         typeId="poi"
         displayName="@string/field_poi_name"
         description="@string/field_poi_description"

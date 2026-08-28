@@ -121,6 +121,22 @@ object PreviewData {
                     distanceAlongRoute = 2_000.0,
                     position = previewPath.getOrNull(16),
                 ),
+                // Deux points de plus, pour que le champ « Réserve » ait une répartition à
+                // montrer et non un point isolé : c'est l'espacement qu'il donne à lire.
+                RoutePoi(
+                    id = "preview-coffee",
+                    name = "Café du Pont",
+                    type = "coffee",
+                    distanceAlongRoute = 4_200.0,
+                    position = previewPath.getOrNull(34),
+                ),
+                RoutePoi(
+                    id = "preview-store",
+                    name = "Épicerie",
+                    type = "convenience_store",
+                    distanceAlongRoute = 5_600.0,
+                    position = previewPath.getOrNull(45),
+                ),
             ),
             path = previewPath,
         )

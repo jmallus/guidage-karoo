@@ -7,12 +7,16 @@ import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.ProfileWindow
+import io.github.jmallus.guidage.core.Resupply
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.ClimbFieldModel
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileFieldModel
+import io.github.jmallus.guidage.ui.ResupplyFieldModel
+import io.github.jmallus.guidage.ui.ResupplyStop
+import io.github.jmallus.guidage.ui.StopKind
 
 /**
  * Ce qu'affichent les champs « Profil à venir » et « Prochaine côte ».
@@ -96,6 +100,68 @@ object FieldModels {
                 accentGrade = status.climb.grade,
             )
         }
+    }
+
+    /**
+     * La réserve : ce que l'itinéraire offre encore, et ce qu'il n'offre plus.
+     *
+     * Le modèle porte **tout** l'itinéraire et non la portion à venir. Ce n'est pas de la
+     * générosité : le vide qui suit le dernier point ne se voit que comparé aux points qui le
+     * précèdent, et une ligne qui commencerait au coureur montrerait un vide sans montrer
+     * qu'il est anormal.
+     */
+    fun resupply(
+        context: Context,
+        snapshot: GuidanceSnapshot,
+        preview: Boolean,
+        types: Set<String>,
+    ): ResupplyFieldModel {
+        val state = substituted(snapshot, preview)
+        val route = state.route
+        val along = state.distanceAlongRoute
+        if (route == null || along == null) {
+            return ResupplyFieldModel(emptyMessage = context.getString(R.string.field_no_route))
+        }
+
+        val units = snapshot.units
+        val length = route.totalDistance.takeIf { it > 0.0 }
+            ?: return ResupplyFieldModel(emptyMessage = context.getString(R.string.field_no_route))
+        val points = Resupply.stops(route, types)
+        if (points.isEmpty()) {
+            return ResupplyFieldModel(emptyMessage = context.getString(R.string.field_resupply_none))
+        }
+
+        val status = Resupply.status(route, along, types)
+        val crossing = status.crossing
+        val lastUseful = crossing?.lastPoi?.poi
+        val next = status.next?.poi
+
+        return ResupplyFieldModel(
+            warningLabel = crossing?.let { context.getString(R.string.field_resupply_last_before) },
+            warningValue = crossing?.let { Format.distance(it.length, units) },
+            sinceLabel = context.getString(R.string.field_resupply_since),
+            sinceValue = status.sinceLast?.let { Format.distance(it, units) },
+            stops = points.map { poi ->
+                ResupplyStop(
+                    fraction = (poi.distanceAlongRoute / length).toFloat(),
+                    kind = when {
+                        poi === lastUseful -> StopKind.LAST_USEFUL
+                        poi === next -> StopKind.NEXT
+                        poi.distanceAlongRoute <= along -> StopKind.PASSED
+                        else -> StopKind.AHEAD
+                    },
+                )
+            },
+            position = (along / length).toFloat(),
+            // La traversée commence au dernier point utile, ou sous les roues du coureur quand
+            // il n'y a plus rien devant : il est alors déjà dedans.
+            dryFrom = crossing?.let { (((it.lastPoi?.poi?.distanceAlongRoute ?: along)) / length).toFloat() },
+            lastUsefulCaption = lastUseful?.let { context.getString(R.string.field_resupply_last_useful) },
+            dryCaption = crossing?.let { context.getString(R.string.field_resupply_dry) },
+            nextLabel = context.getString(R.string.field_resupply_next),
+            nextName = next?.let { PoiLabels.label(context, it) },
+            nextValue = status.next?.let { Format.distance(it.distance, units) },
+        )
     }
 
     fun climbStatus(state: GuidanceState): ClimbStatus? {

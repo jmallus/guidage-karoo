@@ -18,6 +18,7 @@ import io.github.jmallus.guidage.extension.DashboardModels
 import io.github.jmallus.guidage.extension.EffortModels
 import io.github.jmallus.guidage.extension.FieldModels
 import io.github.jmallus.guidage.extension.SurfaceModels
+import io.github.jmallus.guidage.extension.ResupplyTypes
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
@@ -32,6 +33,7 @@ import io.github.jmallus.guidage.ui.EffortRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
+import io.github.jmallus.guidage.ui.ResupplyRenderer
 import io.github.jmallus.guidage.ui.SurfaceRenderer
 import io.hammerhead.karooext.models.ViewConfig
 
@@ -240,11 +242,17 @@ class Simulateur(
         FieldPalette.of(context),
     )
 
-    /** Le champ « Virages ». */
+    /**
+     * Le champ « Virages », en pleine page.
+     *
+     * Comme le revêtement et la réserve : ces trois-là ne portent pas une valeur mais une
+     * répartition, et une bande n'en montrerait que les deux chiffres — c'est-à-dire ce que
+     * les autres champs disent déjà.
+     */
     fun imageVirages(
         secondes: Double,
-        largeur: Int = LARGEUR_ANNEXE,
-        hauteur: Int = HAUTEUR_ANNEXE,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR,
     ): Bitmap = BendRenderer.render(
         largeur,
         hauteur,
@@ -267,15 +275,27 @@ class Simulateur(
         )
     }
 
-    /** Le champ « Revêtement ». */
+    /** Le champ « Revêtement », en pleine page. */
     fun imageRevetement(
         secondes: Double,
         largeur: Int = LARGEUR,
-        hauteur: Int = HAUTEUR_ANNEXE,
+        hauteur: Int = HAUTEUR,
     ): Bitmap = SurfaceRenderer.render(
         largeur,
         hauteur,
         revetement.build(context, instantane(secondes), preview = false),
+        FieldPalette.of(context),
+    )
+
+    /** Le champ « Réserve », en pleine page. */
+    fun imageReserve(
+        secondes: Double,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR,
+    ): Bitmap = ResupplyRenderer.render(
+        largeur,
+        hauteur,
+        FieldModels.resupply(context, instantane(secondes), preview = false, ResupplyTypes.ALL),
         FieldPalette.of(context),
     )
 

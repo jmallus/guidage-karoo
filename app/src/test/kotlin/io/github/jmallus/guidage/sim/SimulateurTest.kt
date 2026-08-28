@@ -295,6 +295,7 @@ class SimulateurTest {
                 "champ-revetement" to simulateur.imageRevetement(secondes),
                 "champ-effort" to simulateur.imageEffort(secondes),
                 "champ-virages" to simulateur.imageVirages(secondes),
+                "champ-reserve" to simulateur.imageReserve(secondes),
             )
             autres.forEach { (nom, image) ->
                 assertTrue(
@@ -383,13 +384,15 @@ class SimulateurTest {
      * lui-même à partir d'une valeur, et l'extension n'en produit aucune image à montrer.
      */
     private fun champs(simulateur: Simulateur, secondes: Double): List<Champ> = listOf(
+        // Les pleines pages d'abord, chacune tenant sa colonne ; les champs de bande ensuite.
         champ("Tableau de bord", simulateur.image(secondes)),
+        champ("Réserve", simulateur.imageReserve(secondes)),
+        champ("Virages", simulateur.imageVirages(secondes)),
+        champ("Revêtement", simulateur.imageRevetement(secondes)),
         champ("Profil à venir", simulateur.imageProfil(secondes)),
         champ("Suivant la sortie", simulateur.imageContexte(secondes)),
-        champ("Revêtement", simulateur.imageRevetement(secondes)),
         champ("Prochaine côte", simulateur.imageCote(secondes)),
         champ("Budget d'effort", simulateur.imageEffort(secondes)),
-        champ("Virages", simulateur.imageVirages(secondes)),
     )
 
     private fun champ(nom: String, image: Bitmap) =

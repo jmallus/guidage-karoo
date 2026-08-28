@@ -116,4 +116,12 @@
     <string name="field_surface_next_trail">CHEMIN DANS</string>
     <string name="field_surface_next_cycleway">VOIE VERTE DANS</string>
     <string name="field_surface_next_road">ROUTE DANS</string>
+    <string name="field_resupply_name">Réserve</string>
+    <string name="field_resupply_description">Après quel point de ravitaillement il n\'y a plus rien. Ce n\'est pas « où est la prochaine eau » — l\'autre champ le dit — mais l\'annonce retournée : la ligne porte tout l\'itinéraire, les points passés en gris, le dernier utile cerclé de jaune, et à droite un segment rouge qui ne porte rien. C\'est ce vide qu\'on regarde. Demande une page entière.</string>
+    <string name="field_resupply_last_before">DERNIER RAVITAILLEMENT AVANT</string>
+    <string name="field_resupply_since">DEPUIS LE DERNIER</string>
+    <string name="field_resupply_next">PROCHAIN</string>
+    <string name="field_resupply_last_useful">DERNIER UTILE</string>
+    <string name="field_resupply_dry">RIEN</string>
+    <string name="field_resupply_none">Aucun ravitaillement sur l\'itinéraire</string>
 </resources>

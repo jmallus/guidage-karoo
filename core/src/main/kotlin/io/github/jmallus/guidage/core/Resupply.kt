@@ -51,6 +51,21 @@ object Resupply {
      */
     const val DEFAULT_CROSSING_METERS = 15_000.0
 
+    /**
+     * Tous les points de ravitaillement de l'itinéraire, du départ à l'arrivée.
+     *
+     * [status] répond à « que reste-t-il », qui suffit à une annonce. Une page entière montre
+     * autre chose : la répartition. Deux points collés au départ puis quarante kilomètres de
+     * rien ne se lisent pas dans un chiffre — c'est un vide qu'on regarde, et pour le voir il
+     * faut la ligne complète, ce qui est passé compris.
+     */
+    fun stops(route: Route, types: Set<String>): List<RoutePoi> =
+        if (types.isEmpty()) {
+            emptyList()
+        } else {
+            route.pois.filter { it.type in types }.sortedBy { it.distanceAlongRoute }
+        }
+
     fun status(
         route: Route,
         distanceAlongRoute: Double,
@@ -58,9 +73,7 @@ object Resupply {
         crossingMeters: Double = DEFAULT_CROSSING_METERS,
     ): ResupplyStatus {
         if (types.isEmpty()) return ResupplyStatus.NONE
-        val points = route.pois
-            .filter { it.type in types }
-            .sortedBy { it.distanceAlongRoute }
+        val points = stops(route, types)
 
         val ahead = points.filter { it.distanceAlongRoute > distanceAlongRoute }
         val behind = points.filter { it.distanceAlongRoute <= distanceAlongRoute }

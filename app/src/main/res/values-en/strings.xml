@@ -116,4 +116,12 @@
     <string name="field_surface_next_trail">TRACK IN</string>
     <string name="field_surface_next_cycleway">CYCLEWAY IN</string>
     <string name="field_surface_next_road">ROAD IN</string>
+    <string name="field_resupply_name">Reserve</string>
+    <string name="field_resupply_description">Which resupply point is the last one before there is nothing. Not “where is the next water” — the other field says that — but the announcement turned around: the line carries the whole route, passed points in grey, the last useful one ringed in yellow, and to its right a red segment carrying nothing. That emptiness is what you look at. Needs a full page.</string>
+    <string name="field_resupply_last_before">LAST RESUPPLY BEFORE</string>
+    <string name="field_resupply_since">SINCE LAST</string>
+    <string name="field_resupply_next">NEXT</string>
+    <string name="field_resupply_last_useful">LAST USEFUL</string>
+    <string name="field_resupply_dry">NOTHING</string>
+    <string name="field_resupply_none">No resupply on this route</string>
 </resources>
