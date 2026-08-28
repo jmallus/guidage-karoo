@@ -48,6 +48,7 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
             EffortDataType(provider, rideDataProvider, extension),
             BendDataType(provider, extension),
             ContextDataType(provider, rideDataProvider, extension),
+            SurfaceDataType(provider, roadMapRepository, extension),
             PoiDataType(provider, extension),
         )
     }
