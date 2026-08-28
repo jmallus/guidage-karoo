@@ -3,6 +3,7 @@ package io.github.jmallus.guidage.ui
 import io.github.jmallus.guidage.core.Drivetrain
 import io.github.jmallus.guidage.core.ElevationProfile
 import io.github.jmallus.guidage.core.GeoPoint
+import io.github.jmallus.guidage.core.LearnedPace
 import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.Route
 import io.github.jmallus.guidage.core.RouteClimb
@@ -218,6 +219,21 @@ object PreviewData {
         )
     }
 
+    /**
+     * Allure supposée déjà apprise, pour que l'aperçu montre la marge d'arrivée.
+     *
+     * Sans elle, l'aperçu retomberait sur l'heure fournie avec l'échantillon et le libellé
+     * n'afficherait jamais son « ± » — on choisirait le champ sans avoir vu ce qu'il fait.
+     */
+    private val previewPace = LearnedPace(
+        flatSpeed = 8.6,
+        climbRate = 0.18,
+        flatSpread = 0.11,
+        climbSpread = 0.16,
+        flatSeconds = 2_400.0,
+        climbSeconds = 900.0,
+    )
+
     private fun sample(
         speed: Double,
         averageSpeed: Double,
@@ -248,5 +264,6 @@ object PreviewData {
         arrivalTime = (nowMilliseconds + minutesToArrival * 60_000L).toDouble(),
         powerZones = previewPowerZones,
         heartRateZones = previewHeartRateZones,
+        pace = previewPace,
     )
 }

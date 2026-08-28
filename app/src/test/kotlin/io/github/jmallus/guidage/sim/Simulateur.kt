@@ -5,7 +5,9 @@ import android.graphics.Bitmap
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
+import io.github.jmallus.guidage.core.LearnedPace
 import io.github.jmallus.guidage.core.MapZoom
+import io.github.jmallus.guidage.core.PaceLearner
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.DashboardModels
@@ -66,6 +68,33 @@ class Simulateur(
         override fun notice(context: Context, position: GeoPoint?): String? = null
     }
 
+    /**
+     * L'allure du coureur fictif, apprise par le vrai code d'apprentissage.
+     *
+     * Le banc d'essai ne fabrique pas une allure toute faite : il rejoue la sortie pas à
+     * pas dans [PaceLearner], comme le ferait l'appareil. C'est ce qui permet d'y voir ce
+     * qu'on veut y voir — le libellé d'arrivée sans sa marge pendant les trois premières
+     * minutes de sortie, puis avec, et la marge qui se resserre en approchant.
+     *
+     * L'apprentissage n'avance que par pas entiers : l'état ne dépend alors que du nombre
+     * de pas franchis, et non du rythme auquel les images sont demandées.
+     */
+    private val apprentissage = PaceLearner()
+    private var appriseJusqua = 0.0
+
+    private fun allure(secondes: Double): LearnedPace {
+        if (secondes < appriseJusqua) {
+            apprentissage.reset()
+            appriseJusqua = 0.0
+        }
+        while (appriseJusqua + PAS_APPRENTISSAGE <= secondes) {
+            val instant = sortie.a(appriseJusqua + PAS_APPRENTISSAGE)
+            apprentissage.observe(PAS_APPRENTISSAGE, instant.vitesse, instant.pente)
+            appriseJusqua += PAS_APPRENTISSAGE
+        }
+        return apprentissage.pace
+    }
+
     fun modele(secondes: Double): DashboardModel {
         val instant = sortie.a(secondes)
         val maintenant = departMillis + (secondes * 1_000).toLong()
@@ -84,6 +113,7 @@ class Simulateur(
             onRoute = !horsItineraire,
             powerZones = zones.powerZones,
             heartRateZones = zones.heartRateZones,
+            pace = allure(secondes),
         )
 
         val etat = GuidanceState(
@@ -123,6 +153,9 @@ class Simulateur(
     }
 
     companion object {
+        /** Pas d'apprentissage de l'allure (s). */
+        private const val PAS_APPRENTISSAGE = 2.0
+
         /**
          * La largeur laissée au champ.
          *

@@ -21,13 +21,30 @@ sans construire un APK.
 
 | Champ | Type | Contenu |
 | --- | --- | --- |
-| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance parcourue, pente, distance restante, heure d'arrivée, et le profil de la côte en cours. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
+| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance parcourue, pente, distance restante, heure d'arrivée **avec sa marge**, et le profil de la côte en cours. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
 | **Profil à venir** | graphique | Le profil altimétrique de la portion devant vous (portée réglable de 1 à 15 km), rempli en couleur selon la pente, côtes de l'itinéraire surlignées avec leur pente moyenne, dénivelé positif restant sur la fenêtre. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
 
 « Profil à venir » et « Prochaine côte » s'adaptent à la taille et à l'alignement configurés
 dans le profil de page. Tous affichent un aperçu réaliste dans l'écran d'édition des pages.
+
+### L'heure d'arrivée
+
+Celle du Karoo extrapole la moyenne de la sortie, ce qui revient à supposer qu'un col se monte
+à la vitesse d'un faux plat : sur un parcours qui garde ses côtes pour la fin, l'heure annoncée
+recule de minute en minute.
+
+L'extension en mesure deux, séparément — la vitesse sur terrain roulant en km/h, la vitesse
+ascensionnelle en montée en mètres par heure — puis les applique au terrain qui reste, tel que
+le profil le décrit : le dénivelé d'un côté, la distance hors montées de l'autre, jamais les
+deux pour le même mètre. Les deux allures s'oublient doucement, sur un quart d'heure, car
+celle de la sixième heure n'est pas celle de la première.
+
+Le libellé porte la marge qu'on reconnaît à l'estimation — « ARRIVÉE ± 5 MIN » — calculée sur
+la régularité observée de chacune des deux allures et sur ce qui reste à faire. Elle se
+resserre en approchant. Tant que l'allure n'est pas assez observée, le champ affiche l'heure du
+Karoo sans marge : mieux vaut la sienne qu'une heure tirée de trente secondes de roulage.
 
 ### Annonces in-ride
 
@@ -267,6 +284,7 @@ core/                        module JVM pur, testable — aucune dépendance And
   Route.kt                   itinéraire, côtes, POI, état de guidage
   Guidance.kt                côte en cours/à venir, prochain POI, fenêtre de profil
   AlertEngine.kt             décide quelles annonces déclencher, sans répétition
+  Pacing.kt                  apprend les deux allures, en déduit l'arrivée et sa marge
   Format.kt                  formatage distances / dénivelés / pentes (métrique & impérial)
 
 app/                         extension Android
@@ -286,6 +304,7 @@ app/                         extension Android
 | Itinéraire, profil, côtes, POI | événement `OnNavigationState` |
 | Position sur l'itinéraire | `DISTANCE_TO_DESTINATION` (distance totale − distance restante) |
 | Pente instantanée | `ELEVATION_GRADE` |
+| Allure du coureur | mesurée en roulant sur `SMOOTHED_3S_AVERAGE_SPEED` et `ELEVATION_GRADE` |
 | Unités du coureur | événement `UserProfile` |
 | État de la sortie | événement `RideState` |
 
@@ -295,6 +314,9 @@ app/                         extension Android
   ou navigation vers un point. Sans navigation, ils indiquent « Pas d'itinéraire ».
 - Le profil altimétrique et la liste des côtes sont fournis par Karoo OS depuis karoo-ext 1.1.6 ;
   un Karoo à jour est nécessaire.
+- L'heure d'arrivée calculée demande trois minutes de roulage, et deux minutes de montée
+  quand il reste du dénivelé. Avant cela — et en l'absence de profil altimétrique — le champ
+  affiche celle du Karoo, sans marge.
 - En navigation **vers un point** (et non sur un itinéraire enregistré), Karoo ne fournit pas la
   longueur du trajet : elle est déduite du profil altimétrique. Sans profil, la position le long
   du trajet ne peut pas être calculée et les champs restent vides.

@@ -8,6 +8,7 @@ import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
+import io.github.jmallus.guidage.core.Pacing
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.Zones
@@ -87,7 +88,7 @@ object DashboardModels {
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
             midTiles = midTiles(context, units, rideData),
-            footerTiles = footerTiles(context, units, rideData),
+            footerTiles = footerTiles(context, units, rideData, state, nowMillis),
             climbBand = climbBand(state, units),
             palette = FieldPalette.of(context),
         )
@@ -297,21 +298,53 @@ object DashboardModels {
     )
 
     /** Ligne du bas : ce qu'il reste à parcourir. */
-    private fun footerTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
-        Tile(
-            label = context.getString(
-                R.string.dashboard_label_remaining,
-                remainingUnit(units).uppercase(),
+    private fun footerTiles(
+        context: Context,
+        units: Units,
+        rideData: RideData,
+        state: GuidanceState,
+        nowMillis: Long,
+    ): List<Tile> {
+        val estimate = Pacing.arrival(
+            pace = rideData.pace,
+            terrain = Pacing.terrain(
+                profile = state.route?.profile,
+                from = state.distanceAlongRoute ?: 0.0,
+                remainingDistance = rideData.distanceRemaining
+                    ?: state.distanceRemaining
+                    ?: 0.0,
             ),
-            value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-            icon = R.drawable.ic_distance_remaining,
-        ).splitDecimal(),
-        Tile(
-            label = context.getString(R.string.dashboard_label_arrival),
-            value = rideData.arrivalTime?.let { Format.clock(it) } ?: PLACEHOLDER,
-            icon = R.drawable.ic_arrival,
-        ),
-    )
+        )
+        // À défaut d'allure apprise, l'heure du Karoo : elle vaut mieux qu'un tiret.
+        val arrival = estimate
+            ?.let { nowMillis + (it.seconds * 1_000).toLong() }
+            ?.toDouble()
+            ?: rideData.arrivalTime
+        // La marge ne s'écrit qu'à partir de la minute. En dessous, elle dirait « ± 0 »,
+        // ce qui promet une précision que rien ne garantit — et le libellé, partagé avec
+        // celui d'à côté, rétrécit les deux quand il s'allonge.
+        val margin = estimate
+            ?.let { (it.marginSeconds / 60.0).roundToInt() }
+            ?.takeIf { it >= 1 }
+
+        return listOf(
+            Tile(
+                label = context.getString(
+                    R.string.dashboard_label_remaining,
+                    remainingUnit(units).uppercase(),
+                ),
+                value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
+                icon = R.drawable.ic_distance_remaining,
+            ).splitDecimal(),
+            Tile(
+                label = margin
+                    ?.let { context.getString(R.string.dashboard_label_arrival_margin, it) }
+                    ?: context.getString(R.string.dashboard_label_arrival),
+                value = arrival?.let { Format.clock(it) } ?: PLACEHOLDER,
+                icon = R.drawable.ic_arrival,
+            ),
+        )
+    }
 
     /**
      * Détache la décimale, écrite ensuite en exposant et sans séparateur.
