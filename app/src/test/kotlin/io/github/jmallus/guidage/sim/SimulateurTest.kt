@@ -287,9 +287,26 @@ class SimulateurTest {
                 couleursDistinctes(cote) > 3,
             )
 
+            // Les quatre venus des vues proposées. Le contrôle est le même — ils dessinent —
+            // mais volontairement lâche sur le nombre de teintes : un champ de texte en porte
+            // moins qu'un profil, et le seuil doit tenir aux quatre moments de la sortie.
+            val autres = mapOf(
+                "champ-contexte" to simulateur.imageContexte(secondes),
+                "champ-revetement" to simulateur.imageRevetement(secondes),
+                "champ-effort" to simulateur.imageEffort(secondes),
+                "champ-virages" to simulateur.imageVirages(secondes),
+            )
+            autres.forEach { (nom, image) ->
+                assertTrue(
+                    "$nom ne montre presque rien à ${(part * 100).toInt()} %",
+                    couleursDistinctes(image) > 2,
+                )
+            }
+
             if (part == PARTS_CONTROLEES.first()) {
                 ecrire(profil, File(dossier, "champ-profil.png"))
                 ecrire(cote, File(dossier, "champ-cote.png"))
+                autres.forEach { (nom, image) -> ecrire(image, File(dossier, "$nom.png")) }
             }
         }
     }
@@ -368,7 +385,11 @@ class SimulateurTest {
     private fun champs(simulateur: Simulateur, secondes: Double): List<Champ> = listOf(
         champ("Tableau de bord", simulateur.image(secondes)),
         champ("Profil à venir", simulateur.imageProfil(secondes)),
+        champ("Suivant la sortie", simulateur.imageContexte(secondes)),
+        champ("Revêtement", simulateur.imageRevetement(secondes)),
         champ("Prochaine côte", simulateur.imageCote(secondes)),
+        champ("Budget d'effort", simulateur.imageEffort(secondes)),
+        champ("Virages", simulateur.imageVirages(secondes)),
     )
 
     private fun champ(nom: String, image: Bitmap) =

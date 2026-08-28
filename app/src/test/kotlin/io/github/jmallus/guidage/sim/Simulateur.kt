@@ -2,7 +2,9 @@ package io.github.jmallus.guidage.sim
 
 import android.content.Context
 import android.graphics.Bitmap
+import io.github.jmallus.guidage.core.ClimbProgress
 import io.github.jmallus.guidage.core.GeoPoint
+import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.LearnedPace
@@ -10,19 +12,27 @@ import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.core.PaceLearner
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.map.RoadSegment
+import io.github.jmallus.guidage.extension.BendModels
+import io.github.jmallus.guidage.extension.ContextModels
 import io.github.jmallus.guidage.extension.DashboardModels
+import io.github.jmallus.guidage.extension.EffortModels
 import io.github.jmallus.guidage.extension.FieldModels
+import io.github.jmallus.guidage.extension.SurfaceModels
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.settings.GuidageSettings
+import io.github.jmallus.guidage.ui.BendRenderer
 import io.github.jmallus.guidage.ui.ClimbRenderer
 import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
+import io.github.jmallus.guidage.ui.ContextRenderer
+import io.github.jmallus.guidage.ui.EffortRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
+import io.github.jmallus.guidage.ui.SurfaceRenderer
 import io.hammerhead.karooext.models.ViewConfig
 
 /**
@@ -152,11 +162,30 @@ class Simulateur(
         FieldPalette.of(context),
     )
 
-    fun modele(secondes: Double): DashboardModel {
+    /**
+     * La côte en cours, telle que le Karoo la rapporterait.
+     *
+     * Le champ « Suivant la sortie » bascule dessus : sans elle il ne passerait jamais en
+     * montée, et la moitié de ce qu'il sait faire resterait invisible au banc d'essai.
+     */
+    private fun montee(distance: Double): ClimbProgress {
+        val status = Guidance.climbStatus(PreviewData.route, distance) ?: return ClimbProgress.NONE
+        if (!status.onClimb) return ClimbProgress.NONE
+        return ClimbProgress(
+            distanceFromBottom = distance - status.climb.startDistance,
+            distanceToTop = status.distanceToTop,
+            elevationToTop = status.elevationToTop,
+            totalElevation = status.climb.totalElevation,
+            number = status.number,
+            totalClimbs = status.totalClimbs,
+        )
+    }
+
+    /** Les relevés de la sortie fictive, tels que le Karoo les rapporterait. */
+    private fun releve(secondes: Double): RideData {
         val instant = sortie.a(secondes)
         val maintenant = departMillis + (secondes * 1_000).toLong()
-
-        val releve = RideData(
+        return RideData(
             speed = instant.vitesse,
             averageSpeed = instant.vitesseMoyenne,
             power = instant.puissance,
@@ -171,12 +200,91 @@ class Simulateur(
             powerZones = zones.powerZones,
             heartRateZones = zones.heartRateZones,
             pace = allure(secondes),
+            climb = montee(instant.distance),
         )
+    }
 
+    /*
+     * Les quatre champs venus des vues proposées. Ils passent par les mêmes constructions de
+     * modèle que l'appareil — extraites dans `*Models` — et par les mêmes rendus.
+     */
+
+    private val virages = BendModels()
+    private val contexte = ContextModels { instantSimule }
+    private val revetement = SurfaceModels { position, rayon -> decor.autour(position, rayon) }
+
+    /**
+     * L'instant de la sortie fictive, vu comme une horloge.
+     *
+     * Le champ « Suivant la sortie » ne bascule pas d'un coup : il attend qu'un état se
+     * confirme, et compte pour cela le temps écoulé entre deux images. Lui donner l'heure de
+     * la machine ferait basculer le champ à la vitesse du banc d'essai, non à celle de la
+     * sortie qu'il joue — à huit fois la vitesse réelle, une hystérésis de trois secondes en
+     * durerait moins d'une demie.
+     */
+    private var instantSimule: Long = departMillis
+
+    private fun horlogeA(secondes: Double) {
+        instantSimule = departMillis + (secondes * 1_000).toLong()
+    }
+
+    /** Le champ « Budget d'effort ». */
+    fun imageEffort(
+        secondes: Double,
+        largeur: Int = LARGEUR_ANNEXE,
+        hauteur: Int = HAUTEUR_ANNEXE,
+    ): Bitmap = EffortRenderer.render(
+        largeur,
+        hauteur,
+        EffortModels.build(context, instantane(secondes).state, releve(secondes), preview = false),
+        FieldPalette.of(context),
+    )
+
+    /** Le champ « Virages ». */
+    fun imageVirages(
+        secondes: Double,
+        largeur: Int = LARGEUR_ANNEXE,
+        hauteur: Int = HAUTEUR_ANNEXE,
+    ): Bitmap = BendRenderer.render(
+        largeur,
+        hauteur,
+        virages.build(context, instantane(secondes), preview = false),
+        FieldPalette.of(context),
+    )
+
+    /** Le champ « Suivant la sortie ». */
+    fun imageContexte(
+        secondes: Double,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR_PROFIL,
+    ): Bitmap {
+        horlogeA(secondes)
+        return ContextRenderer.render(
+            largeur,
+            hauteur,
+            contexte.build(context, instantane(secondes), releve(secondes), preview = false),
+            FieldPalette.of(context),
+        )
+    }
+
+    /** Le champ « Revêtement ». */
+    fun imageRevetement(
+        secondes: Double,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR_ANNEXE,
+    ): Bitmap = SurfaceRenderer.render(
+        largeur,
+        hauteur,
+        revetement.build(context, instantane(secondes), preview = false),
+        FieldPalette.of(context),
+    )
+
+    fun modele(secondes: Double): DashboardModel {
+        val maintenant = departMillis + (secondes * 1_000).toLong()
         return DashboardModels.build(
             context = context,
             snapshot = instantane(secondes),
-            rideData = releve,
+            rideData = releve(secondes),
             settings = reglages(),
             preview = false,
             roadSource = source,
@@ -246,6 +354,9 @@ class Simulateur(
 
         /** Un champ demi-largeur sur un quart de hauteur : 30 × 15. */
         val HAUTEUR_COTE: Int = HAUTEUR / 4
+
+        /** La hauteur des autres champs annexes, sur le même quart de grille. */
+        val HAUTEUR_ANNEXE: Int = HAUTEUR / 4
 
         /**
          * Le corps que le Karoo emploie lui-même pour un champ numérique de cette taille.

@@ -131,19 +131,30 @@ class FenetreSimulateur(
             )
             plan.font = Font(Font.SANS_SERIF, Font.PLAIN, 11)
 
-            val (premier, autres) = affiches.first() to affiches.drop(1)
-            val hauteurTotale = (premier.second.height * facteur).toInt()
-            val y = (height - hauteurTotale) / 2
+            val premier = affiches.first()
+            val hauteurPrincipale = (premier.second.height * facteur).toInt()
+            val y = (height - hauteurPrincipale) / 2
             val x = MARGE_REGLE + 12
 
             plan.dessiner(premier, x, y)
-            dessinerRegle(plan, x, y, hauteurTotale)
+            dessinerRegle(plan, x, y, hauteurPrincipale)
 
             var colonne = x + (premier.second.width * facteur).toInt() + ECART_COLONNES
             var haut = y
-            autres.forEach { champ ->
+            var largeurColonne = 0
+            affiches.drop(1).forEach { champ ->
+                val hauteurChamp = (champ.second.height * facteur).toInt() + ECART_CHAMPS + LIBELLE
+                // On repart en haut d'une nouvelle colonne dès que la pile dépasserait le
+                // champ principal : six champs empilés feraient une fenêtre trois fois plus
+                // haute que l'écran qu'elle prétend montrer.
+                if (haut > y && haut - y + hauteurChamp > hauteurPrincipale) {
+                    colonne += largeurColonne + ECART_COLONNES
+                    haut = y
+                    largeurColonne = 0
+                }
                 plan.dessiner(champ, colonne, haut)
-                haut += (champ.second.height * facteur).toInt() + ECART_CHAMPS + LIBELLE
+                largeurColonne = max(largeurColonne, (champ.second.width * facteur).toInt())
+                haut += hauteurChamp
             }
         }
 
@@ -323,14 +334,26 @@ class FenetreSimulateur(
         val largeurPrincipale = ((principal?.width ?: largeurChamp) * facteur).toInt()
         val hauteurPrincipale = ((principal?.height ?: hauteurChamp) * facteur).toInt()
 
-        val annexes = images.drop(1)
-        val largeurAnnexes = annexes.maxOfOrNull { (it.width * facteur).toInt() } ?: 0
-        val hauteurAnnexes = annexes.sumOf { (it.height * facteur).toInt() + ECART_CHAMPS + LIBELLE }
+        // La même mise en colonnes qu'au dessin, comptée à blanc : la fenêtre doit s'ouvrir à
+        // la taille de ce qu'elle affichera, et non l'apprendre en le peignant.
+        var largeurAnnexes = 0
+        var largeurColonne = 0
+        var haut = 0
+        images.drop(1).forEach { image ->
+            val hauteurChampAnnexe = (image.height * facteur).toInt() + ECART_CHAMPS + LIBELLE
+            if (haut > 0 && haut + hauteurChampAnnexe > hauteurPrincipale) {
+                largeurAnnexes += largeurColonne + ECART_COLONNES
+                haut = 0
+                largeurColonne = 0
+            }
+            largeurColonne = max(largeurColonne, (image.width * facteur).toInt())
+            haut += hauteurChampAnnexe
+        }
+        if (largeurColonne > 0) largeurAnnexes += largeurColonne + ECART_COLONNES
 
         return Dimension(
-            MARGE_REGLE + 12 + largeurPrincipale +
-                (if (annexes.isEmpty()) 0 else ECART_COLONNES + largeurAnnexes) + 24,
-            max(hauteurPrincipale, hauteurAnnexes) + LIBELLE + 24,
+            MARGE_REGLE + 12 + largeurPrincipale + largeurAnnexes + 24,
+            max(hauteurPrincipale, haut) + LIBELLE + 24,
         )
     }
 
