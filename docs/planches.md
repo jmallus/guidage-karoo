@@ -16,7 +16,7 @@ sont ceux des sources.
 > en Roboto, plus étroit que la fonte système d'un navigateur, et les libellés — dont le corps
 > s'ajuste à la largeur disponible — sortent donc un peu plus petits ici que sur l'appareil.
 
-Version reproduite : **`51a49bf`**.
+Version reproduite : **`742b696`**.
 
 ## La page interactive
 
