@@ -51,9 +51,17 @@ Karoo sans marge : mieux vaut la sienne qu'une heure tirée de trente secondes d
 Pendant l'enregistrement d'une sortie :
 
 - **Point d'intérêt** — « Fontaine — Dans 500 m »
+- **Dernier ravitaillement** — « Lavoir — rien avant 42 km »
 
 Chaque annonce n'est émise qu'une fois par point, et la distance de déclenchement est
 réglable.
+
+La seconde est la première retournée. « Prochaine eau dans 500 m » ne dit pas s'il faut s'y
+arrêter ; « rien avant 42 km » le dit, et c'est la même donnée. Elle se déclenche sur le
+dernier point où l'on peut encore remplir un bidon avant une longue traversée — quinze
+kilomètres au moins, sans quoi ce n'en est pas une — et compte comme ravitaillement l'eau,
+les ravitaillements, les épiceries, les stations-service et les cafés. Le contrôle de
+cyclosportive n'en est pas : il oblige à s'arrêter, mais rien ne dit qu'on y trouve à boire.
 
 Les côtes n'en déclenchent plus. Elles en avaient deux — une au pied, une avant le sommet —
 qui couvraient l'écran au moment précis où l'on regarde le bandeau de profil pour savoir ce
@@ -285,6 +293,7 @@ core/                        module JVM pur, testable — aucune dépendance And
   Guidance.kt                côte en cours/à venir, prochain POI, fenêtre de profil
   AlertEngine.kt             décide quelles annonces déclencher, sans répétition
   Pacing.kt                  apprend les deux allures, en déduit l'arrivée et sa marge
+  Resupply.kt                la réserve : dernier point avant la prochaine traversée
   Format.kt                  formatage distances / dénivelés / pentes (métrique & impérial)
 
 app/                         extension Android

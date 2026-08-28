@@ -27,6 +27,22 @@ class AlertPresenter(private val context: Context) {
                 background = R.color.alert_poi,
             )
         }
+
+        AlertKind.RESUPPLY_LAST -> alert.poi?.let { poi ->
+            alert.crossing?.let { crossing ->
+                build(
+                    id = alert.key,
+                    icon = R.drawable.ic_poi,
+                    title = context.getString(R.string.alert_resupply_title),
+                    detail = context.getString(
+                        R.string.alert_resupply_detail,
+                        PoiLabels.label(context, poi.poi),
+                        Format.distance(crossing.length, units),
+                    ),
+                    background = R.color.alert_poi,
+                )
+            }
+        }
     }
 
     /**

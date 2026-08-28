@@ -79,7 +79,7 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
      * Les alertes ne sont émises que pendant l'enregistrement d'une sortie.
      */
     private suspend fun runAlerts() {
-        val engine = AlertEngine()
+        val engine = AlertEngine(resupplyTypes = ResupplyTypes.ALL)
         val rideState = karooSystem.consumerFlow<RideState>().onStart { emit(RideState.Idle) }
 
         combine(

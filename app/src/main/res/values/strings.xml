@@ -46,6 +46,8 @@
     <string name="alert_climb_detail">%1$s à %2$s • +%3$s</string>
     <string name="alert_summit_title">Sommet dans %1$s</string>
     <string name="alert_poi_detail">Dans %1$s</string>
+    <string name="alert_resupply_title">Dernier ravitaillement</string>
+    <string name="alert_resupply_detail">%1$s — rien avant %2$s</string>
     <string name="action_next_climb">Annoncer la prochaine côte</string>
 
     <!-- Points d\'intérêt -->
