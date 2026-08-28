@@ -15,6 +15,17 @@ import io.hammerhead.karooext.models.Symbol
  */
 object ResupplyTypes {
 
+    /**
+     * L'eau seule.
+     *
+     * Le coureur en autonomie complète porte ce qu'il mange et ne s'arrête que pour boire :
+     * lui compter un café comme un ravitaillement lui fait croire à un point utile là où il
+     * ne descendra pas de vélo. C'est le second réglage de ce champ, et le seul qui compte.
+     */
+    val WATER_ONLY: Set<String> = setOf(Symbol.POI.Types.WATER)
+
+    fun of(waterOnly: Boolean): Set<String> = if (waterOnly) WATER_ONLY else ALL
+
     val ALL: Set<String> = setOf(
         Symbol.POI.Types.WATER,
         Symbol.POI.Types.AID_STATION,

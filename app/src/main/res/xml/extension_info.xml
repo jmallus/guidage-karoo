@@ -67,6 +67,13 @@
         icon="@drawable/ic_poi" />
 
     <DataType
+        typeId="autonomie"
+        displayName="@string/field_autonomy_name"
+        description="@string/field_autonomy_description"
+        graphical="true"
+        icon="@drawable/ic_poi" />
+
+    <DataType
         typeId="poi"
         displayName="@string/field_poi_name"
         description="@string/field_poi_description"

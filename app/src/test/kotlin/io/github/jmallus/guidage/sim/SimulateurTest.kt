@@ -392,6 +392,7 @@ class SimulateurTest {
     private fun champs(simulateur: Simulateur, secondes: Double): List<Champ> = listOf(
         // Les pleines pages d'abord, chacune tenant sa colonne ; les champs de bande ensuite.
         champ("Tableau de bord", simulateur.image(secondes)),
+        champ("Autonomie", simulateur.imageAutonomie(secondes)),
         champ("Réserve", simulateur.imageReserve(secondes)),
         champ("Virages", simulateur.imageVirages(secondes)),
         champ("Revêtement", simulateur.imageRevetement(secondes)),

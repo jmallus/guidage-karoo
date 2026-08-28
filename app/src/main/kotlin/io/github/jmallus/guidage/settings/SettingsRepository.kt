@@ -22,6 +22,14 @@ data class GuidageSettings(
     val graphZoom: GraphZoom = GraphZoom.AHEAD_20KM,
     /** Portée de la minicarte, changée par appui sur le champ. */
     val mapZoom: MapZoom = MapZoom.NEAR,
+    /**
+     * Ce qui compte comme ravitaillement pour les champs « Réserve » et « Autonomie ».
+     *
+     * Faux par défaut — tout ce où l'on peut remplir un bidon ou refaire des poches. Vrai
+     * pour qui roule en autonomie complète et ne s'arrête que pour l'eau : lui annoncer un
+     * café comme un point utile lui fait croire à un secours qu'il ne prendra pas.
+     */
+    val resupplyWaterOnly: Boolean = false,
 )
 
 /**
@@ -49,6 +57,7 @@ class SettingsRepository(context: Context) {
             guidanceZone = GuidanceZoneType.fromName(prefs.getString(KEY_GUIDANCE_ZONE, null)),
             graphZoom = GraphZoom.fromOrdinal(prefs.getInt(KEY_GRAPH_ZOOM, defaults.graphZoom.ordinal)),
             mapZoom = MapZoom.fromOrdinal(prefs.getInt(KEY_MAP_ZOOM, defaults.mapZoom.ordinal)),
+            resupplyWaterOnly = prefs.getBoolean(KEY_RESUPPLY_WATER_ONLY, defaults.resupplyWaterOnly),
             alerts = AlertSettings(
                 poiEnabled = prefs.getBoolean(KEY_POI_ENABLED, defaults.alerts.poiEnabled),
                 poiDistance = prefs.getFloat(KEY_POI_DISTANCE, defaults.alerts.poiDistance.toFloat()).toDouble(),
@@ -62,6 +71,7 @@ class SettingsRepository(context: Context) {
             .putString(KEY_GUIDANCE_ZONE, settings.guidanceZone.name)
             .putInt(KEY_GRAPH_ZOOM, settings.graphZoom.ordinal)
             .putInt(KEY_MAP_ZOOM, settings.mapZoom.ordinal)
+            .putBoolean(KEY_RESUPPLY_WATER_ONLY, settings.resupplyWaterOnly)
             .putBoolean(KEY_POI_ENABLED, settings.alerts.poiEnabled)
             .putFloat(KEY_POI_DISTANCE, settings.alerts.poiDistance.toFloat())
             .apply()
@@ -73,6 +83,7 @@ class SettingsRepository(context: Context) {
         const val KEY_GUIDANCE_ZONE = "guidance_zone"
         const val KEY_GRAPH_ZOOM = "graph_zoom"
         const val KEY_MAP_ZOOM = "map_zoom"
+        const val KEY_RESUPPLY_WATER_ONLY = "resupply_water_only"
         // Les clés « climb_alerts », « climb_alert_distance », « summit_alerts » et
         // « summit_alert_distance » ont disparu avec les annonces de côte, « lookahead_meters »
         // avec la portée réglable du profil. Celles déjà écrites sur un appareil y restent,

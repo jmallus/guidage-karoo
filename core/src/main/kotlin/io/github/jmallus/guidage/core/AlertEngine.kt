@@ -52,8 +52,12 @@ class AlertEngine(
      *
      * Vides, l'annonce de traversée ne se déclenche jamais : c'est l'appareil qui nomme ses
      * types, et ce module ne les connaît pas.
+     *
+     * Modifiable après coup : c'est un réglage de l'application, et l'annonce doit compter
+     * les mêmes points que le champ. Sans quoi la voix annoncerait un dernier ravitaillement
+     * que l'écran ne montre pas.
      */
-    private val resupplyTypes: Set<String> = emptySet(),
+    var resupplyTypes: Set<String> = emptySet(),
     private val crossingMeters: Double = Resupply.DEFAULT_CROSSING_METERS,
 ) {
 

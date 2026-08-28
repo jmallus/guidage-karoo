@@ -30,11 +30,12 @@ sans construire un APK.
 | **Suivant la sortie** | graphique | Un champ dont la moitié basse change avec ce que fait la sortie — montée, descente, ravitaillement, roulage — la moitié haute restant fixe. |
 | **Revêtement** | graphique, **pleine page** | Route, chemin ou voie verte sur les cinq prochains kilomètres, en posant le tracé sur le fond de carte embarqué, avec la légende des classes rencontrées. |
 | **Réserve** | graphique, **pleine page** | Après quel point de ravitaillement il n'y a plus rien. La ligne porte l'itinéraire entier : points passés en gris, prochain en blanc, dernier utile cerclé de jaune, et à sa droite un segment rouge qui ne porte rien. |
+| **Autonomie** | graphique, **pleine page** | Les deux réserves qui s'épuisent sur une seule page : la réserve d'eau en haut, le budget d'effort en bas. On ne s'arrête qu'une fois, et c'est en voyant les deux ensemble qu'on décide de s'arrêter à ce point-ci ou de tenir jusqu'au suivant. Demande en outre un capteur de puissance pour sa moitié basse. |
 
 « Profil à venir » et « Prochaine côte » s'adaptent à la taille et à l'alignement configurés
 dans le profil de page. Tous affichent un aperçu réaliste dans l'écran d'édition des pages.
 
-Trois champs sont marqués **pleine page**. Ils fonctionnent posés sur un demi-rang, mais ne
+Quatre champs sont marqués **pleine page**. Ils fonctionnent posés sur un demi-rang, mais ne
 portent pas une valeur : une répartition — les virages d'une descente, les revêtements d'une
 portion, l'espacement des ravitaillements. Réduits à une bande, il ne leur reste que leurs
 deux chiffres, c'est-à-dire ce que les champs numériques disent déjà. Leur mise en page

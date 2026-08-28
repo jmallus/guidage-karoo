@@ -26,10 +26,17 @@ import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceZoneType
+import io.github.jmallus.guidage.extension.AutonomyDataType
+import io.github.jmallus.guidage.extension.BendDataType
 import io.github.jmallus.guidage.extension.ClimbDataType
+import io.github.jmallus.guidage.extension.ContextDataType
 import io.github.jmallus.guidage.extension.DashboardDataType
+import io.github.jmallus.guidage.extension.EffortDataType
 import io.github.jmallus.guidage.extension.FieldReport
+import io.github.jmallus.guidage.extension.PoiDataType
 import io.github.jmallus.guidage.extension.ProfileDataType
+import io.github.jmallus.guidage.extension.ResupplyDataType
+import io.github.jmallus.guidage.extension.SurfaceDataType
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
 import kotlin.math.roundToInt
@@ -169,7 +176,7 @@ private fun FieldReportCard(reports: List<FieldReport>) {
                 Text(
                     text = stringResource(
                         if (report.preview) R.string.field_report_editor else R.string.field_report_ride,
-                        stringResource(fieldName(report.typeId)),
+                        fieldName(report.typeId),
                         stringResource(
                             R.string.field_report_line,
                             report.width,
@@ -186,14 +193,44 @@ private fun FieldReportCard(reports: List<FieldReport>) {
     }
 }
 
-/** Le nom que le sélecteur de champs du Karoo affiche, pour que la ligne se reconnaisse. */
-private fun fieldName(typeId: String): Int = when (typeId) {
-    DashboardDataType.TYPE_ID -> R.string.field_dashboard_name
-    ProfileDataType.TYPE_ID -> R.string.field_profile_name
-    ClimbDataType.TYPE_ID -> R.string.field_climb_name
-    else -> R.string.field_poi_name
+/**
+ * Le nom que le sélecteur de champs du Karoo affiche, pour que la ligne se reconnaisse.
+ *
+ * Tous les champs y sont, et non les trois premiers écrits : la table s'était arrêtée à ceux-là
+ * pendant que six autres s'ajoutaient, et le `else` les nommait tous « Prochain point
+ * d'intérêt ». La carte servait alors exactement le contraire de ce pour quoi elle existe —
+ * distinguer quel champ a été posé — en affirmant chaque fois le même, faux six fois sur neuf.
+ *
+ * Le `when` est donc exhaustif sur les identifiants connus et le dernier cas rend
+ * l'identifiant brut plutôt qu'un nom : un champ ajouté et oublié ici s'affichera « autonomie »,
+ * ce qui est laid mais vrai, au lieu de se déguiser en un autre.
+ */
+@Composable
+private fun fieldName(typeId: String): String = when (typeId) {
+    DashboardDataType.TYPE_ID -> stringResource(R.string.field_dashboard_name)
+    ProfileDataType.TYPE_ID -> stringResource(R.string.field_profile_name)
+    ClimbDataType.TYPE_ID -> stringResource(R.string.field_climb_name)
+    EffortDataType.TYPE_ID -> stringResource(R.string.field_effort_name)
+    BendDataType.TYPE_ID -> stringResource(R.string.field_bends_name)
+    ContextDataType.TYPE_ID -> stringResource(R.string.field_context_name)
+    SurfaceDataType.TYPE_ID -> stringResource(R.string.field_surface_name)
+    ResupplyDataType.TYPE_ID -> stringResource(R.string.field_resupply_name)
+    AutonomyDataType.TYPE_ID -> stringResource(R.string.field_autonomy_name)
+    PoiDataType.TYPE_ID -> stringResource(R.string.field_poi_name)
+    else -> typeId
 }
 
+/**
+ * Les réglages, rangés par ce qu'ils touchent.
+ *
+ * Ils étaient en liste plate : trois interrupteurs de même poids, sans rien dire du champ que
+ * chacun modifie. Or l'extension pose maintenant dix champs, et « Colorer le profil selon la
+ * pente » n'en concerne que deux. Un réglage dont on ne sait pas ce qu'il change se laisse
+ * dans son état d'usine, ce qui revient à ne pas l'avoir écrit.
+ *
+ * Chaque ligne porte donc une seconde ligne qui nomme les champs concernés — et non ce que
+ * l'interrupteur fait, que son libellé dit déjà.
+ */
 @Composable
 private fun SettingsCard(
     settings: GuidageSettings,
@@ -209,10 +246,13 @@ private fun SettingsCard(
                 style = MaterialTheme.typography.titleMedium,
             )
 
+            SectionTitle(R.string.settings_section_dashboard)
+
             // Le réglage de portée du profil a disparu : l'échelle du champ est désormais
             // comprimée au loin, et montre tout ce qui reste sans qu'on ait à choisir.
             SwitchRow(
                 label = stringResource(R.string.settings_guidance_map),
+                hint = stringResource(R.string.settings_guidance_map_hint),
                 checked = settings.guidanceZone == GuidanceZoneType.MAP,
                 onCheckedChange = { useMap ->
                     onChange(
@@ -225,12 +265,25 @@ private fun SettingsCard(
 
             SwitchRow(
                 label = stringResource(R.string.settings_color_by_grade),
+                hint = stringResource(R.string.settings_color_by_grade_hint),
                 checked = settings.colorByGrade,
                 onCheckedChange = { onChange(settings.copy(colorByGrade = it)) },
             )
 
+            SectionTitle(R.string.settings_section_resupply)
+
+            SwitchRow(
+                label = stringResource(R.string.settings_water_only),
+                hint = stringResource(R.string.settings_water_only_hint),
+                checked = settings.resupplyWaterOnly,
+                onCheckedChange = { onChange(settings.copy(resupplyWaterOnly = it)) },
+            )
+
+            SectionTitle(R.string.settings_section_alerts)
+
             SwitchRow(
                 label = stringResource(R.string.settings_poi_alerts),
+                hint = stringResource(R.string.settings_poi_alerts_hint),
                 checked = settings.alerts.poiEnabled,
                 onCheckedChange = { onChange(settings.copy(alerts = settings.alerts.copy(poiEnabled = it))) },
             )
@@ -253,13 +306,44 @@ private fun SettingsCard(
 }
 
 @Composable
-private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun SectionTitle(label: Int) {
+    Text(
+        text = stringResource(label),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 8.dp),
+    )
+}
+
+/**
+ * Une ligne de réglage : le libellé, ce qu'il touche, et l'interrupteur.
+ *
+ * L'interrupteur est sorti du flux du texte par un poids : sans cela, un libellé long le
+ * repoussait hors de l'écran étroit du Karoo, où la colonne fait quatre cent quatre-vingts
+ * points de large.
+ */
+@Composable
+private fun SwitchRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    hint: String? = null,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, style = MaterialTheme.typography.bodyMedium)
+            hint?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }

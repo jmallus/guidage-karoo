@@ -3,6 +3,7 @@ package io.github.jmallus.guidage.ui
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.Typeface
 import kotlin.math.max
 import kotlin.math.min
@@ -44,17 +45,29 @@ object EffortRenderer {
 
     fun render(width: Int, height: Int, model: EffortFieldModel, palette: Palette): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
+        draw(Canvas(bitmap), RectF(0f, 0f, width.toFloat(), height.toFloat()), model, palette)
+        return bitmap
+    }
 
+    /**
+     * Dessine le champ dans une zone du canevas plutôt que dans un bitmap à lui.
+     *
+     * C'est ce qui permet à la page « Autonomie » de porter ce champ sous la réserve sans le
+     * réécrire : une seconde écriture dériverait de celle-ci au premier réglage.
+     */
+    fun draw(canvas: Canvas, area: RectF, model: EffortFieldModel, palette: Palette) {
+        val width = area.width()
+        val height = area.height()
         val padding = (min(width, height) * 0.05f).coerceIn(3f, 10f)
-        val left = padding
-        val right = width - padding
-        if (right <= left || height <= 0) return bitmap
+        val left = area.left + padding
+        val right = area.right - padding
+        val bottom = area.bottom - padding
+        if (right <= left || height <= 0f) return
 
         val total = model.total
         if (total == null || model.slices.isEmpty()) {
-            drawEmpty(canvas, width, height, model.emptyMessage, palette)
-            return bitmap
+            drawEmpty(canvas, area, model.emptyMessage, palette)
+            return
         }
 
         val labelSize = (height * 0.13f).coerceIn(9f, 18f)
@@ -64,7 +77,7 @@ object EffortRenderer {
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
 
-        var y = padding + labelSize
+        var y = area.top + padding + labelSize
         model.label?.let {
             canvas.drawText(it, left, y, labelPaint)
             y += labelSize * 0.4f
@@ -78,7 +91,7 @@ object EffortRenderer {
         // Les bornes se croiseraient sur un champ très plat, et coerceIn lèverait :
         // la borne haute est donc calculée avant, jamais sous la borne basse.
         val largest = max(12f, height * 0.42f)
-        val valueSize = ((height - y - reserved - padding) * 0.9f).coerceIn(10f, largest)
+        val valueSize = ((bottom - y - reserved) * 0.9f).coerceIn(10f, largest)
         val valuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.textPrimary
             textSize = valueSize
@@ -96,17 +109,16 @@ object EffortRenderer {
         canvas.drawText(model.unit, valueLeft + valuePaint.measureText(total) + valueSize * 0.1f, valueBaseline, unitPaint)
 
         var cursor = valueBaseline + padding
-        if (cursor + barHeight <= height - padding) {
+        if (cursor + barHeight <= bottom) {
             drawBar(canvas, model, left, cursor, right, cursor + barHeight)
             cursor += barHeight + padding
         }
 
         rows.forEach { slice ->
-            if (cursor + rowHeight > height - padding) return@forEach
+            if (cursor + rowHeight > bottom) return@forEach
             drawRow(canvas, slice, left, right, cursor + labelSize, labelSize, palette)
             cursor += rowHeight
         }
-        return bitmap
     }
 
     /** Les postes qui méritent une ligne : ceux qui portent un libellé. */
@@ -162,16 +174,16 @@ object EffortRenderer {
         canvas.drawText(value, right - text.measureText(value), baseline, text)
     }
 
-    private fun drawEmpty(canvas: Canvas, width: Int, height: Int, message: String?, palette: Palette) {
+    private fun drawEmpty(canvas: Canvas, area: RectF, message: String?, palette: Palette) {
         val text = message ?: return
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.textSecondary
-            textSize = (height * 0.22f).coerceIn(10f, 22f)
+            textSize = (area.height() * 0.22f).coerceIn(10f, 22f)
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        val x = (width - paint.measureText(text)) / 2f
-        val y = height / 2f - (paint.descent() + paint.ascent()) / 2f
-        canvas.drawText(text, max(x, 0f), y, paint)
+        val x = area.left + (area.width() - paint.measureText(text)) / 2f
+        val y = area.centerY() - (paint.descent() + paint.ascent()) / 2f
+        canvas.drawText(text, max(x, area.left), y, paint)
     }
 
     /** Corps de l'unité, en part de celui du nombre. */

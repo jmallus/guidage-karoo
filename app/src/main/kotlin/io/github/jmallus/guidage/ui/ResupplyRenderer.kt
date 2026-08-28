@@ -65,26 +65,38 @@ object ResupplyRenderer {
 
     fun render(width: Int, height: Int, model: ResupplyFieldModel, palette: Palette): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
+        draw(Canvas(bitmap), RectF(0f, 0f, width.toFloat(), height.toFloat()), model, palette)
+        return bitmap
+    }
 
+    /**
+     * Dessine le champ dans une zone du canevas plutôt que dans un bitmap à lui.
+     *
+     * C'est ce qui permet à la page « Autonomie » de porter la réserve au-dessus du budget
+     * d'effort sans la réécrire : deux écritures d'un même champ dérivent l'une de l'autre
+     * dès la première retouche, et c'est précisément ce que le banc d'essai cherche à éviter.
+     */
+    fun draw(canvas: Canvas, area: RectF, model: ResupplyFieldModel, palette: Palette) {
+        val width = area.width()
+        val height = area.height()
         val padding = (min(width, height) * 0.04f).coerceIn(4f, 14f)
-        val left = padding
-        val right = width - padding
-        if (right <= left) return bitmap
+        val left = area.left + padding
+        val right = area.right - padding
+        if (right <= left) return
 
         if (model.stops.isEmpty() && model.warningValue == null) {
-            drawEmpty(canvas, width, height, model.emptyMessage, palette)
-            return bitmap
+            drawEmpty(canvas, area, model.emptyMessage, palette)
+            return
         }
 
         // Le bandeau d'alerte occupe le haut sur toute la largeur, à fond perdu : c'est la
         // seule chose de cet écran qu'on lise en roulant, et un aplat qui touche les bords se
         // repère sans être cherché.
-        var y = padding
+        var y = area.top + padding
         if (model.warningValue != null) {
             val bandHeight = (height * WARNING_HEIGHT_FRACTION).coerceIn(34f, 170f)
-            drawWarning(canvas, model, RectF(0f, 0f, width.toFloat(), bandHeight))
-            y = bandHeight + padding * 1.5f
+            drawWarning(canvas, model, RectF(area.left, area.top, area.right, area.top + bandHeight))
+            y = area.top + bandHeight + padding * 1.5f
         }
 
         val labelSize = (height * LABEL_FRACTION).coerceIn(9f, 26f)
@@ -99,16 +111,14 @@ object ResupplyRenderer {
         // dessous, sinon le vide de droite se lit comme une marge et non comme une absence.
         val nextRoom = if (model.nextValue == null) 0f else labelSize + valueSize * 1.5f + padding * 2
         val lineTop = y
-        val lineBottom = height - padding - nextRoom
+        val lineBottom = area.bottom - padding - nextRoom
         if (lineBottom > lineTop) {
             drawLine(canvas, model, left, right, (lineTop + lineBottom) / 2f, labelSize, palette)
         }
 
         if (model.nextValue != null) {
-            val top = height - padding - nextRoom + padding
-            drawNext(canvas, model, left, right, top, labelSize, valueSize, palette)
+            drawNext(canvas, model, left, right, area.bottom - nextRoom, labelSize, valueSize, palette)
         }
-        return bitmap
     }
 
     /**
@@ -325,15 +335,15 @@ object ResupplyRenderer {
         style = Paint.Style.FILL
     }
 
-    private fun drawEmpty(canvas: Canvas, width: Int, height: Int, message: String?, palette: Palette) {
+    private fun drawEmpty(canvas: Canvas, area: RectF, message: String?, palette: Palette) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.textSecondary
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
-            textSize = (height * 0.09f).coerceIn(11f, 26f)
+            textSize = (area.height() * 0.09f).coerceIn(11f, 26f)
         }
-        val centerY = height / 2f - (paint.descent() + paint.ascent()) / 2f
-        canvas.drawText(message ?: "—", width / 2f, centerY, paint)
+        val centerY = area.centerY() - (paint.descent() + paint.ascent()) / 2f
+        canvas.drawText(message ?: "—", area.centerX(), centerY, paint)
     }
 
     /** Hauteur du bandeau d'alerte, en part de celle du champ. */

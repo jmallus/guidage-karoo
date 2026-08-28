@@ -82,6 +82,14 @@
     <string name="settings_poi_alerts">Announce points of interest</string>
     <string name="settings_poi_distance">Announce point at: %1$s</string>
 
+    <string name="settings_section_dashboard">Dashboard</string>
+    <string name="settings_section_resupply">Resupply</string>
+    <string name="settings_section_alerts">Alerts</string>
+    <string name="settings_guidance_map_hint">“Dashboard” field</string>
+    <string name="settings_color_by_grade_hint">“Route profile ahead” and “Dashboard” fields</string>
+    <string name="settings_water_only">Count water points only</string>
+    <string name="settings_water_only_hint">“Reserve”, “Autonomy”, “Follows the ride” fields and the alerts. Unchecked, stores, gas stations, cafés and rest stops count too.</string>
+    <string name="settings_poi_alerts_hint">Spoken alert and banner, while recording only</string>
     <string name="app_version">Version %1$s</string>
     <string name="field_report_title">Space allocated to the field</string>
     <string name="field_report_none">No field opened since install. Place “Dashboard” on a page of the profile, open that page, then come back here.</string>
@@ -95,6 +103,8 @@
     <string name="field_effort_climb">Climb %1$d — %2$s</string>
     <string name="field_effort_kilojoules">%1$d kJ</string>
     <string name="unit_kilojoule">kJ</string>
+    <string name="field_autonomy_name">Autonomy</string>
+    <string name="field_autonomy_description">The two reserves that run out, on one page: water above, sugar below. Which resupply point is the last one before there is nothing, and what the rest of the route still costs in kilojoules, split by climb. You only stop once, and seeing both together is what tells you whether to stop at this point or hold out for the next. Needs a full page; its lower half also needs a power meter.</string>
     <string name="field_bends_name">Bends</string>
     <string name="field_bends_description">The bends of the next three kilometres, on the road laid straight: each one becomes a bar reaching up or down for its direction, long and red for its radius. It is not a map — the minimap already does that — but the answer to the only question a descent raises: what is coming, and how tight.</string>
     <string name="field_bends_label">BENDS</string>

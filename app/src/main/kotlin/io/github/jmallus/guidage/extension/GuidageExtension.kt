@@ -46,9 +46,10 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
             ClimbDataType(provider, extension),
             EffortDataType(provider, rideDataProvider, extension),
             BendDataType(provider, extension),
-            ContextDataType(provider, rideDataProvider, extension),
+            ContextDataType(provider, rideDataProvider, settingsRepository, extension),
             SurfaceDataType(provider, roadMapRepository, extension),
-            ResupplyDataType(provider, extension),
+            ResupplyDataType(provider, settingsRepository, extension),
+            AutonomyDataType(provider, rideDataProvider, settingsRepository, extension),
             PoiDataType(provider, extension),
         )
     }
@@ -95,6 +96,9 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
             Triple(snapshot, settings, ride)
         }.collect { (snapshot, settings, ride) ->
             engine.updateSettings(settings.alerts)
+            // L'annonce compte les mêmes points que le champ : sans quoi la voix nommerait un
+            // dernier ravitaillement que l'écran, réglé sur l'eau seule, ne montre pas.
+            engine.resupplyTypes = ResupplyTypes.of(settings.resupplyWaterOnly)
             if (ride !is RideState.Recording) return@collect
 
             engine.evaluate(snapshot.state).forEach { alert ->

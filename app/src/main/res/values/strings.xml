@@ -82,6 +82,14 @@
     <string name="settings_poi_alerts">Annoncer les points d\'intérêt</string>
     <string name="settings_poi_distance">Annonce avant le point : %1$s</string>
 
+    <string name="settings_section_dashboard">Tableau de bord</string>
+    <string name="settings_section_resupply">Ravitaillement</string>
+    <string name="settings_section_alerts">Annonces</string>
+    <string name="settings_guidance_map_hint">Champ « Tableau de bord »</string>
+    <string name="settings_color_by_grade_hint">Champs « Profil à venir » et « Tableau de bord »</string>
+    <string name="settings_water_only">Ne compter que les points d\'eau</string>
+    <string name="settings_water_only_hint">Champs « Réserve », « Autonomie », « Suivant la sortie » et les annonces. Décoché, comptent aussi commerces, stations-service, cafés et haltes.</string>
+    <string name="settings_poi_alerts_hint">Annonce vocale et bandeau, en enregistrement seulement</string>
     <string name="app_version">Version %1$s</string>
     <string name="field_report_title">Place allouée au champ</string>
     <string name="field_report_none">Aucun champ ouvert depuis l\'installation. Posez « Tableau de bord » sur une page du profil, ouvrez cette page, puis revenez ici.</string>
@@ -95,6 +103,8 @@
     <string name="field_effort_climb">Côte %1$d — %2$s</string>
     <string name="field_effort_kilojoules">%1$d kJ</string>
     <string name="unit_kilojoule">kJ</string>
+    <string name="field_autonomy_name">Autonomie</string>
+    <string name="field_autonomy_description">Les deux réserves qui s\'épuisent, sur une seule page : l\'eau en haut, le sucre en bas. Après quel point de ravitaillement il n\'y a plus rien, et ce que coûte encore le parcours en kilojoules, découpé par côte. On ne s\'arrête qu\'une fois, et c\'est en voyant les deux ensemble qu\'on sait s\'il faut s\'arrêter à ce point-ci ou tenir jusqu\'au suivant. Demande une page entière ; sa moitié basse demande en outre un capteur de puissance.</string>
     <string name="field_bends_name">Virages</string>
     <string name="field_bends_description">Les virages des trois prochains kilomètres, sur la route redressée : chaque virage devient une barre qui s\'écarte vers le haut ou vers le bas selon son sens, longue et rouge selon son rayon. Ce n\'est pas une carte — la minicarte fait déjà cela — mais la réponse à la seule question qu\'on se pose en descente : qu\'est-ce qui arrive, et à quel point c\'est serré.</string>
     <string name="field_bends_label">VIRAGES</string>

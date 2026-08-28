@@ -56,6 +56,8 @@ class ContextModels(private val clock: () -> Long = System::currentTimeMillis) {
         snapshot: GuidanceSnapshot,
         rideData: RideData,
         preview: Boolean,
+        /** Ce qui compte comme ravitaillement : c'est un réglage, non une constante. */
+        resupplyTypes: Set<String> = ResupplyTypes.ALL,
     ): ContextFieldModel {
         val state = if (preview && !snapshot.state.navigating) {
             GuidanceState(PreviewData.route, PreviewData.DISTANCE_ALONG_ROUTE, null, null)
@@ -69,7 +71,7 @@ class ContextModels(private val clock: () -> Long = System::currentTimeMillis) {
             return ContextFieldModel(emptyMessage = context.getString(R.string.field_no_route))
         }
 
-        val nextResupply = Resupply.status(route, along, ResupplyTypes.ALL).next?.distance
+        val nextResupply = Resupply.status(route, along, resupplyTypes).next?.distance
         val nextBend = Bends
             .ahead(bends(route), along, RideContexts.BEND_METERS)
             .filter { it.bend.radius < SHARP_RADIUS_METERS }
@@ -91,7 +93,7 @@ class ContextModels(private val clock: () -> Long = System::currentTimeMillis) {
         val lower = when (chosen) {
             RideContext.CLIMB -> climbZone(context, units, route, along, rideData)
             RideContext.DESCENT -> bendZone(context, units, route, along)
-            RideContext.RESUPPLY -> resupplyZone(context, units, route, along)
+            RideContext.RESUPPLY -> resupplyZone(context, units, route, along, resupplyTypes)
             RideContext.CRUISE -> cruiseZone(context, units, rideData)
         }
 
@@ -195,8 +197,14 @@ class ContextModels(private val clock: () -> Long = System::currentTimeMillis) {
         )
     }
 
-    private fun resupplyZone(context: Context, units: Units, route: Route, along: Double): ContextFieldModel {
-        val status = Resupply.status(route, along, ResupplyTypes.ALL)
+    private fun resupplyZone(
+        context: Context,
+        units: Units,
+        route: Route,
+        along: Double,
+        resupplyTypes: Set<String>,
+    ): ContextFieldModel {
+        val status = Resupply.status(route, along, resupplyTypes)
         val next = status.next ?: return ContextFieldModel()
         return ContextFieldModel(
             // Le bleu que le Karoo réserve aux côtes est aussi le sien pour ce qui guide :

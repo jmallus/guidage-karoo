@@ -24,6 +24,8 @@ import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.settings.GuidageSettings
+import io.github.jmallus.guidage.ui.AutonomyFieldModel
+import io.github.jmallus.guidage.ui.AutonomyRenderer
 import io.github.jmallus.guidage.ui.BendRenderer
 import io.github.jmallus.guidage.ui.ClimbRenderer
 import io.github.jmallus.guidage.ui.DashboardModel
@@ -310,6 +312,36 @@ class Simulateur(
         largeur,
         hauteur,
         FieldModels.resupply(context, instantane(secondes), preview = false, ResupplyTypes.ALL),
+        FieldPalette.of(context),
+    )
+
+    /**
+     * Le champ « Autonomie » : la réserve et le budget d'effort sur une seule page.
+     *
+     * Il passe par les mêmes constructions de modèle que les deux champs qu'il réunit — c'est
+     * tout l'intérêt de les avoir extraites — et par le rendu qui les compose.
+     */
+    fun imageAutonomie(
+        secondes: Double,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR,
+    ): Bitmap = AutonomyRenderer.render(
+        largeur,
+        hauteur,
+        AutonomyFieldModel(
+            resupply = FieldModels.resupply(
+                context,
+                instantane(secondes),
+                preview = false,
+                ResupplyTypes.ALL,
+            ),
+            effort = EffortModels.build(
+                context,
+                instantane(secondes).state,
+                releve(secondes),
+                preview = false,
+            ),
+        ),
         FieldPalette.of(context),
     )
 

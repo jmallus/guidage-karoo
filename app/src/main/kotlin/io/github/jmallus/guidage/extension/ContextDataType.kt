@@ -9,6 +9,7 @@ import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RideDataProvider
+import io.github.jmallus.guidage.settings.SettingsRepository
 import io.github.jmallus.guidage.ui.BitmapField
 import io.github.jmallus.guidage.ui.ContextRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
@@ -40,6 +41,7 @@ import kotlinx.coroutines.launch
 class ContextDataType(
     private val provider: GuidanceProvider,
     private val rideDataProvider: RideDataProvider,
+    private val settingsRepository: SettingsRepository,
     extension: String,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : DataTypeImpl(extension, TYPE_ID) {
@@ -52,8 +54,18 @@ class ContextDataType(
             FieldReportStore(context).record(TYPE_ID, config)
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
-            combine(provider.snapshot, rideDataProvider.data) { snapshot, rideData ->
-                models.build(context, snapshot, rideData, config.preview)
+            combine(
+                provider.snapshot,
+                rideDataProvider.data,
+                settingsRepository.settings,
+            ) { snapshot, rideData, settings ->
+                models.build(
+                    context,
+                    snapshot,
+                    rideData,
+                    config.preview,
+                    ResupplyTypes.of(settings.resupplyWaterOnly),
+                )
             }
                 .distinctUntilChanged()
                 .map { model ->
