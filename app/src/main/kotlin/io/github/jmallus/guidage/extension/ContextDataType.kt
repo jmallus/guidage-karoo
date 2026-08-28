@@ -45,7 +45,6 @@ class ContextDataType(
 ) : DataTypeImpl(extension, TYPE_ID) {
 
     private val glance = GlanceRemoteViews()
-    private val glance = GlanceRemoteViews()
     private val models = ContextModels(clock)
 
     override fun startView(context: Context, config: ViewConfig, emitter: ViewEmitter) {
