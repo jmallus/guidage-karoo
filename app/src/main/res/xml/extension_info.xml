@@ -46,6 +46,13 @@
         icon="@drawable/ic_power" />
 
     <DataType
+        typeId="virages"
+        displayName="@string/field_bends_name"
+        description="@string/field_bends_description"
+        graphical="true"
+        icon="@drawable/ic_climb" />
+
+    <DataType
         typeId="poi"
         displayName="@string/field_poi_name"
         description="@string/field_poi_description"
