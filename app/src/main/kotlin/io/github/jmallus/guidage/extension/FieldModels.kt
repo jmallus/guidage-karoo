@@ -136,8 +136,32 @@ object FieldModels {
         val lastUseful = crossing?.lastPoi?.poi
         val next = status.next?.poi
 
+        /*
+         * Plus aucun point devant : la traversée n'est plus une prévision, c'est un fait, et
+         * le coureur est dedans jusqu'à l'arrivée.
+         *
+         * Cet état-là ne passait pas le seuil des quinze kilomètres, et le champ n'en disait
+         * donc rien : ni segment rouge, ni pied de page — il ne restait à l'écran que la
+         * distance depuis le dernier point, c'est-à-dire l'annonce ordinaire que ce champ
+         * existe précisément pour retourner. Le seuil garde son rôle — décider si l'alerte
+         * mérite son bandeau rouge en travers de l'écran — mais il ne décide plus si le vide
+         * se voit : une fois dedans, sa longueur ne change pas qu'il soit là.
+         */
+        val nothingAhead = next == null
+        val toFinish = (length - along).coerceAtLeast(0.0)
+
         return ResupplyFieldModel(
-            warningLabel = crossing?.let { context.getString(R.string.field_resupply_last_before) },
+            // Quand la traversée n'a pas de point de départ, le bandeau ne peut pas annoncer
+            // un « dernier ravitaillement » : il n'y en a plus à nommer. Il dit le fait.
+            warningLabel = crossing?.let {
+                context.getString(
+                    if (it.lastPoi == null) {
+                        R.string.field_resupply_nothing_ahead
+                    } else {
+                        R.string.field_resupply_last_before
+                    },
+                )
+            },
             warningValue = crossing?.let { Format.distance(it.length, units) },
             sinceLabel = context.getString(R.string.field_resupply_since),
             sinceValue = status.sinceLast?.let { Format.distance(it, units) },
@@ -155,12 +179,26 @@ object FieldModels {
             position = (along / length).toFloat(),
             // La traversée commence au dernier point utile, ou sous les roues du coureur quand
             // il n'y a plus rien devant : il est alors déjà dedans.
-            dryFrom = crossing?.let { (((it.lastPoi?.poi?.distanceAlongRoute ?: along)) / length).toFloat() },
+            dryFrom = when {
+                lastUseful != null -> (lastUseful.distanceAlongRoute / length).toFloat()
+                crossing != null || nothingAhead -> (along / length).toFloat()
+                else -> null
+            },
             lastUsefulCaption = lastUseful?.let { context.getString(R.string.field_resupply_last_useful) },
-            dryCaption = crossing?.let { context.getString(R.string.field_resupply_dry) },
-            nextLabel = context.getString(R.string.field_resupply_next),
+            dryCaption = if (crossing != null || nothingAhead) {
+                context.getString(R.string.field_resupply_dry)
+            } else {
+                null
+            },
+            // Le pied de page nomme ce qui vient. Quand rien ne vient, il dit jusqu'où : la
+            // distance à l'arrivée est alors la seule qui compte, et c'est elle qu'on lit
+            // pour savoir ce qu'il faut emporter du point qu'on vient de quitter.
+            nextLabel = context.getString(
+                if (nothingAhead) R.string.field_resupply_nothing_ahead else R.string.field_resupply_next,
+            ),
             nextName = next?.let { PoiLabels.label(context, it) },
-            nextValue = status.next?.let { Format.distance(it.distance, units) },
+            nextValue = status.next?.let { Format.distance(it.distance, units) }
+                ?: Format.distance(toFinish, units),
         )
     }
 

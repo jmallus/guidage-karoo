@@ -128,5 +128,6 @@
     <string name="field_resupply_next">NEXT</string>
     <string name="field_resupply_last_useful">LAST USEFUL</string>
     <string name="field_resupply_dry">NOTHING</string>
+    <string name="field_resupply_nothing_ahead">NOTHING LEFT TO THE FINISH</string>
     <string name="field_resupply_none">No resupply on this route</string>
 </resources>

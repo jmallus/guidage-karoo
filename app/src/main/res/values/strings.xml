@@ -128,5 +128,6 @@
     <string name="field_resupply_next">PROCHAIN</string>
     <string name="field_resupply_last_useful">DERNIER UTILE</string>
     <string name="field_resupply_dry">RIEN</string>
+    <string name="field_resupply_nothing_ahead">PLUS RIEN JUSQU\'À L\'ARRIVÉE</string>
     <string name="field_resupply_none">Aucun ravitaillement sur l\'itinéraire</string>
 </resources>

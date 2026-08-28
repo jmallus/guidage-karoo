@@ -136,7 +136,10 @@ object ResupplyRenderer {
             textAlign = Paint.Align.RIGHT
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        model.warningLabel?.let { canvas.drawText(it, area.left + inset, area.top + inset + labelSize, label) }
+        model.warningLabel?.let {
+            fit(label, it, area.width() - inset * 2)
+            canvas.drawText(it, area.left + inset, area.top + inset + labelSize, label)
+        }
         model.warningValue?.let { canvas.drawText(it, area.right - inset, area.bottom - inset, value) }
     }
 
@@ -285,7 +288,10 @@ object ResupplyRenderer {
             letterSpacing = 0.06f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        model.nextLabel?.let { canvas.drawText(it, left, top + labelSize, labelPaint) }
+        model.nextLabel?.let {
+            fit(labelPaint, it, right - left)
+            canvas.drawText(it, left, top + labelSize, labelPaint)
+        }
 
         val namePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.textPrimary
@@ -299,6 +305,19 @@ object ResupplyRenderer {
         val baseline = top + labelSize + valueSize
         model.nextValue?.let { canvas.drawText(it, right, baseline, valuePaint) }
         model.nextName?.let { canvas.drawText(it, left, baseline, namePaint) }
+    }
+
+    /**
+     * Rapetisse un libellé jusqu'à ce qu'il tienne dans la largeur donnée.
+     *
+     * Les libellés de ce champ ne sont pas tous de la même longueur : « PROCHAIN » fait huit
+     * signes, « PLUS RIEN JUSQU'À L'ARRIVÉE » en fait vingt-sept, et le second déborderait à
+     * la taille du premier. Il vaut mieux l'écrire plus petit que le couper : c'est une
+     * phrase, et une phrase tronquée ne veut plus rien dire.
+     */
+    private fun fit(paint: Paint, text: String, maxWidth: Float) {
+        val measured = paint.measureText(text)
+        if (measured > maxWidth && maxWidth > 0f) paint.textSize *= maxWidth / measured
     }
 
     private fun fill(color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {

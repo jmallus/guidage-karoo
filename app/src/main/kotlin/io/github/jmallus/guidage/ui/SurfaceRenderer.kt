@@ -56,25 +56,114 @@ object SurfaceRenderer {
     fun render(width: Int, height: Int, model: SurfaceFieldModel, palette: Palette): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-
-        val padding = (min(width, height) * 0.05f).coerceIn(3f, 10f)
-        val left = padding
-        val right = width - padding
-        if (right <= left) return bitmap
-
         if (model.bands.isEmpty()) {
             drawEmpty(canvas, width, height, model.emptyMessage, palette)
             return bitmap
         }
-
-        // Une page n'est pas une bande étirée : les libellés cessent d'y être plafonnés à
-        // dix-huit points, et la bande de couleur cesse de prendre tout ce qui reste.
-        val page = height > width * PAGE_RATIO
-        val labelSize = if (page) {
-            (min(width, height) * 0.058f).coerceIn(10f, 30f)
+        // Une page n'est pas une bande étirée, et les deux mises en page n'ont pas la même
+        // vedette : sur une bande, la valeur est tout ce qu'on a la place de lire ; sur une
+        // page, c'est le ruban qu'on vient regarder, et la valeur n'est que son titre.
+        if (height > width * PAGE_RATIO) {
+            drawPage(canvas, width, height, model, palette)
         } else {
-            (height * 0.13f).coerceIn(9f, 18f)
+            drawStrip(canvas, width, height, model, palette)
         }
+        return bitmap
+    }
+
+    /**
+     * La mise en page pleine page : titre, valeur, ruban, légende au pied.
+     *
+     * Les proportions sont écrites plutôt que déduites de la place restante. La règle
+     * précédente donnait à la valeur tout ce que la bande ne prenait pas : sur 478 × 642
+     * cela faisait un « 7 km » de deux cent vingt points, qui occupait le tiers de l'écran
+     * pour dire un chiffre que le ruban montre déjà.
+     */
+    private fun drawPage(
+        canvas: Canvas,
+        width: Int,
+        height: Int,
+        model: SurfaceFieldModel,
+        palette: Palette,
+    ) {
+        val padding = (width * PAGE_PADDING_FRACTION).coerceIn(8f, 24f)
+        val left = padding
+        val right = width - padding
+        if (right <= left) return
+
+        val labelSize = (width * PAGE_LABEL_FRACTION).coerceIn(11f, 30f)
+        val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = palette.textSecondary
+            textSize = labelSize
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+
+        var y = padding + labelSize
+        model.label?.let { canvas.drawText(it, left, y, label) }
+
+        val value = model.value
+        if (value != null) {
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = palette.textPrimary
+                textSize = height * PAGE_VALUE_FRACTION
+            }
+            // La suite de la bascule se met sur la même ligne de pied, à droite : elle
+            // complète la valeur plutôt qu'elle ne la commente, et lui donner une ligne à
+            // elle repousserait le ruban d'autant.
+            val captionWidth = model.caption?.let { label.measureText(it) + labelSize } ?: 0f
+            val room = right - left - captionWidth
+            if (room > 0f && paint.measureText(value) > room) {
+                paint.textSize *= room / paint.measureText(value)
+            }
+            y += padding * 0.6f + paint.textSize
+            canvas.drawText(value, left, y, paint)
+            model.caption?.let { canvas.drawText(it, right - label.measureText(it), y, label) }
+        } else {
+            model.caption?.let {
+                y += labelSize * 1.3f
+                canvas.drawText(it, right - label.measureText(it), y, label)
+            }
+        }
+
+        // La légende est posée au bas de la page, et non collée sous le ruban : accrochée au
+        // ruban, elle laissait un tiers d'écran vide sous elle, et l'œil y cherchait ce qui
+        // aurait dû s'y trouver.
+        val rowHeight = labelSize * LEGEND_SWATCH_RATIO
+        val step = labelSize * LEGEND_STEP_RATIO
+        val legendHeight =
+            if (model.legend.isEmpty()) 0f else (model.legend.size - 1) * step + rowHeight
+        val legendTop = height - padding - legendHeight
+
+        val bandLabelRoom = if (model.bands.any { it.label != null }) labelSize * 1.3f else 0f
+        val libre = legendTop - padding - bandLabelRoom - (y + padding * 1.4f)
+        val bandHeight = min(libre, height * PAGE_BAND_FRACTION)
+        if (bandHeight > 0f) {
+            // Le bloc du ruban est centré dans ce qui lui reste : plaqué sous la valeur, il
+            // laissait tout le vide d'un seul côté, ce qui se lit comme un oubli.
+            val bandTop = y + padding * 1.4f + (libre - bandHeight) / 2f
+            drawBands(canvas, model, left, bandTop, right, bandTop + bandHeight, labelSize, palette)
+        }
+        // Sur un champ trop court pour tout porter, la légende cède : elle explique le ruban,
+        // et un ruban recouvert n'a plus rien à faire expliquer.
+        if (model.legend.isNotEmpty() && legendTop > y + padding) {
+            drawLegend(canvas, model, left, legendTop, labelSize, palette)
+        }
+    }
+
+    /** La mise en bande : le titre, la valeur à droite, et le ruban sur tout ce qui reste. */
+    private fun drawStrip(
+        canvas: Canvas,
+        width: Int,
+        height: Int,
+        model: SurfaceFieldModel,
+        palette: Palette,
+    ) {
+        val padding = (min(width, height) * 0.05f).coerceIn(3f, 10f)
+        val left = padding
+        val right = width - padding
+        if (right <= left) return
+
+        val labelSize = (height * 0.13f).coerceIn(9f, 18f)
         val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.textSecondary
             textSize = labelSize
@@ -103,22 +192,14 @@ object SurfaceRenderer {
 
         val bandTop = y + padding * 2
         val labelRoom = if (model.bands.any { it.label != null }) labelSize * 1.3f else 0f
-        val bandBottom = if (page) {
-            min(bandTop + (height * PAGE_BAND_FRACTION), height - padding - labelRoom)
-        } else {
-            height - padding - labelRoom
-        }
+        val bandBottom = height - padding - labelRoom
         if (bandBottom > bandTop) {
             drawBands(canvas, model, left, bandTop, right, bandBottom, labelSize, palette)
         }
-        if (page && model.legend.isNotEmpty()) {
-            drawLegend(canvas, model, left, bandBottom + labelRoom + padding * 2, right, labelSize, palette)
-        }
-        return bitmap
     }
 
     /**
-     * La légende, sous la bande : une pastille par classe de sol présente.
+     * La légende, au pied de la page : une pastille par classe de sol présente.
      *
      * Seules les classes que le parcours traverse y figurent. Une légende complète
      * apprendrait à reconnaître un revêtement qu'on ne rencontrera pas, ce qui est du bruit
@@ -129,36 +210,50 @@ object SurfaceRenderer {
         model: SurfaceFieldModel,
         left: Float,
         top: Float,
-        right: Float,
         labelSize: Float,
         palette: Palette,
     ) {
-        val swatch = labelSize * 1.15f
-        val step = labelSize * 2.1f
+        val swatchHeight = labelSize * LEGEND_SWATCH_RATIO
+        val swatchWidth = labelSize * LEGEND_SWATCH_WIDTH_RATIO
+        val step = labelSize * LEGEND_STEP_RATIO
         val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.textPrimary
-            textSize = labelSize
+            textSize = labelSize * LEGEND_TEXT_RATIO
         }
         val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
         val hatch = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = swatch * 0.16f
+            strokeWidth = (swatchHeight * 0.16f).coerceAtLeast(1.5f)
         }
         model.legend.forEachIndexed { index, entry ->
-            val y = top + index * step
-            if (y + swatch > canvas.height) return@forEachIndexed
+            val box = RectF(
+                left,
+                top + index * step,
+                left + swatchWidth,
+                top + index * step + swatchHeight,
+            )
+            if (box.bottom > canvas.height) return@forEachIndexed
             fill.color = entry.color
-            canvas.drawRect(RectF(left, y, left + swatch * 1.6f, y + swatch), fill)
+            canvas.drawRect(box, fill)
             if (entry.hatched) {
-                hatch.color = palette.textPrimary
-                hatch.alpha = HATCH_ALPHA
-                var x = left
-                while (x < left + swatch * 1.6f) {
-                    canvas.drawLine(x, y + swatch, x + swatch, y, hatch)
-                    x += swatch * 0.5f
+                // La trame est coupée au bord de la pastille — sans quoi elle en sortait et
+                // venait toucher le mot qu'elle annonce — et tirée de la même encre que
+                // celle du ruban : une légende d'une autre teinte n'apprend rien.
+                canvas.save()
+                canvas.clipRect(box)
+                hatch.color = HATCH_INK
+                var x = box.left - swatchHeight
+                while (x < box.right) {
+                    canvas.drawLine(x, box.bottom, x + swatchHeight, box.top, hatch)
+                    x += swatchHeight * 0.5f
                 }
+                canvas.restore()
             }
-            canvas.drawText(entry.label, left + swatch * 2.2f, y + swatch * 0.82f, text)
+            // La ligne de base est déduite des métriques du texte, non d'une fraction de la
+            // hauteur de la pastille : celle-ci laissait le mot bas, d'autant plus bas que
+            // le corps grandissait.
+            val baseline = box.centerY() - (text.descent() + text.ascent()) / 2f
+            canvas.drawText(entry.label, box.right + labelSize * 0.7f, baseline, text)
         }
     }
 
@@ -244,15 +339,34 @@ object SurfaceRenderer {
         canvas.drawText(text, max(x, 0f), y, paint)
     }
 
-    /** Encre de la trame du chemin : la teinte de la piste, assombrie. */
     /** Rapport hauteur/largeur au-delà duquel le champ se compose en page. */
     private const val PAGE_RATIO = 1.1f
 
-    /** Hauteur de la bande de couleur en pleine page, en part de celle du champ. */
-    private const val PAGE_BAND_FRACTION = 0.17f
+    /** Marge de la page, en part de sa largeur. */
+    private const val PAGE_PADDING_FRACTION = 0.04f
 
-    /** Opacité des hachures d'une pastille de légende. */
-    private const val HATCH_ALPHA = 0x8C
+    /** Corps des libellés de la page, en part de sa largeur. */
+    private const val PAGE_LABEL_FRACTION = 0.052f
 
+    /**
+     * Corps de la valeur en pleine page, en part de sa hauteur.
+     *
+     * Assez pour se lire d'un coup d'œil à bout de bras, pas plus : ce chiffre annonce la
+     * bascule, il ne la montre pas — c'est le ruban qui la montre.
+     */
+    private const val PAGE_VALUE_FRACTION = 0.135f
+
+    /** Hauteur maximale du ruban en pleine page, en part de celle du champ. */
+    private const val PAGE_BAND_FRACTION = 0.28f
+
+    /** Hauteur d'une pastille de légende, et pas d'une ligne à l'autre, en corps de libellé. */
+    private const val LEGEND_SWATCH_RATIO = 1.15f
+    private const val LEGEND_SWATCH_WIDTH_RATIO = 2.0f
+    private const val LEGEND_STEP_RATIO = 1.9f
+
+    /** Corps du mot d'une légende : un rien plus petit que le titre, qui est en capitales. */
+    private const val LEGEND_TEXT_RATIO = 0.92f
+
+    /** Encre de la trame du chemin : la teinte de la piste, assombrie. */
     private const val HATCH_INK = 0xFF6B4A22.toInt()
 }
