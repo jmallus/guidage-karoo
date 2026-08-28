@@ -25,6 +25,10 @@ sans construire un APK.
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Rempli en couleur selon la pente, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
+| **Budget d'effort** | graphique | Ce que coûte le reste, en kilojoules, découpé par poste : le roulant, puis chaque côte. Déduit du temps estimé de chaque poste et de la puissance tenue dans ce régime. Demande un capteur de puissance. |
+| **Virages** | graphique | Les virages des trois prochains kilomètres sur la route redressée : une barre par virage, vers le haut ou vers le bas selon son sens, longue et rouge selon son rayon. |
+| **Suivant la sortie** | graphique | Un champ dont la moitié basse change avec ce que fait la sortie — montée, descente, ravitaillement, roulage — la moitié haute restant fixe. |
+| **Revêtement** | graphique | Route, chemin ou voie verte sur les cinq prochains kilomètres, en posant le tracé sur le fond de carte embarqué. |
 
 « Profil à venir » et « Prochaine côte » s'adaptent à la taille et à l'alignement configurés
 dans le profil de page. Tous affichent un aperçu réaliste dans l'écran d'édition des pages.
@@ -327,6 +331,10 @@ core/                        module JVM pur, testable — aucune dépendance And
   AlertEngine.kt             décide quelles annonces déclencher, sans répétition
   Pacing.kt                  apprend les deux allures, en déduit l'arrivée et sa marge
   Resupply.kt                la réserve : dernier point avant la prochaine traversée
+  EffortBudget.kt            le coût du reste, en kilojoules, poste par poste
+  Bends.kt                   les virages lus sur la polyligne, rayon et sens
+  RideContext.kt             ce que la sortie fait, et donc ce que le champ montre
+  Surfaces.kt                le revêtement, en posant le tracé sur le fond de carte
   Format.kt                  formatage distances / dénivelés / pentes (métrique & impérial)
 
 app/                         extension Android
