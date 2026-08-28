@@ -29,13 +29,19 @@ import org.robolectric.annotation.GraphicsMode
  * finesse mais de nature — en mode hérité, `Paint.getFillPath` ne rend rien et les chevrons
  * disparaîtraient sans que rien ne signale la perte.
  *
+ * La langue est le **français**, celle des ressources par défaut du projet. Sans cette
+ * mention, Robolectric se dit en anglais et le banc d'essai affiche les libellés de
+ * `values-en` : on juge alors la mise en page sur « LAST RESUPPLY BEFORE » quand l'appareil
+ * écrira « DERNIER RAVITAILLEMENT AVANT », qui est la moitié plus long. C'est la longueur du
+ * texte qui décide des tailles, et donc de tout ce qu'on regarde ici.
+ *
  * Le thème est **sombre**, celui du Karoo en sortie. Ce n'est pas un goût : le tableau de
  * bord ne peint pas son fond — il arrive transparent, posé par le Karoo sur le sien — et
  * choisit ses encres d'après le thème du système. Sans cette mention, Robolectric se dit en
  * thème clair et le champ écrit ses chiffres en presque noir sur un écran noir.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], qualifiers = "night")
+@Config(sdk = [34], qualifiers = "fr-rFR-night")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SimulateurTest {
 

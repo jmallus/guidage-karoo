@@ -27,7 +27,28 @@ import kotlin.math.floor
  * également réparties. C'est un décor de contrôle, fait pour exercer toutes les classes de
  * voies et toutes les familles de surfaces à toutes les portées.
  */
-class DecorSimule(private val origine: GeoPoint) {
+class DecorSimule(private val origine: GeoPoint, trace: List<GeoPoint> = emptyList()) {
+
+    /**
+     * La voie que l'itinéraire emprunte, découpée en portions de classes différentes.
+     *
+     * Sans elle, le décor ne rencontre le tracé que par hasard, aux croisements : le champ
+     * « Revêtement » apparie alors une poignée d'échantillons sur cent et conclut « aucune
+     * voie reconnue », ce qui est vrai du décor mais faux de tout parcours réel — un
+     * itinéraire suit toujours quelque chose. La voie est donc posée **sur** le tracé, et le
+     * découpage rejoue une sortie de gravel ordinaire : du bitume, un long chemin, une voie
+     * verte, du bitume encore.
+     */
+    private val voieSuivie: List<PortionSuivie> = decouper(trace)
+
+    /** Une portion de la voie suivie et son emprise, calculée une fois pour toutes. */
+    private class PortionSuivie(
+        val voie: RoadSegment,
+        val ouest: Double,
+        val est: Double,
+        val sud: Double,
+        val nord: Double,
+    )
 
     /** Les voies visibles dans un rayon de [rayonMetres] autour de [centre]. */
     fun autour(centre: GeoPoint, rayonMetres: Double): List<RoadSegment> {
@@ -56,7 +77,62 @@ class DecorSimule(private val origine: GeoPoint) {
         for (ligne in premiereLigne..derniereLigne) {
             voies += routeEstOuest(ligne, premiereColonne, derniereColonne)
         }
+
+        // La voie suivie en dernier : à égale distance, c'est elle qui doit l'emporter, et
+        // l'appariement du champ « Revêtement » retient le plus proche à distance égale.
+        voieSuivie.forEach { portion ->
+            val dedans = portion.ouest <= plan.x + rayonMetres && portion.est >= plan.x - rayonMetres &&
+                portion.sud <= plan.y + rayonMetres && portion.nord >= plan.y - rayonMetres
+            if (dedans) voies += portion.voie
+        }
         return voies
+    }
+
+    /* ------------------------------------------------------------- voie suivie */
+
+    /**
+     * Découpe le tracé en portions, chacune d'une classe.
+     *
+     * Les bornes sont écrites plutôt que tirées au sort : on veut voir à l'écran une bascule
+     * proche — pour juger l'annonce « CHEMIN DANS 400 m » — et une longue portion de chemin,
+     * pour juger la barre. Un tirage ne le garantirait pas.
+     */
+    private fun decouper(trace: List<GeoPoint>): List<PortionSuivie> {
+        if (trace.size < 2) return emptyList()
+        val portions = ArrayList<PortionSuivie>(BORNES.size + 1)
+        var distance = 0.0
+        var courante = ArrayList<GeoPoint>().apply { add(trace.first()) }
+        var rang = 0
+        for (index in 1 until trace.size) {
+            courante += trace[index]
+            distance += Geo.distance(trace[index - 1], trace[index])
+            val borne = BORNES.getOrNull(rang) ?: continue
+            if (distance >= borne.first) {
+                portions += portionSuivie(courante, borne.second)
+                // La portion suivante repart du dernier point, sans quoi l'appariement
+                // trouverait un trou d'une longueur de pas à chaque changement de classe.
+                courante = ArrayList<GeoPoint>().apply { add(trace[index]) }
+                rang++
+            }
+        }
+        if (courante.size >= 2) portions += portionSuivie(courante, CLASSE_FINALE)
+        return portions
+    }
+
+    private fun portionSuivie(points: List<GeoPoint>, kind: RoadKind): PortionSuivie {
+        val plan = points.map { Geo.project(origine, it) }
+        return PortionSuivie(
+            voie = RoadSegment(
+                kind = kind,
+                surface = if (kind.isTrail) RoadSurface.UNPAVED else RoadSurface.PAVED,
+                latitudes = points.map { it.lat.toMicroDegrees() }.toIntArray(),
+                longitudes = points.map { it.lng.toMicroDegrees() }.toIntArray(),
+            ),
+            ouest = plan.minOf { it.x },
+            est = plan.maxOf { it.x },
+            sud = plan.minOf { it.y },
+            nord = plan.maxOf { it.y },
+        )
     }
 
     /* ------------------------------------------------------------------- voies */
@@ -197,6 +273,27 @@ class DecorSimule(private val origine: GeoPoint) {
     }
 
     private companion object {
+        /**
+         * Là où la voie suivie change de classe, et ce qu'elle devient.
+         *
+         * Écrit pour exercer le champ : une bascule à trois kilomètres et demi — assez près
+         * pour que l'annonce s'affiche au départ —, un long chemin, une voie verte, et de
+         * quoi alterner jusqu'à l'arrivée. Au-delà de la dernière borne, [CLASSE_FINALE].
+         */
+        val BORNES = listOf(
+            3_500.0 to RoadKind.SECONDARY,
+            7_200.0 to RoadKind.TRACK,
+            10_000.0 to RoadKind.TERTIARY,
+            12_400.0 to RoadKind.CYCLEWAY,
+            17_500.0 to RoadKind.SECONDARY,
+            21_000.0 to RoadKind.TRACK,
+            25_000.0 to RoadKind.TERTIARY,
+            27_500.0 to RoadKind.TRACK,
+            29_500.0 to RoadKind.CYCLEWAY,
+        )
+
+        val CLASSE_FINALE = RoadKind.SECONDARY
+
         /** Côté d'une maille du décor (m) : l'écart habituel entre deux routes de campagne. */
         const val MAILLE = 420.0
 

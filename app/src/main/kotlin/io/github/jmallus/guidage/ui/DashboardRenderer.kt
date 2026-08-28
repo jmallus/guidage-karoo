@@ -212,31 +212,45 @@ object DashboardRenderer {
             labelFraction = LABEL_HEIGHT_FRACTION,
         )
 
-        val gridTiles = mutableListOf<Tile>()
-        val gridBounds = mutableListOf<RectF>()
         // Colonne gauche : le cœur sous la transmission.
-        model.heartRateTile?.let {
-            gridTiles += it
-            gridBounds += RectF(padding, row(2), columnSplit, row(3))
-        }
-        // Rang sous la carte : distance parcourue à gauche, pente à droite.
-        model.midTiles.take(2).forEachIndexed { index, tile ->
-            gridTiles += tile
-            val left = if (index == 0) padding else columnSplit
-            gridBounds += RectF(left, midTop, if (index == 0) columnSplit else right, footerTop)
+        val heartTile = model.heartRateTile
+        val valueSize = if (heartTile == null) {
+            rowHeight * VALUE_HEIGHT_FRACTION
+        } else {
+            drawTiles(
+                context = context,
+                canvas = canvas,
+                bounds = listOf(RectF(padding, row(2), columnSplit, row(3))),
+                tiles = listOf(heartTile),
+                palette = model.palette,
+                valueFraction = VALUE_HEIGHT_FRACTION,
+                labelFraction = LABEL_HEIGHT_FRACTION,
+            )
         }
 
-        // Une seule taille de chiffres pour ces cases-là : d'un rang à l'autre, les valeurs
-        // se comparent alors sans que leur corps ne trahisse la largeur de la case.
-        val valueSize = drawTiles(
-            context = context,
-            canvas = canvas,
-            bounds = gridBounds,
-            tiles = gridTiles,
-            palette = model.palette,
-            valueFraction = VALUE_HEIGHT_FRACTION,
-            labelFraction = LABEL_HEIGHT_FRACTION,
-        )
+        // Rang sous la carte : distance parcourue à gauche, pente à droite. Il est dessiné à
+        // part du cœur, et non avec lui : son rang est plus court, et une taille commune aux
+        // deux serait ou trop grande pour lui — les chiffres débordant sur le pied — ou trop
+        // petite pour le cœur.
+        val midTiles = model.midTiles.take(2)
+        if (midTiles.isNotEmpty()) {
+            drawTiles(
+                context = context,
+                canvas = canvas,
+                bounds = midTiles.indices.map { index ->
+                    RectF(
+                        if (index == 0) padding else columnSplit,
+                        midTop,
+                        if (index == 0) columnSplit else right,
+                        footerTop,
+                    )
+                },
+                tiles = midTiles,
+                palette = model.palette,
+                valueFraction = VALUE_HEIGHT_FRACTION,
+                labelFraction = LABEL_HEIGHT_FRACTION,
+            )
+        }
 
         // Colonne droite : le guidage sur deux hauteurs de rang.
         val guidanceArea = RectF(columnSplit, row(1), right, row(1 + GUIDANCE_ROWS))
@@ -310,7 +324,10 @@ object DashboardRenderer {
         labelFraction: Float,
     ): Float {
         if (tiles.isEmpty() || bounds.isEmpty()) return 0f
-        val cellHeight = bounds.first().height()
+        // La plus courte des cases, et non la première : une taille calculée sur une case
+        // haute déborde de toutes les autres, et un débordement vertical ne se voit qu'à
+        // l'écran — aucune mesure de largeur ne l'attrape.
+        val cellHeight = bounds.minOf { it.height() }
         // Une seule taille de libellé pour le groupe, comme pour les valeurs : celle qui
         // laisse l'icône à découvert dans la plus étroite des cases.
         val labelSize = tiles.zip(bounds).minOf { (tile, box) ->

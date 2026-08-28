@@ -15,6 +15,7 @@ import io.github.jmallus.guidage.core.map.RoadSurface
 import io.github.jmallus.guidage.core.map.toMicroDegrees
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RiderLocation
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -30,18 +31,68 @@ object PreviewData {
     val location = RiderLocation(GeoPoint(45.180, 5.720), heading = 30.0)
 
     /**
-     * Tracé sinueux fictif partant de [location], pour que l'aperçu ressemble à un parcours
-     * plutôt qu'à une ligne droite.
+     * Un virage du tracé d'aperçu : où il commence, de combien il tourne, et de quel rayon.
+     *
+     * Écrits à la main plutôt que tirés d'une formule. Le tracé était une sinusoïde, et le
+     * champ « Virages » n'y trouvait **rien** : une ondulation régulière n'a pas de rayon
+     * serré, et échantillonnée tous les soixante mètres elle n'a même pas de rayon du tout.
+     * Le banc d'essai montrait donc « Rien de serré devant » du départ à l'arrivée, ce qui
+     * ne juge pas un champ fait pour les descentes.
+     */
+    private class Courbe(val depart: Double, val angle: Double, val rayon: Double)
+
+    /**
+     * Les virages du parcours, groupés là où le terrain descend.
+     *
+     * Deux épingles de treize mètres dans la descente du col, comme sur une vraie route de
+     * montagne : c'est le cas que le champ existe pour montrer, et il n'y en a pas d'autre
+     * moyen de le voir sans sortir le vélo.
+     */
+    private val courbes = listOf(
+        Courbe(3_000.0, -60.0, 60.0),
+        Courbe(6_200.0, 90.0, 35.0),
+        Courbe(6_800.0, -110.0, 18.0),
+        Courbe(7_400.0, 70.0, 45.0),
+        Courbe(14_000.0, -45.0, 80.0),
+        Courbe(27_000.0, 120.0, 14.0),
+        Courbe(27_600.0, -100.0, 20.0),
+        Courbe(28_400.0, 80.0, 30.0),
+        Courbe(29_200.0, -130.0, 12.0),
+        Courbe(30_000.0, 60.0, 55.0),
+    )
+
+    /**
+     * Tracé fictif partant de [location] : des lignes presque droites, et de vrais virages.
+     *
+     * Le cap tourne d'un pas constant à l'intérieur d'une courbe — ce qui donne un arc de
+     * rayon connu — et ondule doucement partout ailleurs, d'un sixième de degré par pas.
+     * L'ondulation ne crée aucun virage au sens du champ : son rayon dépasse trois
+     * kilomètres, là où le seuil est à quatre-vingt-dix mètres. Elle est là pour que la
+     * minicarte ne montre pas une règle.
      */
     private val previewPath: List<GeoPoint> by lazy {
-        (0..(LONGUEUR / PAS_TRACE).toInt()).map { step ->
-            val meters = step * PAS_TRACE
-            val wander = sin(step / 6.0) * 250.0
-            GeoPoint(
-                lat = location.position.lat + (meters * cos(Math.toRadians(30.0)) + wander) / 110_540.0,
-                lng = location.position.lng + (meters * sin(Math.toRadians(30.0)) - wander) / 78_700.0,
-            )
+        var cap = 30.0
+        var lat = location.position.lat
+        var lng = location.position.lng
+        val points = ArrayList<GeoPoint>((LONGUEUR / PAS_TRACE).toInt() + 2)
+        var distance = 0.0
+        while (distance <= LONGUEUR) {
+            points.add(GeoPoint(lat, lng))
+            val courbe = courbes.firstOrNull {
+                val longueur = Math.toRadians(abs(it.angle)) * it.rayon
+                distance >= it.depart && distance < it.depart + longueur
+            }
+            cap += if (courbe == null) {
+                MEANDRE_DEGRES * sin(distance / MEANDRE_PERIODE)
+            } else {
+                (if (courbe.angle < 0) -1.0 else 1.0) * Math.toDegrees(PAS_TRACE / courbe.rayon)
+            }
+            val radians = Math.toRadians(cap)
+            lat += PAS_TRACE * cos(radians) / 110_540.0
+            lng += PAS_TRACE * sin(radians) / 78_700.0
+            distance += PAS_TRACE
         }
+        points
     }
 
     /**
@@ -58,8 +109,18 @@ object PreviewData {
      */
     private const val LONGUEUR = 32_000.0
 
-    /** Pas du tracé fictif, en mètres. */
-    private const val PAS_TRACE = 60.0
+    /**
+     * Pas du tracé fictif, en mètres.
+     *
+     * Dix, contre soixante autrefois. Un virage de quinze mètres de rayon a un arc d'une
+     * trentaine de mètres : échantillonné tous les soixante, il n'existe pas — et c'est
+     * exactement ce qui rendait le champ « Virages » vide.
+     */
+    private const val PAS_TRACE = 10.0
+
+    /** Amplitude et période de l'ondulation, en degrés de cap et en mètres. */
+    private const val MEANDRE_DEGRES = 0.16
+    private const val MEANDRE_PERIODE = 240.0
 
     /**
      * Les sommets du parcours d'aperçu : sa forme d'ensemble, et rien d'autre.

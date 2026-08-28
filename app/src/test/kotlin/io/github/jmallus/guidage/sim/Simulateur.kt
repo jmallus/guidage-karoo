@@ -57,7 +57,14 @@ class Simulateur(
 ) {
     val sortie = SortieSimulee(PreviewData.route)
 
-    private val decor = DecorSimule(PreviewData.location.position)
+    /**
+     * Le fond de carte engendré, à qui l'on donne le tracé.
+     *
+     * Sans lui, le décor ne croise l'itinéraire qu'aux carrefours et le champ « Revêtement »
+     * ne reconnaît rien : la voie que le parcours emprunte doit exister sur la carte, comme
+     * elle existe sur la vraie.
+     */
+    private val decor = DecorSimule(PreviewData.location.position, PreviewData.route.path)
 
     /**
      * Zones d'effort, empruntées aux relevés de l'aperçu.
@@ -106,7 +113,14 @@ class Simulateur(
         }
         while (appriseJusqua + PAS_APPRENTISSAGE <= secondes) {
             val instant = sortie.a(appriseJusqua + PAS_APPRENTISSAGE)
-            apprentissage.observe(PAS_APPRENTISSAGE, instant.vitesse, instant.pente)
+            // La puissance compte autant que la vitesse : c'est d'elle que le champ « Budget
+            // d'effort » tire ses kilojoules, et sans capteur il n'affiche rien du tout.
+            apprentissage.observe(
+                PAS_APPRENTISSAGE,
+                instant.vitesse,
+                instant.pente,
+                instant.puissance,
+            )
             appriseJusqua += PAS_APPRENTISSAGE
         }
         return apprentissage.pace
