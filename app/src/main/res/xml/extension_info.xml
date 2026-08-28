@@ -53,6 +53,13 @@
         icon="@drawable/ic_climb" />
 
     <DataType
+        typeId="contexte"
+        displayName="@string/field_context_name"
+        description="@string/field_context_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
         typeId="poi"
         displayName="@string/field_poi_name"
         description="@string/field_poi_description"

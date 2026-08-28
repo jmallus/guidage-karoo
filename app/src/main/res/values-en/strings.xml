@@ -8,6 +8,8 @@
     <string name="field_profile_description">Elevation profile of the route ahead, coloured by gradient.</string>
     <string name="field_fisheye_name">Profile to the finish</string>
     <string name="field_fisheye_description">The whole remaining profile on one band, on a non-linear scale: the first two kilometres take nearly half the width, the rest compresses behind them. The ramp ahead and the fourth-hour col show at once, with no range to change. The unevenly spaced ticks are what tells you the scale is compressed.</string>
+    <string name="field_context_name">Follows the ride</string>
+    <string name="field_context_description">A field whose lower half changes with what the ride is doing: climbing, what is left to the summit and the shape of it; descending, the bends; near a resupply point, its distance; the rest of the time, speed and what remains. The upper half never moves, and a rail of dots says which state you are in.</string>
     <string name="field_bends_name">Bends</string>
     <string name="field_bends_description">The bends of the next three kilometres, on the road laid straight: each one becomes a bar reaching up or down for its direction, long and red for its radius. It is not a map — the minimap already does that — but the answer to the only question a descent raises: what is coming, and how tight.</string>
     <string name="field_effort_name">Effort budget</string>
@@ -51,6 +53,9 @@
     <string name="alert_climb_title">Climb in %1$s</string>
     <string name="alert_climb_detail">%1$s at %2$s • +%3$s</string>
     <string name="alert_summit_title">Summit in %1$s</string>
+    <string name="field_context_to_summit">TO SUMMIT</string>
+    <string name="field_context_since_last">SINCE LAST</string>
+    <string name="field_context_remaining">REMAINING</string>
     <string name="field_bends_label">BENDS</string>
     <string name="field_bends_summary">%1$d over %2$s</string>
     <string name="field_bends_none">Nothing tight ahead</string>
