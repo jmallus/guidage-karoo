@@ -2,6 +2,8 @@ package io.github.jmallus.guidage.karoo
 
 import io.github.jmallus.guidage.core.ClimbProgress
 import io.github.jmallus.guidage.core.Drivetrain
+import io.github.jmallus.guidage.core.LearnedPace
+import io.github.jmallus.guidage.core.PaceLearner
 import io.github.jmallus.guidage.core.ZoneRange
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
@@ -42,6 +44,8 @@ data class RideData(
     /** Zones réglées sur l'appareil, qui donnent leur couleur aux cases. */
     val powerZones: List<ZoneRange> = emptyList(),
     val heartRateZones: List<ZoneRange> = emptyList(),
+    /** Allure apprise depuis le départ, dont se déduit l'heure d'arrivée. */
+    val pace: LearnedPace = LearnedPace.UNKNOWN,
 )
 
 /**
@@ -53,13 +57,26 @@ data class RideData(
 class RideDataProvider(
     private val karooSystem: KarooSystemService,
     scope: CoroutineScope,
+    private val clock: () -> Long = System::currentTimeMillis,
 ) {
+    /**
+     * Ce que le coureur tient aujourd'hui, appris au fil de la sortie.
+     *
+     * Il vit ici et non dans le champ : les deux vitesses se mesurent sur la sortie entière,
+     * pas sur la durée d'affichage d'une page. Un champ posé sur la troisième page
+     * hériterait sans cela d'une allure apprise en trois minutes.
+     */
+    private val paceLearner = PaceLearner()
+    private var lastObservationMillis: Long? = null
+    private var lastDistance: Double? = null
+
     val data: StateFlow<RideData> = combine(
         metrics(),
         zones(),
         gears(),
         climb(),
     ) { values, profile, drivetrain, climb ->
+        observePace(speed = values[0], grade = values[5], distance = values[6])
         RideData(
             speed = values[0],
             averageSpeed = values[1],
@@ -75,6 +92,7 @@ class RideDataProvider(
             onRoute = values[9]?.let { it > 0.5 },
             powerZones = profile.first,
             heartRateZones = profile.second,
+            pace = paceLearner.pace,
         )
     }
         .distinctUntilChanged()
@@ -147,6 +165,32 @@ class RideDataProvider(
         )
     }
 
+    /**
+     * Nourrit l'allure d'un relevé, et l'oublie quand une nouvelle sortie commence.
+     *
+     * Le compteur de distance qui recule est le seul signal fiable de départ : l'état de la
+     * sortie passe aussi par « en pause », d'où l'on repart sans avoir rien oublié.
+     */
+    private fun observePace(speed: Double?, grade: Double?, distance: Double?) {
+        val now = clock()
+        if (distance != null) {
+            val previous = lastDistance
+            if (previous != null && distance < previous - NEW_RIDE_DROP_METERS) {
+                paceLearner.reset()
+                lastObservationMillis = null
+            }
+            lastDistance = distance
+        }
+        val previousMillis = lastObservationMillis
+        lastObservationMillis = now
+        if (previousMillis == null) return
+        paceLearner.observe(
+            deltaSeconds = (now - previousMillis) / 1_000.0,
+            speedMetersPerSecond = speed,
+            gradePercent = grade,
+        )
+    }
+
     private fun value(dataTypeId: String) =
         karooSystem.streamValueFlow(dataTypeId).onStart { emit(null) }
 
@@ -155,6 +199,9 @@ class RideDataProvider(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
+
+        /** Recul du compteur au-delà duquel on tient la sortie pour nouvelle (m). */
+        const val NEW_RIDE_DROP_METERS = 100.0
 
         fun UserProfile.Zone.toRange() = ZoneRange(min, max)
     }

@@ -79,4 +79,62 @@ class AlertEngineTest {
             assertTrue("une côte annonce encore quelque chose à $along m", engine.evaluate(state(along)).isEmpty())
         }
     }
+
+    /* ------------------------------------------------ la dernière eau avant la traversée */
+
+    private val traversee = Route(
+        name = "Causse",
+        totalDistance = 60_000.0,
+        profile = null,
+        climbs = emptyList(),
+        pois = listOf(
+            RoutePoi("water-1", "Fontaine", "water", 4_000.0),
+            RoutePoi("water-2", "Lavoir", "water", 18_000.0),
+        ),
+    )
+
+    @Test
+    fun `le dernier point avant la traversee est annonce a part`() {
+        val engine = AlertEngine(
+            AlertSettings(poiDistance = 500.0),
+            resupplyTypes = setOf("water"),
+        )
+        fun etat(along: Double) = GuidanceState(traversee, along, traversee.totalDistance - along)
+
+        // Le premier point n'annonce que lui-même : quatorze kilomètres jusqu'au suivant,
+        // ce n'est pas une traversée.
+        assertEquals(
+            listOf(AlertKind.POI_APPROACH),
+            engine.evaluate(etat(3_600.0)).map { it.kind },
+        )
+
+        // Le second est le dernier avant quarante-deux kilomètres de rien : les deux
+        // annonces tombent ensemble, l'une nommant le lavoir, l'autre disant de s'y arrêter.
+        val alerts = engine.evaluate(etat(17_600.0))
+        assertEquals(
+            listOf(AlertKind.POI_APPROACH, AlertKind.RESUPPLY_LAST),
+            alerts.map { it.kind },
+        )
+        assertEquals(42_000.0, alerts.last().crossing!!.length, 1e-9)
+    }
+
+    @Test
+    fun `la traversee ne s annonce qu une fois`() {
+        val engine = AlertEngine(
+            AlertSettings(poiDistance = 500.0),
+            resupplyTypes = setOf("water"),
+        )
+        fun etat(along: Double) = GuidanceState(traversee, along, traversee.totalDistance - along)
+
+        assertTrue(engine.evaluate(etat(17_600.0)).any { it.kind == AlertKind.RESUPPLY_LAST })
+        assertTrue(engine.evaluate(etat(17_800.0)).none { it.kind == AlertKind.RESUPPLY_LAST })
+    }
+
+    @Test
+    fun `sans type de ravitaillement rien n est annonce`() {
+        val engine = AlertEngine(AlertSettings(poiDistance = 500.0))
+        val etat = GuidanceState(traversee, 17_600.0, traversee.totalDistance - 17_600.0)
+
+        assertTrue(engine.evaluate(etat).none { it.kind == AlertKind.RESUPPLY_LAST })
+    }
 }

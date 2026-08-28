@@ -314,7 +314,7 @@
         </div></li>
         <li><span class="badge">F</span><div>
           <h3>Fin de parcours</h3>
-          <p>Ce qu'il reste et l'heure d'arrivée estimée — les deux seules valeurs qu'on regarde
+          <p>Ce qu'il reste et l'heure d'arrivée, avec la marge qu'on lui reconnaît — les deux seules valeurs qu'on regarde
              quand on ne regarde plus rien d'autre.</p>
         </div></li>
       </ul>
@@ -1262,6 +1262,8 @@ function arrivalClock(){
   const t = new Date(Date.now() + 58*60000);
   return String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0");
 }
+/* La marge que Pacing rend pour ces 58 minutes restantes, à une allure tenue à 9 % près. */
+const ARRIVAL_MARGIN_MIN = 5;
 function model(){
   return {
     topTiles:[
@@ -1278,7 +1280,7 @@ function model(){
     ],
     footerTiles:[
       {label:"RESTANT KM", value:"23", decimal:"1", icon:"remaining"},
-      {label:"ARRIVÉE",    value:arrivalClock(), icon:"arrival"}
+      {label:`ARRIVÉE ± ${ARRIVAL_MARGIN_MIN} MIN`, value:arrivalClock(), icon:"arrival"}
     ]
   };
 }
