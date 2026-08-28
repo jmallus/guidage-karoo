@@ -6,6 +6,8 @@
     <!-- Champs de données -->
     <string name="field_profile_name">Profil à venir</string>
     <string name="field_profile_description">Profil altimétrique de la portion d\'itinéraire devant vous, coloré selon la pente.</string>
+    <string name="field_fisheye_name">Profil jusqu\'à l\'arrivée</string>
+    <string name="field_fisheye_description">Tout le profil restant sur une seule bande, à échelle non linéaire : les deux premiers kilomètres prennent près de la moitié de la largeur, le reste se comprime derrière. On y voit la rampe qui arrive et le col de la quatrième heure sans changer de portée. Les graduations, inégalement espacées, disent la compression.</string>
     <string name="field_climb_name">Prochaine côte</string>
     <string name="field_climb_description">Distance jusqu\'à la prochaine côte, ou jusqu\'au sommet de celle en cours, avec pente et dénivelé.</string>
     <string name="field_poi_name">Prochain point d\'intérêt</string>

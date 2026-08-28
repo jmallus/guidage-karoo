@@ -43,6 +43,7 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
         listOf(
             DashboardDataType(provider, rideDataProvider, settingsRepository, roadMapRepository, extension),
             ProfileDataType(provider, settingsRepository, extension),
+            FisheyeDataType(provider, settingsRepository, extension),
             ClimbDataType(provider, extension),
             PoiDataType(provider, extension),
         )

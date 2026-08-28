@@ -16,8 +16,12 @@ enum class Units { METRIC, IMPERIAL }
  */
 object Format {
 
-    private const val METERS_PER_MILE = 1609.344
-    private const val METERS_PER_FOOT = 0.3048
+    /**
+     * Conversions impériales, publiques : le choix des graduations en dépend, et il vaut
+     * mieux une constante partagée qu'une seconde écriture du même nombre ailleurs.
+     */
+    const val METERS_PER_MILE = 1609.344
+    const val METERS_PER_FOOT = 0.3048
 
     /** Distance courte/longue avec l'unité adaptée : « 450 m », « 2,4 km », « 0.3 mi ». */
     fun distance(meters: Double, units: Units, locale: Locale = Locale.getDefault()): String {

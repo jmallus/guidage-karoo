@@ -25,6 +25,13 @@
         icon="@drawable/ic_profile" />
 
     <DataType
+        typeId="profil-arrivee"
+        displayName="@string/field_fisheye_name"
+        description="@string/field_fisheye_description"
+        graphical="true"
+        icon="@drawable/ic_profile" />
+
+    <DataType
         typeId="cote"
         displayName="@string/field_climb_name"
         description="@string/field_climb_description"
