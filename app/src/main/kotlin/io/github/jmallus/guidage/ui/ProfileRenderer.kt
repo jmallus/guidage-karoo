@@ -11,6 +11,8 @@ import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.Units
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -100,12 +102,21 @@ object ProfileRenderer {
         val window = model.window
         val points = window.points
         val elevationSpan = window.elevationSpan.takeIf { it > 0 } ?: return
-        val columns = (right - left).toInt().coerceAtLeast(1)
+        // Les colonnes sont calées sur les pixels de l'image, et non sur les bords fractionnaires
+        // de la zone de dessin : un rectangle posé à cinq virgule six déborde sur deux pixels,
+        // dont aucun ne reçoit sa couleur pure. Là où deux colonnes voisines n'ont pas la même
+        // teinte — c'est-à-dire à chaque changement de zone de pente — le pixel de la frontière
+        // devient un mélange qui n'appartient à aucune des deux.
+        val first = ceil(left).toInt()
+        val columns = (floor(right).toInt() - first).coerceAtLeast(1)
 
         fun y(elevation: Double) =
             bottom - ((elevation - window.minElevation) / elevationSpan * (bottom - top)).toFloat()
 
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        // Sans antialiasing : ces rectangles sont alignés sur la grille des pixels, et l'adoucir
+        // ne ferait que rendre floues des frontières franches. La crête, elle, est une courbe et
+        // reste adoucie.
+        val fill = Paint().apply { style = Paint.Style.FILL }
         val ridge = Path()
 
         for (column in 0 until columns) {
@@ -120,12 +131,10 @@ object ProfileRenderer {
             }
 
             fill.color = if (model.colorByGrade) FieldPalette.gradeColor(grade) else FieldPalette.NEUTRAL
-            val x = left + column
+            val x = (first + column).toFloat()
             val crestY = y(crest)
-            // Un chouïa plus large qu'un pixel : deux rectangles jointifs et antialiasés
-            // laissent sinon voir le fond par une couture d'un demi-pixel.
-            canvas.drawRect(x, crestY, x + COLUMN_OVERLAP, bottom, fill)
-            if (column == 0) ridge.moveTo(x, crestY) else ridge.lineTo(x, crestY)
+            canvas.drawRect(x, crestY, x + 1f, bottom, fill)
+            if (column == 0) ridge.moveTo(x, crestY) else ridge.lineTo(x + 0.5f, crestY)
         }
 
         canvas.drawPath(
@@ -344,7 +353,4 @@ object ProfileRenderer {
 
     private const val MIN_GAP = 0.08f
     private const val MAX_GAP = 0.34f
-
-    /** Débord d'une colonne sur la suivante, pour ne pas laisser voir la couture. */
-    private const val COLUMN_OVERLAP = 1.2f
 }

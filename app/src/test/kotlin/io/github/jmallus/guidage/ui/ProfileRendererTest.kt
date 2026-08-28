@@ -64,9 +64,21 @@ class ProfileRendererTest {
         palette,
     )
 
-    /** Colonnes où la silhouette monte au-dessus du fond, par ordre de gauche à droite. */
+    /**
+     * Les teintes que le remplissage peut prendre : celles des zones de pente, plus le neutre.
+     *
+     * Les relever sert à ne lire que la silhouette. Un test qui prendrait tout pixel non
+     * transparent lirait aussi les libellés du haut et les graduations du bas — et le premier
+     * écrit du texte plus haut que le col ne montera jamais, de sorte qu'un contrôle sur le
+     * point culminant passerait en désignant une lettre.
+     */
+    private val teintesDeRelief: Set<Int> =
+        ((-25..25).map { FieldPalette.gradeColor(it.toDouble()) } + FieldPalette.NEUTRAL).toSet()
+
+    /** Hauteur du sommet de la silhouette dans chaque colonne, ou la hauteur si elle est vide. */
     private fun crete(image: Bitmap): List<Int> = (0 until image.width).map { x ->
-        (0 until image.height).firstOrNull { y -> image.getPixel(x, y) != 0 } ?: image.height
+        (0 until image.height).firstOrNull { y -> image.getPixel(x, y) in teintesDeRelief }
+            ?: image.height
     }
 
     /** La promesse : le col de la fin n'est pas avalé par la compression. */
@@ -114,19 +126,14 @@ class ProfileRendererTest {
         assertTrue("teintes trouvées : $teintes", teintes == setOf(FieldPalette.NEUTRAL))
     }
 
-    /**
-     * Les teintes du remplissage, relevées au ras du bas de la bande.
-     *
-     * En bas et non sur la crête : la silhouette y est soulignée d'un trait blanc, et lire
-     * la couleur juste sous lui reviendrait à lire le trait.
-     */
-    private fun teintesDeRemplissage(image: Bitmap): Set<Int> {
-        val sommets = crete(image)
-        return (0 until image.width).mapNotNull { x ->
-            if (sommets[x] >= image.height) return@mapNotNull null
-            val bas = (0 until image.height).last { image.getPixel(x, it) != 0 }
-            image.getPixel(x, bas).takeIf { it != palette.outline }
-        }.toSet()
+    /** Les teintes de relief effectivement posées dans l'image. */
+    private fun teintesDeRemplissage(image: Bitmap): Set<Int> = buildSet {
+        for (x in 0 until image.width) {
+            for (y in 0 until image.height) {
+                val pixel = image.getPixel(x, y)
+                if (pixel in teintesDeRelief) add(pixel)
+            }
+        }
     }
 
     /**
@@ -140,18 +147,23 @@ class ProfileRendererTest {
     @Test
     fun `la silhouette est continue sur toute la largeur`() {
         val image = image()
-        val vides = crete(image).drop(4).dropLast(4).count { it == image.height }
-        assertTrue("$vides colonnes sans relief", vides == 0)
+        val sommets = crete(image)
+        // Les marges gauche et droite ne portent rien : le contrôle porte sur ce qui est
+        // entre la première et la dernière colonne peintes, où aucun trou n'est admis.
+        val premiere = sommets.indexOfFirst { it < image.height }
+        val derniere = sommets.indexOfLast { it < image.height }
+        assertTrue("rien n'est dessiné", premiere >= 0 && derniere - premiere > image.width / 2)
+
+        val vides = (premiere..derniere).count { sommets[it] >= image.height }
+        assertTrue("$vides colonnes sans relief entre $premiere et $derniere", vides == 0)
     }
 
     /** Un champ très court perd les chiffres de l'axe, mais jamais le dessin. */
     @Test
     fun `un champ court se dessine encore`() {
         val image = image(largeur = 200, hauteur = 48)
-        val peints = (0 until image.width).count { x ->
-            (0 until image.height).any { y -> image.getPixel(x, y) != 0 }
-        }
-        assertTrue("seulement $peints colonnes peintes", peints > image.width / 2)
+        val peintes = crete(image).count { it < image.height }
+        assertTrue("seulement $peintes colonnes peintes", peintes > image.width / 2)
     }
 
     /** Rien à montrer : un message, et pas une bande vide qu'on prendrait pour une panne. */
