@@ -27,6 +27,17 @@ data class EffortFieldModel(
     val unit: String = "kJ",
     val label: String? = null,
     val slices: List<EffortSlice> = emptyList(),
+    /**
+     * Part de la barre déjà payée (0 à 1), null quand la dépense n'est pas mesurée.
+     *
+     * Quand elle est là, la barre ne porte plus le seul reste mais la sortie entière : le
+     * dépensé en gris à gauche, les postes qui restent à droite. C'est ce qui répond à la
+     * question que le total seul laisse ouverte — six cents kilojoules devant, est-ce le
+     * début ou la fin ?
+     */
+    val spentShare: Float? = null,
+    /** « 62 % DE L'EFFORT · 50 % DE LA DISTANCE », sous la barre. */
+    val progressCaption: String? = null,
     val emptyMessage: String? = null,
 )
 
@@ -87,7 +98,8 @@ object EffortRenderer {
         val rows = detailRows(model)
         val barHeight = (height * 0.16f).coerceIn(6f, 26f)
         val rowHeight = labelSize * 1.5f
-        val reserved = barHeight + padding + rows.size * rowHeight
+        val captionRoom = if (model.progressCaption == null) 0f else labelSize * 1.4f
+        val reserved = barHeight + captionRoom + padding + rows.size * rowHeight
         // Les bornes se croiseraient sur un champ très plat, et coerceIn lèverait :
         // la borne haute est donc calculée avant, jamais sous la borne basse.
         val largest = max(12f, height * 0.42f)
@@ -110,8 +122,23 @@ object EffortRenderer {
 
         var cursor = valueBaseline + padding
         if (cursor + barHeight <= bottom) {
-            drawBar(canvas, model, left, cursor, right, cursor + barHeight)
-            cursor += barHeight + padding
+            drawBar(canvas, model, left, cursor, right, cursor + barHeight, palette)
+            cursor += barHeight
+            // La légende chiffrée suit la barre immédiatement, sans la marge : elle la
+            // commente, et un blanc entre les deux les ferait lire comme deux choses.
+            model.progressCaption?.let { caption ->
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = palette.textSecondary
+                    textSize = labelSize * 0.92f
+                    letterSpacing = 0.04f
+                    typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                }
+                if (cursor + captionRoom <= bottom) {
+                    canvas.drawText(caption, left, cursor + labelSize, paint)
+                    cursor += captionRoom
+                }
+            }
+            cursor += padding
         }
 
         rows.forEach { slice ->
@@ -125,6 +152,14 @@ object EffortRenderer {
     private fun detailRows(model: EffortFieldModel): List<EffortSlice> =
         model.slices.filter { it.label != null && it.value != null }
 
+    /**
+     * La barre : ce qui est payé à gauche, ce qui reste à droite.
+     *
+     * Sans dépense mesurée, elle ne porte que le reste et occupe toute sa largeur — c'est le
+     * comportement d'origine, et le seul possible sans capteur de puissance. Avec, elle porte
+     * la sortie entière, et le trait qui sépare les deux est le coureur : à sa gauche ce qui
+     * est fait, à sa droite ce qui coûte encore.
+     */
     private fun drawBar(
         canvas: Canvas,
         model: EffortFieldModel,
@@ -132,16 +167,44 @@ object EffortRenderer {
         top: Float,
         right: Float,
         bottom: Float,
+        palette: Palette,
     ) {
         val width = right - left
         val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+
+        val spent = model.spentShare?.coerceIn(0f, 1f)
         var x = left
+        if (spent != null && spent > 0f) {
+            fill.color = palette.outline
+            fill.alpha = SPENT_ALPHA
+            canvas.drawRect(x, top, left + width * spent, bottom, fill)
+            fill.alpha = 0xFF
+            x = left + width * spent
+        }
+
+        // Les postes se partagent ce qui reste de la barre, non sa largeur entière : leurs
+        // parts se rapportent au budget restant, et non à la sortie.
+        val remainingWidth = width * (1f - (spent ?: 0f))
         model.slices.forEach { slice ->
-            val sliceWidth = width * slice.share
+            val sliceWidth = remainingWidth * slice.share
             if (sliceWidth <= 0f) return@forEach
             fill.color = slice.color
             canvas.drawRect(x, top, min(x + sliceWidth, right), bottom, fill)
             x += sliceWidth
+        }
+
+        if (spent != null && spent > 0f && spent < 1f) {
+            val mark = left + width * spent
+            canvas.drawLine(
+                mark,
+                top - (bottom - top) * 0.25f,
+                mark,
+                bottom + (bottom - top) * 0.25f,
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = palette.textPrimary
+                    strokeWidth = ((bottom - top) * 0.14f).coerceIn(1.5f, 4f)
+                },
+            )
         }
     }
 
@@ -188,4 +251,7 @@ object EffortRenderer {
 
     /** Corps de l'unité, en part de celui du nombre. */
     private const val UNIT_RATIO = 0.42f
+
+    /** Opacité de la part déjà payée : présente, mais elle n'est plus à décider. */
+    private const val SPENT_ALPHA = 0x66
 }

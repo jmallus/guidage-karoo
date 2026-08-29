@@ -5,6 +5,7 @@ import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.EffortBudget
 import io.github.jmallus.guidage.core.EffortEstimate
 import io.github.jmallus.guidage.core.EffortItem
+import io.github.jmallus.guidage.core.EffortProgress
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.Pacing
@@ -56,13 +57,37 @@ object EffortModels {
             )
 
         val total = estimate.kilojoules
+        val progress = EffortBudget.progress(
+            spentKilojoules = data.energyOutput,
+            estimate = estimate,
+            distanceAlongRoute = state.distanceAlongRoute,
+            totalDistance = state.route?.totalDistance,
+        )
         return EffortFieldModel(
             total = total.roundToInt().toString(),
             unit = context.getString(R.string.unit_kilojoule),
             label = context.getString(R.string.field_effort_label),
             slices = estimate.items.map { item -> slice(context, item, total) },
+            spentShare = progress?.effortFraction?.toFloat(),
+            progressCaption = progress?.let { caption(context, it) },
         )
     }
+
+    /**
+     * La ligne qui rapproche l'effort des kilomètres.
+     *
+     * Les deux parts côte à côte, et rien de plus : nommer l'écart — « en avance », « en
+     * retard » — reviendrait à porter un jugement que le coureur fait mieux que nous, sachant
+     * ce qu'il a dans les jambes. Deux nombres se comparent tout seuls.
+     */
+    private fun caption(context: Context, progress: EffortProgress): String? {
+        val effort = progress.effortFraction ?: return null
+        val distance = progress.distanceFraction
+            ?: return context.getString(R.string.field_effort_share_only, percent(effort))
+        return context.getString(R.string.field_effort_share, percent(effort), percent(distance))
+    }
+
+    private fun percent(fraction: Double): Int = (fraction * 100).roundToInt().coerceIn(0, 100)
 
     /**
      * Une tranche de la barre, et sa ligne de détail quand elle en mérite une.

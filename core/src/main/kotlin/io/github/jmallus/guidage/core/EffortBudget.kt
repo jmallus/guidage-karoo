@@ -121,6 +121,33 @@ object EffortBudget {
             }
     }
 
+    /**
+     * Rapproche ce qui est dépensé de ce qui reste.
+     *
+     * Rend null tant que l'un des deux manque : sans capteur de puissance il n'y a pas de
+     * dépense, et sans allure apprise il n'y a pas de budget. Une moitié de la comparaison
+     * ne vaut rien — c'est le rapport des deux qu'on vient lire.
+     */
+    fun progress(
+        spentKilojoules: Double?,
+        estimate: EffortEstimate?,
+        distanceAlongRoute: Double?,
+        totalDistance: Double?,
+    ): EffortProgress? {
+        val spent = spentKilojoules?.takeIf { it >= 0.0 } ?: return null
+        val remaining = estimate?.kilojoules ?: return null
+        val fraction = if (distanceAlongRoute != null && totalDistance != null && totalDistance > 0.0) {
+            (distanceAlongRoute / totalDistance).coerceIn(0.0, 1.0)
+        } else {
+            null
+        }
+        return EffortProgress(
+            spentKilojoules = spent,
+            remainingKilojoules = remaining,
+            distanceFraction = fraction,
+        )
+    }
+
     private const val JOULES_PER_KILOJOULE = 1_000.0
 }
 
@@ -131,3 +158,44 @@ data class RemainingClimb(
     val ascent: Double,
     val grade: Double,
 )
+
+/**
+ * Ce qui est déjà payé, ce qui reste à payer, et l'avance ou le retard de l'un sur l'autre.
+ *
+ * Le budget seul dit ce que coûte la suite. Il ne dit pas où l'on en est : six cents
+ * kilojoules devant, est-ce le début ou la fin ? Le Karoo compte de son côté les kilojoules
+ * déjà produits — c'est une intégrale de la puissance, mesurée, sans modèle. Les deux se
+ * lisent donc dans la même unité et se mettent bout à bout.
+ *
+ * D'où la comparaison qui donne son sens à l'ensemble : la part de l'effort déjà faite en
+ * regard de la part de la distance déjà faite. Aux deux tiers de l'effort à la moitié des
+ * kilomètres, la fin sera plus dure que le début ne l'a laissé croire — et c'est une chose
+ * qu'aucun compteur ne dit, parce qu'aucun ne rapproche les deux.
+ */
+data class EffortProgress(
+    /** Kilojoules déjà produits depuis le départ. */
+    val spentKilojoules: Double,
+    /** Kilojoules qu'il reste à produire, du budget. */
+    val remainingKilojoules: Double,
+    /** Part de la distance déjà parcourue (0 à 1), null si l'itinéraire ne la donne pas. */
+    val distanceFraction: Double?,
+) {
+    val totalKilojoules: Double get() = spentKilojoules + remainingKilojoules
+
+    /** Part de l'effort déjà faite (0 à 1), null si le total est nul. */
+    val effortFraction: Double?
+        get() = totalKilojoules.takeIf { it > 0.0 }?.let { spentKilojoules / it }
+
+    /**
+     * Écart entre la part d'effort et la part de distance, en points.
+     *
+     * Positif, l'effort est en avance sur les kilomètres : le plus dur est derrière. Négatif,
+     * il est en retard : ce qui reste coûte plus cher que ce qui est fait.
+     */
+    val lead: Double?
+        get() {
+            val effort = effortFraction ?: return null
+            val distance = distanceFraction ?: return null
+            return effort - distance
+        }
+}

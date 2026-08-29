@@ -100,6 +100,8 @@
     <string name="field_effort_description">What the rest of the route still costs, in kilojoules rather than kilometres, split by item: the rolling terrain, then each remaining climb. The total comes from the estimated time of each item and the power you actually hold in that regime — two measured quantities, none assumed. Needs a power meter.</string>
     <string name="field_effort_label">STILL TO PAY</string>
     <string name="field_effort_waiting">Learning your pace</string>
+    <string name="field_effort_share">%1$d%% OF THE EFFORT · %2$d%% OF THE DISTANCE</string>
+    <string name="field_effort_share_only">%1$d%% OF THE EFFORT</string>
     <string name="field_effort_climb">Climb %1$d — %2$s</string>
     <string name="field_effort_kilojoules">%1$d kJ</string>
     <string name="unit_kilojoule">kJ</string>

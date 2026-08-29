@@ -64,6 +64,13 @@ data class InstantSortie(
     val transmission: Drivetrain,
     /** Distance restant à parcourir jusqu'à l'arrivée (m). */
     val distanceRestante: Double,
+    /**
+     * Travail produit depuis le départ (kJ), intégré au fil de la sortie.
+     *
+     * C'est ce que le Karoo publie sous `ENERGY_OUTPUT`, et le banc d'essai doit le fournir :
+     * sans lui, la moitié « déjà payée » du budget d'effort ne s'afficherait jamais.
+     */
+    val energie: Double,
 )
 
 /**
@@ -122,6 +129,7 @@ class SortieSimulee(
         val pente = avant.pente + part * (apres.pente - avant.pente)
         val cardiaque = avant.cardiaque + part * (apres.cardiaque - avant.cardiaque)
         val puissance = avant.puissance + part * (apres.puissance - avant.puissance)
+        val energie = avant.energie + part * (apres.energie - avant.energie)
 
         val surPolygone = distance / echelle
         val transmission = transmissionDe(vitesse)
@@ -138,6 +146,7 @@ class SortieSimulee(
             cadence = cadenceDe(vitesse, transmission),
             transmission = transmission,
             distanceRestante = (distanceTotale - distance).coerceAtLeast(0.0),
+            energie = energie,
         )
     }
 
@@ -201,6 +210,8 @@ class SortieSimulee(
         val pente: Double,
         val puissance: Double,
         val cardiaque: Double,
+        /** Travail cumulé depuis le départ (kJ). */
+        val energie: Double,
     )
 
     private fun tabuler(): List<Etape> {
@@ -209,16 +220,19 @@ class SortieSimulee(
         var distance = 0.0
         var secondes = 0.0
         var cardiaque = profil.cardiaqueRepos + 20.0
+        var energie = 0.0
         while (true) {
             val pente = penteA(distance)
             val vitesse = vitesseA(pente)
             val puissance = puissanceA(pente, vitesse)
-            etapes += Etape(distance, secondes, vitesse, pente, puissance, cardiaque)
+            etapes += Etape(distance, secondes, vitesse, pente, puissance, cardiaque, energie)
             if (distance >= distanceTotale) break
 
             val pas = minOf(PAS_METRES, distanceTotale - distance)
             val duree = pas / vitesse
             cardiaque = cardiaqueApres(cardiaque, puissance, duree)
+            // Le travail du pas : la puissance du début de pas, tenue pendant sa durée.
+            energie += puissance * duree / 1_000.0
             distance += pas
             secondes += duree
         }

@@ -145,4 +145,63 @@ class EffortBudgetTest {
     fun `sans profil on ne detaille rien`() {
         assertEquals(emptyList<RemainingClimb>(), EffortBudget.remainingClimbs(route.copy(profile = null), 0.0))
     }
+
+    /* ------------------------------------------------- dépensé contre restant */
+
+    private val budget = EffortEstimate(kilojoules = 400.0, items = emptyList())
+
+    @Test
+    fun `la part d'effort se compte sur le total des deux moities`() {
+        val progres = EffortBudget.progress(
+            spentKilojoules = 600.0,
+            estimate = budget,
+            distanceAlongRoute = 50_000.0,
+            totalDistance = 100_000.0,
+        )!!
+
+        assertEquals(1_000.0, progres.totalKilojoules, 1e-9)
+        assertEquals(0.6, progres.effortFraction!!, 1e-9)
+        assertEquals(0.5, progres.distanceFraction!!, 1e-9)
+    }
+
+    @Test
+    fun `l'avance est positive quand le plus dur est derriere`() {
+        val progres = EffortBudget.progress(600.0, budget, 50_000.0, 100_000.0)!!
+
+        assertEquals("dix points d'avance de l'effort sur la distance", 0.1, progres.lead!!, 1e-9)
+    }
+
+    @Test
+    fun `l'avance est negative quand ce qui reste coute plus cher`() {
+        val progres = EffortBudget.progress(300.0, budget, 60_000.0, 100_000.0)!!
+
+        assertTrue("l'effort est en retard sur les kilomètres", progres.lead!! < 0.0)
+    }
+
+    @Test
+    fun `sans depense mesuree il n'y a pas de comparaison`() {
+        assertNull(EffortBudget.progress(null, budget, 0.0, 100_000.0))
+    }
+
+    @Test
+    fun `sans budget il n'y a pas de comparaison`() {
+        assertNull(EffortBudget.progress(600.0, null, 0.0, 100_000.0))
+    }
+
+    @Test
+    fun `hors itineraire la part de distance manque mais le reste tient`() {
+        val progres = EffortBudget.progress(600.0, budget, null, null)!!
+
+        assertNull(progres.distanceFraction)
+        assertNull("sans distance, aucune avance à annoncer", progres.lead)
+        assertEquals(0.6, progres.effortFraction!!, 1e-9)
+    }
+
+    @Test
+    fun `au depart rien n'est depense et la part d'effort est nulle`() {
+        val progres = EffortBudget.progress(0.0, budget, 0.0, 100_000.0)!!
+
+        assertEquals(0.0, progres.effortFraction!!, 1e-9)
+        assertEquals(0.0, progres.lead!!, 1e-9)
+    }
 }

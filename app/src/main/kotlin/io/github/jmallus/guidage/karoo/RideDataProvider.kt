@@ -27,6 +27,14 @@ data class RideData(
     val heartRate: Double? = null,
     val cadence: Double? = null,
     val grade: Double? = null,
+    /**
+     * Kilojoules déjà produits depuis le départ, que le Karoo intègre lui-même.
+     *
+     * C'est la moitié mesurée du champ « Budget d'effort » : le budget dit ce que coûte la
+     * suite, celle-ci dit ce qui est déjà payé. Aucun modèle derrière — c'est l'intégrale de
+     * la puissance, et elle n'existe donc pas sans capteur.
+     */
+    val energyOutput: Double? = null,
     /** Distance parcourue depuis le départ (m). */
     val distance: Double? = null,
     val distanceRemaining: Double? = null,
@@ -90,6 +98,7 @@ class RideDataProvider(
             drivetrain = drivetrain,
             climb = climb,
             onRoute = values[9]?.let { it > 0.5 },
+            energyOutput = values[10],
             powerZones = profile.first,
             heartRateZones = profile.second,
             pace = paceLearner.pace,
@@ -111,6 +120,7 @@ class RideDataProvider(
             field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.DISTANCE_TO_DESTINATION),
             value(DataType.Type.TIME_OF_ARRIVAL),
             field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.ON_ROUTE),
+            value(DataType.Type.ENERGY_OUTPUT),
         ),
     ) { it }
 

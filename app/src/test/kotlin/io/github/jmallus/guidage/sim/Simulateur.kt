@@ -207,6 +207,7 @@ class Simulateur(
             speed = instant.vitesse,
             averageSpeed = instant.vitesseMoyenne,
             power = instant.puissance,
+            energyOutput = instant.energie,
             heartRate = instant.cardiaque,
             cadence = instant.cadence,
             grade = instant.pente,

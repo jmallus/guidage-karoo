@@ -353,6 +353,9 @@ object PreviewData {
     val effortSample: RideData = RideData(
         distanceRemaining = 24_300.0,
         pace = previewPace,
+        // Ce qui est déjà produit : sans cette valeur, l'aperçu ne montrerait pas le
+        // rapprochement du dépensé et du restant, qui est la moitié du champ.
+        energyOutput = 730.0,
     )
 
     private fun sample(
