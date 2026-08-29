@@ -1,9 +1,10 @@
 # Guidage — extension Hammerhead Karoo
 
 Extension Karoo (Karoo 2 / Karoo 3) qui enrichit le **guidage d'itinéraire** : elle lit
-l'itinéraire chargé dans le Karoo et en tire un profil altimétrique à venir, des informations
-sur la prochaine côte, la distance au prochain point d'intérêt, et une annonce à l'écran à
-l'approche de celui-ci.
+l'itinéraire chargé dans le Karoo et en tire **dix champs de données** — un tableau de bord
+plein écran avec minicarte sur fond de carte embarqué, le profil à venir, la prochaine côte,
+le coût du reste en kilojoules, les virages d'une descente, le revêtement, l'espacement des
+ravitaillements — et des annonces à l'écran.
 
 Tout est calculé **sur l'appareil**, à partir des données que Karoo OS fournit déjà :
 aucune connexion réseau, aucun compte, rien à synchroniser.
@@ -12,8 +13,13 @@ aucune connexion réseau, aucun compte, rien à synchroniser.
 
 Le champ plein écran ci-dessus est reconstruit à la taille qu'il occupe sur l'écran du
 Karoo 3. Les [planches](docs/planches.md) en montrent le détail — chaque zone, les trois
-portées de la carte, la légende du fond — et permettent de juger d'une retouche d'affichage
-sans construire un APK.
+portées de la carte, la légende du fond.
+
+> ⚠️ **Les planches ont pris du retard sur le code.** Elles décrivent le tableau de bord et
+> ne connaissent pas les six champs ajoutés depuis. Leur dessin est porté en JavaScript,
+> c'est-à-dire écrit une seconde fois, et c'est précisément ce qui leur permet de dériver.
+> Pour juger d'une retouche d'affichage, préférez [le simulateur](#le-simulateur) : lui
+> appelle le rendu de l'appareil, et ne peut donc pas mentir.
 
 ## Ce que ça ajoute sur le vélo
 
@@ -21,7 +27,7 @@ sans construire un APK.
 
 | Champ | Type | Contenu |
 | --- | --- | --- |
-| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance parcourue, pente, distance restante, heure d'arrivée **avec sa marge**, et le profil de la côte en cours. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
+| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance parcourue, pente, distance restante, heure d'arrivée **avec sa marge**, et le profil **à venir** en bandeau. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Rempli en couleur selon la pente, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
@@ -110,10 +116,28 @@ L'action **« Annoncer la prochaine côte »** peut être assignée à un bouton
 ## Réglages
 
 L'application « Guidage » du launcher affiche l'état courant (itinéraire, distance restante,
-prochaine côte, prochain point) et permet de régler :
+prochaine côte, prochain point), puis les réglages, rangés par ce qu'ils touchent. Chaque
+ligne nomme les champs concernés : un réglage dont on ne sait pas ce qu'il change se laisse
+dans son état d'usine, ce qui revient à ne pas l'avoir écrit.
 
-- la coloration du profil selon la pente ;
-- l'activation et la distance d'annonce des points d'intérêt.
+**Tableau de bord**
+
+- minicarte plutôt que profil dans la moitié haute ;
+- coloration du profil selon la pente.
+
+**Ravitaillement**
+
+- ne compter que les points d'eau. Décoché — c'est le défaut — commerces, stations-service,
+  cafés et haltes comptent aussi. Le choix vaut pour « Réserve », « Autonomie », « Suivant la
+  sortie » **et les annonces** : une voix qui nommerait un dernier ravitaillement que l'écran
+  ne montre pas serait pire que pas de voix.
+
+**Annonces**
+
+- activation et distance d'annonce des points d'intérêt.
+
+En bas, la carte **« Place allouée au champ »** relève, pour chaque champ posé, les dimensions
+que le système lui a réellement accordées — voir [La taille du champ](#la-taille-du-champ).
 
 Les changements sont pris en compte immédiatement, sans redémarrer l'extension.
 
@@ -191,12 +215,18 @@ données → Guidage**.
 
 ### Tests
 
-La logique de guidage (décodage des polylignes, profil, côtes, POI, alertes, formatage) vit
-dans le module `:core`, sans dépendance Android : elle se teste sans SDK ni appareil.
+La logique de guidage — polylignes, profil, côtes, POI, alertes, allure apprise, budget
+d'effort, virages, revêtement, réserve, format de fond de carte — vit dans le module `:core`,
+sans dépendance Android : elle se teste sans SDK Android, sans appareil et **sans jeton**.
 
 ```bash
-./gradlew :core:test
+./gradlew :core:test :tools:test     # 220 tests, aucun prérequis
+./gradlew :app:testDebugUnitTest     # 22 tests de plus, sous Robolectric ; demande le jeton
 ```
+
+Les tests d'`:app` rendent les champs entiers et vérifient qu'à chaque portée la trace se
+voit : une compilation ne dirait rien d'un écran noir, qui compile parfaitement. Les 242
+tournent à chaque poussée.
 
 ## Le simulateur
 
@@ -298,10 +328,10 @@ que celle d'une maquette.
 | `+` `-` | ajuster l'échelle par pas de 5 %, la règle en témoin |
 | `échap` | quitter |
 
-**Les six champs graphiques à la fois.** Le tableau de bord tient la colonne de gauche, les
-cinq autres — profil, suivant la sortie, revêtement, prochaine côte, budget d'effort,
-virages — se répartissent en colonnes à sa droite, tous alimentés par le même instant de la
-sortie et tracés **au même facteur**. C'est la seule disposition qui permette de juger des
+**Les neuf champs graphiques à la fois.** Les pleines pages d'abord — tableau de bord,
+autonomie, réserve, virages, revêtement — puis les champs de bande — profil à venir, suivant
+la sortie, prochaine côte, budget d'effort —, en colonnes, tous alimentés par le même instant
+de la sortie et tracés **au même facteur**. C'est la seule disposition qui permette de juger des
 tailles de texte d'un champ à l'autre : les mettre chacun à sa taille confortable donnerait
 des chiffres qui paraissent comparables sans l'être. Le champ « Prochain point d'intérêt »
 n'y figure pas — il est numérique, et c'est le Karoo qui le dessine.
@@ -345,21 +375,32 @@ core/                        module JVM pur, testable — aucune dépendance And
   AlertEngine.kt             décide quelles annonces déclencher, sans répétition
   Pacing.kt                  apprend les deux allures, en déduit l'arrivée et sa marge
   Resupply.kt                la réserve : dernier point avant la prochaine traversée
-  EffortBudget.kt            le coût du reste, en kilojoules, poste par poste
+  EffortBudget.kt            le coût du reste en kilojoules, et le dépensé en regard
   Bends.kt                   les virages lus sur la polyligne, rayon et sens
   RideContext.kt             ce que la sortie fait, et donc ce que le champ montre
   Surfaces.kt                le revêtement, en posant le tracé sur le fond de carte
+  Contrast.kt                APCA : encre noire ou blanche sur un aplat de zone
   Format.kt                  formatage distances / dénivelés / pentes (métrique & impérial)
+  map/                       le format de fond de carte : écriture, lecture, découpe
+
+tools/                       convertisseur OpenStreetMap, hors de l'APK, exécuté par le CI
 
 app/                         extension Android
   karoo/KarooFlows.kt        ponts callback → Flow de karoo-ext
   karoo/GuidanceProvider.kt  assemble l'état de guidage depuis les événements Karoo
-  extension/                 service d'extension, champs de données, alertes
-  extension/DashboardModels  construit ce qu'affiche le tableau de bord — partagé avec le simulateur
+  karoo/RideDataProvider.kt  les relevés chiffrés, et l'allure apprise au fil de la sortie
+  extension/                 service d'extension, les dix champs, alertes
+  extension/*Models.kt       construisent ce qu'affichent les champs — partagés avec le simulateur
   ui/                        rendu des champs (Canvas + Glance) et écran de réglages
   settings/                  persistance des réglages
   src/test/…/sim/            le simulateur de bureau, hors de l'APK
+
+sim/                         la fenêtre Swing du simulateur, hors de l'APK
 ```
+
+Les `*Models.kt` d'`extension/` sont la pièce qui tient l'ensemble : le champ Karoo et le
+simulateur de bureau appellent **les mêmes**, et il n'existe donc nulle part une seconde
+écriture de l'affichage qui pourrait dériver de la première.
 
 ### D'où viennent les données
 
@@ -368,8 +409,9 @@ app/                         extension Android
 | Itinéraire, profil, côtes, POI | événement `OnNavigationState` |
 | Position sur l'itinéraire | `DISTANCE_TO_DESTINATION` (distance totale − distance restante) |
 | Pente instantanée | `ELEVATION_GRADE` |
-| Allure du coureur | mesurée en roulant sur `SMOOTHED_3S_AVERAGE_SPEED` et `ELEVATION_GRADE` |
-| Unités du coureur | événement `UserProfile` |
+| Allure du coureur | mesurée en roulant sur `SMOOTHED_3S_AVERAGE_SPEED`, `ELEVATION_GRADE` et `SMOOTHED_3S_AVERAGE_POWER` |
+| Effort déjà produit | `ENERGY_OUTPUT`, que le Karoo intègre lui-même |
+| Zones et unités du coureur | événement `UserProfile` |
 | État de la sortie | événement `RideState` |
 
 ## Limites connues
