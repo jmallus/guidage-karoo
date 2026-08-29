@@ -1,0 +1,1495 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guidage à l'échelle</title>
+<!--
+  Planche de contrôle de l'extension Guidage.
+
+  Le tableau de bord y est reconstruit à la taille qu'il occupe sur l'écran du Karoo 3,
+  en reprenant les constantes de mise en page, les couleurs, les tracés d'icônes et la
+  projection « cap en haut » des sources. Ouvrir ce fichier dans un navigateur suffit :
+  il ne dépend de rien d'extérieur.
+
+  ATTENTION — le dessin est ici porté en JavaScript, c'est-à-dire écrit une seconde fois.
+  Il ne se met pas à jour tout seul quand DashboardRenderer, MapRenderer ou RoadStyle
+  changent : toute retouche de l'un demande la même de l'autre, sinon la planche montre
+  une version qui n'existe plus. Le commit reproduit est porté en tête de page.
+-->
+</head>
+<body>
+<style>
+  :root{
+    --paper:#F2EFE8;
+    --card:#FBFAF6;
+    --ink:#22262A;
+    --muted:#7C7566;
+    --rule:#D5CEC0;
+    --rule-strong:#B3AA98;
+    --blue:#1E6FB4;
+    --device:#0A0C0D;
+    --farmland:#CDD770;
+    --forest:#9AD770;
+    --shadow:rgba(60,52,36,.16);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#15181A;
+      --card:#1C2023;
+      --ink:#E7E3D9;
+      --muted:#948C7C;
+      --rule:#31383C;
+      --rule-strong:#4A5257;
+      --blue:#5BADEC;
+      --device:#000000;
+      --shadow:rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#15181A;
+    --card:#1C2023;
+    --ink:#E7E3D9;
+    --muted:#948C7C;
+    --rule:#31383C;
+    --rule-strong:#4A5257;
+    --blue:#5BADEC;
+    --device:#000000;
+    --shadow:rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:16px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:clamp(28px,5vw,72px) clamp(18px,4vw,40px) 96px}
+
+  .eyebrow{
+    font-family:"Arial Narrow","Helvetica Neue",system-ui,sans-serif;
+    font-stretch:condensed;
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    font-size:12px;
+    font-weight:700;
+    color:var(--muted);
+  }
+
+  header.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:14px}
+  h1{
+    font-family:"Arial Narrow","Helvetica Neue",system-ui,sans-serif;
+    font-stretch:condensed;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(38px,7.5vw,68px);
+    line-height:.98;
+    margin:10px 0 0;
+    text-wrap:balance;
+  }
+  .standfirst{max-width:60ch;margin:18px 0 0;color:var(--muted);font-size:17px}
+  .stamp{
+    display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:20px;
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    font-size:12.5px;color:var(--muted);
+  }
+  .stamp b{color:var(--ink);font-weight:600}
+
+  .plate{border-top:1px solid var(--rule);margin-top:64px;padding-top:26px}
+  .plate-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .plate-no{
+    font-family:"Arial Narrow","Helvetica Neue",system-ui,sans-serif;
+    font-stretch:condensed;text-transform:uppercase;letter-spacing:.2em;
+    font-size:12px;font-weight:700;color:var(--blue);
+    border:1px solid var(--blue);border-radius:2px;padding:2px 9px 1px;white-space:nowrap;
+  }
+  h2{
+    font-family:"Arial Narrow","Helvetica Neue",system-ui,sans-serif;
+    font-stretch:condensed;text-transform:uppercase;letter-spacing:.05em;
+    font-size:clamp(24px,3.6vw,34px);font-weight:700;margin:0;line-height:1.05;
+  }
+  .lede{max-width:62ch;margin:14px 0 0;color:var(--muted)}
+  .plate-body{margin-top:30px}
+
+  /* --- Planche I : taille réelle --- */
+  .scale-stage{
+    display:flex;align-items:flex-start;justify-content:center;gap:clamp(18px,4vw,44px);
+    background:var(--card);border:1px solid var(--rule);border-radius:3px;
+    padding:clamp(22px,4vw,44px);overflow-x:auto;
+  }
+  .device{
+    background:var(--device);
+    border:1.5px solid var(--rule-strong);
+    border-radius:3px;
+    box-shadow:0 6px 22px var(--shadow);
+    display:block;
+    flex:none;
+  }
+  .rule-col{display:flex;flex-direction:column;align-items:center;gap:8px;flex:none}
+  .rule-col .eyebrow{writing-mode:horizontal-tb}
+  .caveat{
+    margin-top:18px;font-size:13.5px;color:var(--muted);max-width:62ch;
+    border-left:2px solid var(--rule-strong);padding-left:14px;
+  }
+
+  /* --- Planche II : annotée --- */
+  .annot{display:grid;grid-template-columns:minmax(0,576px) minmax(240px,1fr);gap:clamp(20px,4vw,40px);align-items:start}
+  @media (max-width:860px){.annot{grid-template-columns:minmax(0,1fr)}}
+  .annot > *{min-width:0}
+  .annot-stage{
+    position:relative;width:576px;max-width:100%;aspect-ratio:480/800;
+    background:var(--device);border:1.5px solid var(--rule-strong);border-radius:3px;
+    box-shadow:0 6px 22px var(--shadow);
+  }
+  .annot-stage canvas,.annot-stage svg{display:block;position:absolute;inset:0;width:100%;height:100%}
+  .annot-stage svg{pointer-events:none}
+  .key{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  .key li{display:grid;grid-template-columns:26px 1fr;gap:12px;padding:11px 0;border-bottom:1px solid var(--rule)}
+  .key li:first-child{border-top:1px solid var(--rule)}
+  .key .badge{
+    font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;
+    width:22px;height:22px;border-radius:50%;border:1.5px solid var(--blue);color:var(--blue);
+    display:grid;place-items:center;margin-top:2px;
+  }
+  .key h3{margin:0;font-size:15px;font-weight:650;letter-spacing:.01em}
+  .key p{margin:2px 0 0;font-size:13.5px;color:var(--muted);line-height:1.5}
+
+  /* --- Planche III : portées --- */
+  .ranges{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(12px,2.5vw,26px)}
+  @media (max-width:700px){.ranges{grid-template-columns:1fr;max-width:320px;margin-inline:auto}}
+  .range figure{margin:0}
+  .range canvas{
+    display:block;width:100%;height:auto;border:1px solid var(--rule-strong);border-radius:2px;
+    box-shadow:0 3px 12px var(--shadow);
+  }
+  .range figcaption{margin-top:10px;font-size:13px;color:var(--muted)}
+  .range figcaption b{
+    display:block;color:var(--ink);
+    font-family:"Arial Narrow","Helvetica Neue",system-ui,sans-serif;font-stretch:condensed;
+    text-transform:uppercase;letter-spacing:.12em;font-size:13px;font-weight:700;margin-bottom:2px;
+  }
+
+  /* --- Planche IV : bandeau de côte --- */
+  .band-stage{background:var(--device);border:1px solid var(--rule-strong);border-radius:2px;padding:6px;box-shadow:0 3px 12px var(--shadow)}
+  .band-stage canvas{display:block;width:100%;height:auto}
+  .grades{display:flex;flex-wrap:wrap;gap:0;margin-top:22px;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+  .grades div{flex:1 1 84px;padding:9px 10px 10px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#111;text-align:center}
+  .grades div span{display:block;font-size:10px;opacity:.72;margin-top:1px}
+
+  /* --- Planche V : légende --- */
+  .legend{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,44px)}
+  @media (max-width:760px){.legend{grid-template-columns:1fr}}
+  .swatches{list-style:none;margin:12px 0 0;padding:0}
+  .swatches li{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:14px;align-items:center;padding:9px 3px 9px 0;border-bottom:1px solid var(--rule)}
+  .swatches li:first-child{border-top:1px solid var(--rule)}
+  .sw{height:26px;border-radius:2px;border:1px solid rgba(0,0,0,.22)}
+  .swatches .nm{font-size:14px}
+  .swatches .nm small{display:block;color:var(--muted);font-size:12px;line-height:1.35}
+  .swatches .hx{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted)}
+  .swatches li.changed .nm{font-weight:650}
+  .swatches li.changed .hx::after{
+    content:"modifié";display:block;text-align:right;color:var(--blue);
+    font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  }
+  .lane{height:26px;display:grid;place-items:center}
+  .lane i{display:block;width:100%;border-radius:99px}
+
+  .diff{margin-top:26px;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+  .diff table{border-collapse:collapse;width:100%;font-size:13.5px}
+  .diff th,.diff td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule)}
+  .diff th{
+    font-family:"Arial Narrow","Helvetica Neue",system-ui,sans-serif;font-stretch:condensed;
+    text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--muted);font-weight:700;
+  }
+  .diff tr:last-child td{border-bottom:0}
+  .diff code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+  .chip{display:inline-block;width:13px;height:13px;border-radius:2px;border:1px solid rgba(0,0,0,.25);vertical-align:-2px;margin-right:6px}
+
+  .log{list-style:none;margin:16px 0 0;padding:0}
+  .log li{display:grid;grid-template-columns:82px 1fr;gap:16px;padding:12px 0;border-bottom:1px solid var(--rule)}
+  .log li:first-child{border-top:1px solid var(--rule)}
+  .log .sha{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--blue)}
+  .log p{margin:0;font-size:14.5px}
+  .log p small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+
+  footer{margin-top:72px;padding-top:22px;border-top:2px solid var(--ink);color:var(--muted);font-size:13px}
+  .overflow{overflow-x:auto}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Extension Karoo · planche de contrôle</div>
+    <h1>Guidage à l'échelle</h1>
+    <p class="standfirst">L'écran du tableau de bord reconstruit point par point, à la taille
+      qu'il occupe réellement sur le Karoo 3&nbsp;: 480&nbsp;×&nbsp;800 points sur deux pouces
+      et demi de diagonale. Toutes les cotes, les couleurs et les icônes viennent du code de
+      la branche. La carte y est neuve&nbsp;: fond noir, voies blanches qui s'éteignent en
+      s'écartant de l'itinéraire, ruban bleu sans chevron ni flèche.</p>
+    <div class="stamp">
+      <span>Version <b>22b21e0</b></span>
+      <span>Branche <b>claude/hammerhead-karou-3-app-9yvabn</b></span>
+      <span>Écran <b>480 × 800 px · ≈389 ppp</b></span>
+    </div>
+  </header>
+
+  <!-- ————————————————————— PLANCHE I ————————————————————— -->
+  <section class="plate">
+    <div class="plate-head">
+      <span class="plate-no">Planche I</span>
+      <h2>L'écran, taille réelle</h2>
+    </div>
+    <p class="lede">Voilà la surface dont on dispose&nbsp;: trente et un millimètres de large,
+      cinquante-deux de haut. C'est cette contrainte-là qui explique tout le reste — les
+      chiffres alignés à droite, les décimales en exposant, la carte qui n'affiche que ce qui
+      sert à tourner au bon carrefour.</p>
+    <div class="plate-body">
+      <div class="scale-stage">
+        <div class="rule-col">
+          <div class="eyebrow">mm</div>
+          <svg id="mmRule" width="14mm" height="52.24mm" viewBox="0 0 14 52.24" aria-label="Règle graduée en millimètres"></svg>
+        </div>
+        <canvas id="cScale" class="device" width="960" height="1600"
+                style="width:31.34mm;height:52.24mm" aria-label="Tableau de bord à taille réelle"></canvas>
+        <div class="rule-col">
+          <div class="eyebrow">×2</div>
+          <canvas id="cDouble" class="device" width="960" height="1600"
+                  style="width:62.68mm;height:104.48mm" aria-label="Tableau de bord agrandi deux fois"></canvas>
+        </div>
+      </div>
+      <p class="caveat">La taille physique dépend de ce que votre écran déclare comme
+        résolution. Pour vérifier&nbsp;: posez une vraie règle contre la graduation de gauche.
+        Si les millimètres tombent juste, l'écran du milieu est exactement à la taille du Karoo.</p>
+    </div>
+  </section>
+
+  <!-- ————————————————————— PLANCHE II ————————————————————— -->
+  <section class="plate">
+    <div class="plate-head">
+      <span class="plate-no">Planche II</span>
+      <h2>Ce que porte chaque zone</h2>
+    </div>
+    <p class="lede">Cinq rangs, dessinés d'un seul tenant sur une toile plutôt qu'assemblés en
+      cases&nbsp;: c'est ce qui permet à la carte d'occuper deux hauteurs de rang et au profil
+      de côte de s'insérer en bas sans déranger le reste.</p>
+    <div class="plate-body annot">
+      <div class="annot-stage" id="annotStage">
+        <canvas id="cAnnot" width="1152" height="1920" aria-label="Tableau de bord annoté"></canvas>
+        <svg id="annotSvg" viewBox="0 0 480 800" aria-hidden="true"></svg>
+      </div>
+      <ul class="key">
+        <li><span class="badge">A</span><div>
+          <h3>Bandeau d'effort</h3>
+          <p>Vitesse, cadence, puissance sur 3 secondes. Vitesse et puissance prennent un aplat&nbsp;:
+             vert au-dessus de la moyenne de la sortie, et la couleur de la zone réglée dans le Karoo.</p>
+        </div></li>
+        <li><span class="badge">B</span><div>
+          <h3>Transmission</h3>
+          <p>Plateaux à gauche, pignons à droite, même pas d'un peigne à l'autre. La barre allumée
+             est en blanc — c'est un chiffre qu'on lit, pas un voyant. Un mono-plateau n'affiche que la cassette.</p>
+        </div></li>
+        <li><span class="badge">C</span><div>
+          <h3>Minicarte</h3>
+          <p>Cap en haut, coureur fixe aux quatre cinquièmes de la hauteur. Fond de carte hors ligne,
+             fond noir et voies blanches, dont le rang se lit à la seule épaisseur. Elles
+             s'éteignent vers le noir à mesure qu'elles s'écartent de l'itinéraire&nbsp;: la
+             carte ne montre qu'un couloir autour de ce qu'on va faire. Le tracé y est un ruban
+             bleu, plein devant le coureur et s'effaçant derrière lui — ni chevron ni flèche,
+             c'est le fondu qui dit le sens. Hors itinéraire, il passe au rouge.</p>
+        </div></li>
+        <li><span class="badge">D</span><div>
+          <h3>Fréquence cardiaque</h3>
+          <p>Aplat de zone, encre noire ou blanche selon le contraste perceptuel APCA&nbsp;: le jaune
+             tempo réclame du noir, le rouge anaérobie non.</p>
+        </div></li>
+        <li><span class="badge">E</span><div>
+          <h3>Distance et pente</h3>
+          <p>Une seule taille de chiffres pour tout ce rang et celui du dessus&nbsp;: sans cela «&nbsp;96,9&nbsp;»
+             s'écrirait plus petit que «&nbsp;4&nbsp;» et l'œil ne saurait plus laquelle est laquelle.</p>
+        </div></li>
+        <li><span class="badge">F</span><div>
+          <h3>Fin de parcours</h3>
+          <p>Ce qu'il reste et l'heure d'arrivée, avec la marge qu'on lui reconnaît — les deux seules valeurs qu'on regarde
+             quand on ne regarde plus rien d'autre.</p>
+        </div></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ————————————————————— PLANCHE III ————————————————————— -->
+  <section class="plate">
+    <div class="plate-head">
+      <span class="plate-no">Planche III</span>
+      <h2>Les trois portées</h2>
+    </div>
+    <p class="lede">Une pression sur le champ fait tourner l'échelle. Le couloir, lui, garde la
+      même largeur relative&nbsp;: il vaut toujours à peu près la largeur de la carte, si bien
+      qu'en dézoomant on ne voit pas plus loin de part et d'autre du tracé, on voit plus loin
+      devant. C'est ce qu'on cherche — le fond n'est pas là pour être lu comme une carte.</p>
+    <div class="plate-body ranges" id="ranges"></div>
+  </section>
+
+  <!-- ————————————————————— PLANCHE IV ————————————————————— -->
+  <section class="plate" id="plancheCote">
+    <div class="plate-head">
+      <span class="plate-no">Planche IV</span>
+      <h2>Le bandeau de profil</h2>
+    </div>
+    <p class="lede">Il est là en permanence, et mange le dixième bas de l'écran. Un bandeau qui
+      surgit au pied d'une bosse et disparaît au sommet oblige à réapprendre la mise en page
+      chaque fois, et se dérobe précisément quand on voudrait savoir si le faux plat qu'on
+      subit en est un. La couleur est posée par tranches de cent mètres, jointives, rognées
+      d'un seul tenant sous la silhouette.</p>
+    <div class="plate-body">
+      <div class="band-stage">
+        <canvas id="cBand" width="936" height="160" style="width:100%;height:auto"
+                aria-label="Bandeau de profil de côte"></canvas>
+      </div>
+      <p class="caveat">Deux kilomètres&nbsp;: deux cents mètres derrière le coureur, tenus en
+        grisé, et mille huit cents devant. Le repère blanc ne bouge donc jamais du dixième
+        gauche de la bande — c'est le profil qui défile dessous. Le «&nbsp;1/2&nbsp;» ne
+        reculera pas&nbsp;: le Karoo retire une côte de sa liste dès qu'on y entre, l'extension
+        garde mémoire de celles déjà vues.</p>
+      <div class="grades" id="grades"></div>
+    </div>
+  </section>
+
+  <!-- ————————————————————— PLANCHE V ————————————————————— -->
+  <section class="plate" id="plancheLegende">
+    <div class="plate-head">
+      <span class="plate-no">Planche V</span>
+      <h2>La légende du fond</h2>
+    </div>
+    <p class="lede">Toutes les chaussées sont blanches&nbsp;: leur rang ne se lit plus à la
+      teinte mais à la seule épaisseur, exprimée en mètres de terrain et non en pixels — une
+      départementale reste une départementale à toutes les échelles. Le codage par couleur
+      supposait qu'on ait la carte entière sous les yeux&nbsp;; il n'y a jamais, dans le
+      couloir, qu'une poignée de voies. Les surfaces passent à des gris très sombres.</p>
+    <div class="plate-body legend">
+      <div>
+        <div class="eyebrow">Surfaces</div>
+        <ul class="swatches" id="areaSwatches"></ul>
+      </div>
+      <div>
+        <div class="eyebrow">Voies</div>
+        <ul class="swatches" id="roadSwatches"></ul>
+      </div>
+    </div>
+    <div class="diff overflow">
+      <table>
+        <thead><tr><th>Famille</th><th>Première teinte</th><th>Renforcée</th><th>Retenue sur l'appareil</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Cultures et prairies</td>
+            <td><code><span class="chip" style="background:#EBEFCE"></span>EBEFCE</code></td>
+            <td><code><span class="chip" style="background:#E2E8AC"></span>E2E8AC</code></td>
+            <td><code><span class="chip" style="background:#CDD770"></span>CDD770</code></td>
+          </tr>
+          <tr>
+            <td>Bois</td>
+            <td><code><span class="chip" style="background:#C7DDBC"></span>C7DDBC</code></td>
+            <td><code><span class="chip" style="background:#A9CC97"></span>A9CC97</code></td>
+            <td><code><span class="chip" style="background:#9AD770"></span>9AD770</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caveat">La première teinte des cultures ne s'écartait du fond que de sept points de
+      rouge et vingt-six de bleu&nbsp;: les champs étaient dessinés, mais invisibles. L'écran
+      transflectif du Karoo délave les couleurs pâles bien plus qu'une carte papier — c'est ce
+      qu'ont montré les deux essais successifs, et pourquoi les teintes finales ont été arrêtées
+      sur l'appareil.</p>
+  </section>
+
+  <!-- ————————————————————— PLANCHE VI ————————————————————— -->
+  <section class="plate">
+    <div class="plate-head">
+      <span class="plate-no">Planche VI</span>
+      <h2>Depuis la dernière installation</h2>
+    </div>
+    <div class="plate-body">
+      <ul class="log">
+        <li><span class="sha">5cbb78a</span><p>La part parcourue du tracé cernée elle aussi
+          <small>Sans cerne elle disparaissait sur le fond clair : la flèche flottait sur du vide.</small></p></li>
+        <li><span class="sha">b20c0ff</span><p>Le peigne retrouve sa hauteur
+          <small>Reprise sur le corps des dentures, que les barres valent mieux que les nombres.</small></p></li>
+        <li><span class="sha">5203617</span><p>La ligne des dentures écartée du bord de sa case
+          <small>«&nbsp;50×17&nbsp;» tombait à un demi-millimètre de l'aplat jaune du champ dessous.</small></p></li>
+        <li><span class="sha">aa25ae4</span><p>Le plateau dégagé des barres de la transmission
+          <small>Du blanc réservé au-dessus du peigne, et «&nbsp;50×17&nbsp;» ramené au rang de renseignement d'appoint.</small></p></li>
+        <li><span class="sha">22b21e0</span><p>La carte passe au noir, et son fondu naît du tracé
+          <small>Voies blanches rognées par un couloir autour de l'itinéraire&nbsp;; ruban bleu de dix-sept points, éteint en arrière ; ni chevron ni flèche.</small></p></li>
+        <li><span class="sha">16c5d34</span><p>Le bandeau de profil devient permanent
+          <small>Deux kilomètres autour du coureur, coloriés par tranches de cent mètres, repère fixe sur la courbe.</small></p></li>
+        <li><span class="sha">7d10823</span><p>Le numéro de zone s'écrit à gauche de la fréquence cardiaque
+          <small>L'aplat le disait déjà, mais de mémoire seulement.</small></p></li>
+        <li><span class="sha">d446049</span><p>Les libellés sont suspendus au haut de leur case
+          <small>Ils tombent sur la même ligne d'un rang à l'autre, quelle que soit la taille des chiffres.</small></p></li>
+        <li><span class="sha">eb6146c</span><p>Les libellés se réduisent jusqu'à dégager leur icône
+          <small>«&nbsp;VITESSE 3S&nbsp;» passait par-dessus le compteur dans les cases étroites du haut.</small></p></li>
+        <li><span class="sha">35e476b</span><p>Verts des bois et des cultures arrêtés sur l'appareil
+          <small>9AD770 et CDD770, après deux renforcements insuffisants.</small></p></li>
+        <li><span class="sha">d2db9bd</span><p>Version, date et taille du fond portées dans les notes de Release
+          <small>La ligne «&nbsp;Commit&nbsp;» de GitHub montre la création de la Release, pas l'APK courant.</small></p></li>
+        <li><span class="sha">0a24039</span><p>La carte dit pourquoi elle ne montre rien
+          <small>Fond absent, illisible, hors région couverte ou sans voie&nbsp;: quatre cas, quatre mentions.</small></p></li>
+        <li><span class="sha">6ebf550</span><p>Trois portées, chevrons bornés, transmission ajustée
+          <small>200/500/1 000 m, même pas de barres pour plateaux et cassette, barre engagée en blanc.</small></p></li>
+        <li><span class="sha">6405645</span><p>Les cultures entrent dans le fond de carte
+          <small>Le fichier normand passe de 28 à 43 Mo.</small></p></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    Reconstruction dessinée en canvas à partir des sources de la branche — mêmes constantes de
+    mise en page, mêmes couleurs, mêmes tracés d'icônes, même projection «&nbsp;cap en haut&nbsp;».
+    Seule la fonte diffère&nbsp;: le Karoo compose en Roboto, plus étroit que la fonte système
+    de votre navigateur. Les libellés étant désormais réduits jusqu'à ce que l'icône reste
+    dégagée, ils apparaîtront ici un peu plus petits que sur l'appareil — l'icône, elle, est
+    dégagée des deux côtés. Les valeurs affichées sont celles de l'aperçu du sélecteur de
+    champs&nbsp;; seule l'heure d'arrivée est calculée sur votre horloge.
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Constantes reprises telles quelles des sources
+   ============================================================ */
+const W = 480, H = 800;
+
+const RS = {                            // RoadStyle
+  BACKGROUND:"#000000", INK:"#FFFFFF",
+  EXPRESSWAY:"#D4573C", PRIMARY:"#E8944A", SECONDARY:"#D8B23F",
+  MINOR:"#7C8489", SERVICE:"#A9AFB4", TRAIL:"#9A6B33", CYCLEWAY:"#2E7D6B",
+  WATER_FILL:"#B4D4E7", WATER_LINE:"#6FA8CC",
+  FOREST_FILL:"#9AD770", BUILT_UP_FILL:"#E6DFD5", FARMLAND_FILL:"#CDD770",
+  FAINT:"#CFCAC0"
+};
+const WIDTH_M = {                       // RoadStyle.widthMeters
+  STREAM:4, WATER:0, FOREST:0, BUILT_UP:0, FARMLAND:0,
+  MOTORWAY:12, TRUNK:10, PRIMARY:8, SECONDARY:7, TERTIARY:6,
+  UNCLASSIFIED:5, RESIDENTIAL:5, SERVICE:3.5, CYCLEWAY:2.5,
+  TRACK:3, PATH:2, BRIDLEWAY:2, FOOTWAY:1.5, STEPS:1.5
+};
+const AREA_KINDS = ["WATER","FOREST","BUILT_UP","FARMLAND"];
+const AREA_ORDER = ["FARMLAND","BUILT_UP","FOREST","WATER"];
+
+function roadColor(kind, surface){
+  // Toutes les chaussées en blanc : leur rang se lit à l'épaisseur. Le fond ne montre
+  // qu'un couloir autour de l'itinéraire, où il n'y a jamais qu'une poignée de voies.
+  switch (kind) {
+    case "FOOTWAY": case "STEPS": return "#585C60";
+    case "STREAM":  return "#3E6B87";
+    case "WATER":   return "#12222E";
+    case "FOREST":  return "#14200F";
+    case "BUILT_UP":return "#1E1E1E";
+    case "FARMLAND":return "#10160C";
+    default:        return "#FFFFFF";
+  }
+}
+
+function isDashed(kind, surface){
+  if (kind==="TRACK"||kind==="PATH"||kind==="BRIDLEWAY") return surface!=="PAVED";
+  return kind==="FOOTWAY"||kind==="STEPS";
+}
+
+/* Zones : palettes du Karoo relevées dans Barberfish */
+const POWER_COLORS = ["#1A8C3A","#40D078","#F0D800","#F08868","#F06020","#D01020","#9020A0"];
+const HR_COLORS    = ["#1A8C3A","#40D078","#F0D800","#F08868","#D01020"];
+const ABOVE_AVERAGE = "#00A661";
+const BELOW_AVERAGE = "#AF090B";
+const NEUTRAL = "#78909C";
+
+function gradeColor(g){
+  if (g>=20) return POWER_COLORS[6];
+  if (g>=14) return POWER_COLORS[5];
+  if (g>=11) return POWER_COLORS[4];
+  if (g>= 8) return POWER_COLORS[3];
+  if (g>= 5) return POWER_COLORS[2];
+  if (g>= 2) return POWER_COLORS[1];
+  if (g>= 0) return POWER_COLORS[0];
+  return NEUTRAL;
+}
+
+/* Palette sombre : le thème utilisé en roulant */
+const PAL = {
+  textPrimary:"#FFFFFF", textSecondary:"#B0BEC5",
+  routeLine:"#E6E24C", routeOutline:"#1A1A1A",
+  position:"#64B5F6", iconTint:"#31E09A"
+};
+
+/* ============================================================
+   Contraste APCA — port de core/Contrast.kt
+   ============================================================ */
+function chan(hex, i){ return parseInt(hex.slice(1+i*2, 3+i*2), 16)/255; }
+function luminance(hex){
+  return Math.pow(chan(hex,0),2.4)*0.2126729
+       + Math.pow(chan(hex,1),2.4)*0.7151522
+       + Math.pow(chan(hex,2),2.4)*0.0721750;
+}
+function softClamp(y){ return y < 0.022 ? y + Math.pow(0.022-y, 1.414) : y; }
+function apca(text, background){
+  const t = softClamp(luminance(text)), b = softClamp(luminance(background));
+  if (Math.abs(b-t) < 0.0005) return 0;
+  const sapc = t < b
+    ? (Math.pow(b,0.56) - Math.pow(t,0.57))*1.14
+    : (Math.pow(b,0.65) - Math.pow(t,0.62))*1.14;
+  if (Math.abs(sapc) < 0.1) return 0;
+  return sapc > 0 ? (sapc-0.027)*100 : (sapc+0.027)*100;
+}
+function bestTextColor(bg){
+  return Math.abs(apca("#FFFFFF",bg)) >= Math.abs(apca("#000000",bg)) ? "#FFFFFF" : "#000000";
+}
+function alphaOf(hex, a){
+  return "rgba("+parseInt(hex.slice(1,3),16)+","+parseInt(hex.slice(3,5),16)+","
+       + parseInt(hex.slice(5,7),16)+","+(a/255).toFixed(3)+")";
+}
+
+/* ============================================================
+   Icônes — pathData des vector drawables, grille 38 (24 pour l'arrivée)
+   ============================================================ */
+const ICONS = {
+  speed:{vp:38, paths:[{d:"M18.988,7C23.979,7 28.401,9.431 31.123,13.172C32.917,15.633 33.974,18.661 33.974,21.936C33.974,25.211 32.917,28.24 31.123,30.7L28.693,28.945C30.128,26.977 30.973,24.555 30.973,21.936C30.973,19.317 30.127,16.896 28.692,14.927C26.516,11.936 22.979,9.992 18.988,9.992C14.996,9.992 11.46,11.936 9.282,14.927C7.847,16.896 7.001,19.317 7.001,21.936C7.001,24.555 7.846,26.977 9.282,28.945L6.851,30.701C5.057,28.241 4,25.211 4,21.936C4,18.661 5.057,15.633 6.851,13.172C9.574,9.431 13.997,7 18.988,7ZM24.691,14.706L20.638,26.667C19.952,27.851 18.426,28.263 17.238,27.58C16.05,26.896 15.636,25.375 16.322,24.191L24.691,14.706Z",fill:1}]},
+  cadence:{vp:38, paths:[
+    {d:"M19,7 A12,12,0,0,1,31,19 A12,12,0,0,1,19,31 A12,12,0,0,1,7,19 A12,12,0,0,1,19,7 Z M19,10 A9,9,0,0,0,10,19 A9,9,0,0,0,19,28 A9,9,0,0,0,28,19 A9,9,0,0,0,19,10 Z",fill:1,evenodd:1},
+    {d:"M20.1,20.1 L35.1,5.1 L32.9,2.9 L17.9,17.9 Z",fill:1},
+    {d:"M12.3,27.9 L7.4,32.8 L5.2,30.6 L10.1,25.7 Z",fill:1}]},
+  power:{vp:38, paths:[{d:"M18.502,16.002V16.502H19.002H27.227L19.499,33.671V22V21.5H18.999H10.773L14.957,12.205L18.502,4.329V16.002Z",fill:1}]},
+  heart:{vp:38, paths:[{d:"M29.549,18.937L18.982,31.367L8.414,18.937L8.407,18.942C6.266,16.424 6.581,12.641 9.107,10.509C11.462,8.52 14.921,8.657 17.112,10.725C17.272,10.874 17.424,11.035 17.569,11.206C18.451,12.245 18.917,13.498 18.982,14.763C19.046,13.498 19.512,12.245 20.394,11.206C20.54,11.035 20.691,10.874 20.851,10.725C23.042,8.657 26.502,8.52 28.856,10.509C31.383,12.641 31.697,16.424 29.556,18.942L29.549,18.937ZM30.788,8.236C27.319,5.309 22.273,5.451 18.982,8.392C15.69,5.451 10.644,5.309 7.175,8.236C3.386,11.436 2.917,17.09 6.127,20.867L18.982,35.987L31.836,20.867C35.046,17.09 34.577,11.436 30.788,8.236Z",fill:1}]},
+  gears:{vp:38, paths:[
+    {d:"M13,8 A11,11 0 1,1 12.9,8 Z",stroke:2.6},
+    {d:"M13,17 A2,2 0 1,1 12.9,17 Z",fill:1},
+    {d:"M30,25 A5,5 0 1,1 29.9,25 Z",stroke:2.4},
+    {d:"M13,8 L30,20",stroke:2}]},
+  distance:{vp:38, paths:[
+    {d:"M8,6 C11.9,6 15,9.1 15,13 C15,18.2 8,26 8,26 C8,26 1,18.2 1,13 C1,9.1 4.1,6 8,6 Z M8,10.5 A2.5,2.5 0 1,0 8.1,10.5 Z",fill:1,evenodd:1},
+    {d:"M30,12 C33.9,12 37,15.1 37,19 C37,24.2 30,32 30,32 C30,32 23,24.2 23,19 C23,15.1 26.1,12 30,12 Z M30,16.5 A2.5,2.5 0 1,0 30.1,16.5 Z",fill:1,evenodd:1},
+    {d:"M12,26 L26,26",stroke:2.2,cap:"round"}]},
+  grade:{vp:38, paths:[
+    {d:"M3,34 L3,32 L13,16 L19,22 L28,8 L35,20 L35,34 Z",fill:1,alpha:0.376},
+    {d:"M3,32 L13,16 L19,22 L28,8 L35,20",stroke:2}]},
+  remaining:{vp:38, paths:[
+    {d:"M13,34 L4,34 L11,12 L14.8,12 L13,17.6 L16.8,17.6 L18.6,12 L22.4,12 L20.6,17.6 L24.4,17.6 L26.2,12 L30,12 L23,34 L19,34 L20.8,28.4 L17,28.4 L15.2,34 L13,34 Z M17.9,25.4 L21.7,25.4 L23.5,19.8 L19.7,19.8 L17.9,25.4 Z",fill:1,evenodd:1},
+    {d:"M26,4 L26,16 L28,16 L28,11 L34,11 L34,4 L26,4 Z M28,6 L32,6 L32,9 L28,9 L28,6 Z",fill:1,evenodd:1}]},
+  arrival:{vp:24, paths:[
+    {d:"M12,2 C6.48,2 2,6.48 2,12 C2,17.52 6.48,22 12,22 C17.52,22 22,17.52 22,12 C22,6.48 17.52,2 12,2 Z M12,20 C7.58,20 4,16.42 4,12 C4,7.58 7.58,4 12,4 C16.42,4 20,7.58 20,12 C20,16.42 16.42,20 12,20 Z",fill:1,evenodd:1},
+    {d:"M15,1 L9,1 L9,3 L15,3 Z",fill:1},
+    {d:"M12,6 L12,12 L16,14",fill:1}]}
+};
+const ICON_CACHE = {};
+function iconPaths(name){
+  if (!ICON_CACHE[name]) {
+    ICON_CACHE[name] = ICONS[name].paths.map(p => Object.assign({}, p, {p2d:new Path2D(p.d)}));
+  }
+  return ICON_CACHE[name];
+}
+function drawIcon(ctx, name, x, y, size, color){
+  const spec = ICONS[name];
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size/spec.vp, size/spec.vp);
+  for (const p of iconPaths(name)) {
+    if (p.fill) {
+      ctx.fillStyle = color;
+      ctx.globalAlpha = p.alpha != null ? p.alpha : 1;
+      ctx.fill(p.p2d, p.evenodd ? "evenodd" : "nonzero");
+      ctx.globalAlpha = 1;
+    }
+    if (p.stroke) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = p.stroke;
+      ctx.lineCap = p.cap || "butt";
+      ctx.stroke(p.p2d);
+    }
+  }
+  ctx.restore();
+}
+
+/* ============================================================
+   Métriques de texte — Roboto : ascendante .9277, descendante .2441
+   ============================================================ */
+const ASC = 0.9277, DESC = 0.2441;
+const SANS = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+function fontLight(size){ return "300 " + size + "px " + SANS; }
+function fontBold(size){ return "700 " + size + "px " + SANS; }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function measure(ctx, text, font){ ctx.font = font; return ctx.measureText(text).width; }
+
+/* ============================================================
+   DashboardRenderer — port
+   ============================================================ */
+const TILE_COLUMN_FRACTION = 0.5, ROW_HEIGHT_FRACTION = 0.2116;
+const GRID_ROWS = 4, GUIDANCE_ROWS = 2, TOP_TILES = 3, TOP_VALUE_RATIO = 0.78;
+const VALUE_HEIGHT_FRACTION = 0.614, LABEL_HEIGHT_FRACTION = 0.147;
+const FOOTER_VALUE_HEIGHT_FRACTION = 0.569, FOOTER_LABEL_HEIGHT_FRACTION = 0.165;
+const SUFFIX_RATIO = 0.52, DECIMAL_RISE = 0.42, CLIMB_BAND_FRACTION = 0.10;
+const EDGE_INSET = 8, LABEL_TOP_RATIO = 0.6, ICON_RATIO = 1.15;
+
+/* Le libellé est suspendu au haut de la case, la valeur centrée dans ce qui reste :
+   les libellés tombent ainsi sur la même ligne d'un rang à l'autre. */
+function labelTop(bounds, labelHeight){ return bounds.y + labelHeight*LABEL_TOP_RATIO; }
+function valueTop(bounds, top, labelHeight, valueHeight){
+  const below = top + labelHeight;
+  return below + Math.max((bounds.y + bounds.h - below - valueHeight)/2, 0);
+}
+const LABEL_ALPHA = 0xCC, TILE_BORDER = "#000000", TILE_BORDER_WIDTH = 3;
+// Numéro de zone porté à gauche de la valeur : corps réduit, encre un peu effacée.
+const LEADING_RATIO = 0.54, LEADING_ALPHA = 0xB0;
+const MINIMUM_LABEL_SIZE = 9, MAXIMUM_LABEL_SIZE = 26, LABEL_GAP = 6;
+
+/* Plus grande taille de libellé laissant l'icône à découvert : le libellé est aligné à
+   droite, l'icône calée à gauche, et dans les cases étroites du bandeau du haut le premier
+   recouvrait la seconde. */
+function fitLabelSize(label, hasIcon, maxWidth, preferred, ctx){
+  const size = clamp(preferred, MINIMUM_LABEL_SIZE, MAXIMUM_LABEL_SIZE);
+  if (!label || maxWidth <= 0) return size;
+  const icon = hasIcon ? size*ICON_RATIO + LABEL_GAP : 0;
+  const measured = measure(ctx, label, fontBold(size)) + icon;
+  if (measured <= maxWidth || measured <= 0) return size;
+  return Math.max(size * maxWidth / measured, MINIMUM_LABEL_SIZE);
+}
+
+function fitValueSize(ctx, tile, maxWidth, preferred){
+  const size = clamp(preferred, 12, 140);
+  const tail = tile.decimal != null ? tile.decimal : tile.suffix;
+  let measured = measure(ctx, tile.value, fontLight(size));
+  if (tail) measured += measure(ctx, tail, fontLight(size*SUFFIX_RATIO));
+  // Le numéro de zone occupe la gauche de la même ligne : il entre dans le compte.
+  if (tile.leading) measured += measure(ctx, tile.leading, fontBold(size*LEADING_RATIO)) + EDGE_INSET;
+  if (measured <= maxWidth || measured <= 0) return size;
+  return Math.max(size * maxWidth / measured, 10);
+}
+
+function drawLabelRow(ctx, bounds, right, tile, labelSize, labelInk, iconInk, top){
+  const iconSize = labelSize * ICON_RATIO;
+  const labelHeight = (ASC + DESC) * labelSize;
+  if (tile.icon) {
+    const left = bounds.x + EDGE_INSET;
+    const iconTop = top + (labelHeight - iconSize)/2;
+    drawIcon(ctx, tile.icon, left, iconTop, iconSize, iconInk);
+  }
+  ctx.font = fontBold(labelSize);
+  ctx.fillStyle = labelInk;
+  const w = ctx.measureText(tile.label).width;
+  ctx.fillText(tile.label, right - w, top + ASC*labelSize);
+}
+
+function drawTile(ctx, bounds, tile, valueSize, labelSize){
+  const ink = tile.background ? bestTextColor(tile.background) : PAL.textPrimary;
+  const labelInk = tile.background ? alphaOf(ink, LABEL_ALPHA) : PAL.textSecondary;
+
+  if (tile.background) {
+    ctx.fillStyle = tile.background;
+    ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
+    ctx.strokeStyle = TILE_BORDER;
+    ctx.lineWidth = TILE_BORDER_WIDTH;
+    ctx.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
+  }
+  const iconInk = tile.background ? labelInk : PAL.iconTint;
+
+  const labelHeight = (ASC+DESC)*labelSize;
+  const valueHeight = (ASC+DESC)*valueSize;
+  const top = labelTop(bounds, labelHeight);
+  const right = bounds.x + bounds.w - EDGE_INSET;
+
+  drawLabelRow(ctx, bounds, right, tile, labelSize, labelInk, iconInk, top);
+
+  const valueWidth = measure(ctx, tile.value, fontLight(valueSize));
+  const tail = tile.decimal != null ? tile.decimal : tile.suffix;
+  const tailWidth = tail ? measure(ctx, tail, fontLight(valueSize*SUFFIX_RATIO)) : 0;
+  const left = right - (valueWidth + tailWidth);
+  const baseline = valueTop(bounds, top, labelHeight, valueHeight) + ASC*valueSize;
+
+  // Le numéro de zone contre le bord gauche, à mi-corps de la valeur.
+  if (tile.leading) {
+    ctx.font = fontBold(valueSize*LEADING_RATIO);
+    ctx.fillStyle = alphaOf(ink, LEADING_ALPHA);
+    ctx.fillText(tile.leading, bounds.x + EDGE_INSET, baseline);
+  }
+
+  ctx.font = fontLight(valueSize);
+  ctx.fillStyle = ink;
+  ctx.fillText(tile.value, left, baseline);
+  if (tail) {
+    const rise = tile.decimal != null ? ASC*valueSize*DECIMAL_RISE : 0;
+    ctx.font = fontLight(valueSize*SUFFIX_RATIO);
+    ctx.fillText(tail, left + valueWidth, baseline - rise);
+  }
+}
+
+function drawTiles(ctx, bounds, tiles, valueFraction, labelFraction){
+  if (!tiles.length) return 0;
+  const cellHeight = bounds[0].h;
+  let labelSize = Infinity;
+  tiles.forEach((t,i) => {
+    labelSize = Math.min(labelSize,
+      fitLabelSize(t.label, t.icon != null, bounds[i].w - EDGE_INSET*2, cellHeight*labelFraction, ctx));
+  });
+  const preferred = cellHeight*valueFraction;
+  let valueSize = Infinity;
+  tiles.forEach((t,i) => { valueSize = Math.min(valueSize, fitValueSize(ctx, t, bounds[i].w - EDGE_INSET*2, preferred)); });
+  tiles.forEach((t,i) => drawTile(ctx, bounds[i], t, valueSize, labelSize));
+  return valueSize;
+}
+
+/* Transmission */
+const COMB_GAP_FRACTION = 0.08, BAR_WIDTH_FRACTION = 0.62;
+const BAR_MIN_HEIGHT = 0.35, BAR_ALPHA = 0x66, TEETH_RATIO = 0.28;
+const TEETH_LEADING = 1.35, COMB_TOP_MARGIN = 0.32;
+
+function comb(current, count){
+  if (count == null || count <= 1) return null;
+  if (current == null) return null;
+  return [clamp(current,1,count), count];
+}
+// Le plateau n° 1 est le petit, le peigne avant monte ; le pignon n° 1 est le grand,
+// le peigne arrière descend — à gauche le grand pignon, comme sur la cassette.
+function drawComb(ctx, area, c, barWidth, ascending){
+  const [current, count] = c;
+  if (area.w <= 0) return;
+  const pitch = area.w / count;
+  const radius = barWidth/2;
+  for (let index = 1; index <= count; index++) {
+    const step = count === 1 ? 1 : (index-1)/(count-1);
+    const ratio = ascending ? step : 1-step;
+    const height = area.h * (BAR_MIN_HEIGHT + (1-BAR_MIN_HEIGHT)*ratio);
+    const left = area.x + (index-1)*pitch + (pitch-barWidth)/2;
+    ctx.fillStyle = index === current ? PAL.textPrimary : alphaOf(PAL.textSecondary, BAR_ALPHA);
+    roundRect(ctx, left, area.y + area.h - height, barWidth, height, radius);
+    ctx.fill();
+  }
+}
+function roundRect(ctx,x,y,w,h,r){
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.arcTo(x+w, y,   x+w, y+h, rr);
+  ctx.arcTo(x+w, y+h, x,   y+h, rr);
+  ctx.arcTo(x,   y+h, x,   y,   rr);
+  ctx.arcTo(x,   y,   x+w, y,   rr);
+  ctx.closePath();
+}
+
+function drawDrivetrain(ctx, bounds, model, valueSize, labelSize){
+  const labelHeight = (ASC+DESC)*labelSize;
+  const valueHeight = (ASC+DESC)*valueSize;
+  const top = labelTop(bounds, labelHeight);
+  const right = bounds.x + bounds.w - EDGE_INSET;
+
+  drawLabelRow(ctx, bounds, right, {label:model.label, value:"", icon:model.icon},
+               labelSize, PAL.textSecondary, PAL.iconTint, top);
+
+  // Le schéma s'arrête franchement au-dessus du bord : la case du dessous porte un aplat
+  // qui commence net, et la ligne des dentures y paraîtrait posée.
+  const schematicTop = valueTop(bounds, top, labelHeight, valueHeight);
+  const schematicBottom = Math.min(schematicTop + valueHeight, bounds.y + bounds.h - EDGE_INSET);
+  const area = {x:bounds.x+EDGE_INSET, y:schematicTop, w:right-(bounds.x+EDGE_INSET), h:schematicBottom-schematicTop};
+  if (area.w <= 0 || area.h <= 0) return;
+
+  const teeth = model.frontTeeth && model.rearTeeth ? model.frontTeeth+"×"+model.rearTeeth : null;
+  const teethSize = valueSize*TEETH_RATIO;
+  // Les barres partent du bord gauche, sous l'icône : on leur réserve du blanc en haut.
+  const combBottom = area.y + area.h - (teeth == null ? 0 : teethSize*TEETH_LEADING);
+  const combTop = Math.min(area.y + labelHeight*COMB_TOP_MARGIN, combBottom);
+
+  const front = comb(model.front, model.frontCount);
+  const rear  = comb(model.rear,  model.rearCount);
+  if (!front && !rear) return;
+
+  const gap = front == null ? 0 : area.w*COMB_GAP_FRACTION;
+  const bars = (front ? front[1] : 0) + (rear ? rear[1] : 0);
+  if (bars <= 0) return;
+  const pitch = (area.w - gap)/bars;
+  const frontWidth = (front ? front[1] : 0)*pitch;
+  const rearLeft = area.x + frontWidth + gap;
+  const barWidth = Math.max(pitch*BAR_WIDTH_FRACTION, 2);
+
+  if (front) drawComb(ctx, {x:area.x, y:combTop, w:frontWidth, h:combBottom-combTop}, front, barWidth, true);
+  if (rear)  drawComb(ctx, {x:rearLeft, y:combTop, w:area.x+area.w-rearLeft, h:combBottom-combTop}, rear, barWidth, false);
+
+  if (teeth) {
+    ctx.font = fontLight(teethSize);
+    ctx.fillStyle = PAL.textPrimary;
+    const w = ctx.measureText(teeth).width;
+    ctx.fillText(teeth, right - w, area.y + area.h - DESC*teethSize);
+  }
+}
+
+/* Bandeau de côte */
+function drawClimbBand(ctx, area, band){
+  const pts = band.points;
+  const dSpan = band.end - band.start;
+  const minE = Math.min.apply(null, pts.map(p=>p[1]));
+  const maxE = Math.max.apply(null, pts.map(p=>p[1]));
+  const eSpan = maxE - minE;
+  if (dSpan <= 0 || eSpan <= 0) return;
+  const X = d => area.x + (d-band.start)/dSpan*area.w;
+  const Y = e => area.y + area.h - (e-minE)/eSpan*area.h;
+
+  // La couleur est posée par tranches de cent mètres, jointives, rognées d'un seul tenant
+  // sous la silhouette : d'un sommet du relevé au suivant les lamelles étaient trop
+  // étroites pour qu'on y distingue une couleur, et la pente trop bruitée.
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(X(pts[0][0]), area.y+area.h);
+  pts.forEach(p => ctx.lineTo(X(p[0]), Y(p[1])));
+  ctx.lineTo(X(pts[pts.length-1][0]), area.y+area.h);
+  ctx.closePath();
+  ctx.clip();
+  for (let d = band.start; d < band.end; d += SLICE_METERS){
+    const e = Math.min(d + SLICE_METERS, band.end);
+    const len = e - d;
+    if (len <= 0) break;
+    ctx.fillStyle = gradeColor((elevationAt(pts, e) - elevationAt(pts, d))/len*100);
+    // Un demi-pixel de recouvrement : deux aplats jointifs laissent voir le fond entre eux.
+    ctx.fillRect(X(d), area.y, X(e) - X(d) + 0.5, area.h);
+  }
+  if (band.position > band.start){
+    ctx.fillStyle = "rgba(0,0,0,0.62)";
+    ctx.fillRect(area.x, area.y, X(band.position) - area.x, area.h);
+  }
+  ctx.restore();
+
+  ctx.beginPath();
+  pts.forEach((p,i)=> i ? ctx.lineTo(X(p[0]),Y(p[1])) : ctx.moveTo(X(p[0]),Y(p[1])));
+  ctx.strokeStyle = RIDGE_LINE; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.stroke();
+
+  const markerRadius = clamp(area.h*0.13, 4, 9);
+  if (band.position >= band.start && band.position <= band.end){
+    const e = elevationAt(pts, band.position);
+    ctx.beginPath(); ctx.arc(X(band.position), Y(e), markerRadius, 0, Math.PI*2);
+    ctx.fillStyle = RIDGE_LINE; ctx.fill();
+    ctx.strokeStyle = "#000000"; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+  if (band.label){
+    // Le libellé se réduit jusqu'à tenir dans sa part de la bande : il porte désormais une
+    // phrase, non plus un simple rang.
+    let size = clamp(area.h*0.42, 11, 22);
+    ctx.font = fontBold(size);
+    const measured = ctx.measureText(band.label).width;
+    const maxWidth = area.w*0.62;
+    if (measured > maxWidth) size = Math.max(size*maxWidth/measured, 9);
+    ctx.font = fontBold(size);
+    const bx = area.x + 4, baseline = area.y + size;
+    ctx.strokeStyle = "#000000"; ctx.lineWidth = size*0.22; ctx.lineJoin = "round";
+    ctx.strokeText(band.label, bx, baseline);
+    ctx.fillStyle = PAL.textPrimary;
+    ctx.fillText(band.label, bx, baseline)
+  }
+}
+function elevationAt(pts, d){
+  let next = pts.findIndex(p => p[0] >= d);
+  if (next <= 0) return pts[0][1];
+  const b = pts[next-1], a = pts[next];
+  const span = a[0]-b[0];
+  if (span <= 0) return a[1];
+  return b[1] + (a[1]-b[1])*((d-b[0])/span);
+}
+
+/* ============================================================
+   Géographie — port de core/Geo.kt
+   ============================================================ */
+const MPD_LAT = 110540, MPD_LNG = 111320;
+function project(o, p){
+  return { x:(p.lng-o.lng)*MPD_LNG*Math.cos(o.lat*Math.PI/180), y:(p.lat-o.lat)*MPD_LAT };
+}
+function trackUp(o, headingDeg, p){
+  const q = project(o,p), h = headingDeg*Math.PI/180;
+  return { x:q.x*Math.cos(h)-q.y*Math.sin(h), y:q.x*Math.sin(h)+q.y*Math.cos(h) };
+}
+function niceScale(maxMeters){
+  const c = [10,20,50,100,200,500,1000,2000,5000,10000,20000,50000];
+  let best = c[0];
+  for (const v of c) if (v <= maxMeters) best = v;
+  return best;
+}
+
+/* ============================================================
+   PreviewData — décor et tracé fictifs, reproduits à l'identique
+   ============================================================ */
+const LOC = {lat:45.180, lng:5.720}, HEADING = 30;
+const micro = v => Math.round(v*1e6)/1e6;      // toMicroDegrees puis retour
+function latOf(metersNorth){ return micro(LOC.lat + metersNorth/MPD_LAT); }
+function lngOf(metersEast){
+  const perDegree = MPD_LAT*Math.cos(LOC.lat*Math.PI/180);
+  return micro(LOC.lng + metersEast/perDegree);
+}
+function seg(kind, pts, surface){
+  return { kind, surface: surface || "UNKNOWN",
+           pts: pts.map(([e,n]) => ({lat:latOf(n), lng:lngOf(e)})) };
+}
+const ROADS = [
+  seg("FARMLAND", [[-460,-460],[460,-460],[460,130],[-460,130]]),
+  seg("BUILT_UP", [[-460,150],[-140,150],[-140,460],[-460,460]]),
+  seg("FOREST",   [[140,140],[460,170],[460,460],[190,460]]),
+  seg("WATER",    [[-40,250],[60,240],[90,320],[-20,340]]),
+  seg("STREAM",   [[-460,200],[-180,230],[-40,280]]),
+  seg("STREAM",   [[90,300],[260,350],[460,380]]),
+  seg("MOTORWAY", [[-460,430],[460,400]]),
+  seg("PRIMARY",  [[-460,-30],[-120,10],[180,-10],[460,30]]),
+  seg("SECONDARY",[[-230,-460],[-200,-20],[-180,230],[-160,460]]),
+  seg("RESIDENTIAL",[[-420,250],[-220,260],[-170,380]]),
+  seg("SERVICE",  [[-300,255],[-290,130]]),
+  seg("CYCLEWAY", [[-460,-70],[-110,-30],[200,-50]]),
+  seg("TRACK",    [[-100,0],[60,-180],[300,-280]], "UNPAVED"),
+  seg("PATH",     [[180,0],[260,160],[320,330]], "UNPAVED"),
+  seg("FOOTWAY",  [[-160,340],[-60,300],[0,250]])
+];
+// Le tracé part de six cents mètres EN AMONT du coureur, qui se tient au pas 10 : sans
+// cette part déjà faite, le fondu arrière n'a rien à dessiner et la planche laisserait
+// croire que le ruban se coupe net sous la flèche.
+const PATH = Array.from({length:131}, (_,i) => {
+  const step = i - 10;
+  const meters = step*60, wander = Math.sin(step/6)*250;
+  return {
+    lat: LOC.lat + (meters*Math.cos(Math.PI/6) + wander)/110540,
+    lng: LOC.lng + (meters*Math.sin(Math.PI/6) - wander)/78700
+  };
+});
+const POIS = [{position: PATH[26], label:"Fontaine"}];
+
+/* ============================================================
+   MapRenderer — port
+   ============================================================ */
+const AHEAD_FRACTION = 0.80, MIN_ROAD_WIDTH = 1, MAX_ROAD_WIDTH = 26;
+const ROUTE_WIDTH_NEAR = 17, ROUTE_WIDTH_FAR = 8;
+const MIN_RANGE = 200, MAX_RANGE = 10000;
+// Le couloir : la trace repassée de plus en plus large et de moins en moins encrée. Les
+// opacités posées ne sont pas les paliers voulus — chaque anneau se pose sur les précédents,
+// d'où a = (cible - acquis) / (1 - acquis). Seize paliers : à six, la marche se voit sur une
+// chaussée large, qui traverse plusieurs anneaux d'un coup, et la route paraît carrelée.
+const CORRIDOR_STEPS = 16, CORRIDOR_WIDEST = 1.05, CORRIDOR_NARROWEST = 0.06;
+const CORRIDOR_EDGE = 0.36, CORRIDOR_CURVE = 0.7;
+const CORRIDOR_RINGS = (() => {
+  const rings = []; let reached = 0;
+  for (let i = 0; i < CORRIDOR_STEPS; i++) {
+    const t = i/(CORRIDOR_STEPS-1);
+    const w = CORRIDOR_WIDEST - (CORRIDOR_WIDEST-CORRIDOR_NARROWEST)*t;
+    const target = CORRIDOR_EDGE + (1-CORRIDOR_EDGE)*Math.pow(t, CORRIDOR_CURVE);
+    rings.push([w, (target-reached)/(1-reached)]);
+    reached = target;
+  }
+  return rings;
+})();
+const ROUTE_COLOR = "#2E8BFF", OFF_ROUTE_COLOR = "#FC292B";
+// Bandeau : tranches de cent mètres, crête et repère en blanc — la bande porte sept
+// couleurs de pente, et aucune teinte ne se détache sur les sept à la fois.
+const SLICE_METERS = 100, RIDGE_LINE = "#FFFFFF";
+/* Profil d'exemple : 2 km, un relevé tous les 100 m, pentes variées. */
+const SAMPLE_BAND = {start:3200, end:5200, position:3400, label:"1/2 — 1,48 km du sommet", points:[[3200,246.0],[3300,247.5],[3400,249.9],[3500,253.0],[3600,257.2],[3700,262.8],[3800,269.6],[3900,277.0],[4000,285.9],[4100,295.4],[4200,306.6],[4300,319.4],[4400,329.8],[4500,338.0],[4600,344.1],[4700,349.4],[4800,357.2],[4900,366.3],[5000,372.7],[5100,375.9],[5200,377.7]]};
+const BEHIND_FADE_FRACTION = 0.17, FADE_STEP = 1.5, MAX_FADE_STEPS = 48;
+// Le double chevron noir, en part de l'épaisseur du ruban. Calibre retenu sur planche :
+// plus écarté et plus gras il déborde du bleu dans les virages, plus fin il manque de corps.
+const CHEVRON_SPACING_RATIO = 3.88, CHEVRON_GAP_RATIO = 0.71;
+const CHEVRON_SIZE_RATIO = 0.556, CHEVRON_STROKE_RATIO = 0.235;
+const CHEVRON_SWEEP = 1.6, CHEVRON_ARM = 0.9, CHEVRON_COLOR = "#000000";
+// Le violet pâle que le Karoo emploie pour une destination. Les planches ont longtemps
+// porté ici un bleu foncé, qui ne venait de nulle part : le portage avait dérivé.
+const POI_COLOR = "#DDACFA";
+
+function routeWidth(rangeMeters){
+  const range = clamp(rangeMeters, MIN_RANGE, MAX_RANGE);
+  const ratio = Math.log(range/MIN_RANGE)/Math.log(MAX_RANGE/MIN_RANGE);
+  return ROUTE_WIDTH_NEAR - (ROUTE_WIDTH_NEAR-ROUTE_WIDTH_FAR)*ratio;
+}
+
+/** Surfaces puis voies, dessinées dans le calque que le couloir viendra rogner. */
+function drawGround(ctx, toScreen, m2p){
+  for (const kind of AREA_ORDER) {
+    const ofKind = ROADS.filter(r => r.kind === kind);
+    if (!ofKind.length) continue;
+    ctx.beginPath();
+    for (const a of ofKind) {
+      a.pts.forEach((p,i) => { const s = toScreen(p); i ? ctx.lineTo(s.x,s.y) : ctx.moveTo(s.x,s.y); });
+      ctx.closePath();
+    }
+    ctx.fillStyle = roadColor(kind, "UNKNOWN");
+    ctx.fill();
+  }
+
+  /* Voies, de la plus fine à la plus large */
+  const lines = ROADS.filter(r => AREA_KINDS.indexOf(r.kind) < 0);
+  const groups = {};
+  for (const r of lines) {
+    const key = r.kind + "|" + r.surface;
+    (groups[key] = groups[key] || {kind:r.kind, surface:r.surface, segs:[]}).segs.push(r);
+  }
+  Object.values(groups)
+    .sort((a,b) => WIDTH_M[a.kind] - WIDTH_M[b.kind])
+    .forEach(g => {
+      const width = clamp(WIDTH_M[g.kind]*m2p, MIN_ROAD_WIDTH, MAX_ROAD_WIDTH);
+      ctx.lineWidth = width;
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.strokeStyle = roadColor(g.kind, g.surface);
+      if (isDashed(g.kind, g.surface)) {
+        const dash = Math.max(width*2.5, 4);
+        ctx.setLineDash([dash, dash*0.8]);
+      } else ctx.setLineDash([]);
+      ctx.beginPath();
+      for (const s of g.segs) s.pts.forEach((p,i) => {
+        const q = toScreen(p); i ? ctx.lineTo(q.x,q.y) : ctx.moveTo(q.x,q.y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+}
+
+function drawMap(ctx, area, model){
+  const riderX = area.x + area.w/2;
+  const riderY = area.y + area.h*AHEAD_FRACTION;
+  const m2p = (area.h*AHEAD_FRACTION)/Math.max(model.rangeMeters,1);
+  const toScreen = p => {
+    const q = trackUp(LOC, HEADING, p);
+    return {x: riderX + q.x*m2p, y: riderY - q.y*m2p};
+  };
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(area.x, area.y, area.w, area.h); ctx.clip();
+  ctx.fillStyle = RS.BACKGROUND; ctx.fillRect(area.x, area.y, area.w, area.h);
+
+  // Le fond entier est dessiné dans un calque, dont l'opacité est ensuite multipliée par
+  // celle du couloir : les voies s'éteignent vers le noir en s'écartant de l'itinéraire.
+  {
+    const w = Math.ceil(area.w), h = Math.ceil(area.h);
+    const layer = document.createElement("canvas");
+    layer.width = w; layer.height = h;
+    const gctx = layer.getContext("2d");
+    gctx.translate(-area.x, -area.y);
+    drawGround(gctx, toScreen, m2p);
+
+    // Le couloir est composé à part, anneau sur anneau, puis appliqué en une seule fois.
+    // Appliqué anneau par anneau il s'intersecterait avec lui-même au lieu de s'additionner,
+    // et le fond disparaîtrait entièrement dès le deuxième passage.
+    const mask = document.createElement("canvas");
+    mask.width = w; mask.height = h;
+    const mctx = mask.getContext("2d");
+    mctx.translate(-area.x, -area.y);
+    mctx.lineCap = "round"; mctx.lineJoin = "round";
+    const screenAll = PATH.map(toScreen);
+    for (const [ratio, opacity] of CORRIDOR_RINGS) {
+      mctx.beginPath();
+      screenAll.forEach((q,i) => i ? mctx.lineTo(q.x,q.y) : mctx.moveTo(q.x,q.y));
+      mctx.lineWidth = area.w*ratio;
+      mctx.strokeStyle = "rgba(0,0,0," + opacity + ")";
+      mctx.stroke();
+    }
+    gctx.setTransform(1,0,0,1,0,0);
+    gctx.globalCompositeOperation = "destination-in";
+    gctx.drawImage(mask, 0, 0);
+    ctx.drawImage(layer, area.x, area.y);
+  }
+
+  /* Tracé */
+  const width = routeWidth(model.rangeMeters);
+  const screen = PATH.map(toScreen);
+  // Projection sur le segment, non sur le sommet : accroché à un sommet, le point de
+  // coupure attendait le coureur puis sautait au sommet suivant, avec le fondu.
+  let here = 1, anchor = screen[0], bestD = Infinity;
+  for (let i=1; i<screen.length; i++){
+    const a = screen[i-1], b = screen[i];
+    const dx = b.x-a.x, dy = b.y-a.y, sq = dx*dx + dy*dy;
+    const t = sq > 0 ? clamp(((riderX-a.x)*dx + (riderY-a.y)*dy)/sq, 0, 1) : 0;
+    const p = {x: a.x + dx*t, y: a.y + dy*t};
+    const d = (p.x-riderX)**2 + (p.y-riderY)**2;
+    if (d < bestD) { bestD = d; here = i; anchor = p; }
+  }
+  const remaining = [anchor].concat(screen.slice(here));
+  const trace = pts => { ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); };
+
+  // La part parcourue a son propre cerne : sans lui elle disparaît sur le fond clair.
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  const tint = model.offRoute ? OFF_ROUTE_COLOR : ROUTE_COLOR;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  trace(remaining); ctx.lineWidth = width; ctx.strokeStyle = tint; ctx.stroke();
+
+  // Doubles chevrons noirs : le ruban dit où passe l'itinéraire, non dans quel sens le
+  // prendre. Bornés à ce qu'on atteindra dans la minute — sur une boucle, la branche du
+  // retour est à quelques mètres et en plein dans le couloir.
+  {
+    const limit = model.offRoute ? Infinity : model.chevronRangeMeters*m2p;
+    const spacing = width*CHEVRON_SPACING_RATIO, gap = width*CHEVRON_GAP_RATIO;
+    const size = width*CHEVRON_SIZE_RATIO, stroke = width*CHEVRON_STROKE_RATIO;
+    const margin = size*CHEVRON_SWEEP + stroke;
+
+    // Parcours unique en abscisse curviligne, arrêté à la borne.
+    const walk = [remaining[0]], along = [0];
+    let total = 0;
+    for (let i = 1; i < remaining.length; i++) {
+      total += Math.hypot(remaining[i].x-remaining[i-1].x, remaining[i].y-remaining[i-1].y);
+      walk.push(remaining[i]); along.push(total);
+      if (total > limit + gap) break;
+    }
+    let cursor = 1;
+    const locate = d => {
+      if (d > along[along.length-1]) return null;
+      while (cursor < along.length && along[cursor] < d) cursor++;
+      if (cursor >= along.length) return null;
+      const a = walk[cursor-1], b = walk[cursor];
+      const seg = along[cursor] - along[cursor-1];
+      if (seg <= 0) return null;
+      const t = (d - along[cursor-1])/seg;
+      return [a.x + (b.x-a.x)*t, a.y + (b.y-a.y)*t, (b.x-a.x)/seg, (b.y-a.y)/seg];
+    };
+    const put = (x,y,ux,uy) => {
+      const px = -uy, py = ux;
+      const tipX = x + ux*size, tipY = y + uy*size;
+      const bX = tipX - ux*size*CHEVRON_SWEEP, bY = tipY - uy*size*CHEVRON_SWEEP;
+      const aX = px*size*CHEVRON_ARM, aY = py*size*CHEVRON_ARM;
+      cctx.moveTo(bX+aX, bY+aY); cctx.lineTo(tipX, tipY); cctx.lineTo(bX-aX, bY-aY);
+    };
+    const layer = document.createElement("canvas");
+    layer.width = Math.ceil(area.w); layer.height = Math.ceil(area.h);
+    const cctx = layer.getContext("2d");
+    cctx.translate(-area.x, -area.y);
+    cctx.beginPath();
+    // Les deux pointes d'une paire sont posées à l'abscisse curviligne : le long du segment
+    // courant, la seconde disparaissait dès qu'elle tombait au-delà d'un sommet.
+    for (let s0 = spacing; s0 <= Math.min(limit, total); s0 += spacing) {
+      for (const d of [s0, s0 + gap]) {
+        const at = locate(d);
+        if (!at) continue;
+        if (at[0] < area.x-margin || at[0] > area.x+area.w+margin) continue;
+        if (at[1] < area.y-margin || at[1] > area.y+area.h+margin) continue;
+        put(at[0], at[1], at[2], at[3]);
+      }
+    }
+    cctx.lineWidth = stroke; cctx.strokeStyle = CHEVRON_COLOR;
+    cctx.lineCap = "butt"; cctx.lineJoin = "miter"; cctx.miterLimit = 4;
+    cctx.stroke();
+    // Le ruban sert de gabarit : ce qui dépasse est coupé, les branches viennent donc
+    // exactement à ses bords, d'un bout plat, sans déborder sur le fond dans les virages.
+    cctx.globalCompositeOperation = "destination-in";
+    cctx.lineWidth = width; cctx.lineCap = "round"; cctx.lineJoin = "round";
+    cctx.strokeStyle = "#000000";
+    cctx.beginPath();
+    remaining.forEach((q,i) => i ? cctx.lineTo(q.x,q.y) : cctx.moveTo(q.x,q.y));
+    cctx.stroke();
+    ctx.drawImage(layer, area.x, area.y);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+  }
+
+  // La part faite s'éteint le long du tracé, non en hauteur d'écran : sur une épingle, la
+  // branche qu'on vient de faire revient à côté de soi sans être plus bas.
+  {
+    const fadeLength = area.h*BEHIND_FADE_FRACTION;
+    // Bout carré : à bout rond, chaque tronçon déborde sur le suivant et deux translucides
+    // qui se recouvrent font une perle plus sombre — le ruban paraissait chapeleté.
+    ctx.lineCap = "butt";
+    let travelled = 0, toX = anchor.x, toY = anchor.y;
+    for (let i = here-1; i >= 0 && travelled < fadeLength; i--) {
+      let fromX = screen[i].x, fromY = screen[i].y;
+      let len = Math.hypot(toX-fromX, toY-fromY);
+      if (len < 0.01) continue;
+      if (travelled + len > fadeLength) {
+        const keep = (fadeLength - travelled)/len;
+        fromX = toX + (fromX-toX)*keep; fromY = toY + (fromY-toY)*keep;
+        len = fadeLength - travelled;
+      }
+      const steps = Math.min(Math.floor(len/FADE_STEP) + 1, MAX_FADE_STEPS);
+      for (let k = 0; k < steps; k++) {
+        const t0 = k/steps, tn = (k+1)/steps;
+        // Un demi-pixel de recouvrement : deux tronçons à bout carré jointifs laissent un
+        // cheveu entre eux, et le ruban s'en trouve rayé.
+        const t1 = Math.min(1, tn + 0.5/len);
+        const d = travelled + len*(t0+tn)/2;
+        ctx.globalAlpha = Math.max(0, 1 - d/fadeLength);
+        ctx.beginPath();
+        ctx.moveTo(toX + (fromX-toX)*t0, toY + (fromY-toY)*t0);
+        ctx.lineTo(toX + (fromX-toX)*t1, toY + (fromY-toY)*t1);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      travelled += len;
+      toX = screen[i].x; toY = screen[i].y;
+    }
+    ctx.lineCap = "round";
+  }
+
+  /* Points d'intérêt */
+  if (POIS.length) {
+    const labelSize = clamp(area.h*0.062, 12, 20);
+    const radius = clamp(area.h*0.026, 5, 10);
+    for (const poi of POIS) {
+      const s = toScreen(poi.position);
+      if (s.x < area.x-20 || s.x > area.x+area.w+20 || s.y < area.y-20 || s.y > area.y+area.h+20) continue;
+      ctx.beginPath(); ctx.arc(s.x, s.y, radius, 0, Math.PI*2);
+      ctx.fillStyle = POI_COLOR; ctx.fill();
+      ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = radius*0.45; ctx.stroke();
+      ctx.font = fontBold(labelSize);
+      const w = ctx.measureText(poi.label).width;
+      const left = (s.x + radius + 6 + w <= area.x+area.w) ? s.x+radius+6 : s.x-radius-6-w;
+      const baseline = s.y + labelSize*0.35;
+      ctx.strokeStyle = RS.BACKGROUND; ctx.lineWidth = labelSize*0.30; ctx.lineJoin = "round";
+      ctx.strokeText(poi.label, left, baseline);
+      ctx.fillStyle = RS.INK; ctx.fillText(poi.label, left, baseline);
+    }
+  }
+
+  /* Échelle */
+  {
+    const scaleMeters = niceScale(model.rangeMeters/2);
+    const barWidth = scaleMeters*m2p;
+    if (barWidth >= 10 && barWidth <= area.w) {
+      const labelSize = clamp(area.h*0.045, 9, 15);
+      const y = area.y + area.h - labelSize*0.5;
+      const left = area.x + 6;
+      ctx.strokeStyle = RS.INK; ctx.lineWidth = 3; ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(left,y); ctx.lineTo(left+barWidth,y);
+      ctx.moveTo(left,y-4); ctx.lineTo(left,y+4);
+      ctx.moveTo(left+barWidth,y-4); ctx.lineTo(left+barWidth,y+4);
+      ctx.stroke();
+      ctx.font = fontBold(labelSize);
+      ctx.fillStyle = RS.INK;
+      ctx.fillText(scaleMeters >= 1000 ? (scaleMeters/1000)+" km" : scaleMeters+" m", left, y-6);
+    }
+  }
+  ctx.restore();
+}
+
+/* ============================================================
+   L'instant reproduit : deuxième échantillon de PreviewData
+   ============================================================ */
+function arrivalClock(){
+  const t = new Date(Date.now() + 58*60000);
+  return String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0");
+}
+/* La marge que Pacing rend pour ces 58 minutes restantes, à une allure tenue à 9 % près. */
+const ARRIVAL_MARGIN_MIN = 5;
+function model(){
+  return {
+    topTiles:[
+      {label:"VITESSE 3S", value:"37", decimal:"8", background:ABOVE_AVERAGE, icon:"speed"},
+      {label:"CADENCE",    value:"92", icon:"cadence"},
+      {label:"POWER 3S",   value:"188", background:POWER_COLORS[2], icon:"power"}
+    ],
+    heartRateTile:{label:"FC", value:"149", leading:"3", background:HR_COLORS[2], icon:"heart"},
+    drivetrain:{label:"TRANSMISSION", front:2, frontCount:2, frontTeeth:50,
+                rear:4, rearCount:11, rearTeeth:17, icon:"gears"},
+    midTiles:[
+      {label:"DISTANCE", value:"96", decimal:"9", icon:"distance"},
+      {label:"PENTE",    value:"4", suffix:"%", icon:"grade"}
+    ],
+    footerTiles:[
+      {label:"RESTANT KM", value:"23", decimal:"1", icon:"remaining"},
+      {label:`ARRIVÉE ± ${ARRIVAL_MARGIN_MIN} MIN`, value:arrivalClock(), icon:"arrival"}
+    ]
+  };
+}
+
+/* Géométrie de la page, telle que la calcule DashboardRenderer.render */
+function layout(hasBand){
+  const padding = clamp(Math.min(W,H)*0.015, 2, 6);
+  const columnSplit = W*TILE_COLUMN_FRACTION;
+  const right = W - padding;
+  const bandHeight = hasBand ? H*CLIMB_BAND_FRACTION : 0;
+  const contentHeight = H - bandHeight;
+  const rowHeight = (contentHeight - 2*padding)*ROW_HEIGHT_FRACTION;
+  const row = i => padding + i*rowHeight;
+  return {padding, columnSplit, right, rowHeight, row,
+          footerTop: row(GRID_ROWS), footerBottom: contentHeight - padding,
+          contentHeight, bandHeight};
+}
+const ZONES = (() => {
+  const L = layout(true);
+  return [
+    {k:"A", x:L.padding, y:L.row(0), w:W-2*L.padding, h:L.rowHeight},
+    {k:"B", x:L.padding, y:L.row(1), w:L.columnSplit-L.padding, h:L.rowHeight},
+    {k:"C", x:L.columnSplit, y:L.row(1), w:L.right-L.columnSplit, h:L.rowHeight*GUIDANCE_ROWS},
+    {k:"D", x:L.padding, y:L.row(2), w:L.columnSplit-L.padding, h:L.rowHeight},
+    {k:"E", x:L.padding, y:L.row(3), w:W-2*L.padding, h:L.footerTop-L.row(3)},
+    {k:"F", x:L.padding, y:L.footerTop, w:W-2*L.padding, h:L.footerBottom-L.footerTop}
+  ];
+})();
+
+function renderDashboard(canvas, zoom){
+  const ctx = canvas.getContext("2d");
+  const scale = canvas.width / W;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.clearRect(0,0,W,H);
+  ctx.textBaseline = "alphabetic";
+
+  const m = model();
+  // Le bandeau est là dès qu'on navigue : la carte n'a donc plus 334 points de haut mais 300.
+  const L = layout(true);
+
+  /* Bandeau du haut */
+  const topWidth = (W - 2*L.padding)/TOP_TILES;
+  drawTiles(ctx,
+    m.topTiles.map((_,i) => ({x:L.padding+i*topWidth, y:L.row(0), w:topWidth, h:L.rowHeight})),
+    m.topTiles, VALUE_HEIGHT_FRACTION*TOP_VALUE_RATIO, LABEL_HEIGHT_FRACTION);
+
+  /* Cœur + rang distance/pente : une seule taille de chiffres */
+  const gridTiles = [m.heartRateTile, m.midTiles[0], m.midTiles[1]];
+  const gridBounds = [
+    {x:L.padding, y:L.row(2), w:L.columnSplit-L.padding, h:L.rowHeight},
+    {x:L.padding, y:L.row(3), w:L.columnSplit-L.padding, h:L.footerTop-L.row(3)},
+    {x:L.columnSplit, y:L.row(3), w:L.right-L.columnSplit, h:L.footerTop-L.row(3)}
+  ];
+  const valueSize = drawTiles(ctx, gridBounds, gridTiles, VALUE_HEIGHT_FRACTION, LABEL_HEIGHT_FRACTION);
+
+  /* Minicarte */
+  drawMap(ctx,
+    {x:L.columnSplit, y:L.row(1), w:L.right-L.columnSplit, h:L.rowHeight*GUIDANCE_ROWS},
+    {rangeMeters: zoom.range, chevronRangeMeters: zoom.chevron});
+
+  /* Transmission */
+  drawDrivetrain(ctx, {x:L.padding, y:L.row(1), w:L.columnSplit-L.padding, h:L.rowHeight},
+                 m.drivetrain, valueSize,
+                 fitLabelSize(m.drivetrain.label, m.drivetrain.icon != null,
+                              L.columnSplit - L.padding - EDGE_INSET*2,
+                              L.rowHeight*LABEL_HEIGHT_FRACTION, ctx));
+
+  /* Pied de page */
+  const footerWidth = (W-2*L.padding)/m.footerTiles.length;
+  drawTiles(ctx,
+    m.footerTiles.map((_,i) => ({x:L.padding+i*footerWidth, y:L.footerTop, w:footerWidth, h:L.footerBottom-L.footerTop})),
+    m.footerTiles, FOOTER_VALUE_HEIGHT_FRACTION, FOOTER_LABEL_HEIGHT_FRACTION);
+
+  /* Bandeau de profil */
+  drawClimbBand(ctx, {x:0, y:L.contentHeight, w:W, h:L.bandHeight}, SAMPLE_BAND);
+}
+
+/* ============================================================
+   Assemblage de la page
+   ============================================================ */
+const ZOOMS = [
+  {name:"Près",  range:200,  chevron:300},
+  {name:"Moyen", range:500,  chevron:800},
+  {name:"Loin",  range:1000, chevron:1300}
+];
+const NEAR = ZOOMS[0];
+
+function drawAll(){
+  renderDashboard(document.getElementById("cScale"), NEAR);
+  renderDashboard(document.getElementById("cDouble"), NEAR);
+  renderDashboard(document.getElementById("cAnnot"), NEAR);
+  document.querySelectorAll("canvas[data-range]").forEach(c => {
+    const z = ZOOMS.find(z => String(z.range) === c.dataset.range);
+    const ctx = c.getContext("2d");
+    const scale = c.width/234;
+    ctx.setTransform(scale,0,0,scale,0,0);
+    ctx.clearRect(0,0,234,300);
+    ctx.textBaseline = "alphabetic";
+    drawMap(ctx, {x:0,y:0,w:234,h:299.6}, {rangeMeters:z.range, chevronRangeMeters:z.chevron});
+  });
+  drawBand();
+}
+
+/* Règle graduée */
+(function mmRule(){
+  const svg = document.getElementById("mmRule");
+  const ns = "http://www.w3.org/2000/svg";
+  const total = 52.24;
+  let out = "";
+  for (let mm = 0; mm <= Math.floor(total); mm++){
+    const long = mm % 10 === 0, mid = mm % 5 === 0;
+    const len = long ? 9 : mid ? 6 : 3.5;
+    out += '<line x1="'+(14-len)+'" y1="'+mm+'" x2="14" y2="'+mm+'" stroke="currentColor" stroke-width="'+(long?0.32:0.18)+'"/>';
+    if (long && mm > 0) out += '<text x="'+(14-len-1)+'" y="'+(mm+0.9)+'" font-size="2.6" text-anchor="end" fill="currentColor" opacity=".75">'+mm+'</text>';
+  }
+  svg.innerHTML = out;
+  svg.style.color = "var(--muted)";
+})();
+
+/* Repères de la planche II */
+(function annotations(){
+  const svg = document.getElementById("annotSvg");
+  let out = "";
+  for (const z of ZONES){
+    out += '<rect x="'+(z.x+1)+'" y="'+(z.y+1)+'" width="'+(z.w-2)+'" height="'+(z.h-2)+'" '
+         + 'fill="none" stroke="#5BADEC" stroke-width="1.4" stroke-dasharray="5 4" opacity=".95"/>';
+    // Le repère chevauche le bord gauche de la zone : c'est la seule bande où aucun
+    // glyphe ne tombe, les valeurs comme les libellés étant alignés à droite.
+    const cy = z.y + z.h/2;
+    out += '<circle cx="'+z.x+'" cy="'+cy+'" r="11" fill="#0B1B27" stroke="#5BADEC" stroke-width="1.4"/>';
+    out += '<text x="'+z.x+'" y="'+(cy+4.6)+'" font-size="13" font-weight="700" text-anchor="middle" '
+         + 'fill="#5BADEC" font-family="ui-monospace,Menlo,monospace">'+z.k+'</text>';
+  }
+  svg.innerHTML = out;
+})();
+
+/* Planche III */
+(function ranges(){
+  const host = document.getElementById("ranges");
+  host.innerHTML = ZOOMS.map(z => (
+    '<div class="range"><figure>'
+    + '<canvas data-range="'+z.range+'" width="468" height="600" style="width:100%;height:auto"'
+    + ' aria-label="Minicarte à '+z.range+' mètres"></canvas>'
+    + '<figcaption><b>'+(z.range>=1000 ? (z.range/1000)+" km" : z.range+" m")+'</b>'
+    + 'Chevrons sur les '+z.chevron+' prochains mètres.</figcaption>'
+    + '</figure></div>'
+  )).join("");
+})();
+
+/* Planche IV : bandeau de côte, profil de la première côte de l'aperçu */
+function drawBand(){
+  const c = document.getElementById("cBand");
+  const ctx = c.getContext("2d");
+  const scale = c.width/468;
+  ctx.setTransform(scale,0,0,scale,0,0);
+  ctx.clearRect(0,0,468,80);
+  ctx.textBaseline = "alphabetic";
+  // Les deux kilomètres autour du coureur : deux cents derrière, mille huit cents devant.
+  drawClimbBand(ctx, {x:0,y:0,w:468,h:80}, SAMPLE_BAND);
+}
+(function grades(){
+  const bands = [
+    ["0 – 2 %",0],["2 – 5 %",2],["5 – 8 %",5],["8 – 11 %",8],
+    ["11 – 14 %",11],["14 – 20 %",14],["≥ 20 %",20]
+  ];
+  document.getElementById("grades").innerHTML = bands.map(([label,g],i) => {
+    const bg = gradeColor(g);
+    return '<div style="background:'+bg+';color:'+bestTextColor(bg)+'">'+label
+         + '<span>zone '+(i+1)+'</span></div>';
+  }).join("");
+})();
+
+/* Planche V : légende */
+(function legend(){
+  const areas = [
+    ["Cultures et prairies", RS.FARMLAND_FILL, "farmland, meadow, orchard, vineyard, farmyard", true],
+    ["Bois", RS.FOREST_FILL, "wood, scrub, landuse=forest", true],
+    ["Bâti", RS.BUILT_UP_FILL, "residential, industrial, commercial, retail", false],
+    ["Eau", RS.WATER_FILL, "water, wetland, riverbank, réservoir", false],
+    ["Fond de carte", RS.BACKGROUND, "le blanc cassé des cartes d'état-major", false]
+  ];
+  document.getElementById("areaSwatches").innerHTML = areas.map(([n,c,s,ch]) => (
+    '<li'+(ch?' class="changed"':'')+'><span class="sw" style="background:'+c+'"></span>'
+    + '<span class="nm">'+n+'<small>'+s+'</small></span>'
+    + '<span class="hx">'+c.slice(1)+'</span></li>'
+  )).join("");
+
+  const roads = [
+    ["Voie rapide, nationale", RS.EXPRESSWAY, 12, false],
+    ["Départementale", RS.PRIMARY, 8, false],
+    ["Route secondaire", RS.SECONDARY, 7, false],
+    ["Voie communale", RS.MINOR, 5, false],
+    ["Desserte", RS.SERVICE, 3.5, false],
+    ["Voie cyclable", RS.CYCLEWAY, 2.5, false],
+    ["Chemin non revêtu", RS.TRAIL, 3, true],
+    ["Cours d'eau", RS.WATER_LINE, 4, false],
+    ["Trottoir, escalier", RS.FAINT, 1.5, true]
+  ];
+  document.getElementById("roadSwatches").innerHTML = roads.map(([n,c,m,dash]) => (
+    '<li><span class="lane"><i style="height:'+Math.max(2,m*0.9).toFixed(1)+'px;background:'
+    + (dash ? 'repeating-linear-gradient(90deg,'+c+' 0 7px,transparent 7px 12px)' : c)+'"></i></span>'
+    + '<span class="nm">'+n+'<small>'+m+' m de chaussée</small></span>'
+    + '<span class="hx">'+c.slice(1)+'</span></li>'
+  )).join("");
+})();
+
+/* Les fontes système peuvent arriver après le premier rendu */
+drawAll();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawAll);
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="alert_climb">#EF6C00</color>
+    <color name="alert_summit">#2E7D32</color>
+    <color name="alert_poi">#1565C0</color>
+    <color name="alert_text">#FFFFFF</color>
+    <color name="icon_tint">#37474F</color>
+</resources>

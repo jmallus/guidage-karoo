@@ -1,0 +1,32 @@
+<!--
+  Transmission : un plateau et son pignon, reliés par la chaîne. Dessiné pour compléter
+  le jeu d'icônes repris de Barberfish, dont il partage la grille de 38 unités.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="38dp"
+    android:height="38dp"
+    android:viewportWidth="38"
+    android:viewportHeight="38">
+    <!-- Le plateau. -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.6"
+        android:pathData="M13,8 A11,11 0 1,1 12.9,8 Z" />
+    <!-- L'axe du pédalier. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M13,17 A2,2 0 1,1 12.9,17 Z" />
+    <!-- Le pignon. -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.4"
+        android:pathData="M30,25 A5,5 0 1,1 29.9,25 Z" />
+    <!-- Le brin de chaîne. -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:pathData="M13,8 L30,20" />
+</vector>

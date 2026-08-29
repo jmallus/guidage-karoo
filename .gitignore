@@ -1,0 +1,28 @@
+*.iml
+.gradle/
+local.properties
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.keystore
+!app/guidage.keystore
+
+# Données cartographiques : elles se comptent en centaines de méga-octets et n'ont
+# rien à faire dans l'historique. Elles se téléchargent chez Geofabrik et se copient
+# directement sur l'appareil.
+*.pbf
+*.osm
+*.map
+*.mbtiles
+*.pmtiles
+
+# Le fond de carte est déposé dans les assets par la construction, jamais versionné.
+app/src/main/assets/carte.gkmap
+
+# Toile de design assemblée (2 Mio, régénérable depuis design/*.dc.html)
+design/*.html
+!design/*.dc.html

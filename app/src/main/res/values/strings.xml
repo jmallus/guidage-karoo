@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Guidage</string>
+    <string name="extension_name">Guidage</string>
+
+    <!-- Champs de données -->
+    <string name="field_profile_name">Profil à venir</string>
+    <string name="field_profile_description">Profil altimétrique de la portion d\'itinéraire devant vous, coloré selon la pente.</string>
+    <string name="field_climb_name">Prochaine côte</string>
+    <string name="field_climb_description">Distance jusqu\'à la prochaine côte, ou jusqu\'au sommet de celle en cours, avec pente et dénivelé.</string>
+    <string name="field_poi_name">Prochain point d\'intérêt</string>
+    <string name="field_poi_description">Distance jusqu\'au prochain point d\'intérêt de l\'itinéraire.</string>
+
+    <string name="field_dashboard_name">Tableau de bord</string>
+    <string name="field_dashboard_description">Champ plein écran : minicarte du parcours orientée sens de la marche, vitesse, puissance, fréquence cardiaque, cadence, pente, distance restante et heure d\'arrivée. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Appuyer sur le champ change l\'échelle.</string>
+
+    <!-- Libellés des cases du tableau de bord, en capitales -->
+    <string name="dashboard_label_speed">VITESSE 3S</string>
+    <string name="dashboard_label_power">POWER 3S</string>
+    <string name="dashboard_label_heart_rate">FC</string>
+    <string name="dashboard_label_cadence">CADENCE</string>
+    <string name="dashboard_label_grade">PENTE</string>
+    <string name="dashboard_label_gears">TRANSMISSION</string>
+    <string name="dashboard_label_distance">DISTANCE</string>
+
+    <!-- Mentions portées sur la minicarte quand le fond de carte ne donne rien -->
+    <string name="basemap_missing">Fond de carte absent</string>
+    <string name="basemap_unreadable">Fond de carte illisible</string>
+    <string name="basemap_out_of_area">Hors de la région couverte</string>
+    <string name="basemap_empty">Aucune voie ici</string>
+    <string name="dashboard_label_remaining">RESTANT %1$s</string>
+    <string name="dashboard_label_arrival">ARRIVÉE</string>
+    <string name="dashboard_label_arrival_margin">ARRIVÉE ± %1$d MIN</string>
+    <string name="dashboard_zoom_whole_route">Parcours</string>
+    <string name="dashboard_climb_title">Côte %1$d/%2$d — %3$s à %4$s</string>
+    <string name="settings_guidance_map">Minicarte plutôt que profil (tableau de bord)</string>
+
+    <string name="field_no_route">Pas d\'itinéraire</string>
+    <string name="field_waiting_for_position">Recherche de position…</string>
+    <string name="field_no_climb_ahead">Aucune côte devant</string>
+    <string name="field_climb_in_progress">En cours</string>
+    <string name="field_climb_number">Côte %1$d/%2$d</string>
+
+    <!-- Alertes -->
+    <string name="alert_climb_title">Côte dans %1$s</string>
+    <string name="alert_climb_detail">%1$s à %2$s • +%3$s</string>
+    <string name="alert_summit_title">Sommet dans %1$s</string>
+    <string name="alert_poi_detail">Dans %1$s</string>
+    <string name="alert_resupply_title">Dernier ravitaillement</string>
+    <string name="alert_resupply_detail">%1$s — rien avant %2$s</string>
+    <string name="action_next_climb">Annoncer la prochaine côte</string>
+
+    <!-- Points d\'intérêt -->
+    <string name="poi_generic">Point d\'intérêt</string>
+    <string name="poi_water">Point d\'eau</string>
+    <string name="poi_food">Ravitaillement</string>
+    <string name="poi_coffee">Café</string>
+    <string name="poi_store">Commerce</string>
+    <string name="poi_gas_station">Station-service</string>
+    <string name="poi_aid_station">Poste de ravitaillement</string>
+    <string name="poi_first_aid">Secours</string>
+    <string name="poi_bike_shop">Vélociste</string>
+    <string name="poi_caution">Prudence</string>
+    <string name="poi_control">Contrôle</string>
+    <string name="poi_parking">Parking</string>
+    <string name="poi_rest_stop">Halte</string>
+    <string name="poi_restroom">Toilettes</string>
+    <string name="poi_summit">Sommet</string>
+    <string name="poi_viewpoint">Point de vue</string>
+
+    <!-- Écran de configuration -->
+    <string name="status_connected">Connecté au Karoo</string>
+    <string name="status_disconnected">Connexion au Karoo…</string>
+    <string name="status_no_route">Aucun itinéraire chargé</string>
+    <string name="status_remaining">Restant : %1$s</string>
+    <string name="status_climb_current">Sommet dans %1$s (+%2$s)</string>
+    <string name="status_climb_next">Prochaine côte dans %1$s : %2$s à %3$s</string>
+    <string name="status_next_poi">Prochain point : %1$s dans %2$s</string>
+
+    <string name="settings_title">Réglages</string>
+    <string name="settings_color_by_grade">Colorer le profil selon la pente</string>
+    <string name="settings_poi_alerts">Annoncer les points d\'intérêt</string>
+    <string name="settings_poi_distance">Annonce avant le point : %1$s</string>
+
+    <string name="settings_section_dashboard">Tableau de bord</string>
+    <string name="settings_section_resupply">Ravitaillement</string>
+    <string name="settings_section_alerts">Annonces</string>
+    <string name="settings_guidance_map_hint">Champ « Tableau de bord »</string>
+    <string name="settings_color_by_grade_hint">Champs « Profil à venir » et « Tableau de bord »</string>
+    <string name="settings_water_only">Ne compter que les points d\'eau</string>
+    <string name="settings_water_only_hint">Champs « Réserve », « Autonomie », « Suivant la sortie » et les annonces. Décoché, comptent aussi commerces, stations-service, cafés et haltes.</string>
+    <string name="settings_poi_alerts_hint">Annonce vocale et bandeau, en enregistrement seulement</string>
+    <string name="app_version">Version %1$s</string>
+    <string name="field_report_title">Place allouée au champ</string>
+    <string name="field_report_none">Aucun champ ouvert depuis l\'installation. Posez « Tableau de bord » sur une page du profil, ouvrez cette page, puis revenez ici.</string>
+    <string name="field_report_ride">%1$s, en roulant : %2$s</string>
+    <string name="field_report_editor">%1$s, à l\'édition : %2$s</string>
+    <string name="field_report_line">%1$d × %2$d px · grille %3$d × %4$d sur 60 · corps %5$d sp</string>
+    <string name="field_effort_name">Budget d\'effort</string>
+    <string name="field_effort_description">Ce que coûte encore le parcours, en kilojoules plutôt qu\'en kilomètres, découpé par poste : le terrain roulant, puis chaque côte qui reste. Le total se déduit du temps estimé de chaque poste et de la puissance que vous tenez dans ce régime — deux grandeurs mesurées, aucune supposée. Demande un capteur de puissance.</string>
+    <string name="field_effort_label">RESTE À PAYER</string>
+    <string name="field_effort_waiting">Allure en cours d\'apprentissage</string>
+    <string name="field_effort_share">%1$d %% DE L\'EFFORT · %2$d %% DE LA DISTANCE</string>
+    <string name="field_effort_share_only">%1$d %% DE L\'EFFORT</string>
+    <string name="field_effort_climb">Côte %1$d — %2$s</string>
+    <string name="field_effort_kilojoules">%1$d kJ</string>
+    <string name="unit_kilojoule">kJ</string>
+    <string name="field_autonomy_name">Autonomie</string>
+    <string name="field_autonomy_description">Les deux réserves qui s\'épuisent, sur une seule page : l\'eau en haut, le sucre en bas. Après quel point de ravitaillement il n\'y a plus rien, et ce que coûte encore le parcours en kilojoules, découpé par côte. On ne s\'arrête qu\'une fois, et c\'est en voyant les deux ensemble qu\'on sait s\'il faut s\'arrêter à ce point-ci ou tenir jusqu\'au suivant. Demande une page entière ; sa moitié basse demande en outre un capteur de puissance.</string>
+    <string name="field_bends_name">Virages</string>
+    <string name="field_bends_description">Les virages des trois prochains kilomètres, sur la route redressée : chaque virage devient une barre qui s\'écarte vers le haut ou vers le bas selon son sens, longue et rouge selon son rayon. Ce n\'est pas une carte — la minicarte fait déjà cela — mais la réponse à la seule question qu\'on se pose en descente : qu\'est-ce qui arrive, et à quel point c\'est serré.</string>
+    <string name="field_bends_label">VIRAGES</string>
+    <string name="field_bends_summary">%1$d sur %2$s</string>
+    <string name="field_bends_none">Rien de serré devant</string>
+    <string name="field_bends_left">GAUCHE</string>
+    <string name="field_bends_right">DROITE</string>
+    <string name="field_bends_hairpin">ÉPINGLE</string>
+    <string name="field_bends_tight">SERRÉ</string>
+    <string name="field_bends_bend">VIRAGE</string>
+    <string name="field_context_name">Suivant la sortie</string>
+    <string name="field_context_description">Un champ dont la moitié basse change de contenu selon ce que la sortie fait : en montée le restant au sommet et la silhouette de ce qui monte, en descente les virages, à l\'approche d\'un ravitaillement sa distance, et le reste du temps la vitesse et ce qui reste. La moitié haute, elle, ne bouge jamais, et un rail de pastilles dit dans quel état on est.</string>
+    <string name="field_context_to_summit">SOMMET DANS</string>
+    <string name="field_context_since_last">DEPUIS LE DERNIER</string>
+    <string name="field_context_remaining">RESTANT</string>
+    <string name="field_surface_name">Revêtement</string>
+    <string name="field_surface_description">Ce que l\'itinéraire réserve comme sol sur les cinq prochains kilomètres, en posant le tracé sur le fond de carte embarqué : route, chemin, voie verte, à l\'échelle de leur longueur. Pour le gravel, c\'est l\'information qui manque partout — non pas où l\'on est, mais quand on quitte le bitume et pour combien de temps. Demande le fond de carte hors ligne.</string>
+    <string name="field_surface_label">REVÊTEMENT</string>
+    <string name="field_surface_unknown">Aucune voie reconnue</string>
+    <string name="field_surface_road">Route</string>
+    <string name="field_surface_trail">Chemin</string>
+    <string name="field_surface_cycleway">Voie verte</string>
+    <string name="field_surface_then">puis %1$s</string>
+    <string name="field_surface_next_trail">CHEMIN DANS</string>
+    <string name="field_surface_next_cycleway">VOIE VERTE DANS</string>
+    <string name="field_surface_next_road">ROUTE DANS</string>
+    <string name="field_resupply_name">Réserve</string>
+    <string name="field_resupply_description">Après quel point de ravitaillement il n\'y a plus rien. Ce n\'est pas « où est la prochaine eau » — l\'autre champ le dit — mais l\'annonce retournée : la ligne porte tout l\'itinéraire, les points passés en gris, le dernier utile cerclé de jaune, et à droite un segment rouge qui ne porte rien. C\'est ce vide qu\'on regarde. Demande une page entière.</string>
+    <string name="field_resupply_last_before">DERNIER RAVITAILLEMENT AVANT</string>
+    <string name="field_resupply_since">DEPUIS LE DERNIER</string>
+    <string name="field_resupply_next">PROCHAIN</string>
+    <string name="field_resupply_last_useful">DERNIER UTILE</string>
+    <string name="field_resupply_dry">RIEN</string>
+    <string name="field_resupply_nothing_ahead">PLUS RIEN JUSQU\'À L\'ARRIVÉE</string>
+    <string name="field_resupply_none">Aucun ravitaillement sur l\'itinéraire</string>
+</resources>

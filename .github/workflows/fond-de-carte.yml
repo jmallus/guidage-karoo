@@ -1,0 +1,116 @@
+name: fond-de-carte
+
+# Fabrique le fichier de fond de carte lu par l'extension, à partir des extraits
+# OpenStreetMap de Geofabrik.
+#
+# Il ne se lance qu'à la demande : les données ne bougent que lentement, et le
+# téléchargement pèse plusieurs centaines de méga-octets. Onglet Actions →
+# « fond-de-carte » → « Run workflow ».
+on:
+  workflow_dispatch:
+    inputs:
+      regions:
+        description: >-
+          Régions Geofabrik, séparées par des espaces (chemin sans l'extension,
+          tel qu'il apparaît dans l'URL de download.geofabrik.de).
+        default: europe/france/basse-normandie europe/france/haute-normandie
+        required: true
+      nom:
+        description: Nom du fichier produit, sans extension.
+        default: normandie
+        required: true
+
+jobs:
+  carte:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # osmium fait le gros œuvre : décoder le format binaire d'OSM, en garder ce qui
+      # nous intéresse et reconstituer les surfaces à partir des relations. Le faire en
+      # Kotlin demanderait une bibliothèque de plus pour un travail qui ne tourne jamais
+      # sur l'appareil.
+      - name: Installer osmium
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool
+
+      - name: Télécharger et filtrer les régions
+        run: |
+          set -euo pipefail
+          mkdir -p osm
+          for region in ${{ github.event.inputs.regions }}; do
+            nom="${region//\//-}"
+            url="https://download.geofabrik.de/${region}-latest.osm.pbf"
+            echo "::group::$region"
+            echo "téléchargement de $url"
+            if ! curl -fSL --retry 3 -o "osm/$nom.osm.pbf" "$url"; then
+              echo "::error::Région introuvable chez Geofabrik : $region"
+              echo "Vérifier le chemin sur https://download.geofabrik.de — il doit"
+              echo "correspondre à l'URL du fichier .osm.pbf, sans « -latest.osm.pbf »."
+              exit 1
+            fi
+            ls -lh "osm/$nom.osm.pbf"
+
+            # Les voies portant un tag highway — routes, chemins, sentiers — les cours
+            # d'eau, et les surfaces qui aident à se situer : eau, bois, bâti, campagne.
+            # Les surfaces se déclarent en « wa/… » : elles arrivent tantôt en chemin
+            # fermé, tantôt en relation de multipolygone.
+            osmium tags-filter "osm/$nom.osm.pbf" \
+              w/highway \
+              w/waterway=river,canal,stream \
+              wa/natural=water,wetland,wood,scrub \
+              wa/waterway=riverbank,dock \
+              wa/landuse=forest,reservoir,basin,residential,industrial,commercial,retail,farmland,meadow,orchard,vineyard,farmyard,allotments \
+              -o "osm/$nom.retenu.osm.pbf" --overwrite
+            # Géométries résolues, une ligne de JSON par objet.
+            osmium export "osm/$nom.retenu.osm.pbf" \
+              --geometry-types=linestring,polygon \
+              -f geojsonseq -o "osm/$nom.geojsonseq" --overwrite
+            ls -lh "osm/$nom.geojsonseq"
+            echo "::endgroup::"
+          done
+
+      - name: Convertir en fond de carte
+        run: |
+          set -euo pipefail
+          ./gradlew :tools:convertRoadMap --console=plain \
+            --args="${{ github.event.inputs.nom }}.gkmap $(ls osm/*.geojsonseq | tr '\n' ' ')"
+          ls -lh "${{ github.event.inputs.nom }}.gkmap"
+
+      # Une Release à part de « latest » : celle-ci est recréée à chaque poussée et
+      # emporterait le fond de carte avec elle.
+      - name: Publier le fond de carte
+        run: |
+          set -euo pipefail
+          cat > notes.md <<NOTES
+          Fond de carte hors ligne pour l'extension Guidage.
+
+          Régions : \`${{ github.event.inputs.regions }}\`
+          Source : [Geofabrik](https://download.geofabrik.de), données
+          [OpenStreetMap](https://www.openstreetmap.org/copyright) sous licence ODbL.
+
+          **Installation** : télécharger \`${{ github.event.inputs.nom }}.gkmap\`
+          ci-dessous et le copier sur le Karoo dans \`Download/\`.
+
+          Contient les routes **et** les chemins — \`track\`, \`path\`, \`bridleway\`,
+          \`cycleway\` — avec leur revêtement quand OpenStreetMap le renseigne, les cours
+          d'eau, et les surfaces d'eau, de bois, de bâti et de cultures.
+          NOTES
+          if gh release view carte >/dev/null 2>&1; then
+            gh release upload carte "${{ github.event.inputs.nom }}.gkmap" --clobber
+            gh release edit carte --notes-file notes.md
+          else
+            gh release create carte "${{ github.event.inputs.nom }}.gkmap" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "Fond de carte" --notes-file notes.md
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}

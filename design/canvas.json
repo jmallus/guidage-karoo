@@ -1,0 +1,31 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 234,
+      "h": 300,
+      "title": "Double chevron — retenu"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note",
+      "x": 334,
+      "y": 0,
+      "w": 420,
+      "text": "Double chevron noir, calibre du milieu des trois essayés : une paire tous les 66 px (55 m à la portée 200), 12 px entre les deux pointes, trait de 4. Chaque branche est taillée à la demi-largeur du ruban : elle s'arrête donc d'elle-même au bord, d'une coupe courte et perpendiculaire à elle. Le ruban ne sert plus que de gabarit pour rogner ce que la courbure fait dépasser — dessinée plus longue et laissée au gabarit, la branche était coupée LE LONG du bord et laissait un long coin noir qui le longeait au lieu de s'y arrêter."
+    },
+    {
+      "id": "note-borne",
+      "x": 334,
+      "y": 180,
+      "w": 420,
+      "text": "Bornés aux 300, 800 ou 1 300 prochains mètres selon la portée : sur une boucle qui repasse par son départ, la branche du retour est à quelques mètres et en plein dans le couloir. Les deux pointes d'une paire sont posées à l'abscisse curviligne, sans quoi la seconde disparaissait dès qu'elle tombait au-delà d'un sommet."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

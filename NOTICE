@@ -1,0 +1,19 @@
+Guidage — extension Karoo
+Copyright 2026 Julien Mallus
+
+Ce produit reprend des éléments de Barberfish (https://github.com/jpweytjens/barberfish),
+Copyright Jan-Pieter Weytjens, distribué sous licence Apache 2.0 :
+
+  - les couleurs des zones de puissance et de fréquence cardiaque du Karoo, ainsi que la
+    manière de déterminer la zone d'une valeur à partir des bornes réglées sur l'appareil
+    (core/.../Zones.kt) ;
+  - l'implémentation du contraste perceptuel APCA-W3, qui décide d'écrire en noir ou en
+    blanc sur un aplat de couleur (core/.../Contrast.kt) ;
+  - les icônes de champ ic_speed, ic_power, ic_heart_rate, ic_cadence, ic_grade et
+    ic_arrival (app/src/main/res/drawable/), reprises telles quelles.
+
+L'algorithme APCA lui-même provient de SAPC-APCA (https://github.com/Myndex/SAPC-APCA),
+Copyright Andrew Somers, licence W3C.
+
+Une copie de la licence Apache 2.0 est disponible à l'adresse
+https://www.apache.org/licenses/LICENSE-2.0

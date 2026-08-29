@@ -1,0 +1,19 @@
+<!--
+  Distance restante : un ruban de route qui s'éloigne vers un fanion d'arrivée.
+  Dessiné pour compléter le jeu d'icônes repris de Barberfish, dont il partage la grille
+  de 38 unités et l'épaisseur de trait.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="38dp"
+    android:height="38dp"
+    android:viewportWidth="38"
+    android:viewportHeight="38">
+    <!-- La route, en perspective. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M13,34 L4,34 L11,12 L14.8,12 L13,17.6 L16.8,17.6 L18.6,12 L22.4,12 L20.6,17.6 L24.4,17.6 L26.2,12 L30,12 L23,34 L19,34 L20.8,28.4 L17,28.4 L15.2,34 L13,34 Z M17.9,25.4 L21.7,25.4 L23.5,19.8 L19.7,19.8 L17.9,25.4 Z" />
+    <!-- Le fanion d'arrivée. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,4 L26,16 L28,16 L28,11 L34,11 L34,4 L26,4 Z M28,6 L32,6 L32,9 L28,9 L28,6 Z" />
+</vector>
