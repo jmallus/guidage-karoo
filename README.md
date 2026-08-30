@@ -38,8 +38,17 @@ portées de la carte, la légende du fond.
 | **Réserve** | graphique, **pleine page** | Après quel point de ravitaillement il n'y a plus rien. La ligne porte l'itinéraire entier : points passés en gris, prochain en blanc, dernier utile cerclé de jaune, et à sa droite un segment rouge qui ne porte rien. |
 | **Autonomie** | graphique, **pleine page** | Les deux réserves qui s'épuisent sur une seule page : la réserve d'eau en haut, le budget d'effort en bas. On ne s'arrête qu'une fois, et c'est en voyant les deux ensemble qu'on décide de s'arrêter à ce point-ci ou de tenir jusqu'au suivant. Demande en outre un capteur de puissance pour sa moitié basse. |
 
-« Profil à venir » et « Prochaine côte » s'adaptent à la taille et à l'alignement configurés
-dans le profil de page. Tous affichent un aperçu réaliste dans l'écran d'édition des pages.
+Tous s'adaptent à la **taille** que le profil de page leur alloue ; « Prochaine côte » suit en
+outre l'**alignement** configuré. Les neuf champs graphiques affichent un aperçu réaliste dans
+l'écran d'édition des pages — « Prochain point d'intérêt » n'en a pas besoin, c'est le Karoo
+qui le dessine.
+
+**Sept d'entre eux publient aussi une valeur numérique**, réutilisable dans n'importe quel
+champ ou enregistrée dans le fichier de la sortie : la distance au pied ou au sommet
+(« Prochaine côte »), au prochain point (« Prochain point d'intérêt »), au virage le plus
+serré devant (« Virages »), au prochain changement de sol (« Revêtement ») ; la longueur de
+la prochaine traversée sans ravitaillement (« Réserve ») ; et les kilojoules restants
+(« Budget d'effort », « Autonomie »).
 
 Quatre champs sont marqués **pleine page**. Ils fonctionnent posés sur un demi-rang, mais ne
 portent pas une valeur : une répartition — les virages d'une descente, les revêtements d'une
@@ -55,9 +64,10 @@ la journée, à quinze on voit la journée mais la rampe tient dans deux pixels.
 pose en roulant, c'est-à-dire au moment où l'on ne veut rien régler.
 
 L'échelle horizontale n'est donc plus proportionnelle. La distance est projetée par un
-logarithme translaté, fin sur les premières centaines de mètres et de plus en plus comprimé
-ensuite : la bande couvre **tout ce qui reste**, du premier mètre à l'arrivée, et les deux
-cents premiers mètres y occupent autant de largeur que les vingt derniers kilomètres.
+logarithme translaté, fin sur les deux cents premiers mètres et de plus en plus comprimé
+ensuite : la bande couvre **tout ce qui reste**, du premier mètre à l'arrivée. Sur cent vingt
+kilomètres restants, les deux cents premiers mètres occupent 10,8 % de la largeur et les vingt
+derniers kilomètres 2,8 % — le proche pèse quatre fois le lointain.
 
 Cette compression ne se voit pas d'elle-même — un œil qui suppose une échelle régulière lit
 un faux relief. Ce sont les graduations sous l'axe qui la disent : leur espacement inégal est
@@ -99,9 +109,14 @@ réglable.
 La seconde est la première retournée. « Prochaine eau dans 500 m » ne dit pas s'il faut s'y
 arrêter ; « rien avant 42 km » le dit, et c'est la même donnée. Elle se déclenche sur le
 dernier point où l'on peut encore remplir un bidon avant une longue traversée — quinze
-kilomètres au moins, sans quoi ce n'en est pas une — et compte comme ravitaillement l'eau,
-les ravitaillements, les épiceries, les stations-service et les cafés. Le contrôle de
-cyclosportive n'en est pas : il oblige à s'arrêter, mais rien ne dit qu'on y trouve à boire.
+kilomètres au moins, sans quoi ce n'en est pas une.
+
+Comptent comme ravitaillement l'eau, les postes de ravitaillement, les épiceries, les
+commerces, les stations-service, la restauration, les bars, les cafés et les haltes. Le
+contrôle de cyclosportive n'en est pas : il oblige à s'arrêter, mais rien ne dit qu'on y
+trouve à boire. Le [réglage](#réglages) « ne compter que les points d'eau » réduit la liste
+à l'eau seule, pour qui roule en autonomie complète — et il vaut aussi pour les champs, une
+voix qui nommerait un point que l'écran ne montre pas étant pire que pas de voix.
 
 Les côtes n'en déclenchent plus. Elles en avaient deux — une au pied, une avant le sommet —
 qui couvraient l'écran au moment précis où l'on regarde le bandeau de profil pour savoir ce
@@ -207,8 +222,10 @@ dépôt, mais mieux vaut ne pas en arriver là.
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-L'APK release est signé avec la clé de debug pour pouvoir être installé directement sur le
-Karoo (mode développeur activé, appareil connecté en USB ou en ADB Wi-Fi).
+L'APK release est signé avec la clé `app/guidage.keystore`, versionnée dans le dépôt, pour
+pouvoir être installé directement sur le Karoo (mode développeur activé, appareil connecté en
+USB ou en ADB Wi-Fi). Cette clé n'a de valeur que tant que le dépôt reste **privé** : elle est
+à remplacer avant toute ouverture au public ou diffusion hors de ce dépôt.
 
 Après l'installation, les champs apparaissent dans **Profils → page → ajouter un champ de
 données → Guidage**.
@@ -256,7 +273,7 @@ avance, les aplats de zone changent de couleur avec l'effort.
 ### La taille réelle
 
 La fenêtre s'ouvre à la taille **physique** de l'écran du Karoo 3 — 31,3 mm de large sur
-52,2 mm de haut, deux pouces et demi de diagonale. C'est tout l'intérêt du banc d'essai :
+52,2 mm de haut, soit 2,4 pouces de diagonale. C'est tout l'intérêt du banc d'essai :
 juger d'un corps de police ou d'une épaisseur de trait sur une image trois fois trop grande
 ne dit rien de ce qu'on lira en roulant.
 
@@ -291,11 +308,11 @@ le rendu s'y ajuste. Le banc d'essai, lui, doit la connaître, et il l'a longtem
 il montrait une mise en page plus haute que la vraie : rangs plus espacés, chiffres plus
 grands que ce qu'on lira en roulant.
 
-La valeur est figée dans `Simulateur`, et se change sans recompiler pour un autre appareil
-ou un autre gabarit de page :
+La valeur, 642, est figée dans `Simulateur`, et se change sans recompiler pour un autre
+appareil ou un autre gabarit de page :
 
 ```
-./gradlew :app:simulateur -Pguidage.hauteur=744
+./gradlew :app:simulateur -Pguidage.hauteur=600
 ```
 
 Pour la relever, **sans rien brancher** : poser le champ **« Tableau de bord »** (dans
@@ -418,7 +435,7 @@ simulateur de bureau appellent **les mêmes**, et il n'existe donc nulle part un
 
 - Les champs n'affichent quelque chose qu'avec une **navigation active** : itinéraire chargé
   ou navigation vers un point. Sans navigation, ils indiquent « Pas d'itinéraire ».
-- Le profil altimétrique et la liste des côtes sont fournis par Karoo OS depuis karoo-ext 1.1.6 ;
+- Le profil altimétrique et la liste des côtes sont fournis par Karoo OS depuis karoo-ext 1.1.9 ;
   un Karoo à jour est nécessaire.
 - L'heure d'arrivée calculée demande trois minutes de roulage, et deux minutes de montée
   quand il reste du dénivelé. Avant cela — et en l'absence de profil altimétrique — le champ
@@ -426,5 +443,8 @@ simulateur de bureau appellent **les mêmes**, et il n'existe donc nulle part un
 - En navigation **vers un point** (et non sur un itinéraire enregistré), Karoo ne fournit pas la
   longueur du trajet : elle est déduite du profil altimétrique. Sans profil, la position le long
   du trajet ne peut pas être calculée et les champs restent vides.
-- L'APK est signé avec la clé de debug : à remplacer par une vraie signature pour une diffusion
-  publique.
+- La clé de signature est versionnée dans le dépôt : acceptable tant qu'il est privé, à
+  remplacer avant toute diffusion publique.
+- Le « Budget d'effort » et la moitié basse d'« Autonomie » demandent un **capteur de
+  puissance** et quelques minutes de roulage. Sans eux, rien n'est annoncé — ce qui vaut
+  mieux qu'un chiffre inventé. « Revêtement » demande de son côté le fond de carte embarqué.
