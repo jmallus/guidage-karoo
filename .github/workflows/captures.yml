@@ -64,6 +64,9 @@ jobs:
       - name: Ranger et commiter
         run: |
           set -euo pipefail
+          # docs/captures/ doit rester versionné : le .gitignore d'Android Studio porte un
+          # « captures/ » sans barre oblique, qui attrapait ce dossier-ci par ricochet et
+          # faisait échouer le « git add » sans que rien n'ait mal tourné avant.
           mkdir -p docs/captures
           # Le dossier est vidé plutôt que recouvert : une capture dont le champ a disparu
           # doit disparaître avec lui, sinon le README montrerait un champ qui n'existe plus.

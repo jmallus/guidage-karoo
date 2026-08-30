@@ -4,7 +4,10 @@ local.properties
 .idea/
 .DS_Store
 build/
-captures/
+# Ancré à la racine : « captures/ » sans barre oblique attrape le dossier à n'importe
+# quelle profondeur, et emportait donc docs/captures/, où vivent les images du README.
+# C'est le dossier de captures d'écran d'Android Studio qu'on veut ignorer, lui seul.
+/captures/
 .externalNativeBuild/
 .cxx/
 *.apk
