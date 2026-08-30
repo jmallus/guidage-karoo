@@ -1,6 +1,6 @@
 # Guidage — extension Hammerhead Karoo
 
-Extension Karoo (Karoo 2 / Karoo 3) qui enrichit le **guidage d'itinéraire** : elle lit
+Extension **Karoo 3** qui enrichit le **guidage d'itinéraire** : elle lit
 l'itinéraire chargé dans le Karoo et en tire **dix champs de données** — un tableau de bord
 plein écran avec minicarte sur fond de carte embarqué, le profil à venir, la prochaine côte,
 le coût du reste en kilojoules, les virages d'une descente, le revêtement, l'espacement des
@@ -433,6 +433,9 @@ simulateur de bureau appellent **les mêmes**, et il n'existe donc nulle part un
 
 ## Limites connues
 
+- **Essayée sur un Karoo 3 seulement.** Rien n'y interdit le Karoo 2 — `minSdk 26`, et
+  karoo-ext couvre les deux — mais aucun relevé n'en vient : les tailles de champ, la densité
+  d'écran et les couleurs ont toutes été mesurées sur un Karoo 3.
 - Les champs n'affichent quelque chose qu'avec une **navigation active** : itinéraire chargé
   ou navigation vers un point. Sans navigation, ils indiquent « Pas d'itinéraire ».
 - Le profil altimétrique et la liste des côtes sont fournis par Karoo OS depuis karoo-ext 1.1.9 ;
