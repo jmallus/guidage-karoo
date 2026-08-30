@@ -1,6 +1,7 @@
 package io.github.jmallus.guidage.sim
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.ui.FieldPalette
@@ -469,8 +470,29 @@ class SimulateurTest {
      */
     private fun ecrire(image: Bitmap, fichier: File) {
         FileOutputStream(fichier).use { sortie ->
-            image.compress(Bitmap.CompressFormat.PNG, 100, sortie)
+            surFond(image).compress(Bitmap.CompressFormat.PNG, 100, sortie)
         }
+    }
+
+    /**
+     * Repose le fond de l'appareil derrière une image de champ.
+     *
+     * Les champs arrivent **transparents** : le rendu ne peint rien derrière lui, parce que
+     * c'est le Karoo qui pose le fond et que le champ vient s'y déposer. Une image écrite
+     * telle quelle se retrouve sur le blanc du lecteur — celui du README de GitHub, par
+     * exemple — où le texte clair et les traits pâles disparaissent.
+     *
+     * L'aplati n'est fait qu'au moment d'écrire le fichier : les contrôles, eux, travaillent
+     * sur l'image transparente, celle que le champ produit réellement. Compter les pixels du
+     * ruban sur une image déjà fondue dans un fond compterait aussi le fond.
+     */
+    private fun surFond(image: Bitmap): Bitmap {
+        val opaque = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
+        Canvas(opaque).apply {
+            drawColor(FOND)
+            drawBitmap(image, 0f, 0f, null)
+        }
+        return opaque
     }
 
     /** L'instant où le coureur passe à une distance donnée du départ. */
@@ -491,6 +513,16 @@ class SimulateurTest {
     private companion object {
         /** Moments de la sortie où le rendu est contrôlé, en part de sa durée. */
         val PARTS_CONTROLEES = listOf(0.05, 0.25, 0.5, 0.75, 0.95)
+
+        /**
+         * Le fond que l'appareil pose derrière un champ.
+         *
+         * La même valeur que celle de la fenêtre du simulateur (`FenetreSimulateur`), et pour
+         * la même raison : c'est ce que le coureur a derrière les yeux. Elle est recopiée
+         * plutôt que partagée, le module `sim/` ne pouvant pas être lu depuis un test unitaire
+         * d'Android — il parle `java.awt`, absent d'`android.jar`.
+         */
+        const val FOND = 0xFF202224.toInt()
 
         const val IMAGES_PAR_SECONDE = 10
         const val PROPRIETE_FENETRE = "guidage.simulateur"
