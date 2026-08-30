@@ -302,6 +302,7 @@ class SimulateurTest {
                 "champ-effort" to simulateur.imageEffort(secondes),
                 "champ-virages" to simulateur.imageVirages(secondes),
                 "champ-reserve" to simulateur.imageReserve(secondes),
+                "champ-autonomie" to simulateur.imageAutonomie(secondes),
             )
             autres.forEach { (nom, image) ->
                 assertTrue(

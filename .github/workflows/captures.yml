@@ -1,0 +1,72 @@
+name: captures
+
+# Range dans docs/captures/ les images que le simulateur produit, et les commite.
+#
+# Elles remplacent les planches, qui étaient une seconde écriture de l'affichage en
+# JavaScript et dérivaient du code à chaque changement. Celles-ci sortent du rendu de
+# l'appareil, sous Robolectric : elles ne peuvent pas mentir sur ce que le champ dessine.
+#
+# À la demande seulement. Une capture n'a d'intérêt qu'après un changement d'affichage,
+# et la commiter à chaque poussée remplirait l'historique de PNG identiques.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: captures
+  cancel-in-progress: true
+
+jobs:
+  captures:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - id: creds
+        run: echo "available=${{ secrets.GPR_KEY != '' }}" >> "$GITHUB_OUTPUT"
+
+      - if: steps.creds.outputs.available != 'true'
+        run: |
+          echo "::error::Secrets GPR_USER / GPR_KEY absents — :app ne peut pas se compiler."
+          exit 1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Le fond de carte n'est pas nécessaire : le simulateur engendre son propre décor.
+      # C'est même préférable — les captures ne dépendent alors que du code.
+      - name: Rendre les captures
+        run: ./gradlew :app:testDebugUnitTest --console=plain
+        env:
+          GITHUB_ACTOR: ${{ secrets.GPR_USER }}
+          GITHUB_TOKEN: ${{ secrets.GPR_KEY }}
+
+      - name: Ranger et commiter
+        run: |
+          set -euo pipefail
+          mkdir -p docs/captures
+          # Le dossier est vidé plutôt que recouvert : une capture dont le champ a disparu
+          # doit disparaître avec lui, sinon le README montrerait un champ qui n'existe plus.
+          rm -f docs/captures/*.png
+          cp app/build/simulateur/*.png docs/captures/
+          ls -lh docs/captures/
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/captures
+          if git diff --cached --quiet; then
+            echo "Les captures n'ont pas changé."
+            exit 0
+          fi
+          # « [skip ci] » évite de relancer la construction de l'APK : ces images ne
+          # partent pas dedans, et republier une Release pour un PNG serait du gâchis.
+          git commit -m "Régénère les captures du simulateur [skip ci]" \
+            -m "Rendues par le code de l'appareil sous Robolectric, à partir de $GITHUB_SHA."
+          git push origin HEAD:main
