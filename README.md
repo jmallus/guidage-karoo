@@ -1,4 +1,4 @@
-# Guidage — extension Hammerhead Karoo
+# Champs de données et guidage - Hammerhead Karoo
 
 Extension **Karoo 3** qui enrichit le **guidage d'itinéraire** : elle lit
 l'itinéraire chargé dans le Karoo et en tire **dix champs de données** — un tableau de bord
