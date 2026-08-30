@@ -468,10 +468,17 @@ Les images de contrôle sont écrites dans `app/build/simulateur/`.
 
 ### Régénérer les captures
 
-Après un changement d'affichage, les images de ce README se refont en un clic : onglet
-**Actions → captures → Run workflow**. Le job exécute les tests du simulateur, range les PNG
-dans `docs/captures/` et les commite sur `main`. Le dossier est vidé avant d'être rempli, pour
-qu'une capture ne survive pas au champ qu'elle montrait.
+Elles se refont **toutes seules**. Le workflow `captures` part à chaque poussée sur `main` qui
+touche ce qui décide de l'affichage — les rendus, les constructeurs de modèle, les libellés,
+le parcours d'aperçu, le simulateur. Il exécute les tests du simulateur, range les PNG dans
+`docs/captures/` et les commite. Si les images sont identiques à celles du dépôt, il s'arrête
+sans rien écrire.
+
+Un changement dans `core/` ou dans le convertisseur de cartes ne déplace aucun pixel et ne le
+déclenche donc pas. Au besoin, **Actions → captures → Run workflow** le force à la main.
+
+Le dossier est vidé avant d'être rempli : une capture ne doit pas survivre au champ qu'elle
+montrait.
 
 ## Architecture
 
