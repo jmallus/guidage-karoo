@@ -244,6 +244,12 @@ object EffortRenderer {
             textSize = (area.height() * 0.22f).coerceIn(10f, 22f)
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
+        // Le message est ramené à la largeur du champ : « Allure en cours d'apprentissage »
+        // fait trente signes et débordait d'un champ étroit, où il se lisait tronqué sans que
+        // rien ne le signale. Mieux vaut l'écrire plus petit que le couper.
+        val place = area.width() * 0.92f
+        val mesure = paint.measureText(text)
+        if (mesure > place && place > 0f) paint.textSize *= place / mesure
         val x = area.left + (area.width() - paint.measureText(text)) / 2f
         val y = area.centerY() - (paint.descent() + paint.ascent()) / 2f
         canvas.drawText(text, max(x, area.left), y, paint)

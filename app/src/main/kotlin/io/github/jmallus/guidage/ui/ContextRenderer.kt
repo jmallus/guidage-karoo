@@ -316,6 +316,12 @@ object ContextRenderer {
             textSize = (height * 0.16f).coerceIn(10f, 22f)
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
+        // Le message est ramené à la largeur du champ. Ces phrases-là sont longues — elles
+        // expliquent une absence — et débordaient d'un champ étroit, où elles se lisaient
+        // tronquées sans que rien ne le signale. Mieux vaut l'écrire plus petit que le couper.
+        val place = width * 0.92f
+        val mesure = paint.measureText(text)
+        if (mesure > place && place > 0f) paint.textSize *= place / mesure
         val x = (width - paint.measureText(text)) / 2f
         val y = height / 2f - (paint.descent() + paint.ascent()) / 2f
         canvas.drawText(text, max(x, 0f), y, paint)

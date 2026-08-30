@@ -238,7 +238,7 @@ class SimulateurTest {
                 assertEquals(Simulateur.LARGEUR, image.width)
                 assertEquals(Simulateur.HAUTEUR, image.height)
                 if (rubanVisible(image)) vues++
-                if (part == PARTS_CONTROLEES.first()) {
+                if (part == PART_CAPTURE) {
                     ecrire(image, File(dossier, "carte-${portee.rangeMeters.toInt()}m.png"))
                 }
             }
@@ -251,14 +251,14 @@ class SimulateurTest {
 
         // Le profil en portrait, l'autre zone de guidage.
         simulateur.zone = GuidanceZoneType.PROFILE
-        val profil = simulateur.image(simulateur.sortie.duree * 0.3)
+        val profil = simulateur.image(simulateur.sortie.duree * PART_CAPTURE)
         assertTrue("le profil ne montre presque rien", couleursDistinctes(profil) > 12)
         ecrire(profil, File(dossier, "profil.png"))
 
         // Et le tracé au rouge, quand le Karoo décroche de l'itinéraire.
         simulateur.zone = GuidanceZoneType.MAP
         simulateur.horsItineraire = true
-        val decroche = simulateur.image(simulateur.sortie.duree * 0.3)
+        val decroche = simulateur.image(simulateur.sortie.duree * PART_CAPTURE)
         assertFalse("le tracé reste bleu alors qu'on est hors itinéraire", rubanVisible(decroche))
         ecrire(decroche, File(dossier, "hors-itineraire.png"))
     }
@@ -312,7 +312,7 @@ class SimulateurTest {
                 )
             }
 
-            if (part == PARTS_CONTROLEES.first()) {
+            if (part == PART_CAPTURE) {
                 ecrire(profil, File(dossier, "champ-profil.png"))
                 ecrire(cote, File(dossier, "champ-cote.png"))
                 autres.forEach { (nom, image) -> ecrire(image, File(dossier, "$nom.png")) }
@@ -513,6 +513,20 @@ class SimulateurTest {
     private companion object {
         /** Moments de la sortie où le rendu est contrôlé, en part de sa durée. */
         val PARTS_CONTROLEES = listOf(0.05, 0.25, 0.5, 0.75, 0.95)
+
+        /**
+         * Le moment de la sortie que les captures montrent.
+         *
+         * Pas le premier contrôle : à cinq pour cent, l'allure n'est pas encore apprise —
+         * il faut trois minutes de roulage et deux de montée — et le budget d'effort n'a
+         * rien à dire. Les images du README montraient donc « Allure en cours
+         * d'apprentissage », ce qui est exact et sans intérêt pour illustrer un champ.
+         *
+         * À un quart de la sortie, la première côte est passée : les quatre postes du budget
+         * existent, l'heure d'arrivée porte sa marge, un point d'eau est devant, et le
+         * couloir de virages en contient. Tous les champs ont quelque chose à montrer.
+         */
+        const val PART_CAPTURE = 0.25
 
         /**
          * Le fond que l'appareil pose derrière un champ.
