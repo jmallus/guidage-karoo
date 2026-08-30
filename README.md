@@ -156,6 +156,49 @@ que le système lui a réellement accordées — voir [La taille du champ](#la-t
 
 Les changements sont pris en compte immédiatement, sans redémarrer l'extension.
 
+## Installer
+
+C'est le chemin normal, et il ne demande ni ordinateur ni compilation : l'APK est construit
+par le CI et publié en Release.
+
+1. Ouvrir **https://github.com/jmallus/guidage-karoo/releases** dans le navigateur du
+   **téléphone** — pas du Karoo, qui n'en a pas.
+2. Choisir la version voulue (voir ci-dessous), puis appui long sur le lien
+   `guidage-karoo.apk`.
+3. **Partager** le lien vers l'application **Hammerhead Companion**. L'écran d'installation
+   s'affiche sur le Karoo.
+
+Après l'installation, les champs apparaissent dans **Profils → une page → ajouter un champ de
+données → extension Guidage**.
+
+Le fond de carte voyage **dans** l'APK et se déballe au premier démarrage : rien à copier sur
+l'appareil.
+
+### Quelle version prendre
+
+| Release | Ce que c'est |
+| --- | --- |
+| **`v1.0`, `v1.0.1`, …** | Versions figées, publiées par un tag. Rien ne les écrase. C'est ce qu'il faut prendre pour rouler. |
+| **`Guidage — dernière construction`** (`latest`) | La dernière construction, **quelle que soit la branche poussée**. Marquée *pre-release*, réécrite à chaque poussée. Pour essayer un correctif à chaud, pas pour partir en sortie. |
+| **`Fond de carte`** (`carte`) | Le `.gkmap` seul, sans l'application. Utile pour vérifier son poids ou le copier à la main ; inutile sinon, puisque l'APK l'embarque déjà. |
+
+Les notes de chaque Release portent le **numéro de version, le commit et la taille du fond de
+carte embarqué** : de quoi savoir exactement ce qu'on installe.
+
+### Publier une version
+
+Un tag `vX.Y` déclenche la construction **et** crée la Release versionnée :
+
+```bash
+git checkout main && git pull
+git tag -a v1.1 -m "Guidage v1.1 — ce qui change"
+git push origin v1.1
+```
+
+Si la carte doit changer aussi, lancer **d'abord** le workflow `fond-de-carte` et attendre sa
+fin : le job `apk` télécharge la carte au début de son exécution, et démarrer trop tôt
+embarquerait l'ancienne sans rien signaler.
+
 ## Compiler
 
 ### Prérequis
@@ -215,20 +258,25 @@ puis relancez avec `./gradlew --refresh-dependencies :app:assembleRelease`.
 Ne commitez jamais le jeton : GitHub révoque automatiquement ceux qu'il détecte dans un
 dépôt, mais mieux vaut ne pas en arriver là.
 
-### Construire et installer
+### Construire soi-même
 
 ```bash
 ./gradlew :app:assembleRelease
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
+> ⚠️ **Cet APK-là n'embarque pas le fond de carte.** Le téléchargement depuis la Release
+> `carte` n'existe que dans le workflow du CI. L'extension fonctionnera, mais la minicarte
+> restera vide et affichera « Fond de carte absent ». Pour un APK complet, passer par le CI —
+> voir [Installer](#installer).
+
 L'APK release est signé avec la clé `app/guidage.keystore`, versionnée dans le dépôt, pour
 pouvoir être installé directement sur le Karoo (mode développeur activé, appareil connecté en
 USB ou en ADB Wi-Fi). Cette clé n'a de valeur que tant que le dépôt reste **privé** : elle est
 à remplacer avant toute ouverture au public ou diffusion hors de ce dépôt.
 
-Après l'installation, les champs apparaissent dans **Profils → page → ajouter un champ de
-données → Guidage**.
+Pour reconstruire sans machine, l'onglet **Actions → build → Run workflow** fait le même
+travail, fond de carte compris.
 
 ### Tests
 
