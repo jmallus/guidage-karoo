@@ -369,12 +369,25 @@ object ProfileRenderer {
     /** Longueur du trait d'une graduation sous l'axe. */
     private const val TICK_LENGTH = 4f
 
-    /** Corps des graduations, en part de celui des libellés du haut. */
-    private const val TICK_TEXT_RATIO = 0.72f
-    private const val MIN_TICK_TEXT = 7f
+    /**
+     * Corps des graduations, en part de celui des libellés du haut.
+     *
+     * Elles ne sont pas une mention légale : c'est **par elles** que la compression de
+     * l'échelle se lit. Un œil qui suppose une échelle régulière lit un faux relief, et
+     * l'espacement inégal des chiffres est la seule chose qui le détrompe. À 72 % elles
+     * étaient au bord du lisible en roulant.
+     */
+    private const val TICK_TEXT_RATIO = 0.88f
+    private const val MIN_TICK_TEXT = 9f
 
-    /** Le champ ne porte les chiffres de l'axe qu'à partir de cette hauteur, en corps. */
-    private const val LABELLED_AXIS_HEIGHTS = 7f
+    /**
+     * Le champ ne porte les chiffres de l'axe qu'à partir de cette hauteur, en corps.
+     *
+     * Desserré en même temps que les chiffres ont grossi : le seuil se compte en multiples du
+     * corps, et le laisser à sept aurait fait disparaître les chiffres du bandeau bas du
+     * tableau de bord, qui est court. Les traits, eux, subsistent toujours.
+     */
+    private const val LABELLED_AXIS_HEIGHTS = 6.2f
 
     /** Largeur réservée à une étiquette de graduation, en corps. */
     private const val TICK_LABEL_WIDTHS = 3.4f
