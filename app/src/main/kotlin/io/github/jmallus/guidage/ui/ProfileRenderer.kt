@@ -375,19 +375,26 @@ object ProfileRenderer {
      * Elles ne sont pas une mention légale : c'est **par elles** que la compression de
      * l'échelle se lit. Un œil qui suppose une échelle régulière lit un faux relief, et
      * l'espacement inégal des chiffres est la seule chose qui le détrompe. À 72 % elles
-     * étaient au bord du lisible en roulant.
+     * étaient au bord du lisible en roulant, et 88 % ne suffisait toujours pas.
+     *
+     * À parité, elles atteignent le corps des libellés du haut — c'est le plafond de ce
+     * réglage-ci, et il est volontaire : au-delà, l'axe pèserait plus que la distance et le
+     * dénivelé qu'il sert à situer. Les grossir encore demanderait de desserrer le plafond
+     * des libellés, pas ce rapport.
      */
-    private const val TICK_TEXT_RATIO = 0.88f
-    private const val MIN_TICK_TEXT = 9f
+    private const val TICK_TEXT_RATIO = 1.0f
+    private const val MIN_TICK_TEXT = 11f
 
     /**
      * Le champ ne porte les chiffres de l'axe qu'à partir de cette hauteur, en corps.
      *
-     * Desserré en même temps que les chiffres ont grossi : le seuil se compte en multiples du
-     * corps, et le laisser à sept aurait fait disparaître les chiffres du bandeau bas du
-     * tableau de bord, qui est court. Les traits, eux, subsistent toujours.
+     * Desserré chaque fois que les chiffres grossissent : le seuil se compte en multiples du
+     * corps, si bien qu'agrandir la police relève le seuil et peut faire disparaître les
+     * chiffres là où on voulait mieux les voir. Le bandeau bas du tableau de bord (102 px)
+     * est le cas court qui décide : à 6,2 il tombait à 0,8 px du seuil, une marge qu'un
+     * simple changement de gabarit efface sans prévenir. Les traits, eux, subsistent toujours.
      */
-    private const val LABELLED_AXIS_HEIGHTS = 6.2f
+    private const val LABELLED_AXIS_HEIGHTS = 5.6f
 
     /** Largeur réservée à une étiquette de graduation, en corps. */
     private const val TICK_LABEL_WIDTHS = 3.4f
