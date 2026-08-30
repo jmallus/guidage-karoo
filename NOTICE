@@ -15,5 +15,19 @@ Copyright Jan-Pieter Weytjens, distribué sous licence Apache 2.0 :
 L'algorithme APCA lui-même provient de SAPC-APCA (https://github.com/Myndex/SAPC-APCA),
 Copyright Andrew Somers, licence W3C.
 
+Le fond de carte hors ligne embarqué dans l'APK est dérivé de données
+OpenStreetMap :
+
+  © les contributeurs OpenStreetMap
+  https://www.openstreetmap.org/copyright
+
+Ces données sont distribuées sous l'Open Database License (ODbL) 1.0 :
+https://opendatacommons.org/licenses/odbl/1-0/
+
+Les extraits régionaux proviennent de Geofabrik (https://download.geofabrik.de).
+Ils sont filtrés et convertis par le module tools/ ; le fichier .gkmap qui en
+résulte est une base de données dérivée au sens de l'ODbL, et sa redistribution
+reste soumise à cette licence.
+
 Une copie de la licence Apache 2.0 est disponible à l'adresse
 https://www.apache.org/licenses/LICENSE-2.0

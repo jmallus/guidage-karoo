@@ -71,8 +71,30 @@ fun GuidageScreen(viewModel: MainViewModel) {
             StatusCard(connected, snapshot)
             SettingsCard(settings, viewModel::update)
             FieldReportCard(fields)
+            BasemapNotice()
         }
     }
+}
+
+/**
+ * L'attribution du fond de carte.
+ *
+ * Elle n'est pas décorative : les données viennent d'OpenStreetMap, sous ODbL, et cette
+ * licence exige que l'attribution soit portée là où l'œuvre dérivée est utilisée — ici, dans
+ * l'application qui redistribue la carte à chaque APK. Le `NOTICE` du dépôt ne suffit pas :
+ * personne n'ouvre le dépôt en roulant.
+ *
+ * Elle est en pied d'écran plutôt que sur la minicarte : celle-ci fait deux centimètres de
+ * côté et chaque pixel y sert déjà à quelque chose. Le pied de l'écran de réglages est le
+ * seul endroit de l'application où une ligne de texte est à la fois lisible et sans coût.
+ */
+@Composable
+private fun BasemapNotice() {
+    Text(
+        text = stringResource(R.string.about_basemap),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable

@@ -431,6 +431,23 @@ simulateur de bureau appellent **les mêmes**, et il n'existe donc nulle part un
 | Zones et unités du coureur | événement `UserProfile` |
 | État de la sortie | événement `RideState` |
 
+## Licence et attribution
+
+Le fond de carte embarqué dans l'APK est dérivé de données **OpenStreetMap** :
+
+> © les contributeurs OpenStreetMap — https://www.openstreetmap.org/copyright
+
+Ces données sont sous **ODbL 1.0**. Le fichier `.gkmap` produit par `tools/` en est une base
+de données dérivée au sens de cette licence : sa redistribution, y compris à l'intérieur d'un
+APK, y reste soumise. Les extraits régionaux viennent de [Geofabrik](https://download.geofabrik.de).
+
+L'attribution est portée en trois endroits, parce qu'aucun ne suffit seul : le fichier
+[`NOTICE`](NOTICE), les notes de chaque Release, et le pied de l'écran de réglages de
+l'application — le seul que le coureur voie.
+
+Le reste des emprunts — couleurs de zones, contraste APCA, icônes — est détaillé dans le
+[`NOTICE`](NOTICE).
+
 ## Limites connues
 
 - **Essayée sur un Karoo 3 seulement.** Rien n'y interdit le Karoo 2 — `minSdk 26`, et
