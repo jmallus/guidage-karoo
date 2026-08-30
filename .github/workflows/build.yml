@@ -96,11 +96,22 @@ jobs:
         if: steps.creds.outputs.available == 'true' && github.event_name != 'pull_request'
         run: |
           cp app/build/outputs/apk/release/app-release.apk guidage-karoo.apk
+          # Le même nom de version que celui compilé dans l'APK (voir app/build.gradle.kts).
+          # Le recalculer ici est une duplication assumée : le lire depuis l'APK demanderait
+          # aapt, et quelques lignes de shell coûtent moins qu'un outil de plus dans le job.
+          # Le garde-fou du côté Gradle — un chiffre exigé après le « v », pour que les tags
+          # « latest » et « carte » ne nomment pas une version — est inutile ici : ce
+          # workflow ne se déclenche que sur les tags « v* ».
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="1.0.${GITHUB_RUN_NUMBER}"
+          fi
           # Le numéro de version et le commit sont portés dans les notes : la ligne
           # « Commit » affichée en tête de la page GitHub, elle, est celle de la création de
           # la Release et ne bouge plus jamais, ce qui laisse croire que l'APK date de là.
           cat > notes.md <<NOTES
-          Version **1.0.${GITHUB_RUN_NUMBER}**, construite le $(date -u '+%d/%m/%Y à %H:%M UTC')
+          Version **${version}**, construite le $(date -u '+%d/%m/%Y à %H:%M UTC')
           à partir de \`${GITHUB_SHA:0:7}\`. Fond de carte embarqué : \`$(
             [ -f app/src/main/assets/carte.gkmap ] &&
               du -h app/src/main/assets/carte.gkmap | cut -f1 || echo aucun

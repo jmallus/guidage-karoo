@@ -8,6 +8,28 @@ plugins {
 // Android refuse d'installer une mise à jour par-dessus une version de même numéro.
 val buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "0").toIntOrNull() ?: 0
 
+/**
+ * Le nom de version suit le tag quand la construction en vient d'un, le numéro de
+ * construction sinon.
+ *
+ * Il valait auparavant toujours « 1.0.<numéro de construction> ». La Release « v1.0.1 »
+ * livrait donc un APK qui s'annonce « 1.0.293 » dans les réglages du Karoo — le seul
+ * numéro que le coureur puisse lire, et il ne désignait aucune Release.
+ *
+ * Le `versionCode`, lui, continue de suivre le numéro de construction : c'est celui-là
+ * qu'Android compare pour accepter une mise à jour, et il doit croître y compris entre deux
+ * constructions non taguées, que le nom de version ne distingue pas.
+ *
+ * Le motif exige un chiffre après le « v » : `latest` et `carte` sont eux aussi des tags de
+ * ce dépôt — posés par la Release de dernière construction et par le fond de carte — et un
+ * APK nommé d'après eux ne voudrait rien dire.
+ */
+val nomDeVersion = System.getenv("GITHUB_REF_NAME")
+    ?.takeIf { System.getenv("GITHUB_REF_TYPE") == "tag" }
+    ?.let { Regex("""v(\d[\w.\-+]*)""").matchEntire(it) }
+    ?.groupValues?.get(1)
+    ?: "1.0.$buildNumber"
+
 android {
     namespace = "io.github.jmallus.guidage"
     compileSdk = 35
@@ -17,7 +39,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1 + buildNumber
-        versionName = "1.0.$buildNumber"
+        versionName = nomDeVersion
     }
 
     signingConfigs {
