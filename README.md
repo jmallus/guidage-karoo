@@ -9,17 +9,15 @@ ravitaillements — et des annonces à l'écran.
 Tout est calculé **sur l'appareil**, à partir des données que Karoo OS fournit déjà :
 aucune connexion réseau, aucun compte, rien à synchroniser.
 
-<img src="docs/planches/tableau-de-bord.png" alt="Le champ plein écran : effort en haut, transmission et fréquence cardiaque à gauche, minicarte à droite, distance et arrivée en bas" width="340">
+<img src="docs/captures/carte-300m.png" alt="Le tableau de bord plein écran : effort en haut, transmission et fréquence cardiaque à gauche, minicarte à droite, distance et arrivée en bas, profil à venir en bandeau" width="300">
 
-Le champ plein écran ci-dessus est reconstruit à la taille qu'il occupe sur l'écran du
-Karoo 3. Les [planches](docs/planches.md) en montrent le détail — chaque zone, les trois
-portées de la carte, la légende du fond.
+**Toutes les images de ce README sortent du rendu de l'appareil.** Elles ne sont pas des
+maquettes : le [simulateur](#le-simulateur) appelle les mêmes classes que le champ Karoo,
+dans le même `Canvas` d'Android, et le CI les régénère à la demande dans `docs/captures/`.
+Elles ne peuvent donc pas dériver du code — ce qui n'était pas le cas des planches qu'elles
+remplacent, dessinées une seconde fois en JavaScript.
 
-> ⚠️ **Les planches ont pris du retard sur le code.** Elles décrivent le tableau de bord et
-> ne connaissent pas les six champs ajoutés depuis. Leur dessin est porté en JavaScript,
-> c'est-à-dire écrit une seconde fois, et c'est précisément ce qui leur permet de dériver.
-> Pour juger d'une retouche d'affichage, préférez [le simulateur](#le-simulateur) : lui
-> appelle le rendu de l'appareil, et ne peut donc pas mentir.
+Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accorde réellement.
 
 ## Ce que ça ajoute sur le vélo
 
@@ -42,6 +40,45 @@ Tous s'adaptent à la **taille** que le profil de page leur alloue ; « Prochain
 outre l'**alignement** configuré. Les neuf champs graphiques affichent un aperçu réaliste dans
 l'écran d'édition des pages — « Prochain point d'intérêt » n'en a pas besoin, c'est le Karoo
 qui le dessine.
+
+### À quoi ils ressemblent
+
+Les quatre pleines pages, au même instant de la sortie simulée :
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/captures/champ-autonomie.png" width="180" alt="Autonomie"><br><b>Autonomie</b></td>
+    <td align="center"><img src="docs/captures/champ-reserve.png" width="180" alt="Réserve"><br><b>Réserve</b></td>
+    <td align="center"><img src="docs/captures/champ-virages.png" width="180" alt="Virages"><br><b>Virages</b></td>
+    <td align="center"><img src="docs/captures/champ-revetement.png" width="180" alt="Revêtement"><br><b>Revêtement</b></td>
+  </tr>
+</table>
+
+Les champs de bande, qui se posent sur un rang d'une page ordinaire :
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/captures/champ-profil.png" width="300" alt="Profil à venir"><br><b>Profil à venir</b></td>
+    <td align="center"><img src="docs/captures/champ-contexte.png" width="300" alt="Suivant la sortie"><br><b>Suivant la sortie</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/captures/champ-cote.png" width="300" alt="Prochaine côte"><br><b>Prochaine côte</b></td>
+    <td align="center"><img src="docs/captures/champ-effort.png" width="300" alt="Budget d'effort"><br><b>Budget d'effort</b></td>
+  </tr>
+</table>
+
+Et le tableau de bord à ses trois portées de carte, puis avec le profil à la place de la
+carte, puis hors itinéraire — le tracé passe au rouge :
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/captures/carte-300m.png" width="150" alt="Portée 300 m"><br>300 m</td>
+    <td align="center"><img src="docs/captures/carte-500m.png" width="150" alt="Portée 500 m"><br>500 m</td>
+    <td align="center"><img src="docs/captures/carte-1000m.png" width="150" alt="Portée 1 km"><br>1 km</td>
+    <td align="center"><img src="docs/captures/profil.png" width="150" alt="Profil au lieu de la carte"><br>Profil</td>
+    <td align="center"><img src="docs/captures/hors-itineraire.png" width="150" alt="Hors itinéraire"><br>Hors itinéraire</td>
+  </tr>
+</table>
 
 **Sept d'entre eux publient aussi une valeur numérique**, réutilisable dans n'importe quel
 champ ou enregistrée dans le fichier de la sortie : la distance au pied ou au sommet
@@ -412,8 +449,9 @@ hystérésis de trois secondes en durerait moins d'une demie.
 **Ce qu'il montre est le code de l'appareil.** Ce n'est pas une seconde écriture de
 l'affichage : le simulateur assemble l'état d'une sortie, puis appelle les constructeurs de
 modèle et les rendus de l'extension — les mêmes classes exactement, dessinant dans le même
-`Canvas` d'Android. C'est ce qui le distingue des [planches](docs/planches.md), portées en
-JavaScript et qui, elles, peuvent dériver.
+`Canvas` d'Android. C'est ce qui le sépare d'une maquette, et c'est pourquoi ses images
+servent d'illustration à ce README plutôt qu'un dessin fait à part : un dessin fait à part
+dérive, et l'ancien l'a fait.
 
 Le `Canvas` d'Android n'existe pas sur une machine de bureau ; c'est Robolectric qui le
 fournit, avec le vrai moteur Skia — mais seulement sous un lanceur de tests. D'où la forme
@@ -427,6 +465,13 @@ côte, eux, sont ceux de l'appareil.
 Les mêmes tests tournent **sans fenêtre** à chaque poussée : ils vérifient que chaque portée
 dessine bien la trace, ce qu'une compilation ne dirait pas — un écran noir compile très bien.
 Les images de contrôle sont écrites dans `app/build/simulateur/`.
+
+### Régénérer les captures
+
+Après un changement d'affichage, les images de ce README se refont en un clic : onglet
+**Actions → captures → Run workflow**. Le job exécute les tests du simulateur, range les PNG
+dans `docs/captures/` et les commite sur `main`. Le dossier est vidé avant d'être rempli, pour
+qu'une capture ne survive pas au champ qu'elle montrait.
 
 ## Architecture
 
