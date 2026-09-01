@@ -67,9 +67,11 @@ continuer de travailler sur l'image telle que le champ la produit.
   du projet, qui est versionné. Un jeton exposé se **révoque**, il ne se supprime pas.
 - **Les données cartographiques** — `.pbf`, `.osm`, `.gkmap`. Elles se comptent en centaines
   de méga-octets et se fabriquent par le workflow `fond-de-carte`.
-
-`app/guidage.keystore` **est** versionnée, avec son mot de passe. C'est acceptable tant que
-le dépôt reste **privé** ; à remplacer avant toute ouverture au public.
+- **La clé de signature.** Elle a été versionnée, avec son mot de passe, tant que le dépôt
+  était privé. Il ne l'est plus : la clé des Releases vit dans le secret
+  `GUIDAGE_KEYSTORE_B64`, et `*.keystore` est ignoré. Ne jamais l'y réintroduire — le Karoo se
+  met à jour tout seul depuis les Releases, si bien qu'une clé publiée donnerait à n'importe
+  qui le moyen de pousser un APK que l'appareil accepterait comme le nôtre.
 
 ## Attribution
 

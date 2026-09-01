@@ -11,8 +11,10 @@ build/
 .externalNativeBuild/
 .cxx/
 *.apk
+# Aucune clé de signature dans le dépôt : il est public. Celle des Releases vit
+# dans les secrets du dépôt (GUIDAGE_KEYSTORE_B64), jamais ici.
 *.keystore
-!app/guidage.keystore
+*.jks
 
 # Données cartographiques : elles se comptent en centaines de méga-octets et n'ont
 # rien à faire dans l'historique. Elles se téléchargent chez Geofabrik et se copient

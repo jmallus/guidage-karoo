@@ -211,6 +211,34 @@ données → extension Guidage**.
 Le fond de carte voyage **dans** l'APK et se déballe au premier démarrage : rien à copier sur
 l'appareil.
 
+### Se mettre à jour, ensuite
+
+Ce chemin-là ne sert **qu'une fois**. Les versions suivantes s'installent depuis le Karoo :
+appui long sur l'icône de l'extension dans le menu, puis **Mise à jour**. La fiche affiche au
+passage la version, les changements et les captures des champs.
+
+Cela tient à une ligne du manifeste Android :
+
+```xml
+<meta-data
+    android:name="io.hammerhead.karooext.MANIFEST_URL"
+    android:value="https://github.com/jmallus/guidage-karoo/releases/latest/download/manifest.json" />
+```
+
+Karoo OS lit ce `manifest.json` — publié par le CI à côté de l'APK, au format
+[`KarooAppManifest`](https://github.com/hammerheadnav/karoo-ext) — compare son
+`latestVersionCode` à la version installée, et propose la mise à jour le cas échéant.
+
+Deux choses méritent d'être dites :
+
+- **C'est Karoo OS qui va chercher le fichier, pas l'extension.** Celle-ci ne déclare toujours
+  *aucune* permission : ni `INTERNET`, ni `REQUEST_INSTALL_PACKAGES`. La garantie de
+  fonctionnement hors ligne est intacte, et c'est la raison d'avoir écarté un vérificateur
+  embarqué.
+- **`releases/latest` désigne la dernière Release non préliminaire**, donc le dernier tag
+  `vX.Y.Z`. La Release `latest`, qui suit chaque poussée sur `main`, est marquée préliminaire
+  et reste invisible pour l'appareil. Le Karoo ne voit que ce qui est publié à dessein.
+
 ### Quelle version prendre
 
 | Release | Ce que c'est |
@@ -307,10 +335,17 @@ adb install -r app/build/outputs/apk/release/app-release.apk
 > restera vide et affichera « Fond de carte absent ». Pour un APK complet, passer par le CI —
 > voir [Installer](#installer).
 
-L'APK release est signé avec la clé `app/guidage.keystore`, versionnée dans le dépôt, pour
-pouvoir être installé directement sur le Karoo (mode développeur activé, appareil connecté en
-USB ou en ADB Wi-Fi). Cette clé n'a de valeur que tant que le dépôt reste **privé** : elle est
-à remplacer avant toute ouverture au public ou diffusion hors de ce dépôt.
+Localement, l'APK release est signé avec la **clé de debug** — suffisant pour installer sur son
+propre Karoo (mode développeur activé, appareil connecté en USB ou en ADB Wi-Fi), mais pas
+pour remplacer une version venue d'une Release, qu'Android refuse d'écraser avec une signature
+différente.
+
+La clé des Releases, elle, ne vit **pas dans le dépôt** : celui-ci est public, et une clé
+lisible par tous laisserait n'importe qui signer un APK qu'Android installerait par-dessus
+celui-ci sans broncher. Elle arrive d'un secret du dépôt, `GUIDAGE_KEYSTORE_B64`, décodée par
+le CI hors de l'arbre de travail. Sans ce secret, la construction reste possible et l'APK est
+signé en debug, mais **aucune Release n'est publiée** : mieux vaut pas d'APK qu'un APK que le
+Karoo installera puis refusera de mettre à jour.
 
 Pour reconstruire sans machine, l'onglet **Actions → build → Run workflow** fait le même
 travail, fond de carte compris.
@@ -563,8 +598,9 @@ Le reste des emprunts — couleurs de zones, contraste APCA, icônes — est dé
 - En navigation **vers un point** (et non sur un itinéraire enregistré), Karoo ne fournit pas la
   longueur du trajet : elle est déduite du profil altimétrique. Sans profil, la position le long
   du trajet ne peut pas être calculée et les champs restent vides.
-- La clé de signature est versionnée dans le dépôt : acceptable tant qu'il est privé, à
-  remplacer avant toute diffusion publique.
+- La mise à jour depuis le Karoo suppose une Release publiée (un tag `vX.Y.Z`) : les
+  constructions intermédiaires, publiées sous la Release préliminaire `latest`, restent
+  invisibles pour l'appareil. C'est voulu.
 - Le « Budget d'effort » et la moitié basse d'« Autonomie » demandent un **capteur de
   puissance** et quelques minutes de roulage. Sans eux, rien n'est annoncé — ce qui vaut
   mieux qu'un chiffre inventé. « Revêtement » demande de son côté le fond de carte embarqué.
