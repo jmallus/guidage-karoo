@@ -2,6 +2,7 @@ package io.github.jmallus.guidage.ui
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -11,6 +12,7 @@ import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
+import io.github.jmallus.guidage.core.RoutePoi
 import io.github.jmallus.guidage.core.Units
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -22,6 +24,8 @@ data class ProfileFieldModel(
     val window: ProfileWindow,
     /** Côtes de l'itinéraire, pour surligner celles visibles dans la fenêtre. */
     val climbs: List<RouteClimb> = emptyList(),
+    /** Points d'intérêt de l'itinéraire, jalonnés sur la bande quand ils sont devant. */
+    val pois: List<RoutePoi> = emptyList(),
     /** Texte du dénivelé positif restant sur la fenêtre, ex. « +120 m ». */
     val ascentLabel: String? = null,
     /** Texte de la distance restante, ex. « 41,2 km ». */
@@ -92,6 +96,7 @@ object ProfileRenderer {
 
         drawProfile(canvas, model, scale, left, top, right, bottom, palette)
         drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
+        drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         drawPositionMarker(canvas, left, top, bottom, palette)
         drawLabels(canvas, model, left, right, top, labelSize, palette)
@@ -266,6 +271,59 @@ object ProfileRenderer {
             }
     }
 
+    /**
+     * Les points d'intérêt à venir, jalonnés sur la bande.
+     *
+     * Une pastille seule flotterait : c'est le trait qui la rattache à une distance précise,
+     * en descendant jusqu'à la base de la bande. Il est **pointillé** là où le repère de
+     * position est plein — deux verticales qui ne disent pas la même chose ne peuvent pas se
+     * ressembler, et la forme les sépare mieux que la teinte à trois pixels de large.
+     *
+     * Le magenta est celui des pastilles de la carte, pris au même endroit : c'est ce qui
+     * permet de reconnaître la même chose d'un champ à l'autre.
+     *
+     * L'écart minimal n'est pas cosmétique. L'échelle comprime le lointain au point que
+     * plusieurs points d'intérêt de la fin y tombent dans la même colonne : sans lui, ils se
+     * superposeraient en une tache dont on ne saurait ni combien ils sont, ni où.
+     */
+    private fun drawPoiMarkers(
+        canvas: Canvas,
+        model: ProfileFieldModel,
+        scale: FisheyeScale,
+        left: Float,
+        top: Float,
+        right: Float,
+        bottom: Float,
+    ) {
+        if (model.pois.isEmpty()) return
+        val window = model.window
+        val rayon = ((bottom - top) * POI_DOT_FRACTION).coerceIn(2.5f, 6f)
+        val trait = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = FieldPalette.POI
+            style = Paint.Style.STROKE
+            strokeWidth = max(2f, rayon * 0.5f)
+            pathEffect = DashPathEffect(floatArrayOf(rayon * 1.2f, rayon * 1.1f), 0f)
+        }
+        val pastille = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = FieldPalette.POI
+            style = Paint.Style.FILL
+        }
+        val cy = top + rayon + 1f
+        var precedent = Float.NEGATIVE_INFINITY
+
+        model.pois
+            .filter { it.distanceAlongRoute >= window.start && it.distanceAlongRoute <= window.end }
+            .sortedBy { it.distanceAlongRoute }
+            .forEach { poi ->
+                val fraction = scale.fractionAt(poi.distanceAlongRoute - window.start)
+                val x = left + (fraction * (right - left)).toFloat()
+                if (x - precedent < rayon * 2.4f) return@forEach
+                precedent = x
+                canvas.drawLine(x, cy + rayon, x, bottom, trait)
+                canvas.drawCircle(x, cy, rayon, pastille)
+            }
+    }
+
     private fun drawPositionMarker(canvas: Canvas, left: Float, top: Float, bottom: Float, palette: Palette) {
         val marker = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.position
@@ -365,6 +423,9 @@ object ProfileRenderer {
         }
         return low
     }
+
+    /** Rayon de la pastille d'un point d'intérêt, en part de la hauteur de la bande. */
+    private const val POI_DOT_FRACTION = 0.055f
 
     /** Longueur du trait d'une graduation sous l'axe. */
     private const val TICK_LENGTH = 4f

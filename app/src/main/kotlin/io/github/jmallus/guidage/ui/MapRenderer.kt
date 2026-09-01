@@ -782,14 +782,13 @@ object MapRenderer {
     }
 
     /**
-     * Point d'intérêt : le magenta, seule teinte que rien d'autre ne revendique.
+     * Le magenta des points d'intérêt, défini une seule fois dans [FieldPalette].
      *
-     * Il a porté du bleu, puis le violet du Karoo, puis du blanc. Chacune de ces teintes
-     * entrait en conflit avec un sens déjà pris — le bleu est celui du tracé, le violet celui
-     * des tours dans le système de Hammerhead, le blanc celui de la position. Le magenta n'est
-     * revendiqué par rien, et il se voit sur le crème comme sur les verts de la campagne.
+     * Le profil le reprend pour ses jalons : la teinte doit rester commune aux deux champs,
+     * sinon rien ne dirait que la pastille de la carte et le jalon du profil désignent la
+     * même chose.
      */
-    private const val POI_COLOR = 0xFFE31C96.toInt()
+    private const val POI_COLOR = FieldPalette.POI
 
     /** Le blanc du repère, et ses proportions en part du rayon de la pastille. */
     private const val PIN_COLOR = 0xFFFFFFFF.toInt()
