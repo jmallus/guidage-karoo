@@ -68,6 +68,22 @@ object KarooColors {
 
 object FieldPalette {
 
+    /**
+     * Point d'intérêt : le magenta, seule teinte que rien d'autre ne revendique.
+     *
+     * Il a porté du bleu, puis le violet du Karoo, puis du blanc. Chacune de ces teintes
+     * entrait en conflit avec un sens déjà pris — le bleu est celui du tracé, le violet celui
+     * des tours dans le système de Hammerhead, le blanc celui de la position. Le magenta n'est
+     * revendiqué par rien, et il se voit sur le crème de la carte comme sur les verts de la
+     * campagne.
+     *
+     * Il vit ici, et non dans le rendu de la carte où il a été choisi, parce que le profil le
+     * reprend : un point d'intérêt doit avoir la même couleur d'un champ à l'autre, sans quoi
+     * rien ne dit au coureur que la pastille de la carte et le jalon du profil désignent la
+     * même chose. Deux constantes finiraient par diverger.
+     */
+    const val POI = 0xFFE31C96.toInt()
+
     private val LIGHT = Palette(
         textPrimary = 0xFF11181C.toInt(),
         // Le Powder Blue est fait pour un fond noir ; sur du blanc il s'évanouit. Le thème

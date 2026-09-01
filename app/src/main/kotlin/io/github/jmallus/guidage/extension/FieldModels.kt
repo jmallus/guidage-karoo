@@ -62,6 +62,7 @@ object FieldModels {
         return ProfileFieldModel(
             window = window,
             climbs = route.climbs,
+            pois = route.pois,
             ascentLabel = ascent?.let { "+${Format.elevation(it, units)}" },
             rangeLabel = window.distanceSpan.takeIf { it > 0.0 }?.let { Format.longDistance(it, units) },
             emptyMessage = context.getString(R.string.field_no_route),

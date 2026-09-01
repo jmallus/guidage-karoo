@@ -6,6 +6,7 @@ import io.github.jmallus.guidage.core.FisheyeScale
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.Route
+import io.github.jmallus.guidage.core.RoutePoi
 import kotlin.math.abs
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -176,6 +177,83 @@ class ProfileRendererTest {
         val image = image(largeur = 200, hauteur = 48)
         val peintes = crete(image).count { it < image.height }
         assertTrue("seulement $peintes colonnes peintes", peintes > image.width / 2)
+    }
+
+    /**
+     * Un point d'intérêt pose un jalon, et à sa distance.
+     *
+     * Le contrôle porte sur la teinte exacte : la pastille est pleine et opaque, donc son
+     * cœur porte le magenta sans mélange. Vérifier seulement qu'« il y a des pixels » ne
+     * dirait pas si le jalon est au bon endroit — et l'échelle comprimée est précisément ce
+     * qui rend ce placement facile à manquer.
+     */
+    @Test
+    fun `un point d'interet pose un jalon a sa distance`() {
+        val image = ProfileRenderer.render(
+            320,
+            140,
+            ProfileFieldModel(
+                window = Guidance.profileToFinish(route, 0.0),
+                pois = listOf(RoutePoi("eau", "Fontaine", "water", 12_000.0)),
+            ),
+            palette,
+        )
+        val colonnes = (0 until image.width).filter { x ->
+            (0 until image.height).any { y -> image.getPixel(x, y) == FieldPalette.POI }
+        }
+        assertTrue("aucun jalon dessiné", colonnes.isNotEmpty())
+
+        val attendu = FisheyeScale(40_000.0).fractionAt(12_000.0) * image.width
+        assertTrue(
+            "jalon en $colonnes, attendu vers $attendu",
+            colonnes.any { abs(it - attendu) < image.width * 0.10 },
+        )
+    }
+
+    /** Et sans point d'intérêt, aucun pixel de cette teinte : le jalon ne s'invente pas. */
+    @Test
+    fun `sans point d'interet aucun jalon`() {
+        val image = image()
+        val magenta = (0 until image.width).sumOf { x ->
+            (0 until image.height).count { y -> image.getPixel(x, y) == FieldPalette.POI }
+        }
+        assertTrue("$magenta pixels de jalon alors qu'aucun point n'est fourni", magenta == 0)
+    }
+
+    /**
+     * Deux points d'intérêt voisins dans le lointain ne donnent qu'un jalon.
+     *
+     * Là où l'échelle comprime, plusieurs points tombent dans la même colonne : les dessiner
+     * tous produirait une tache dont on ne saurait ni combien ils sont, ni où.
+     */
+    @Test
+    fun `deux points confondus au loin ne donnent qu'un jalon`() {
+        fun jalons(pois: List<RoutePoi>): Int {
+            val image = ProfileRenderer.render(
+                320,
+                140,
+                ProfileFieldModel(window = Guidance.profileToFinish(route, 0.0), pois = pois),
+                palette,
+            )
+            // Un jalon est une plage continue de colonnes portant la teinte ; on compte les
+            // plages, et non les colonnes, pour ne pas confondre largeur et nombre.
+            val portantes = (0 until image.width).map { x ->
+                (0 until image.height).any { y -> image.getPixel(x, y) == FieldPalette.POI }
+            }
+            return portantes.filterIndexed { i, ici -> ici && (i == 0 || !portantes[i - 1]) }.size
+        }
+
+        val loin = listOf(
+            RoutePoi("a", null, "water", 39_000.0),
+            RoutePoi("b", null, "water", 39_050.0),
+        )
+        assertTrue("les deux points lointains devraient se fondre", jalons(loin) == 1)
+
+        val separes = listOf(
+            RoutePoi("a", null, "water", 1_000.0),
+            RoutePoi("b", null, "water", 12_000.0),
+        )
+        assertTrue("deux points bien séparés doivent rester deux", jalons(separes) == 2)
     }
 
     /** Rien à montrer : un message, et pas une bande vide qu'on prendrait pour une panne. */
