@@ -274,10 +274,15 @@ object ProfileRenderer {
     /**
      * Les points d'intérêt à venir, jalonnés sur la bande.
      *
-     * Une pastille seule flotterait : c'est le trait qui la rattache à une distance précise,
-     * en descendant jusqu'à la base de la bande. Il est **pointillé** là où le repère de
-     * position est plein — deux verticales qui ne disent pas la même chose ne peuvent pas se
-     * ressembler, et la forme les sépare mieux que la teinte à trois pixels de large.
+     * La marque est un **triangle pointe en bas**, et non un disque, pour la raison même que
+     * le rendu de la carte donne à son repère : une pointe désigne un endroit précis, là où un
+     * disque ne fait que le couvrir. À cette échelle, un point d'intérêt occupe une distance
+     * nulle et l'œil doit pouvoir lire laquelle sans arbitrer entre deux bords.
+     *
+     * La marque seule flotterait : c'est le trait qui la rattache à la bande, en descendant de
+     * sa pointe jusqu'à la base. Il est **pointillé** là où le repère de position est plein —
+     * deux verticales qui ne disent pas la même chose ne peuvent pas se ressembler, et la
+     * forme les sépare mieux que la teinte à trois pixels de large.
      *
      * Le magenta est celui des pastilles de la carte, pris au même endroit : c'est ce qui
      * permet de reconnaître la même chose d'un champ à l'autre.
@@ -286,11 +291,11 @@ object ProfileRenderer {
      * plusieurs points d'intérêt de la fin y tombent dans la même colonne : sans lui, ils se
      * superposeraient en une tache dont on ne saurait ni combien ils sont, ni où.
      *
-     * Il se mesure sur l'**épaisseur du trait**, jamais sur le rayon de la pastille. Le rayon
-     * dit la taille du dessin, pas la résolution de la lecture : indexé sur lui, grossir la
-     * pastille faisait disparaître des points bien distincts — deux ravitaillements séparés de
-     * 1,4 km s'effaçaient l'un l'autre dans le champ plein. Deux pastilles qui se touchent
-     * restent deux ; deux pastilles au même endroit n'en font qu'une.
+     * Il se mesure sur l'**épaisseur du trait**, jamais sur la demi-largeur de la marque.
+     * Celle-ci dit la taille du dessin, pas la résolution de la lecture : indexé sur elle,
+     * grossir la marque faisait disparaître des points bien distincts — deux ravitaillements
+     * séparés de 1,4 km s'effaçaient l'un l'autre dans le champ plein. Deux marques qui se
+     * touchent restent deux ; deux marques au même endroit n'en font qu'une.
      */
     private fun drawPoiMarkers(
         canvas: Canvas,
@@ -303,23 +308,24 @@ object ProfileRenderer {
     ) {
         if (model.pois.isEmpty()) return
         val window = model.window
-        val rayon = ((bottom - top) * POI_DOT_FRACTION).coerceIn(6f, 11f)
-        // Le trait reste mince quand la pastille grossit : c'est une tige, pas une barre, et
-        // c'est la tête qu'on doit voir. Les tirets suivent l'épaisseur plutôt que le rayon,
-        // sans quoi une grosse pastille les espaçait au point de n'en laisser que deux.
-        val epaisseur = max(2f, rayon * 0.34f)
+        val demiLargeur = ((bottom - top) * POI_MARK_FRACTION).coerceIn(6f, 11f)
+        // Le trait reste mince quand la marque grossit : c'est une tige, pas une barre, et
+        // c'est la tête qu'on doit voir. Les tirets suivent l'épaisseur plutôt que la
+        // demi-largeur, sans quoi une grosse marque les espaçait au point de n'en laisser deux.
+        val epaisseur = max(2f, demiLargeur * 0.34f)
         val trait = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = FieldPalette.POI
             style = Paint.Style.STROKE
             strokeWidth = epaisseur
             pathEffect = DashPathEffect(floatArrayOf(epaisseur * 1.8f, epaisseur * 1.8f), 0f)
         }
-        val pastille = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val marque = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = FieldPalette.POI
             style = Paint.Style.FILL
         }
-        val cy = top + rayon + 1f
+        val cy = top + demiLargeur + 1f
         val ecartMini = max(4f, epaisseur * 1.6f)
+        val triangle = Path()
         var precedent = Float.NEGATIVE_INFINITY
 
         model.pois
@@ -330,8 +336,14 @@ object ProfileRenderer {
                 val x = left + (fraction * (right - left)).toFloat()
                 if (x - precedent < ecartMini) return@forEach
                 precedent = x
-                canvas.drawLine(x, cy + rayon, x, bottom, trait)
-                canvas.drawCircle(x, cy, rayon, pastille)
+                val pointe = cy + demiLargeur * POI_TIP_RATIO
+                canvas.drawLine(x, pointe, x, bottom, trait)
+                triangle.rewind()
+                triangle.moveTo(x - demiLargeur, cy - demiLargeur)
+                triangle.lineTo(x + demiLargeur, cy - demiLargeur)
+                triangle.lineTo(x, pointe)
+                triangle.close()
+                canvas.drawPath(triangle, marque)
             }
     }
 
@@ -436,13 +448,22 @@ object ProfileRenderer {
     }
 
     /**
-     * Rayon de la pastille d'un point d'intérêt, en part de la hauteur de la bande.
+     * Demi-largeur de la marque d'un point d'intérêt, en part de la hauteur de la bande.
      *
-     * Relevé sur l'appareil : à 5,5 %, la pastille faisait 2,8 px de rayon dans le bandeau du
-     * tableau de bord, soit **0,37 mm** sur l'écran du Karoo 3 — invisible en roulant. Elle
-     * vaut désormais 7,2 px là, et 11 px dans le champ plein.
+     * Relevé sur l'appareil : à 5,5 %, la marque faisait 2,8 px de demi-largeur dans le
+     * bandeau du tableau de bord, soit **0,37 mm** sur l'écran du Karoo 3 — invisible en
+     * roulant. Elle vaut désormais 7,2 px là, et 11 px dans le champ plein.
      */
-    private const val POI_DOT_FRACTION = 0.14f
+    private const val POI_MARK_FRACTION = 0.14f
+
+    /**
+     * Longueur de la pointe du triangle, en part de sa demi-largeur.
+     *
+     * Au-delà de 1, le triangle descend plus bas que ne l'aurait fait un disque de même
+     * largeur : c'est voulu. Un triangle inscrit dans le cercle ne couvre que quatre dixièmes
+     * de sa surface et paraîtrait avoir rapetissé, alors qu'on vient de le grossir.
+     */
+    private const val POI_TIP_RATIO = 1.2f
 
     /** Longueur du trait d'une graduation sous l'axe. */
     private const val TICK_LENGTH = 4f
