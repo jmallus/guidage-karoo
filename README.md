@@ -347,6 +347,19 @@ le CI hors de l'arbre de travail. Sans ce secret, la construction reste possible
 signé en debug, mais **aucune Release n'est publiée** : mieux vaut pas d'APK qu'un APK que le
 Karoo installera puis refusera de mettre à jour.
 
+Trois secrets seulement, dont un obligatoire :
+
+| Secret | |
+| --- | --- |
+| `GUIDAGE_KEYSTORE_B64` | le magasin encodé en base64 — **obligatoire** |
+| `GUIDAGE_KEYSTORE_PASSWORD` | son mot de passe — **obligatoire** |
+| `GUIDAGE_KEY_ALIAS` | facultatif ; `guidage` à défaut |
+| `GUIDAGE_KEY_PASSWORD` | facultatif ; celui du magasin à défaut, ce qui est le cas en PKCS12, où la clé n'a pas de mot de passe distinct |
+
+Les valeurs facultatives se replient sur leur défaut **aussi quand le secret est vide**, et non
+seulement quand il n'existe pas : un secret absent est transmis à la construction comme chaîne
+vide, jamais comme variable non définie.
+
 Pour reconstruire sans machine, l'onglet **Actions → build → Run workflow** fait le même
 travail, fond de carte compris.
 

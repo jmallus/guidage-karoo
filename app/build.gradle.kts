@@ -71,11 +71,22 @@ android {
     signingConfigs {
         val cle = cleDeSignature
         if (cle != null) {
+            // Un secret GitHub qui n'existe pas n'est pas une variable *absente* : elle est
+            // bien là, valant chaîne vide. Un « ?: » ne teste que null et la laisse donc
+            // passer — l'alias valait "", et la signature échouait sur « No key with alias
+            // '' found in keystore » alors que le magasin, lui, s'ouvrait très bien.
+            //
+            // Le mot de passe de clé retombe sur celui du magasin : en PKCS12 la clé n'en a
+            // pas de distinct, si bien que GUIDAGE_KEY_PASSWORD n'a rien à apprendre de plus
+            // et peut rester non défini.
+            val motDePasse = System.getenv("GUIDAGE_KEYSTORE_PASSWORD")
             create("guidage") {
                 storeFile = cle
-                storePassword = System.getenv("GUIDAGE_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("GUIDAGE_KEY_ALIAS") ?: "guidage"
+                storePassword = motDePasse
+                keyAlias = System.getenv("GUIDAGE_KEY_ALIAS")
+                    ?.trim()?.takeIf { it.isNotEmpty() } ?: "guidage"
                 keyPassword = System.getenv("GUIDAGE_KEY_PASSWORD")
+                    ?.takeIf { it.isNotEmpty() } ?: motDePasse
             }
         }
     }
