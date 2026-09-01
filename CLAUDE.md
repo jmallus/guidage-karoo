@@ -101,6 +101,12 @@ captures d'avant le changement. Il faut un commit qui ne porte pas `[skip ci]` *
 contienne les captures à jour — au besoin en poussant d'abord une modification de
 documentation, ce qui décale le sommet sans rien changer au code.
 
+**La simple mention suffit.** GitHub cherche cette marque littéralement, n'importe où dans le
+message, sans se soucier du contexte : un message qui *parle* de la marque la déclenche. Le
+commit qui a consigné le piège ci-dessus a été sauté pour cette raison, et le tag `v1.1.1`
+posé dessus avec lui — ni construction, ni Release, et rien pour le dire. En parler dans un
+message de commit demande donc une périphrase.
+
 ## L'appareil
 
 Karoo 3 uniquement — c'est le seul essayé. Le champ plein écran dispose de **478 × 642 px**,
