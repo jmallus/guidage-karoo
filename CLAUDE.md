@@ -89,6 +89,18 @@ demander au propriétaire, en lui donnant les commandes exactes.
 Si la carte doit changer, lancer `fond-de-carte` **d'abord** et attendre sa fin : le job `apk`
 télécharge la carte au début de son exécution.
 
+**Ne jamais poser un tag sur un commit « Régénère les captures ».** Ces commits portent
+`[skip ci]`, et GitHub applique cette mention aux poussées de tags comme aux autres : la
+construction ne partirait pas, aucune Release ne serait créée, et rien ne le signalerait.
+Or ce sont précisément eux qui se retrouvent en sommet de `main` juste après une fusion
+touchant l'affichage — c'est-à-dire au moment où l'on veut publier.
+
+Tagger le commit de fusion d'avant n'est pas non plus la réponse : les `screenshotUrls` du
+manifeste sont figées sur le commit tagué, si bien que la fiche de l'extension montrerait les
+captures d'avant le changement. Il faut un commit qui ne porte pas `[skip ci]` **et** qui
+contienne les captures à jour — au besoin en poussant d'abord une modification de
+documentation, ce qui décale le sommet sans rien changer au code.
+
 ## L'appareil
 
 Karoo 3 uniquement — c'est le seul essayé. Le champ plein écran dispose de **478 × 642 px**,
