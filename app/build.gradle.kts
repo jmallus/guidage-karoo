@@ -30,6 +30,29 @@ val nomDeVersion = System.getenv("GITHUB_REF_NAME")
     ?.groupValues?.get(1)
     ?: "1.0.$buildNumber"
 
+/**
+ * La clé de signature des Releases, ou `null` si elle n'est pas fournie.
+ *
+ * Elle était versionnée dans le dépôt, avec son mot de passe : tenable tant qu'il restait
+ * privé, plus du tout maintenant qu'il est public. Une clé lisible par tous laisserait
+ * n'importe qui signer un APK qu'Android installerait par-dessus celui-ci sans broncher — et
+ * le Karoo va désormais chercher ses mises à jour tout seul, ce qui donne à ce défaut un
+ * chemin tout tracé.
+ *
+ * Elle arrive donc par l'environnement, décodée d'un secret par le CI, hors de l'arbre de
+ * travail. À défaut, la construction retombe sur la clé de debug : suffisant pour installer
+ * sur son propre appareil, et sans conséquence sur les Releases, que le CI ne publie pas
+ * quand le secret manque.
+ *
+ * `java.io.File` est nommé au long, et le chemin lu tel quel plutôt que par `file()` : le
+ * fichier Gradle ne se compile pas dans le conteneur de session, et une résolution d'import
+ * ou de receveur implicite ne se verrait qu'au CI.
+ */
+val cleDeSignature: java.io.File? = System.getenv("GUIDAGE_KEYSTORE")
+    ?.takeIf { it.isNotBlank() }
+    ?.let { java.io.File(it) }
+    ?.takeIf { it.isFile }
+
 android {
     namespace = "io.github.jmallus.guidage"
     compileSdk = 35
@@ -43,20 +66,22 @@ android {
     }
 
     signingConfigs {
-        // Clé de signature stable, versionnée avec le projet : la clé de debug est
-        // régénérée à chaque exécution du CI, et Android refuse alors la mise à jour
-        // par-dessus une version signée différemment.
-        create("guidage") {
-            storeFile = file("guidage.keystore")
-            storePassword = "guidage"
-            keyAlias = "guidage"
-            keyPassword = "guidage"
+        val cle = cleDeSignature
+        if (cle != null) {
+            create("guidage") {
+                storeFile = cle
+                storePassword = System.getenv("GUIDAGE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("GUIDAGE_KEY_ALIAS") ?: "guidage"
+                keyPassword = System.getenv("GUIDAGE_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("guidage")
+            signingConfig = signingConfigs.getByName(
+                if (cleDeSignature != null) "guidage" else "debug",
+            )
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

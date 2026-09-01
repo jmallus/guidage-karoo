@@ -40,7 +40,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Historique complet : les notes de publication se composent des changements survenus
+      # depuis le tag précédent, que la copie superficielle ne contient pas.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - id: creds
         run: echo "available=${{ secrets.GPR_KEY != '' }}" >> "$GITHUB_OUTPUT"
       - if: steps.creds.outputs.available == 'true'
@@ -78,11 +82,33 @@ jobs:
           GITHUB_ACTOR: ${{ secrets.GPR_USER }}
           GITHUB_TOKEN: ${{ secrets.GPR_KEY }}
 
+      # La clé de signature n'est plus dans le dépôt, qui est public : elle arrive d'un secret,
+      # décodée hors de l'arbre de travail pour qu'aucune commande ultérieure ne puisse la
+      # commiter par accident. Le fichier meurt avec le runner.
+      - name: Poser la clé de signature
+        id: cle
+        if: steps.creds.outputs.available == 'true'
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_B64:-}" ]; then
+            echo "::warning::Secret GUIDAGE_KEYSTORE_B64 absent — l'APK sera signé avec la clé de debug et ne sera pas publié."
+            echo "signe=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/guidage.keystore"
+          echo "signe=true" >> "$GITHUB_OUTPUT"
+        env:
+          KEYSTORE_B64: ${{ secrets.GUIDAGE_KEYSTORE_B64 }}
+
       - if: steps.creds.outputs.available == 'true'
         run: ./gradlew :app:assembleRelease
         env:
           GITHUB_ACTOR: ${{ secrets.GPR_USER }}
           GITHUB_TOKEN: ${{ secrets.GPR_KEY }}
+          GUIDAGE_KEYSTORE: ${{ steps.cle.outputs.signe == 'true' && format('{0}/guidage.keystore', runner.temp) || '' }}
+          GUIDAGE_KEYSTORE_PASSWORD: ${{ secrets.GUIDAGE_KEYSTORE_PASSWORD }}
+          GUIDAGE_KEY_ALIAS: ${{ secrets.GUIDAGE_KEY_ALIAS }}
+          GUIDAGE_KEY_PASSWORD: ${{ secrets.GUIDAGE_KEY_PASSWORD }}
       # Il n'y a plus d'artefact d'Actions ici. Il faisait double emploi avec la Release
       # ci-dessous — une poussée sur la branche d'une PR déclenche les deux — et gardait
       # quatre-vingt-dix jours un APK que personne ne peut installer depuis là. Au bout de
@@ -93,7 +119,9 @@ jobs:
       # l'app Hammerhead Companion ne peut pas l'envoyer au Karoo. Une Release, si —
       # elle expose un lien direct vers le .apk.
       - name: Publier l'APK en Release
-        if: steps.creds.outputs.available == 'true' && github.event_name != 'pull_request'
+        if: >-
+          steps.creds.outputs.available == 'true' && github.event_name != 'pull_request'
+          && steps.cle.outputs.signe == 'true'
         run: |
           cp app/build/outputs/apk/release/app-release.apk guidage-karoo.apk
           # Le même nom de version que celui compilé dans l'APK (voir app/build.gradle.kts).
@@ -135,9 +163,56 @@ jobs:
           Extraits régionaux [Geofabrik](https://download.geofabrik.de).
           NOTES
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            gh release create "$GITHUB_REF_NAME" guidage-karoo.apk \
+            # Le manifeste que Karoo OS interroge pour proposer « Mise à jour » sur la fiche
+            # de l'extension. Il n'accompagne que les Releases taguées : « releases/latest »
+            # désigne la dernière Release non préliminaire, et le Karoo ne doit voir que les
+            # versions publiées à dessein, pas chaque poussée sur main.
+            #
+            # Les changements sont pris en premier parent : les commits internes aux pull
+            # requests répéteraient chacun le titre de leur fusion, et les régénérations de
+            # captures n'apprennent rien à qui roule.
+            precedent=$(git describe --tags --abbrev=0 --match 'v[0-9]*' \
+              "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+            if [ -n "$precedent" ]; then
+              changements=$(git log --first-parent --format='· %s' \
+                "${precedent}..${GITHUB_REF_NAME}" \
+                | grep -v 'Régénère les captures' | head -12 || true)
+            fi
+            [ -n "${changements:-}" ] || changements="Première version publiée."
+
+            # Les captures du simulateur illustrent la fiche sur l'appareil. Les URL sont
+            # figées sur le commit du tag, jamais sur main : une capture renommée plus tard
+            # laisserait sinon une image morte dans une Release déjà publiée. La liste est
+            # celle des fichiers réellement présents — elle ne peut pas dériver.
+            captures=$(
+              for f in docs/captures/champ-*.png; do
+                [ -e "$f" ] || continue
+                echo "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/${f}"
+              done | jq -R . | jq -s .
+            )
+
+            # jq compose le JSON : les notes contiennent des retours à la ligne et des
+            # apostrophes, qu'un assemblage à la main casserait tôt ou tard.
+            jq -n \
+              --argjson captures "$captures" \
+              --arg label "Guidage" \
+              --arg paquet "io.github.jmallus.guidage" \
+              --arg apk "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/guidage-karoo.apk" \
+              --arg version "$version" \
+              --argjson code "$(( 1 + GITHUB_RUN_NUMBER ))" \
+              --arg dev "jmallus" \
+              --arg desc "Guidage d'itinéraire hors ligne pour Karoo : profil à venir, prochaine côte, ruban de courbure, revêtement, réserve d'eau et budget d'effort. Fond de carte embarqué, aucun accès réseau." \
+              --arg notes "$changements" \
+              '{label: $label, packageName: $paquet, latestApkUrl: $apk,
+                latestVersion: $version, latestVersionCode: $code,
+                developer: $dev, description: $desc, releaseNotes: $notes,
+                screenshotUrls: $captures}' \
+              > manifest.json
+            cat manifest.json
+
+            gh release create "$GITHUB_REF_NAME" guidage-karoo.apk manifest.json \
               --title "Guidage $GITHUB_REF_NAME" --notes-file notes.md \
-              || gh release upload "$GITHUB_REF_NAME" guidage-karoo.apk --clobber
+              || gh release upload "$GITHUB_REF_NAME" guidage-karoo.apk manifest.json --clobber
           else
             # Release « latest » mise à jour en place : le lien ne change jamais, et on
             # évite le couple supprimer/recréer, qui détruisait le lien le temps de la

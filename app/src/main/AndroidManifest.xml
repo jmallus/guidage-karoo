@@ -7,6 +7,22 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme">
 
+        <!--
+          Karoo OS lit ce manifeste pour savoir qu'une version plus récente existe, et propose
+          « Mise à jour » sur la fiche de l'extension. C'est lui qui va chercher le JSON puis
+          l'APK : l'extension, elle, ne demande toujours aucune permission — pas d'INTERNET,
+          pas de REQUEST_INSTALL_PACKAGES. La garantie de fonctionnement hors ligne est intacte.
+
+          L'URL « releases/latest » désigne la dernière Release *non* préliminaire, donc le
+          dernier tag vX.Y.Z, et jamais la Release « latest », qui est marquée préliminaire et
+          suit chaque poussée sur main. Le Karoo ne voit ainsi que les versions publiées
+          délibérément. Elle n'est joignable que le dépôt public : c'est Karoo OS qui la
+          demande, sans jeton.
+        -->
+        <meta-data
+            android:name="io.hammerhead.karooext.MANIFEST_URL"
+            android:value="https://github.com/jmallus/guidage-karoo/releases/latest/download/manifest.json" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
