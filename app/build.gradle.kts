@@ -44,13 +44,16 @@ val nomDeVersion = System.getenv("GITHUB_REF_NAME")
  * sur son propre appareil, et sans conséquence sur les Releases, que le CI ne publie pas
  * quand le secret manque.
  *
- * `java.io.File` est nommé au long, et le chemin lu tel quel plutôt que par `file()` : le
- * fichier Gradle ne se compile pas dans le conteneur de session, et une résolution d'import
- * ou de receveur implicite ne se verrait qu'au CI.
+ * Le fichier est obtenu par `project.file(...)`, et surtout pas en écrivant `java.io.File(...)` :
+ * dans un script Gradle Kotlin, `java` en position d'**expression** désigne l'extension du
+ * plugin Java, pas le paquet — la construction échoue alors sur « Unresolved reference: io »,
+ * et pas seulement pour `:app`, puisqu'une erreur de configuration fait tomber la construction
+ * entière, `:core:test` compris. En position de *type*, il n'y a pas de collision : l'annotation
+ * ci-dessous est donc correcte telle quelle.
  */
 val cleDeSignature: java.io.File? = System.getenv("GUIDAGE_KEYSTORE")
     ?.takeIf { it.isNotBlank() }
-    ?.let { java.io.File(it) }
+    ?.let { project.file(it) }
     ?.takeIf { it.isFile }
 
 android {
