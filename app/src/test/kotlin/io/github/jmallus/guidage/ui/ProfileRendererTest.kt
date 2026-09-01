@@ -182,7 +182,7 @@ class ProfileRendererTest {
     /**
      * Un point d'intérêt pose un jalon, et à sa distance.
      *
-     * Le contrôle porte sur la teinte exacte : la pastille est pleine et opaque, donc son
+     * Le contrôle porte sur la teinte exacte : la marque est pleine et opaque, donc son
      * cœur porte le magenta sans mélange. Vérifier seulement qu'« il y a des pixels » ne
      * dirait pas si le jalon est au bon endroit — et l'échelle comprimée est précisément ce
      * qui rend ce placement facile à manquer.
@@ -259,11 +259,12 @@ class ProfileRendererTest {
     /**
      * Deux ravitaillements proches mais distincts restent deux.
      *
-     * C'est le défaut qui a mordu en grossissant la pastille : l'écart de fusion était indexé
-     * sur son rayon, de sorte que la grossir a porté le seuil à vingt-six pixels et effacé le
-     * second de deux points séparés de 1,4 km — donc de seize pixels, parfaitement distincts.
+     * C'est le défaut qui a mordu en grossissant la marque : l'écart de fusion était indexé
+     * sur sa demi-largeur, si bien que la grossir a porté le seuil à vingt-six pixels et
+     * effacé le second de deux points séparés de 1,4 km — donc de seize pixels, parfaitement
+     * distincts.
      *
-     * Le contrôle ne compte pas les plages contiguës : à ce rayon les deux pastilles se
+     * Le contrôle ne compte pas les plages contiguës : à cette taille les deux marques se
      * touchent et n'en formeraient qu'une seule. Il regarde **jusqu'où va la teinte** : un
      * jalon posé au premier point ne peut pas atteindre l'abscisse du second, si bien qu'une
      * couleur trouvée là prouve qu'il y en a bien deux.
