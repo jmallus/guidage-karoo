@@ -256,6 +256,44 @@ class ProfileRendererTest {
         assertTrue("deux points bien séparés doivent rester deux", jalons(separes) == 2)
     }
 
+    /**
+     * Deux ravitaillements proches mais distincts restent deux.
+     *
+     * C'est le défaut qui a mordu en grossissant la pastille : l'écart de fusion était indexé
+     * sur son rayon, de sorte que la grossir a porté le seuil à vingt-six pixels et effacé le
+     * second de deux points séparés de 1,4 km — donc de seize pixels, parfaitement distincts.
+     *
+     * Le contrôle ne compte pas les plages contiguës : à ce rayon les deux pastilles se
+     * touchent et n'en formeraient qu'une seule. Il regarde **jusqu'où va la teinte** : un
+     * jalon posé au premier point ne peut pas atteindre l'abscisse du second, si bien qu'une
+     * couleur trouvée là prouve qu'il y en a bien deux.
+     */
+    @Test
+    fun `deux ravitaillements proches restent deux`() {
+        val image = ProfileRenderer.render(
+            320,
+            140,
+            ProfileFieldModel(
+                window = Guidance.profileToFinish(route, 0.0),
+                pois = listOf(
+                    RoutePoi("a", null, "water", 4_200.0),
+                    RoutePoi("b", null, "convenience_store", 5_600.0),
+                ),
+            ),
+            palette,
+        )
+        val derniere = (0 until image.width).lastOrNull { x ->
+            (0 until image.height).any { y -> image.getPixel(x, y) == FieldPalette.POI }
+        }
+        assertTrue("aucun jalon dessiné", derniere != null)
+
+        val second = FisheyeScale(40_000.0).fractionAt(5_600.0) * image.width
+        assertTrue(
+            "la teinte s'arrête en $derniere ; le second jalon, vers $second, manque",
+            derniere!! >= second - 2,
+        )
+    }
+
     /** Rien à montrer : un message, et pas une bande vide qu'on prendrait pour une panne. */
     @Test
     fun `sans profil le champ porte son message`() {
