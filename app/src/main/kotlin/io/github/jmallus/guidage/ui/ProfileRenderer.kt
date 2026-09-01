@@ -285,6 +285,12 @@ object ProfileRenderer {
      * L'écart minimal n'est pas cosmétique. L'échelle comprime le lointain au point que
      * plusieurs points d'intérêt de la fin y tombent dans la même colonne : sans lui, ils se
      * superposeraient en une tache dont on ne saurait ni combien ils sont, ni où.
+     *
+     * Il se mesure sur l'**épaisseur du trait**, jamais sur le rayon de la pastille. Le rayon
+     * dit la taille du dessin, pas la résolution de la lecture : indexé sur lui, grossir la
+     * pastille faisait disparaître des points bien distincts — deux ravitaillements séparés de
+     * 1,4 km s'effaçaient l'un l'autre dans le champ plein. Deux pastilles qui se touchent
+     * restent deux ; deux pastilles au même endroit n'en font qu'une.
      */
     private fun drawPoiMarkers(
         canvas: Canvas,
@@ -297,18 +303,23 @@ object ProfileRenderer {
     ) {
         if (model.pois.isEmpty()) return
         val window = model.window
-        val rayon = ((bottom - top) * POI_DOT_FRACTION).coerceIn(2.5f, 6f)
+        val rayon = ((bottom - top) * POI_DOT_FRACTION).coerceIn(6f, 11f)
+        // Le trait reste mince quand la pastille grossit : c'est une tige, pas une barre, et
+        // c'est la tête qu'on doit voir. Les tirets suivent l'épaisseur plutôt que le rayon,
+        // sans quoi une grosse pastille les espaçait au point de n'en laisser que deux.
+        val epaisseur = max(2f, rayon * 0.34f)
         val trait = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = FieldPalette.POI
             style = Paint.Style.STROKE
-            strokeWidth = max(2f, rayon * 0.5f)
-            pathEffect = DashPathEffect(floatArrayOf(rayon * 1.2f, rayon * 1.1f), 0f)
+            strokeWidth = epaisseur
+            pathEffect = DashPathEffect(floatArrayOf(epaisseur * 1.8f, epaisseur * 1.8f), 0f)
         }
         val pastille = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = FieldPalette.POI
             style = Paint.Style.FILL
         }
         val cy = top + rayon + 1f
+        val ecartMini = max(4f, epaisseur * 1.6f)
         var precedent = Float.NEGATIVE_INFINITY
 
         model.pois
@@ -317,7 +328,7 @@ object ProfileRenderer {
             .forEach { poi ->
                 val fraction = scale.fractionAt(poi.distanceAlongRoute - window.start)
                 val x = left + (fraction * (right - left)).toFloat()
-                if (x - precedent < rayon * 2.4f) return@forEach
+                if (x - precedent < ecartMini) return@forEach
                 precedent = x
                 canvas.drawLine(x, cy + rayon, x, bottom, trait)
                 canvas.drawCircle(x, cy, rayon, pastille)
@@ -424,8 +435,14 @@ object ProfileRenderer {
         return low
     }
 
-    /** Rayon de la pastille d'un point d'intérêt, en part de la hauteur de la bande. */
-    private const val POI_DOT_FRACTION = 0.055f
+    /**
+     * Rayon de la pastille d'un point d'intérêt, en part de la hauteur de la bande.
+     *
+     * Relevé sur l'appareil : à 5,5 %, la pastille faisait 2,8 px de rayon dans le bandeau du
+     * tableau de bord, soit **0,37 mm** sur l'écran du Karoo 3 — invisible en roulant. Elle
+     * vaut désormais 7,2 px là, et 11 px dans le champ plein.
+     */
+    private const val POI_DOT_FRACTION = 0.14f
 
     /** Longueur du trait d'une graduation sous l'axe. */
     private const val TICK_LENGTH = 4f
