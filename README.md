@@ -44,8 +44,7 @@ qui le dessine.
 
 ### À quoi ils ressemblent
 
-Les cinq pleines pages, au même instant de la sortie simulée — « Avant la nuit » étant rejouée
-le soir, à l'heure où son verdict se joue :
+Les cinq pleines pages, au même instant de la sortie simulée :
 
 <table>
   <tr>
@@ -413,6 +412,13 @@ un col, deux descentes, trois points de ravitaillement groupés au début puis v
 kilomètres sans rien — à seize fois la vitesse réelle. La carte défile sous le ruban, la
 marque de position glisse dessus et les chevrons filent devant elle, le bandeau de côte
 avance, les aplats de zone changent de couleur avec l'effort.
+
+Elle part **en fin d'après-midi**, à l'heure qui place l'arrivée estimée quelques minutes
+avant le coucher du soleil. Ce n'est pas un détail de décor : le verdict d'« Avant la nuit »
+se joue là, et une sortie partie le matin n'aurait montré qu'un « oui » à dix heures de
+marge, c'est-à-dire rien du champ. L'heure se déduit d'un jour fixe et du coucher calculé
+pour ce jour-là, de sorte que les images de contrôle ne changent pas d'une exécution à
+l'autre.
 
 ### La taille réelle
 
