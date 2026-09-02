@@ -249,6 +249,11 @@ object NightRenderer {
         }
 
         model.timeline?.let { timeline ->
+            // La frise prend ce que le mot lui laisse, et son corps s'en déduit plutôt que de
+            // la hauteur de la bande : c'est la place réellement disponible qui décide, et
+            // l'ancien calcul laissait un doigt de vide sous les libellés.
+            val friseHeight = area.bottom - (area.top + headRow)
+            val labelSize = (friseHeight / TIMELINE_ROWS).coerceIn(9f, 18f)
             drawTimeline(
                 canvas = canvas,
                 timeline = timeline,
@@ -258,8 +263,8 @@ object NightRenderer {
                 bottom = area.bottom,
                 verdict = model.verdict,
                 palette = palette,
-                labelSize = (height * 0.14f).coerceIn(9f, 12f),
-                railHeight = (height * 0.06f).coerceIn(3f, 5f),
+                labelSize = labelSize,
+                railHeight = (labelSize * RAIL_RATIO).coerceIn(3f, 8f),
                 compact = true,
             )
         }
@@ -315,12 +320,19 @@ object NightRenderer {
         railHeight: Float,
         compact: Boolean,
     ) {
-        // Un rang de libellé au-dessus (l'arrivée), un ou deux dessous : le rail se place pour
-        // que tout tienne.
-        val railTop = top + labelSize * 1.6f + railHeight * 1.2f
+        // Un rang de libellé au-dessus (l'arrivée), un ou deux dessous. La place nécessaire est
+        // comptée sur ce qui sera réellement dessiné — le trait d'arrivée qui dépasse le rail,
+        // la hampe des majuscules au-dessus, le jambage des lettres du dernier rang — et non
+        // sur un multiple choisi au jugé : c'est ce qui permet d'écrire aussi gros que la
+        // hauteur le permet, sans rien couper.
+        val rowsBelow = if (compact) 1 else 2
+        val aboveRoom = railHeight * MARK_OVERSHOOT + labelSize * ASCENT_RATIO
+        val belowRoom = railHeight * MARK_OVERSHOOT * 0.55f +
+            labelSize * (ROW_LEADING + ROW_PITCH * (rowsBelow - 1)) +
+            labelSize * DESCENT_RATIO
+        if (aboveRoom + railHeight + belowRoom > bottom - top) return
+        val railTop = top + aboveRoom
         val railBottom = railTop + railHeight
-        val rowsBelow = if (compact) 1.4f else 2.6f
-        if (railBottom + labelSize * rowsBelow > bottom) return
 
         val inset = railHeight
         val railLeft = left + inset
@@ -358,7 +370,7 @@ object NightRenderer {
             canvas.drawLine(x(arrival), railTop - railHeight * 1.6f, x(arrival), railBottom + railHeight * 1.6f, mark)
             timeline.arrivalLabel?.let { label ->
                 val paint = labelPaint(labelSize, accent, bold = true)
-                canvas.drawText(label, anchored(paint, label, x(arrival), left, right), railTop - railHeight * 2.2f, paint)
+                canvas.drawText(label, anchored(paint, label, x(arrival), left, right), railTop - railHeight * MARK_OVERSHOOT, paint)
             }
         }
 
@@ -374,8 +386,8 @@ object NightRenderer {
                 strokeWidth = (railHeight * 0.3f).coerceIn(2f, 3f)
             },
         )
-        val firstRow = railBottom + railHeight * 1.2f + labelSize * 1.1f
-        val secondRow = firstRow + labelSize * 1.25f
+        val firstRow = railBottom + railHeight * MARK_OVERSHOOT * 0.55f + labelSize * ROW_LEADING
+        val secondRow = firstRow + labelSize * ROW_PITCH
         val sunsetPaint = labelPaint(labelSize, KarooColors.LEMON_YELLOW)
         val sunsetLeft = anchored(sunsetPaint, timeline.sunsetLabel, sunsetX, left, right)
 
@@ -490,7 +502,34 @@ object NightRenderer {
     private const val NIGHT = 0xFF11181C.toInt()
 
     /** Part de la bande donnée au mot et à sa marge ; la frise prend le reste. */
-    private const val BAND_HEAD_FRACTION = 0.38f
+    private const val BAND_HEAD_FRACTION = 0.34f
+
+    /**
+     * De combien le trait d'arrivée dépasse le rail, en multiples de son épaisseur, et où se
+     * pose le libellé qui le nomme.
+     */
+    private const val MARK_OVERSHOOT = 2.2f
+
+    /** Distance du rail à la ligne de base du premier rang, et pas entre deux rangs. */
+    private const val ROW_LEADING = 1.1f
+    private const val ROW_PITCH = 1.25f
+
+    /** Ce que la hampe des majuscules monte, et le jambage des lettres descend. */
+    private const val ASCENT_RATIO = 0.78f
+    private const val DESCENT_RATIO = 0.25f
+
+    /**
+     * Hauteurs de libellé qu'une frise compacte occupe en tout, rail et marges compris.
+     *
+     * Elle sert à choisir le corps d'après la place : `labelSize = hauteur / TIMELINE_ROWS`.
+     * Sa valeur se déduit des ratios ci-dessus avec un rail à [RAIL_RATIO] du corps — la somme
+     * fait 3,89 — arrondie au-dessus pour que l'arrondi des calculs ne fasse pas manquer la
+     * frise d'un dixième de point : elle ne se dessine pas du tout quand elle ne tient pas.
+     */
+    private const val TIMELINE_ROWS = 4.0f
+
+    /** Épaisseur du rail, en part du corps des libellés. */
+    private const val RAIL_RATIO = 0.4f
 
     private const val BAND_ALPHA = 0x47
     private const val DUSK_ALPHA = 0x80

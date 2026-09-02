@@ -25,6 +25,9 @@ class NightRendererTest {
 
     private val palette get() = FieldPalette.of(RuntimeEnvironment.getApplication())
 
+    /** La hauteur que le dernier rang du tableau de bord laisse à la bande, sur un Karoo 3. */
+    private val hauteurBande = 87
+
     private val timeline = NightTimeline(
         nowLabel = "maintenant",
         arrivalFraction = 0.62f,
@@ -105,21 +108,44 @@ class NightRendererTest {
         assertTrue("le verdict a disparu", count(image, NightRenderer.TIGHT) > 500)
     }
 
+    /** Une bande dessinée à la taille voulue, sur toute la largeur du pied. */
+    private fun bande(model: NightFieldModel, hauteur: Int, largeur: Int = 466): Bitmap {
+        val image = Bitmap.createBitmap(largeur, hauteur, Bitmap.Config.ARGB_8888)
+        NightRenderer.drawBand(
+            android.graphics.Canvas(image),
+            android.graphics.RectF(0f, 0f, largeur.toFloat(), hauteur.toFloat()),
+            model,
+            palette,
+        )
+        return image
+    }
+
     /** La bande du tableau de bord : le mot dans sa couleur, le coucher sur la frise. */
     @Test
     fun `la bande porte le mot et le coucher`() {
-        val image = Bitmap.createBitmap(326, 87, Bitmap.Config.ARGB_8888)
-        NightRenderer.drawBand(
-            android.graphics.Canvas(image),
-            android.graphics.RectF(0f, 0f, 326f, 87f),
-            model(NightVerdict.TIGHT, "JUSTE"),
-            palette,
-        )
+        val image = bande(model(NightVerdict.TIGHT, "JUSTE"), hauteur = hauteurBande)
         assertTrue("le verdict manque", count(image, NightRenderer.TIGHT) > 300)
         assertTrue("le coucher manque", count(image, KarooColors.LEMON_YELLOW) > 10)
         // Le pied de page et le pire cas n'ont pas leur place dans une bande : leur texte
         // s'écrirait en teinte primaire, qui ne sert ici qu'au triangle du présent.
-        assertTrue("du texte de pleine page s'est glissé dans la bande", count(image, palette.textPrimary) < 60)
+        assertTrue("du texte de pleine page s'est glissé dans la bande", count(image, palette.textPrimary) < 90)
+    }
+
+    /**
+     * La frise écrit d'autant plus gros qu'on lui donne de la place.
+     *
+     * Le corps de ses libellés se déduisait de bornes fixes, et butait sur son plafond bien
+     * avant la hauteur réelle du pied : la frise laissait alors du vide sous elle et écrivait
+     * en dessous de ce que la place permettait. Il se déduit maintenant de la hauteur restante,
+     * et une bande plus haute porte donc plus d'encre — c'est ce que ce contrôle vérifie, la
+     * taille d'un texte ne se lisant pas autrement sur une image.
+     */
+    @Test
+    fun `la frise grandit avec la bande`() {
+        val modele = model(NightVerdict.TIGHT, "JUSTE")
+        val serree = count(bande(modele, hauteur = hauteurBande), KarooColors.LEMON_YELLOW)
+        val aise = count(bande(modele, hauteur = hauteurBande * 3 / 2), KarooColors.LEMON_YELLOW)
+        assertTrue("la frise n'a pas profité de la hauteur : $serree puis $aise", aise > serree)
     }
 
     @Test
