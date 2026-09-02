@@ -75,10 +75,6 @@ object DashboardModels {
         }
 
         val units = snapshot.units
-        // La bande du soir ne prend le pied que si elle a une frise à montrer : sans position
-        // ni coucher, les deux cases d'origine valent mieux qu'un message d'attente.
-        val night = NightModels.build(context, snapshot, rideData, preview, nowMillis)
-            .takeIf { it.timeline != null }
         return DashboardModel(
             guidance = when (settings.guidanceZone) {
                 GuidanceZoneType.MAP -> GuidanceZone.Map(
@@ -90,8 +86,9 @@ object DashboardModels {
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
             midTiles = midTiles(context, units, rideData),
-            footerTiles = footerTiles(context, units, rideData, state, nowMillis, withArrival = night == null),
-            night = night,
+            // Le rang du bas est à la bande du soir, quoi qu'elle ait à dire : sans position ni
+            // coucher, elle le dit, et la mise en page ne bouge pas en cours de route.
+            night = NightModels.build(context, snapshot, rideData, preview, nowMillis),
             profileBand = profileBand(context, snapshot, settings, preview),
             palette = FieldPalette.of(context),
         )
@@ -254,12 +251,26 @@ object DashboardModels {
         icon = R.drawable.ic_gears,
     )
 
-    /** Rang sous la carte : distance parcourue à gauche, pente instantanée à droite. */
+    /**
+     * Rang sous la carte : distance parcourue, distance restante, pente instantanée.
+     *
+     * La distance restante y a rejoint la parcourue : les deux se lisent ensemble — où j'en
+     * suis, ce qui reste — et le rang du bas, qu'elle occupait, est allé tout entier à la
+     * bande du soir.
+     */
     private fun midTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
         Tile(
             label = context.getString(R.string.dashboard_label_distance),
             value = rideData.distance?.let { remainingValue(it, units) } ?: PLACEHOLDER,
             icon = R.drawable.ic_distance,
+        ).splitDecimal(),
+        Tile(
+            label = context.getString(
+                R.string.dashboard_label_remaining,
+                remainingUnit(units).uppercase(),
+            ),
+            value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
+            icon = R.drawable.ic_distance_remaining,
         ).splitDecimal(),
         Tile(
             label = context.getString(R.string.dashboard_label_grade),
@@ -268,53 +279,6 @@ object DashboardModels {
             icon = R.drawable.ic_grade,
         ),
     )
-
-    /**
-     * Ligne du bas : ce qu'il reste à parcourir, et l'heure d'arrivée si la bande « Avant la
-     * nuit » ne la porte pas déjà sur sa frise.
-     */
-    private fun footerTiles(
-        context: Context,
-        units: Units,
-        rideData: RideData,
-        state: GuidanceState,
-        nowMillis: Long,
-        withArrival: Boolean,
-    ): List<Tile> {
-        val remaining = Tile(
-            label = context.getString(
-                R.string.dashboard_label_remaining,
-                remainingUnit(units).uppercase(),
-            ),
-            value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-            icon = R.drawable.ic_distance_remaining,
-        ).splitDecimal()
-        if (!withArrival) return listOf(remaining)
-
-        val estimate = FieldModels.arrival(state, rideData)
-        // À défaut d'allure apprise, l'heure du Karoo : elle vaut mieux qu'un tiret.
-        val arrival = estimate
-            ?.let { nowMillis + (it.seconds * 1_000).toLong() }
-            ?.toDouble()
-            ?: rideData.arrivalTime
-        // La marge ne s'écrit qu'à partir de la minute. En dessous, elle dirait « ± 0 »,
-        // ce qui promet une précision que rien ne garantit — et le libellé, partagé avec
-        // celui d'à côté, rétrécit les deux quand il s'allonge.
-        val margin = estimate
-            ?.let { (it.marginSeconds / 60.0).roundToInt() }
-            ?.takeIf { it >= 1 }
-
-        return listOf(
-            remaining,
-            Tile(
-                label = margin
-                    ?.let { context.getString(R.string.dashboard_label_arrival_margin, it) }
-                    ?: context.getString(R.string.dashboard_label_arrival),
-                value = arrival?.let { Format.clock(it) } ?: PLACEHOLDER,
-                icon = R.drawable.ic_arrival,
-            ),
-        )
-    }
 
     /**
      * Détache la décimale, écrite ensuite en exposant et sans séparateur.

@@ -94,8 +94,8 @@ sealed interface GuidanceZone {
  * Le champ plein écran.
  *
  * Cinq rangs : le bandeau de l'effort instantané en haut, puis la carte à droite sur deux
- * hauteurs avec la transmission et le cœur à sa gauche, la distance et la pente en dessous,
- * et le rappel de fin de parcours tout en bas.
+ * hauteurs avec la transmission et le cœur à sa gauche, les distances et la pente en
+ * dessous, et la bande du soir tout en bas.
  */
 data class DashboardModel(
     val guidance: GuidanceZone,
@@ -105,22 +105,17 @@ data class DashboardModel(
     val drivetrain: DrivetrainModel? = null,
     /** Case de gauche suivante : la fréquence cardiaque. */
     val heartRateTile: Tile? = null,
-    /** Rang sous la carte : distance parcourue et pente. */
+    /** Rang sous la carte : distance parcourue, distance restante, pente. */
     val midTiles: List<Tile> = emptyList(),
     /**
-     * Dernier rang : les cases de fin de parcours — la distance restante, et l'heure
-     * d'arrivée quand [night] ne la porte pas déjà.
-     */
-    val footerTiles: List<Tile> = emptyList(),
-    /**
-     * Le champ « Avant la nuit » réduit à une bande, à gauche du dernier rang.
+     * Dernier rang : le champ « Avant la nuit » réduit à une bande, sur toute la largeur.
      *
-     * Il remplace la case de l'heure d'arrivée : l'heure y est toujours, sur la frise, mais
-     * rapprochée de ce à quoi on la compare de tête en fin de journée — le coucher. Null quand
-     * le champ n'a rien à montrer, sans position ou sans coucher ; les deux cases reprennent
-     * alors le rang entier.
+     * Il a remplacé la case de l'heure d'arrivée : l'heure y est toujours, sur la frise, mais
+     * rapprochée de ce à quoi on la compare de tête en fin de journée — le coucher. Sans
+     * position ni coucher, la bande le dit ; elle ne cède le rang à rien d'autre, pour que la
+     * mise en page ne bouge pas en cours de route.
      */
-    val night: NightFieldModel? = null,
+    val night: NightFieldModel,
     /**
      * Bandeau du bas : le champ « Profil à venir », tel quel.
      *
@@ -157,8 +152,6 @@ object DashboardRenderer {
     /** Proportions relevées sur la maquette, exprimées en part de la hauteur de case. */
     private const val VALUE_HEIGHT_FRACTION = 0.614f
     private const val LABEL_HEIGHT_FRACTION = 0.147f
-    private const val FOOTER_VALUE_HEIGHT_FRACTION = 0.569f
-    private const val FOOTER_LABEL_HEIGHT_FRACTION = 0.165f
 
     /** Taille du suffixe, en part de celle de la valeur. */
     private const val SUFFIX_RATIO = 0.52f
@@ -181,14 +174,8 @@ object DashboardRenderer {
      */
     private const val MID_ROW_FRACTION = 0.154f
 
-    /**
-     * Largeur de la bande « Avant la nuit » dans le dernier rang.
-     *
-     * Deux tiers : la frise a besoin de longueur pour que l'arrivée et le coucher ne se
-     * confondent pas, et la distance restante est un nombre court qui tient dans le tiers
-     * qui reste.
-     */
-    private const val NIGHT_BAND_FRACTION = 0.68f
+    /** Nombre de cases du rang sous la carte. */
+    private const val MID_TILES = 3
 
     fun render(context: Context, width: Int, height: Int, model: DashboardModel): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
@@ -249,20 +236,21 @@ object DashboardRenderer {
             )
         }
 
-        // Rang sous la carte : distance parcourue à gauche, pente à droite. Il est dessiné à
-        // part du cœur, et non avec lui : son rang est plus court, et une taille commune aux
-        // deux serait ou trop grande pour lui — les chiffres débordant sur le pied — ou trop
-        // petite pour le cœur.
-        val midTiles = model.midTiles.take(2)
+        // Rang sous la carte : distance parcourue, distance restante, pente, à parts égales.
+        // Il est dessiné à part du cœur, et non avec lui : son rang est plus court, et une
+        // taille commune aux deux serait ou trop grande pour lui — les chiffres débordant sur
+        // le pied — ou trop petite pour le cœur.
+        val midTiles = model.midTiles.take(MID_TILES)
         if (midTiles.isNotEmpty()) {
+            val midWidth = (width - 2 * padding) / midTiles.size
             drawTiles(
                 context = context,
                 canvas = canvas,
                 bounds = midTiles.indices.map { index ->
                     RectF(
-                        if (index == 0) padding else columnSplit,
+                        padding + index * midWidth,
                         midTop,
-                        if (index == 0) columnSplit else right,
+                        padding + (index + 1) * midWidth,
                         footerTop,
                     )
                 },
@@ -298,26 +286,8 @@ object DashboardRenderer {
             )
         }
 
-        // Ligne du bas : la bande « Avant la nuit » à gauche quand elle a quelque chose à
-        // dire, et les cases de fin de parcours dans ce qui reste.
-        val night = model.night
-        val bandRight = if (night == null) padding else padding + (width - 2 * padding) * NIGHT_BAND_FRACTION
-        night?.let {
-            NightRenderer.drawBand(canvas, RectF(padding, footerTop, bandRight - padding, footerBottom), it, model.palette)
-        }
-        val footerWidth = (right - bandRight) / model.footerTiles.size.coerceAtLeast(1)
-        drawTiles(
-            context = context,
-            canvas = canvas,
-            bounds = model.footerTiles.indices.map { index ->
-                val left = bandRight + index * footerWidth
-                RectF(left, footerTop, left + footerWidth, footerBottom)
-            },
-            tiles = model.footerTiles,
-            palette = model.palette,
-            valueFraction = FOOTER_VALUE_HEIGHT_FRACTION,
-            labelFraction = FOOTER_LABEL_HEIGHT_FRACTION,
-        )
+        // Ligne du bas : la bande « Avant la nuit », sur toute la largeur.
+        NightRenderer.drawBand(canvas, RectF(padding, footerTop, right, footerBottom), model.night, model.palette)
 
         // Tout en bas : le parcours restant, sur toute la largeur, par le rendu du champ
         // « Profil à venir » lui-même. Le redessiner ici en aurait fait une seconde écriture.

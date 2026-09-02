@@ -25,7 +25,7 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 
 | Champ | Type | Contenu |
 | --- | --- | --- |
-| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance parcourue, pente, distance restante, le verdict « Avant la nuit » avec sa frise — heure d'arrivée **avec sa marge**, coucher, nuit — et le profil **à venir** en bandeau. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
+| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance parcourue, distance restante, pente, le verdict « Avant la nuit » sur toute la largeur avec sa frise — heure d'arrivée **avec sa marge**, coucher, nuit — et le profil **à venir** en bandeau. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Rempli en couleur selon la pente, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
@@ -141,8 +141,8 @@ Karoo sans marge : mieux vaut la sienne qu'une heure tirée de trente secondes d
 Sur le tableau de bord, elle s'écrit dans la bande « Avant la nuit », au pied de l'écran, sur
 une frise qui la place face au coucher du soleil : c'est à lui qu'on la compare de tête en fin
 de journée, et le mot au-dessus — **OUI**, **JUSTE**, **NON** — fait la comparaison à votre
-place, sur la fourchette et non sur la seule moyenne. La bande ne s'efface que sans position ni
-coucher, et la case « ARRIVÉE ± 5 MIN » d'origine reprend alors sa place.
+place, sur la fourchette et non sur la seule moyenne. Sans position ni coucher, la bande le
+dit ; elle ne cède sa place à rien d'autre, pour que la mise en page ne bouge pas en route.
 
 ### Annonces in-ride
 
