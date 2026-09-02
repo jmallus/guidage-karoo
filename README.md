@@ -141,8 +141,8 @@ Karoo sans marge : mieux vaut la sienne qu'une heure tirée de trente secondes d
 Sur le tableau de bord, elle s'écrit dans la bande « Avant la nuit », au pied de l'écran, sur
 une frise qui la place face au coucher du soleil : c'est à lui qu'on la compare de tête en fin
 de journée, et le mot au-dessus — **OUI**, **JUSTE**, **NON** — fait la comparaison à votre
-place, sur la fourchette et non sur la seule moyenne. La bande ne s'efface que sans position ni
-coucher, et la case « ARRIVÉE ± 5 MIN » d'origine reprend alors sa place.
+place, sur la fourchette et non sur la seule moyenne. Sans position ni coucher, la bande le
+dit ; elle ne cède sa place à rien d'autre, pour que la mise en page ne bouge pas en route.
 
 ### Annonces in-ride
 

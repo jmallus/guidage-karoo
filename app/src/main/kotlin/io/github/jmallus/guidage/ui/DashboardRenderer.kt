@@ -108,18 +108,14 @@ data class DashboardModel(
     /** Rang sous la carte : distance parcourue, distance restante, pente. */
     val midTiles: List<Tile> = emptyList(),
     /**
-     * Dernier rang : l'heure d'arrivée, quand [night] ne la porte pas déjà. Vide sinon.
-     */
-    val footerTiles: List<Tile> = emptyList(),
-    /**
-     * Le champ « Avant la nuit » réduit à une bande, sur tout le dernier rang.
+     * Dernier rang : le champ « Avant la nuit » réduit à une bande, sur toute la largeur.
      *
-     * Il remplace la case de l'heure d'arrivée : l'heure y est toujours, sur la frise, mais
-     * rapprochée de ce à quoi on la compare de tête en fin de journée — le coucher. Null quand
-     * le champ n'a rien à montrer, sans position ou sans coucher ; la case d'arrivée reprend
-     * alors le rang.
+     * Il a remplacé la case de l'heure d'arrivée : l'heure y est toujours, sur la frise, mais
+     * rapprochée de ce à quoi on la compare de tête en fin de journée — le coucher. Sans
+     * position ni coucher, la bande le dit ; elle ne cède le rang à rien d'autre, pour que la
+     * mise en page ne bouge pas en cours de route.
      */
-    val night: NightFieldModel? = null,
+    val night: NightFieldModel,
     /**
      * Bandeau du bas : le champ « Profil à venir », tel quel.
      *
@@ -156,8 +152,6 @@ object DashboardRenderer {
     /** Proportions relevées sur la maquette, exprimées en part de la hauteur de case. */
     private const val VALUE_HEIGHT_FRACTION = 0.614f
     private const val LABEL_HEIGHT_FRACTION = 0.147f
-    private const val FOOTER_VALUE_HEIGHT_FRACTION = 0.569f
-    private const val FOOTER_LABEL_HEIGHT_FRACTION = 0.165f
 
     /** Taille du suffixe, en part de celle de la valeur. */
     private const val SUFFIX_RATIO = 0.52f
@@ -292,26 +286,8 @@ object DashboardRenderer {
             )
         }
 
-        // Ligne du bas : la bande « Avant la nuit » sur toute la largeur quand elle a quelque
-        // chose à dire, les cases de fin de parcours sinon.
-        model.night?.let {
-            NightRenderer.drawBand(canvas, RectF(padding, footerTop, right, footerBottom), it, model.palette)
-        }
-        if (model.footerTiles.isNotEmpty()) {
-            val footerWidth = (width - 2 * padding) / model.footerTiles.size
-            drawTiles(
-                context = context,
-                canvas = canvas,
-                bounds = model.footerTiles.indices.map { index ->
-                    val left = padding + index * footerWidth
-                    RectF(left, footerTop, left + footerWidth, footerBottom)
-                },
-                tiles = model.footerTiles,
-                palette = model.palette,
-                valueFraction = FOOTER_VALUE_HEIGHT_FRACTION,
-                labelFraction = FOOTER_LABEL_HEIGHT_FRACTION,
-            )
-        }
+        // Ligne du bas : la bande « Avant la nuit », sur toute la largeur.
+        NightRenderer.drawBand(canvas, RectF(padding, footerTop, right, footerBottom), model.night, model.palette)
 
         // Tout en bas : le parcours restant, sur toute la largeur, par le rendu du champ
         // « Profil à venir » lui-même. Le redessiner ici en aurait fait une seconde écriture.

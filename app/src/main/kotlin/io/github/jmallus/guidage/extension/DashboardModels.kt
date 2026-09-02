@@ -75,10 +75,6 @@ object DashboardModels {
         }
 
         val units = snapshot.units
-        // La bande du soir ne prend le pied que si elle a une frise à montrer : sans position
-        // ni coucher, les deux cases d'origine valent mieux qu'un message d'attente.
-        val night = NightModels.build(context, snapshot, rideData, preview, nowMillis)
-            .takeIf { it.timeline != null }
         return DashboardModel(
             guidance = when (settings.guidanceZone) {
                 GuidanceZoneType.MAP -> GuidanceZone.Map(
@@ -90,8 +86,9 @@ object DashboardModels {
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
             midTiles = midTiles(context, units, rideData),
-            footerTiles = footerTiles(context, rideData, state, nowMillis, withArrival = night == null),
-            night = night,
+            // Le rang du bas est à la bande du soir, quoi qu'elle ait à dire : sans position ni
+            // coucher, elle le dit, et la mise en page ne bouge pas en cours de route.
+            night = NightModels.build(context, snapshot, rideData, preview, nowMillis),
             profileBand = profileBand(context, snapshot, settings, preview),
             palette = FieldPalette.of(context),
         )
@@ -282,43 +279,6 @@ object DashboardModels {
             icon = R.drawable.ic_grade,
         ),
     )
-
-    /**
-     * Ligne du bas : l'heure d'arrivée, seulement si la bande « Avant la nuit » ne la porte
-     * pas déjà sur sa frise. Vide sinon — la bande prend tout le rang.
-     */
-    private fun footerTiles(
-        context: Context,
-        rideData: RideData,
-        state: GuidanceState,
-        nowMillis: Long,
-        withArrival: Boolean,
-    ): List<Tile> {
-        if (!withArrival) return emptyList()
-
-        val estimate = FieldModels.arrival(state, rideData)
-        // À défaut d'allure apprise, l'heure du Karoo : elle vaut mieux qu'un tiret.
-        val arrival = estimate
-            ?.let { nowMillis + (it.seconds * 1_000).toLong() }
-            ?.toDouble()
-            ?: rideData.arrivalTime
-        // La marge ne s'écrit qu'à partir de la minute. En dessous, elle dirait « ± 0 »,
-        // ce qui promet une précision que rien ne garantit — et le libellé, partagé avec
-        // celui d'à côté, rétrécit les deux quand il s'allonge.
-        val margin = estimate
-            ?.let { (it.marginSeconds / 60.0).roundToInt() }
-            ?.takeIf { it >= 1 }
-
-        return listOf(
-            Tile(
-                label = margin
-                    ?.let { context.getString(R.string.dashboard_label_arrival_margin, it) }
-                    ?: context.getString(R.string.dashboard_label_arrival),
-                value = arrival?.let { Format.clock(it) } ?: PLACEHOLDER,
-                icon = R.drawable.ic_arrival,
-            ),
-        )
-    }
 
     /**
      * Détache la décimale, écrite ensuite en exposant et sans séparateur.
