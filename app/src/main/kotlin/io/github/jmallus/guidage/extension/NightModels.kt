@@ -104,10 +104,7 @@ object NightModels {
                     Nightfall.Verdict.NO -> R.string.field_night_no
                 },
             ),
-            marginLabel = context.getString(
-                if (marginMinutes >= 0) R.string.field_night_margin_ahead else R.string.field_night_margin_behind,
-                abs(marginMinutes),
-            ),
+            marginLabel = marginLabel(context, marginMinutes),
             // L'incertitude ne s'écrit qu'à partir de la minute : « ± 0 » promettrait une
             // précision que rien ne garantit.
             uncertaintyLabel = uncertaintyMinutes.takeIf { it >= 1 }
@@ -119,6 +116,27 @@ object NightModels {
             },
             footnote = footnote,
         )
+    }
+
+    /**
+     * « 8 min d'avance », ou « 9 h 43 d'avance » : au-delà de l'heure, les minutes seules
+     * feraient un nombre à trois chiffres que personne ne convertit en roulant.
+     */
+    private fun marginLabel(context: Context, marginMinutes: Int): String {
+        val ahead = marginMinutes >= 0
+        val minutes = abs(marginMinutes)
+        return if (minutes < 60) {
+            context.getString(
+                if (ahead) R.string.field_night_margin_ahead else R.string.field_night_margin_behind,
+                minutes,
+            )
+        } else {
+            context.getString(
+                if (ahead) R.string.field_night_margin_ahead_hours else R.string.field_night_margin_behind_hours,
+                minutes / 60,
+                minutes % 60,
+            )
+        }
     }
 
     /**

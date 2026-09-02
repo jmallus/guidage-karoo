@@ -107,8 +107,20 @@ data class DashboardModel(
     val heartRateTile: Tile? = null,
     /** Rang sous la carte : distance parcourue et pente. */
     val midTiles: List<Tile> = emptyList(),
-    /** Dernier rang : distance restante et heure d'arrivée. */
+    /**
+     * Dernier rang : les cases de fin de parcours — la distance restante, et l'heure
+     * d'arrivée quand [night] ne la porte pas déjà.
+     */
     val footerTiles: List<Tile> = emptyList(),
+    /**
+     * Le champ « Avant la nuit » réduit à une bande, à gauche du dernier rang.
+     *
+     * Il remplace la case de l'heure d'arrivée : l'heure y est toujours, sur la frise, mais
+     * rapprochée de ce à quoi on la compare de tête en fin de journée — le coucher. Null quand
+     * le champ n'a rien à montrer, sans position ou sans coucher ; les deux cases reprennent
+     * alors le rang entier.
+     */
+    val night: NightFieldModel? = null,
     /**
      * Bandeau du bas : le champ « Profil à venir », tel quel.
      *
@@ -168,6 +180,15 @@ object DashboardRenderer {
      * trop au large ; le bandeau, lui, dessine.
      */
     private const val MID_ROW_FRACTION = 0.154f
+
+    /**
+     * Largeur de la bande « Avant la nuit » dans le dernier rang.
+     *
+     * Deux tiers : la frise a besoin de longueur pour que l'arrivée et le coucher ne se
+     * confondent pas, et la distance restante est un nombre court qui tient dans le tiers
+     * qui reste.
+     */
+    private const val NIGHT_BAND_FRACTION = 0.68f
 
     fun render(context: Context, width: Int, height: Int, model: DashboardModel): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
@@ -277,13 +298,19 @@ object DashboardRenderer {
             )
         }
 
-        // Ligne du bas : restant et arrivée.
-        val footerWidth = (width - 2 * padding) / model.footerTiles.size.coerceAtLeast(1)
+        // Ligne du bas : la bande « Avant la nuit » à gauche quand elle a quelque chose à
+        // dire, et les cases de fin de parcours dans ce qui reste.
+        val night = model.night
+        val bandRight = if (night == null) padding else padding + (width - 2 * padding) * NIGHT_BAND_FRACTION
+        night?.let {
+            NightRenderer.drawBand(canvas, RectF(padding, footerTop, bandRight - padding, footerBottom), it, model.palette)
+        }
+        val footerWidth = (right - bandRight) / model.footerTiles.size.coerceAtLeast(1)
         drawTiles(
             context = context,
             canvas = canvas,
             bounds = model.footerTiles.indices.map { index ->
-                val left = padding + index * footerWidth
+                val left = bandRight + index * footerWidth
                 RectF(left, footerTop, left + footerWidth, footerBottom)
             },
             tiles = model.footerTiles,

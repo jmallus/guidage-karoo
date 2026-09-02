@@ -10,6 +10,7 @@ import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.LearnedPace
 import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.core.PaceLearner
+import io.github.jmallus.guidage.core.Pacing
 import io.github.jmallus.guidage.core.Sun
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.map.RoadSegment
@@ -57,8 +58,8 @@ import io.hammerhead.karooext.models.ViewConfig
  */
 class Simulateur(
     private val context: Context,
-    /** Instant de départ de la sortie fictive, dont se déduit l'heure d'arrivée affichée. */
-    private val departMillis: Long = DEPART_PAR_DEFAUT,
+    /** Le jour de la sortie fictive ; l'heure de départ s'en déduit, voir [departMillis]. */
+    private val jourMillis: Long = JOUR_PAR_DEFAUT,
 ) {
     val sortie = SortieSimulee(PreviewData.route)
 
@@ -78,7 +79,7 @@ class Simulateur(
      * de la fréquence cardiaque ne s'écrit pas : le simulateur ne montrerait alors qu'une
      * moitié de ce que voit un coureur équipé.
      */
-    private val zones = PreviewData.rideSamples(departMillis).first()
+    private val zones by lazy { PreviewData.rideSamples(departMillis).first() }
 
     /** Portée de la minicarte, que l'appui sur le champ fait tourner sur l'appareil. */
     var portee: MapZoom = MapZoom.NEAR
@@ -110,6 +111,32 @@ class Simulateur(
      */
     private val apprentissage = PaceLearner()
     private var appriseJusqua = 0.0
+
+    /**
+     * L'instant de départ de la sortie fictive, dont se déduisent toutes les heures affichées.
+     *
+     * Elle partait à neuf heures moins le quart, et le tableau de bord n'avait alors qu'un
+     * « oui » à dix heures de marge à montrer au pied de l'écran. Elle part donc le soir, à
+     * l'heure qui place l'arrivée estimée de l'instant de capture quelques minutes avant le
+     * coucher : c'est là que le verdict se joue, et c'est ce que les images de contrôle
+     * doivent montrer. L'instant reste fixe d'une exécution à l'autre — le jour est une
+     * constante, le coucher s'en déduit, et l'allure de la sortie fictive ne change pas.
+     *
+     * Déclaré après l'apprentissage de l'allure, dont le calcul se sert : les propriétés
+     * s'initialisent dans l'ordre du fichier.
+     */
+    private val departMillis: Long = departLeSoir()
+
+    private fun departLeSoir(): Long {
+        val secondes = sortie.duree * PART_NUIT
+        val instant = sortie.a(secondes)
+        val attendu = Pacing.arrival(
+            pace = allure(secondes),
+            terrain = Pacing.terrain(PreviewData.route.profile, instant.distance, instant.distanceRestante),
+        )?.seconds ?: 0.0
+        val coucher = Sun.next(PreviewData.location.position, jourMillis)!!.sunsetMillis
+        return coucher - ((secondes + attendu) * 1_000).toLong() - AVANCE_NUIT_MS
+    }
 
     private fun allure(secondes: Double): LearnedPace {
         if (secondes < appriseJusqua) {
@@ -349,43 +376,23 @@ class Simulateur(
         FieldPalette.of(context),
     )
 
-    /**
-     * Le champ « Avant la nuit », en pleine page.
-     *
-     * La sortie fictive part à neuf heures moins le quart, et le champ n'aurait alors qu'un
-     * « oui » à dix heures de marge à montrer. Elle est donc rejouée le soir, à l'heure qui
-     * place l'arrivée estimée de l'instant de capture quelques minutes avant le coucher :
-     * c'est là que le verdict se joue, et c'est ce que le champ existe pour montrer. Le
-     * modèle et le rendu restent ceux de l'appareil ; seule l'horloge est décalée.
-     */
+    /** Le champ « Avant la nuit », en pleine page — la sortie part le soir, voir [departMillis]. */
     fun imageNuit(
         secondes: Double,
         largeur: Int = LARGEUR,
         hauteur: Int = HAUTEUR,
-    ): Bitmap {
-        val decalage = debutSoir - departMillis
-        val releve = releve(secondes).let { it.copy(arrivalTime = it.arrivalTime?.plus(decalage)) }
-        return NightRenderer.render(
-            largeur,
-            hauteur,
-            NightModels.build(
-                context,
-                instantane(secondes),
-                releve,
-                preview = false,
-                nowMillis = debutSoir + (secondes * 1_000).toLong(),
-            ),
-            FieldPalette.of(context),
-        )
-    }
-
-    /** L'heure de départ de la sortie rejouée le soir, déduite du coucher du jour. */
-    private val debutSoir: Long by lazy {
-        val secondes = sortie.duree * PART_NUIT
-        val attendu = FieldModels.arrival(instantane(secondes).state, releve(secondes))?.seconds ?: 0.0
-        val coucher = Sun.next(PreviewData.location.position, departMillis)!!.sunsetMillis
-        coucher - ((secondes + attendu) * 1_000).toLong() - AVANCE_NUIT_MS
-    }
+    ): Bitmap = NightRenderer.render(
+        largeur,
+        hauteur,
+        NightModels.build(
+            context,
+            instantane(secondes),
+            releve(secondes),
+            preview = false,
+            nowMillis = departMillis + (secondes * 1_000).toLong(),
+        ),
+        FieldPalette.of(context),
+    )
 
     fun modele(secondes: Double): DashboardModel {
         val maintenant = departMillis + (secondes * 1_000).toLong()
@@ -414,8 +421,8 @@ class Simulateur(
         private const val PAS_APPRENTISSAGE = 2.0
 
         /**
-         * L'instant de la sortie auquel le champ « Avant la nuit » est calé : le même que
-         * celui des captures, pour que l'image de contrôle montre le verdict serré.
+         * L'instant de la sortie sur lequel l'heure de départ est calée : le même que celui
+         * des captures, pour que les images de contrôle montrent le verdict serré.
          */
         private const val PART_NUIT = 0.25
 
@@ -486,12 +493,12 @@ class Simulateur(
         const val PROPRIETE_HAUTEUR = "guidage.hauteur"
 
         /**
-         * Un mardi de septembre à neuf heures moins le quart.
+         * Un mardi de septembre — l'instant est le matin, l'heure de départ s'en déduit le soir.
          *
-         * L'instant est fixe et non « maintenant » : l'heure d'arrivée affichée fait partie de
+         * Le jour est fixe et non « aujourd'hui » : l'heure d'arrivée affichée fait partie de
          * ce qu'on juge, et une image de contrôle qui change d'heure à chaque exécution ne se
          * compare plus à la précédente.
          */
-        const val DEPART_PAR_DEFAUT = 1_757_487_600_000L
+        const val JOUR_PAR_DEFAUT = 1_757_487_600_000L
     }
 }

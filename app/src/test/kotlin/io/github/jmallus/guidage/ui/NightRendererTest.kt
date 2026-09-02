@@ -105,6 +105,23 @@ class NightRendererTest {
         assertTrue("le verdict a disparu", count(image, NightRenderer.TIGHT) > 500)
     }
 
+    /** La bande du tableau de bord : le mot dans sa couleur, le coucher sur la frise. */
+    @Test
+    fun `la bande porte le mot et le coucher`() {
+        val image = Bitmap.createBitmap(326, 87, Bitmap.Config.ARGB_8888)
+        NightRenderer.drawBand(
+            android.graphics.Canvas(image),
+            android.graphics.RectF(0f, 0f, 326f, 87f),
+            model(NightVerdict.TIGHT, "JUSTE"),
+            palette,
+        )
+        assertTrue("le verdict manque", count(image, NightRenderer.TIGHT) > 300)
+        assertTrue("le coucher manque", count(image, KarooColors.LEMON_YELLOW) > 10)
+        // Le pied de page et le pire cas n'ont pas leur place dans une bande : leur texte
+        // s'écrirait en teinte primaire, qui ne sert ici qu'au triangle du présent.
+        assertTrue("du texte de pleine page s'est glissé dans la bande", count(image, palette.textPrimary) < 60)
+    }
+
     @Test
     fun `une surface nulle ne casse rien`() {
         val image = image(model(NightVerdict.YES, "OUI"), largeur = 0, hauteur = 0)
