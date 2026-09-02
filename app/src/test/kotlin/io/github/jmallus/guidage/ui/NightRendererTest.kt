@@ -120,11 +120,27 @@ class NightRendererTest {
         return image
     }
 
-    /** La bande du tableau de bord : le mot dans sa couleur, le coucher sur la frise. */
+    /** Le nombre de pixels d'une couleur dans les [part] premiers centièmes de la hauteur. */
+    private fun countTop(image: Bitmap, color: Int, part: Double): Int {
+        var n = 0
+        for (y in 0 until (image.height * part).toInt()) {
+            for (x in 0 until image.width) if (image.getPixel(x, y) == color) n++
+        }
+        return n
+    }
+
+    /**
+     * La bande du tableau de bord : le mot dans sa couleur, le coucher sur la frise.
+     *
+     * Le verdict est compté dans le seul rang du haut, et non sur l'image entière : la frise
+     * porte elle aussi la couleur du verdict — le trait d'arrivée et son heure — et un total
+     * ne dirait plus si le mot est là. Le seuil est bas à dessein : il constate une présence,
+     * la taille du mot étant un arbitrage que le rendu documente et non une promesse.
+     */
     @Test
     fun `la bande porte le mot et le coucher`() {
         val image = bande(model(NightVerdict.TIGHT, "JUSTE"), hauteur = hauteurBande)
-        assertTrue("le verdict manque", count(image, NightRenderer.TIGHT) > 300)
+        assertTrue("le verdict manque", countTop(image, NightRenderer.TIGHT, 0.30) > 150)
         assertTrue("le coucher manque", count(image, KarooColors.LEMON_YELLOW) > 10)
         // Le pied de page et le pire cas n'ont pas leur place dans une bande : leur texte
         // s'écrirait en teinte primaire, qui ne sert ici qu'au triangle du présent.
