@@ -1,6 +1,7 @@
 package io.github.jmallus.guidage.ui
 
 import android.graphics.Bitmap
+import android.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -54,11 +55,29 @@ class NightRendererTest {
     private fun image(model: NightFieldModel, largeur: Int = 478, hauteur: Int = 642): Bitmap =
         NightRenderer.render(largeur, hauteur, model, palette)
 
+    /**
+     * L'empreinte d'une couleur : les pixels qu'elle a touchés, quelle que soit leur opacité.
+     *
+     * On comptait les pixels strictement égaux à la couleur, c'est-à-dire les seuls entièrement
+     * opaques. Sur du texte lissé, ce sont les rares pixels intérieurs d'un jambage : leur
+     * nombre ne suit pas la taille du texte, il saute. Un contrôle qui comparait deux tailles
+     * par ce compte tombait à pile ou face — et il est tombé. Les champs arrivent transparents,
+     * si bien qu'un pixel de bord porte la couleur du texte avec une opacité partielle : compter
+     * la couleur en ignorant l'opacité donne l'aire de l'encre, qui, elle, suit la taille.
+     */
     private fun count(image: Bitmap, color: Int): Int {
         var n = 0
-        for (y in 0 until image.height) for (x in 0 until image.width) if (image.getPixel(x, y) == color) n++
+        for (y in 0 until image.height) for (x in 0 until image.width) {
+            val pixel = image.getPixel(x, y)
+            if (Color.alpha(pixel) >= OPACITE_MINIMALE && (pixel and RVB) == (color and RVB)) n++
+        }
         return n
     }
+
+    /** En deçà, le pixel est une trace de lissage plutôt que de l'encre. */
+    private val OPACITE_MINIMALE = 40
+
+    private val RVB = 0x00FFFFFF
 
     @Test
     fun `le verdict domine dans sa couleur`() {
@@ -120,11 +139,14 @@ class NightRendererTest {
         return image
     }
 
-    /** Le nombre de pixels d'une couleur dans les [part] premiers centièmes de la hauteur. */
+    /** L'empreinte d'une couleur dans les [part] premiers centièmes de la hauteur. */
     private fun countTop(image: Bitmap, color: Int, part: Double): Int {
         var n = 0
         for (y in 0 until (image.height * part).toInt()) {
-            for (x in 0 until image.width) if (image.getPixel(x, y) == color) n++
+            for (x in 0 until image.width) {
+                val pixel = image.getPixel(x, y)
+                if (Color.alpha(pixel) >= OPACITE_MINIMALE && (pixel and RVB) == (color and RVB)) n++
+            }
         }
         return n
     }
@@ -143,8 +165,10 @@ class NightRendererTest {
         assertTrue("le verdict manque", countTop(image, NightRenderer.TIGHT, 0.30) > 150)
         assertTrue("le coucher manque", count(image, KarooColors.LEMON_YELLOW) > 10)
         // Le pied de page et le pire cas n'ont pas leur place dans une bande : leur texte
-        // s'écrirait en teinte primaire, qui ne sert ici qu'au triangle du présent.
-        assertTrue("du texte de pleine page s'est glissé dans la bande", count(image, palette.textPrimary) < 90)
+        // s'écrirait en teinte primaire, qui ne sert ici qu'au triangle du présent. Le seuil
+        // sépare largement les deux — le triangle pèse quelques dizaines de pixels, la moindre
+        // ligne de texte plusieurs centaines.
+        assertTrue("du texte de pleine page s'est glissé dans la bande", count(image, palette.textPrimary) < 200)
     }
 
     /**
@@ -155,12 +179,16 @@ class NightRendererTest {
      * en dessous de ce que la place permettait. Il se déduit maintenant de la hauteur restante,
      * et une bande plus haute porte donc plus d'encre — c'est ce que ce contrôle vérifie, la
      * taille d'un texte ne se lisant pas autrement sur une image.
+     *
+     * La comparaison se fait vers le bas, contre une bande étroite, et non vers le haut : le
+     * corps est plafonné, et deux bandes hautes écrivent donc de la même taille sans que rien
+     * n'aille mal.
      */
     @Test
     fun `la frise grandit avec la bande`() {
         val modele = model(NightVerdict.TIGHT, "JUSTE")
-        val serree = count(bande(modele, hauteur = hauteurBande), KarooColors.LEMON_YELLOW)
-        val aise = count(bande(modele, hauteur = hauteurBande * 3 / 2), KarooColors.LEMON_YELLOW)
+        val serree = count(bande(modele, hauteur = hauteurBande * 2 / 3), KarooColors.LEMON_YELLOW)
+        val aise = count(bande(modele, hauteur = hauteurBande), KarooColors.LEMON_YELLOW)
         assertTrue("la frise n'a pas profité de la hauteur : $serree puis $aise", aise > serree)
     }
 
