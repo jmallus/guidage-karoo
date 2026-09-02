@@ -74,6 +74,13 @@
         icon="@drawable/ic_poi" />
 
     <DataType
+        typeId="nuit"
+        displayName="@string/field_night_name"
+        description="@string/field_night_description"
+        graphical="true"
+        icon="@drawable/ic_arrival" />
+
+    <DataType
         typeId="poi"
         displayName="@string/field_poi_name"
         description="@string/field_poi_description"

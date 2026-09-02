@@ -33,6 +33,7 @@ import io.github.jmallus.guidage.extension.ContextDataType
 import io.github.jmallus.guidage.extension.DashboardDataType
 import io.github.jmallus.guidage.extension.EffortDataType
 import io.github.jmallus.guidage.extension.FieldReport
+import io.github.jmallus.guidage.extension.NightDataType
 import io.github.jmallus.guidage.extension.PoiDataType
 import io.github.jmallus.guidage.extension.ProfileDataType
 import io.github.jmallus.guidage.extension.ResupplyDataType
@@ -238,6 +239,7 @@ private fun fieldName(typeId: String): String = when (typeId) {
     SurfaceDataType.TYPE_ID -> stringResource(R.string.field_surface_name)
     ResupplyDataType.TYPE_ID -> stringResource(R.string.field_resupply_name)
     AutonomyDataType.TYPE_ID -> stringResource(R.string.field_autonomy_name)
+    NightDataType.TYPE_ID -> stringResource(R.string.field_night_name)
     PoiDataType.TYPE_ID -> stringResource(R.string.field_poi_name)
     else -> typeId
 }
