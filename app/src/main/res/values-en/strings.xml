@@ -116,6 +116,8 @@
     <string name="field_night_no">NO</string>
     <string name="field_night_margin_ahead">%1$d min to spare</string>
     <string name="field_night_margin_behind">%1$d min late</string>
+    <string name="field_night_margin_ahead_hours">%1$d h %2$02d to spare</string>
+    <string name="field_night_margin_behind_hours">%1$d h %2$02d late</string>
     <string name="field_night_uncertainty">· estimate ± %1$d</string>
     <string name="field_night_now">now</string>
     <string name="field_night_arrival">arrival %1$s</string>

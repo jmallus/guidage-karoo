@@ -75,6 +75,10 @@ object DashboardModels {
         }
 
         val units = snapshot.units
+        // La bande du soir ne prend le pied que si elle a une frise à montrer : sans position
+        // ni coucher, les deux cases d'origine valent mieux qu'un message d'attente.
+        val night = NightModels.build(context, snapshot, rideData, preview, nowMillis)
+            .takeIf { it.timeline != null }
         return DashboardModel(
             guidance = when (settings.guidanceZone) {
                 GuidanceZoneType.MAP -> GuidanceZone.Map(
@@ -86,7 +90,8 @@ object DashboardModels {
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
             midTiles = midTiles(context, units, rideData),
-            footerTiles = footerTiles(context, units, rideData, state, nowMillis),
+            footerTiles = footerTiles(context, units, rideData, state, nowMillis, withArrival = night == null),
+            night = night,
             profileBand = profileBand(context, snapshot, settings, preview),
             palette = FieldPalette.of(context),
         )
@@ -264,14 +269,28 @@ object DashboardModels {
         ),
     )
 
-    /** Ligne du bas : ce qu'il reste à parcourir. */
+    /**
+     * Ligne du bas : ce qu'il reste à parcourir, et l'heure d'arrivée si la bande « Avant la
+     * nuit » ne la porte pas déjà sur sa frise.
+     */
     private fun footerTiles(
         context: Context,
         units: Units,
         rideData: RideData,
         state: GuidanceState,
         nowMillis: Long,
+        withArrival: Boolean,
     ): List<Tile> {
+        val remaining = Tile(
+            label = context.getString(
+                R.string.dashboard_label_remaining,
+                remainingUnit(units).uppercase(),
+            ),
+            value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
+            icon = R.drawable.ic_distance_remaining,
+        ).splitDecimal()
+        if (!withArrival) return listOf(remaining)
+
         val estimate = FieldModels.arrival(state, rideData)
         // À défaut d'allure apprise, l'heure du Karoo : elle vaut mieux qu'un tiret.
         val arrival = estimate
@@ -286,14 +305,7 @@ object DashboardModels {
             ?.takeIf { it >= 1 }
 
         return listOf(
-            Tile(
-                label = context.getString(
-                    R.string.dashboard_label_remaining,
-                    remainingUnit(units).uppercase(),
-                ),
-                value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-                icon = R.drawable.ic_distance_remaining,
-            ).splitDecimal(),
+            remaining,
             Tile(
                 label = margin
                     ?.let { context.getString(R.string.dashboard_label_arrival_margin, it) }

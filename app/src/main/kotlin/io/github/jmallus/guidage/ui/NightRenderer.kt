@@ -141,27 +141,12 @@ object NightRenderer {
             // La marge dans la couleur du verdict, l'incertitude en retrait : la première
             // est la réponse, la seconde dit à quel point on peut la croire.
             val marginSize = (height * 0.042f).coerceIn(10f, 28f)
-            val marginPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = accent
-                textSize = marginSize
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            }
-            val uncertaintyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = palette.textSecondary
-                textSize = marginSize
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-            }
             model.marginLabel?.let { margin ->
                 cursor += marginSize * 1.5f
-                canvas.drawText(margin, left, cursor, marginPaint)
-                model.uncertaintyLabel?.let { uncertainty ->
-                    val x = left + marginPaint.measureText(margin) + marginSize * 0.4f
-                    if (x + uncertaintyPaint.measureText(uncertainty) <= right) {
-                        canvas.drawText(uncertainty, x, cursor, uncertaintyPaint)
-                    } else if (cursor + marginSize * 1.3f < contentBottom) {
-                        cursor += marginSize * 1.3f
-                        canvas.drawText(uncertainty, left, cursor, uncertaintyPaint)
-                    }
+                val used = drawMargin(canvas, margin, model.uncertaintyLabel, left, cursor, right, marginSize, accent, palette)
+                if (!used && model.uncertaintyLabel != null && cursor + marginSize * 1.3f < contentBottom) {
+                    cursor += marginSize * 1.3f
+                    canvas.drawText(model.uncertaintyLabel, left, cursor, labelPaint(marginSize, palette.textSecondary))
                 }
             }
             cursor += padding
@@ -170,7 +155,19 @@ object NightRenderer {
         if (timeline != null) {
             val timelineHeight = (height * 0.27f).coerceIn(40f, 180f)
             if (cursor + timelineHeight <= contentBottom) {
-                drawTimeline(canvas, timeline, left, cursor, right, cursor + timelineHeight, model.verdict, palette)
+                drawTimeline(
+                    canvas = canvas,
+                    timeline = timeline,
+                    left = left,
+                    top = cursor,
+                    right = right,
+                    bottom = cursor + timelineHeight,
+                    verdict = model.verdict,
+                    palette = palette,
+                    labelSize = (timelineHeight * 0.12f).coerceIn(8f, 18f),
+                    railHeight = (timelineHeight * 0.07f).coerceIn(3f, 10f),
+                    compact = false,
+                )
                 cursor += timelineHeight
             }
         }
@@ -210,6 +207,92 @@ object NightRenderer {
     }
 
     /**
+     * Le champ réduit à une bande : le pied du tableau de bord.
+     *
+     * Le mot à gauche, la marge à sa suite, la frise dessous. Ni titre — le tableau de bord
+     * n'en met à aucune case, et le mot se comprend seul —, ni pied de page, ni le pire cas :
+     * une bande de quatre-vingts points n'a de place que pour la réponse et ce qui la montre.
+     * La frise perd ses libellés « maintenant » et « nuit » : le triangle et le rail assombri
+     * les disent encore, et deux rangs de texte n'entrent pas dans la hauteur.
+     */
+    fun drawBand(canvas: Canvas, area: RectF, model: NightFieldModel, palette: Palette) {
+        val width = area.width()
+        val height = area.height()
+        if (width <= 0f || height <= 0f) return
+        val padding = (height * 0.05f).coerceIn(2f, 6f)
+        val left = area.left + padding
+        val right = area.right - padding
+
+        val headRow = height * BAND_HEAD_FRACTION
+        val baseline = area.top + headRow * 0.82f
+        val verdictLabel = model.verdictLabel
+        if (verdictLabel != null && model.verdict != null) {
+            val accent = verdictColor(model.verdict)
+            val verdictPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = accent
+                textSize = headRow * 0.9f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            }
+            fit(verdictPaint, verdictLabel, (right - left) * 0.6f)
+            canvas.drawText(verdictLabel, left, baseline, verdictPaint)
+            model.marginLabel?.let { margin ->
+                val marginSize = (height * 0.17f).coerceIn(10f, 16f)
+                val x = left + verdictPaint.measureText(verdictLabel) + marginSize * 0.6f
+                drawMargin(canvas, margin, model.uncertaintyLabel, x, baseline, right, marginSize, accent, palette)
+            }
+        } else {
+            model.emptyMessage?.let { message ->
+                val paint = labelPaint((height * 0.17f).coerceIn(10f, 16f), palette.textSecondary, bold = true)
+                fit(paint, message, right - left)
+                canvas.drawText(message, left, baseline, paint)
+            }
+        }
+
+        model.timeline?.let { timeline ->
+            drawTimeline(
+                canvas = canvas,
+                timeline = timeline,
+                left = left,
+                top = area.top + headRow,
+                right = right,
+                bottom = area.bottom,
+                verdict = model.verdict,
+                palette = palette,
+                labelSize = (height * 0.14f).coerceIn(9f, 12f),
+                railHeight = (height * 0.06f).coerceIn(3f, 5f),
+                compact = true,
+            )
+        }
+    }
+
+    /**
+     * La marge, puis l'incertitude à sa suite si elle tient sur la même ligne.
+     *
+     * Rend vrai quand l'incertitude a été écrite — ou qu'il n'y en avait pas à écrire.
+     */
+    private fun drawMargin(
+        canvas: Canvas,
+        margin: String,
+        uncertainty: String?,
+        left: Float,
+        baseline: Float,
+        right: Float,
+        size: Float,
+        accent: Int,
+        palette: Palette,
+    ): Boolean {
+        val marginPaint = labelPaint(size, accent, bold = true)
+        fit(marginPaint, margin, right - left)
+        canvas.drawText(margin, left, baseline, marginPaint)
+        if (uncertainty == null) return true
+        val uncertaintyPaint = labelPaint(size, palette.textSecondary)
+        val x = left + marginPaint.measureText(margin) + size * 0.4f
+        if (x + uncertaintyPaint.measureText(uncertainty) > right) return false
+        canvas.drawText(uncertainty, x, baseline, uncertaintyPaint)
+        return true
+    }
+
+    /**
      * La frise, du présent à la nuit.
      *
      * Le rail est gris ; il se teinte de crépuscule après le coucher et de nuit après la fin
@@ -217,7 +300,7 @@ object NightRenderer {
      * trait à sa moyenne, dans la couleur du verdict. Le coucher est un trait jaune, le jaune
      * du Karoo, qui est ici la référence et non un itinéraire. Les libellés se répartissent
      * sur deux rangs sous le rail, pour que « coucher » et « nuit », souvent proches, ne se
-     * chevauchent jamais.
+     * chevauchent jamais. En [compact], un seul rang dessous, qui ne porte que le coucher.
      */
     private fun drawTimeline(
         canvas: Canvas,
@@ -228,15 +311,16 @@ object NightRenderer {
         bottom: Float,
         verdict: NightVerdict?,
         palette: Palette,
+        labelSize: Float,
+        railHeight: Float,
+        compact: Boolean,
     ) {
-        val height = bottom - top
-        val labelSize = (height * 0.12f).coerceIn(8f, 18f)
-        val railHeight = (height * 0.07f).coerceIn(3f, 10f)
-        // Un rang de libellé au-dessus (l'arrivée), deux dessous (maintenant et coucher, puis
-        // la nuit) : le rail se place pour que tout tienne.
+        // Un rang de libellé au-dessus (l'arrivée), un ou deux dessous : le rail se place pour
+        // que tout tienne.
         val railTop = top + labelSize * 1.6f + railHeight * 1.2f
         val railBottom = railTop + railHeight
-        if (railBottom + labelSize * 2.6f > bottom) return
+        val rowsBelow = if (compact) 1.4f else 2.6f
+        if (railBottom + labelSize * rowsBelow > bottom) return
 
         val inset = railHeight
         val railLeft = left + inset
@@ -293,13 +377,7 @@ object NightRenderer {
         val firstRow = railBottom + railHeight * 1.2f + labelSize * 1.1f
         val secondRow = firstRow + labelSize * 1.25f
         val sunsetPaint = labelPaint(labelSize, KarooColors.LEMON_YELLOW)
-        val nowPaint = labelPaint(labelSize, palette.textSecondary)
-        val nowWidth = nowPaint.measureText(timeline.nowLabel)
-        // « Maintenant » au bord gauche ; le coucher au rang du haut s'il ne le touche pas,
-        // au rang du bas sinon — et la nuit prend le rang qui reste libre.
         val sunsetLeft = anchored(sunsetPaint, timeline.sunsetLabel, sunsetX, left, right)
-        val sunsetOnFirstRow = sunsetLeft > left + nowWidth + labelSize * 0.6f
-        canvas.drawText(timeline.sunsetLabel, sunsetLeft, if (sunsetOnFirstRow) firstRow else secondRow, sunsetPaint)
 
         // Maintenant : un triangle blanc sous le rail, à l'origine.
         val tri = Path().apply {
@@ -309,6 +387,18 @@ object NightRenderer {
             close()
         }
         canvas.drawPath(tri, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = palette.textPrimary })
+
+        if (compact) {
+            canvas.drawText(timeline.sunsetLabel, sunsetLeft, firstRow, sunsetPaint)
+            return
+        }
+
+        // « Maintenant » au bord gauche ; le coucher au rang du haut s'il ne le touche pas,
+        // au rang du bas sinon — et la nuit prend le rang qui reste libre.
+        val nowPaint = labelPaint(labelSize, palette.textSecondary)
+        val nowWidth = nowPaint.measureText(timeline.nowLabel)
+        val sunsetOnFirstRow = sunsetLeft > left + nowWidth + labelSize * 0.6f
+        canvas.drawText(timeline.sunsetLabel, sunsetLeft, if (sunsetOnFirstRow) firstRow else secondRow, sunsetPaint)
         canvas.drawText(timeline.nowLabel, left, firstRow, nowPaint)
 
         timeline.duskFraction?.let { dusk ->
@@ -398,6 +488,9 @@ object NightRenderer {
     /** Le rail après le coucher, puis après la nuit civile. */
     private const val TWILIGHT = KarooColors.AEGEAN_BLUE
     private const val NIGHT = 0xFF11181C.toInt()
+
+    /** Part de la bande donnée au mot et à sa marge ; la frise prend le reste. */
+    private const val BAND_HEAD_FRACTION = 0.38f
 
     private const val BAND_ALPHA = 0x47
     private const val DUSK_ALPHA = 0x80

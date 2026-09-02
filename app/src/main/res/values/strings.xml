@@ -116,6 +116,8 @@
     <string name="field_night_no">NON</string>
     <string name="field_night_margin_ahead">%1$d min d\'avance</string>
     <string name="field_night_margin_behind">%1$d min de retard</string>
+    <string name="field_night_margin_ahead_hours">%1$d h %2$02d d\'avance</string>
+    <string name="field_night_margin_behind_hours">%1$d h %2$02d de retard</string>
     <string name="field_night_uncertainty">· estimation ± %1$d</string>
     <string name="field_night_now">maintenant</string>
     <string name="field_night_arrival">arrivée %1$s</string>
