@@ -50,6 +50,7 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
             SurfaceDataType(provider, roadMapRepository, extension),
             ResupplyDataType(provider, settingsRepository, extension),
             AutonomyDataType(provider, rideDataProvider, settingsRepository, extension),
+            NightDataType(provider, rideDataProvider, extension),
             PoiDataType(provider, extension),
         )
     }

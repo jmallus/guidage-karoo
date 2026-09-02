@@ -304,6 +304,7 @@ class SimulateurTest {
                 "champ-virages" to simulateur.imageVirages(secondes),
                 "champ-reserve" to simulateur.imageReserve(secondes),
                 "champ-autonomie" to simulateur.imageAutonomie(secondes),
+                "champ-nuit" to simulateur.imageNuit(secondes),
             )
             autres.forEach { (nom, image) ->
                 assertTrue(
@@ -395,6 +396,7 @@ class SimulateurTest {
         // Les pleines pages d'abord, chacune tenant sa colonne ; les champs de bande ensuite.
         champ("Tableau de bord", simulateur.image(secondes)),
         champ("Autonomie", simulateur.imageAutonomie(secondes)),
+        champ("Avant la nuit", simulateur.imageNuit(secondes)),
         champ("Réserve", simulateur.imageReserve(secondes)),
         champ("Virages", simulateur.imageVirages(secondes)),
         champ("Revêtement", simulateur.imageRevetement(secondes)),

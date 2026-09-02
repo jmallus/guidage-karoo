@@ -2,14 +2,17 @@ package io.github.jmallus.guidage.extension
 
 import android.content.Context
 import io.github.jmallus.guidage.R
+import io.github.jmallus.guidage.core.ArrivalEstimate
 import io.github.jmallus.guidage.core.ClimbStatus
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
+import io.github.jmallus.guidage.core.Pacing
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.Resupply
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
+import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.ClimbFieldModel
 import io.github.jmallus.guidage.ui.PreviewData
@@ -208,6 +211,25 @@ object FieldModels {
         val along = state.distanceAlongRoute ?: return null
         return Guidance.climbStatus(route, along)
     }
+
+    /**
+     * L'heure d'arrivée déduite de l'allure apprise et du relief qui reste.
+     *
+     * Elle vivait dans le pied du tableau de bord. Le champ « Avant la nuit » la compare au
+     * coucher du soleil, et les deux doivent annoncer la même heure — sans quoi le coureur
+     * lirait deux arrivées sur deux pages et ne saurait laquelle croire. Null tant que
+     * l'allure n'est pas assez observée.
+     */
+    fun arrival(state: GuidanceState, rideData: RideData): ArrivalEstimate? = Pacing.arrival(
+        pace = rideData.pace,
+        terrain = Pacing.terrain(
+            profile = state.route?.profile,
+            from = state.distanceAlongRoute ?: 0.0,
+            remainingDistance = rideData.distanceRemaining
+                ?: state.distanceRemaining
+                ?: 0.0,
+        ),
+    )
 
     /** Le parcours d'exemple, quand le champ est affiché hors sortie. */
     private fun substituted(snapshot: GuidanceSnapshot, preview: Boolean): GuidanceState =

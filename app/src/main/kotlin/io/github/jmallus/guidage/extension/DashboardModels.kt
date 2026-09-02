@@ -8,7 +8,6 @@ import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
-import io.github.jmallus.guidage.core.Pacing
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.Zones
@@ -273,16 +272,7 @@ object DashboardModels {
         state: GuidanceState,
         nowMillis: Long,
     ): List<Tile> {
-        val estimate = Pacing.arrival(
-            pace = rideData.pace,
-            terrain = Pacing.terrain(
-                profile = state.route?.profile,
-                from = state.distanceAlongRoute ?: 0.0,
-                remainingDistance = rideData.distanceRemaining
-                    ?: state.distanceRemaining
-                    ?: 0.0,
-            ),
-        )
+        val estimate = FieldModels.arrival(state, rideData)
         // À défaut d'allure apprise, l'heure du Karoo : elle vaut mieux qu'un tiret.
         val arrival = estimate
             ?.let { nowMillis + (it.seconds * 1_000).toLong() }

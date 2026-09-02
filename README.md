@@ -35,19 +35,22 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 | **Revêtement** | graphique, **pleine page** | Route, chemin ou voie verte sur les cinq prochains kilomètres, en posant le tracé sur le fond de carte embarqué, avec la légende des classes rencontrées. |
 | **Réserve** | graphique, **pleine page** | Après quel point de ravitaillement il n'y a plus rien. La ligne porte l'itinéraire entier : points passés en gris, prochain en blanc, dernier utile cerclé de jaune, et à sa droite un segment rouge qui ne porte rien. |
 | **Autonomie** | graphique, **pleine page** | Les deux réserves qui s'épuisent sur une seule page : la réserve d'eau en haut, le budget d'effort en bas. On ne s'arrête qu'une fois, et c'est en voyant les deux ensemble qu'on décide de s'arrêter à ce point-ci ou de tenir jusqu'au suivant. Demande en outre un capteur de puissance pour sa moitié basse. |
+| **Avant la nuit** | graphique, **pleine page** | Arriverez-vous avant le coucher du soleil ? Un mot — **OUI**, **JUSTE**, **NON** — jugé sur la fourchette de l'heure d'arrivée et non sur sa seule moyenne, puis la frise du soir : l'arrivée avec son incertitude, le coucher, la nuit civile. Quand le pire cas ne passe pas, à quelle distance de l'arrivée la nuit vous prendrait. Le coucher est calculé sur l'appareil, depuis votre position, sans réseau. |
 
 Tous s'adaptent à la **taille** que le profil de page leur alloue ; « Prochaine côte » suit en
-outre l'**alignement** configuré. Les neuf champs graphiques affichent un aperçu réaliste dans
+outre l'**alignement** configuré. Les dix champs graphiques affichent un aperçu réaliste dans
 l'écran d'édition des pages — « Prochain point d'intérêt » n'en a pas besoin, c'est le Karoo
 qui le dessine.
 
 ### À quoi ils ressemblent
 
-Les quatre pleines pages, au même instant de la sortie simulée :
+Les cinq pleines pages, au même instant de la sortie simulée — « Avant la nuit » étant rejouée
+le soir, à l'heure où son verdict se joue :
 
 <table>
   <tr>
     <td align="center"><img src="docs/captures/champ-autonomie.png" width="180" alt="Autonomie"><br><b>Autonomie</b></td>
+    <td align="center"><img src="docs/captures/champ-nuit.png" width="180" alt="Avant la nuit"><br><b>Avant la nuit</b></td>
     <td align="center"><img src="docs/captures/champ-reserve.png" width="180" alt="Réserve"><br><b>Réserve</b></td>
     <td align="center"><img src="docs/captures/champ-virages.png" width="180" alt="Virages"><br><b>Virages</b></td>
     <td align="center"><img src="docs/captures/champ-revetement.png" width="180" alt="Revêtement"><br><b>Revêtement</b></td>
@@ -84,13 +87,15 @@ carte, puis hors itinéraire — le tracé passe au rouge :
 champ ou enregistrée dans le fichier de la sortie : la distance au pied ou au sommet
 (« Prochaine côte »), au prochain point (« Prochain point d'intérêt »), au virage le plus
 serré devant (« Virages »), au prochain changement de sol (« Revêtement ») ; la longueur de
-la prochaine traversée sans ravitaillement (« Réserve ») ; et les kilojoules restants
-(« Budget d'effort », « Autonomie »).
+la prochaine traversée sans ravitaillement (« Réserve ») ; les kilojoules restants
+(« Budget d'effort », « Autonomie ») ; et l'avance sur le coucher du soleil, en minutes, négative
+quand on arrive après (« Avant la nuit »).
 
-Quatre champs sont marqués **pleine page**. Ils fonctionnent posés sur un demi-rang, mais ne
+Cinq champs sont marqués **pleine page**. Ils fonctionnent posés sur un demi-rang, mais ne
 portent pas une valeur : une répartition — les virages d'une descente, les revêtements d'une
-portion, l'espacement des ravitaillements. Réduits à une bande, il ne leur reste que leurs
-deux chiffres, c'est-à-dire ce que les champs numériques disent déjà. Leur mise en page
+portion, l'espacement des ravitaillements — ou un verdict et ce qui le justifie. Réduits à une
+bande, il ne leur reste que leurs deux chiffres, ou leur mot, c'est-à-dire ce que les champs
+numériques disent déjà. Leur mise en page
 change au-delà d'un rapport hauteur/largeur d'un dixième au-dessus du carré.
 
 ### L'échelle du profil
@@ -478,8 +483,8 @@ que celle d'une maquette.
 | `+` `-` | ajuster l'échelle par pas de 5 %, la règle en témoin |
 | `échap` | quitter |
 
-**Les neuf champs graphiques à la fois.** Les pleines pages d'abord — tableau de bord,
-autonomie, réserve, virages, revêtement — puis les champs de bande — profil à venir, suivant
+**Les dix champs graphiques à la fois.** Les pleines pages d'abord — tableau de bord,
+autonomie, avant la nuit, réserve, virages, revêtement — puis les champs de bande — profil à venir, suivant
 la sortie, prochaine côte, budget d'effort —, en colonnes, tous alimentés par le même instant
 de la sortie et tracés **au même facteur**. C'est la seule disposition qui permette de juger des
 tailles de texte d'un champ à l'autre : les mettre chacun à sa taille confortable donnerait

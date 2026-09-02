@@ -10,6 +10,7 @@ import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.LearnedPace
 import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.core.PaceLearner
+import io.github.jmallus.guidage.core.Sun
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.BendModels
@@ -17,6 +18,7 @@ import io.github.jmallus.guidage.extension.ContextModels
 import io.github.jmallus.guidage.extension.DashboardModels
 import io.github.jmallus.guidage.extension.EffortModels
 import io.github.jmallus.guidage.extension.FieldModels
+import io.github.jmallus.guidage.extension.NightModels
 import io.github.jmallus.guidage.extension.SurfaceModels
 import io.github.jmallus.guidage.extension.ResupplyTypes
 import io.github.jmallus.guidage.extension.RoadSource
@@ -33,6 +35,7 @@ import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.ContextRenderer
 import io.github.jmallus.guidage.ui.EffortRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
+import io.github.jmallus.guidage.ui.NightRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
 import io.github.jmallus.guidage.ui.ResupplyRenderer
@@ -346,6 +349,44 @@ class Simulateur(
         FieldPalette.of(context),
     )
 
+    /**
+     * Le champ « Avant la nuit », en pleine page.
+     *
+     * La sortie fictive part à neuf heures moins le quart, et le champ n'aurait alors qu'un
+     * « oui » à dix heures de marge à montrer. Elle est donc rejouée le soir, à l'heure qui
+     * place l'arrivée estimée de l'instant de capture quelques minutes avant le coucher :
+     * c'est là que le verdict se joue, et c'est ce que le champ existe pour montrer. Le
+     * modèle et le rendu restent ceux de l'appareil ; seule l'horloge est décalée.
+     */
+    fun imageNuit(
+        secondes: Double,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR,
+    ): Bitmap {
+        val decalage = debutSoir - departMillis
+        val releve = releve(secondes).let { it.copy(arrivalTime = it.arrivalTime?.plus(decalage)) }
+        return NightRenderer.render(
+            largeur,
+            hauteur,
+            NightModels.build(
+                context,
+                instantane(secondes),
+                releve,
+                preview = false,
+                nowMillis = debutSoir + (secondes * 1_000).toLong(),
+            ),
+            FieldPalette.of(context),
+        )
+    }
+
+    /** L'heure de départ de la sortie rejouée le soir, déduite du coucher du jour. */
+    private val debutSoir: Long by lazy {
+        val secondes = sortie.duree * PART_NUIT
+        val attendu = FieldModels.arrival(instantane(secondes).state, releve(secondes))?.seconds ?: 0.0
+        val coucher = Sun.next(PreviewData.location.position, departMillis)!!.sunsetMillis
+        coucher - ((secondes + attendu) * 1_000).toLong() - AVANCE_NUIT_MS
+    }
+
     fun modele(secondes: Double): DashboardModel {
         val maintenant = departMillis + (secondes * 1_000).toLong()
         return DashboardModels.build(
@@ -371,6 +412,15 @@ class Simulateur(
     companion object {
         /** Pas d'apprentissage de l'allure (s). */
         private const val PAS_APPRENTISSAGE = 2.0
+
+        /**
+         * L'instant de la sortie auquel le champ « Avant la nuit » est calé : le même que
+         * celui des captures, pour que l'image de contrôle montre le verdict serré.
+         */
+        private const val PART_NUIT = 0.25
+
+        /** L'avance de l'arrivée moyenne sur le coucher à cet instant-là (ms) : huit minutes. */
+        private const val AVANCE_NUIT_MS = 8 * 60_000L
 
         /**
          * La largeur laissée au champ.
