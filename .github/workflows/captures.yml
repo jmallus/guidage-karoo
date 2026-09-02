@@ -60,6 +60,10 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ secrets.GPR_USER }}
           GITHUB_TOKEN: ${{ secrets.GPR_KEY }}
+          # Les heures écrites sur les captures — arrivée, coucher — sont celles du fuseau de
+          # la machine, et l'exécuteur vit à Greenwich : le coucher de Grenoble s'y lisait
+          # « 17:57 ». Le coureur simulé, lui, est en France.
+          TZ: Europe/Paris
 
       - name: Ranger et commiter
         run: |
