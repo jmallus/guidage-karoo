@@ -90,7 +90,7 @@ object DashboardModels {
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
             midTiles = midTiles(context, units, rideData),
-            footerTiles = footerTiles(context, units, rideData, state, nowMillis, withArrival = night == null),
+            footerTiles = footerTiles(context, rideData, state, nowMillis, withArrival = night == null),
             night = night,
             profileBand = profileBand(context, snapshot, settings, preview),
             palette = FieldPalette.of(context),
@@ -254,12 +254,26 @@ object DashboardModels {
         icon = R.drawable.ic_gears,
     )
 
-    /** Rang sous la carte : distance parcourue à gauche, pente instantanée à droite. */
+    /**
+     * Rang sous la carte : distance parcourue, distance restante, pente instantanée.
+     *
+     * La distance restante y a rejoint la parcourue : les deux se lisent ensemble — où j'en
+     * suis, ce qui reste — et le rang du bas, qu'elle occupait, est allé tout entier à la
+     * bande du soir.
+     */
     private fun midTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
         Tile(
             label = context.getString(R.string.dashboard_label_distance),
             value = rideData.distance?.let { remainingValue(it, units) } ?: PLACEHOLDER,
             icon = R.drawable.ic_distance,
+        ).splitDecimal(),
+        Tile(
+            label = context.getString(
+                R.string.dashboard_label_remaining,
+                remainingUnit(units).uppercase(),
+            ),
+            value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
+            icon = R.drawable.ic_distance_remaining,
         ).splitDecimal(),
         Tile(
             label = context.getString(R.string.dashboard_label_grade),
@@ -270,26 +284,17 @@ object DashboardModels {
     )
 
     /**
-     * Ligne du bas : ce qu'il reste à parcourir, et l'heure d'arrivée si la bande « Avant la
-     * nuit » ne la porte pas déjà sur sa frise.
+     * Ligne du bas : l'heure d'arrivée, seulement si la bande « Avant la nuit » ne la porte
+     * pas déjà sur sa frise. Vide sinon — la bande prend tout le rang.
      */
     private fun footerTiles(
         context: Context,
-        units: Units,
         rideData: RideData,
         state: GuidanceState,
         nowMillis: Long,
         withArrival: Boolean,
     ): List<Tile> {
-        val remaining = Tile(
-            label = context.getString(
-                R.string.dashboard_label_remaining,
-                remainingUnit(units).uppercase(),
-            ),
-            value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-            icon = R.drawable.ic_distance_remaining,
-        ).splitDecimal()
-        if (!withArrival) return listOf(remaining)
+        if (!withArrival) return emptyList()
 
         val estimate = FieldModels.arrival(state, rideData)
         // À défaut d'allure apprise, l'heure du Karoo : elle vaut mieux qu'un tiret.
@@ -305,7 +310,6 @@ object DashboardModels {
             ?.takeIf { it >= 1 }
 
         return listOf(
-            remaining,
             Tile(
                 label = margin
                     ?.let { context.getString(R.string.dashboard_label_arrival_margin, it) }
