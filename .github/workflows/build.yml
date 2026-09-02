@@ -173,10 +173,28 @@ jobs:
             # captures n'apprennent rien à qui roule.
             precedent=$(git describe --tags --abbrev=0 --match 'v[0-9]*' \
               "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+            #
+            # Le sujet d'une fusion — « Merge pull request #14 from jmallus/claude/… » —
+            # n'apprend rien à qui lit la fiche sur l'appareil : il nomme un numéro et une
+            # branche. C'est le corps du commit qui porte le titre de la pull request, et
+            # c'est celui-là qu'on veut. Les autres commits gardent leur sujet, et une fusion
+            # sans corps retombe sur le sien, faute de mieux.
             if [ -n "$precedent" ]; then
-              changements=$(git log --first-parent --format='· %s' \
-                "${precedent}..${GITHUB_REF_NAME}" \
-                | grep -v 'Régénère les captures' | head -12 || true)
+              changements=$(
+                git log --first-parent --format='%H' "${precedent}..${GITHUB_REF_NAME}" |
+                  while read -r commit; do
+                    sujet=$(git log -1 --format='%s' "$commit")
+                    case "$sujet" in
+                      'Merge pull request'*)
+                        titre=$(git log -1 --format='%b' "$commit" | sed '/./!d' | head -1)
+                        ;;
+                      *)
+                        titre="$sujet"
+                        ;;
+                    esac
+                    echo "· ${titre:-$sujet}"
+                  done | grep -v 'Régénère les captures' | head -12 || true
+              )
             fi
             [ -n "${changements:-}" ] || changements="Première version publiée."
 
