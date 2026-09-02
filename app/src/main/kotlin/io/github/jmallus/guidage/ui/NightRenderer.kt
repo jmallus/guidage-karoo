@@ -501,8 +501,16 @@ object NightRenderer {
     private const val TWILIGHT = KarooColors.AEGEAN_BLUE
     private const val NIGHT = 0xFF11181C.toInt()
 
-    /** Part de la bande donnée au mot et à sa marge ; la frise prend le reste. */
-    private const val BAND_HEAD_FRACTION = 0.34f
+    /**
+     * Part de la bande donnée au mot et à sa marge ; la frise prend le reste.
+     *
+     * Le partage est un arbitrage, et il coûte cher dans un sens : la frise se partageant en
+     * quatre hauteurs de libellé, un point gagné sur elles s'achète à trois ou quatre points
+     * sur le mot. Il a été poussé jusqu'ici parce que le mot reste lisible bien en dessous de
+     * sa taille d'origine — il est en gras, en capitales, et seul de sa couleur — là où les
+     * heures de la frise, elles, se lisent chiffre à chiffre.
+     */
+    private const val BAND_HEAD_FRACTION = 0.26f
 
     /**
      * De combien le trait d'arrivée dépasse le rail, en multiples de son épaisseur, et où se
