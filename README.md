@@ -13,9 +13,8 @@ aucune connexion réseau, aucun compte, rien à synchroniser.
 
 **Toutes les images de ce README sortent du rendu de l'appareil.** Elles ne sont pas des
 maquettes : le [simulateur](#le-simulateur) appelle les mêmes classes que le champ Karoo,
-dans le même `Canvas` d'Android, et le CI les régénère à la demande dans `docs/captures/`.
-Elles ne peuvent donc pas dériver du code — ce qui n'était pas le cas des planches qu'elles
-remplacent, dessinées une seconde fois en JavaScript.
+dans le même `Canvas` d'Android, et le CI les régénère à chaque changement d'affichage. Elles
+ne peuvent donc pas dériver du code.
 
 Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accorde réellement.
 
@@ -99,12 +98,12 @@ change au-delà d'un rapport hauteur/largeur d'un dixième au-dessus du carré.
 
 ### L'échelle du profil
 
-Le champ « Profil à venir » avait une portée réglable, de un à quinze kilomètres. Ce réglage
-était l'aveu d'un choix impossible : à cinq kilomètres on voit la rampe qui arrive mais plus
-la journée, à quinze on voit la journée mais la rampe tient dans deux pixels. Et le choix se
-pose en roulant, c'est-à-dire au moment où l'on ne veut rien régler.
+Une portée réglable, de un à quinze kilomètres, serait l'aveu d'un choix impossible : à cinq
+kilomètres on voit la rampe qui arrive mais plus la journée, à quinze on voit la journée mais
+la rampe tient dans deux pixels. Et le choix se poserait en roulant, c'est-à-dire au moment où
+l'on ne veut rien régler.
 
-L'échelle horizontale n'est donc plus proportionnelle. La distance est projetée par un
+L'échelle horizontale n'est donc pas proportionnelle. La distance est projetée par un
 logarithme translaté, fin sur les deux cents premiers mètres et de plus en plus comprimé
 ensuite : la bande couvre **tout ce qui reste**, du premier mètre à l'arrivée. Sur cent vingt
 kilomètres restants, les deux cents premiers mètres occupent 10,8 % de la largeur et les vingt
@@ -165,10 +164,10 @@ trouve à boire. Le [réglage](#réglages) « ne compter que les points d'eau »
 à l'eau seule, pour qui roule en autonomie complète — et il vaut aussi pour les champs, une
 voix qui nommerait un point que l'écran ne montre pas étant pire que pas de voix.
 
-Les côtes n'en déclenchent plus. Elles en avaient deux — une au pied, une avant le sommet —
-qui couvraient l'écran au moment précis où l'on regarde le bandeau de profil pour savoir ce
-qui reste à monter. La bande est là en permanence et porte déjà le rang de la côte et la
-distance au sommet : l'annonce ne disait rien de plus, elle le disait par-dessus.
+Les côtes n'en déclenchent pas. Une annonce au pied et une avant le sommet couvriraient
+l'écran au moment précis où l'on regarde le bandeau de profil pour savoir ce qui reste à
+monter. La bande est là en permanence et porte déjà le rang de la côte et la distance au
+sommet : l'annonce ne dirait rien de plus, elle le dirait par-dessus.
 
 ### Action bonus
 
@@ -199,7 +198,8 @@ dans son état d'usine, ce qui revient à ne pas l'avoir écrit.
 - activation et distance d'annonce des points d'intérêt.
 
 En bas, la carte **« Place allouée au champ »** relève, pour chaque champ posé, les dimensions
-que le système lui a réellement accordées — voir [La taille du champ](#la-taille-du-champ).
+que le système lui a réellement accordées — voir
+[Développement](docs/developpement.md#la-place-allouée-à-un-champ).
 
 Les changements sont pris en compte immédiatement, sans redémarrer l'extension.
 
@@ -260,19 +260,7 @@ Deux choses méritent d'être dites :
 Les notes de chaque Release portent le **numéro de version, le commit et la taille du fond de
 carte embarqué** : de quoi savoir exactement ce qu'on installe.
 
-### Publier une version
-
-Un tag `vX.Y` déclenche la construction **et** crée la Release versionnée :
-
-```bash
-git checkout main && git pull
-git tag -a v1.1 -m "Guidage v1.1 — ce qui change"
-git push origin v1.1
-```
-
-Si la carte doit changer aussi, lancer **d'abord** le workflow `fond-de-carte` et attendre sa
-fin : le job `apk` télécharge la carte au début de son exécution, et démarrer trop tôt
-embarquerait l'ancienne sans rien signaler.
+Publier une version est décrit dans [Développement](docs/developpement.md#publier-une-version).
 
 ## Compiler
 
@@ -348,27 +336,8 @@ adb install -r app/build/outputs/apk/release/app-release.apk
 Localement, l'APK release est signé avec la **clé de debug** — suffisant pour installer sur son
 propre Karoo (mode développeur activé, appareil connecté en USB ou en ADB Wi-Fi), mais pas
 pour remplacer une version venue d'une Release, qu'Android refuse d'écraser avec une signature
-différente.
-
-La clé des Releases, elle, ne vit **pas dans le dépôt** : celui-ci est public, et une clé
-lisible par tous laisserait n'importe qui signer un APK qu'Android installerait par-dessus
-celui-ci sans broncher. Elle arrive d'un secret du dépôt, `GUIDAGE_KEYSTORE_B64`, décodée par
-le CI hors de l'arbre de travail. Sans ce secret, la construction reste possible et l'APK est
-signé en debug, mais **aucune Release n'est publiée** : mieux vaut pas d'APK qu'un APK que le
-Karoo installera puis refusera de mettre à jour.
-
-Trois secrets seulement, dont un obligatoire :
-
-| Secret | |
-| --- | --- |
-| `GUIDAGE_KEYSTORE_B64` | le magasin encodé en base64 — **obligatoire** |
-| `GUIDAGE_KEYSTORE_PASSWORD` | son mot de passe — **obligatoire** |
-| `GUIDAGE_KEY_ALIAS` | facultatif ; `guidage` à défaut |
-| `GUIDAGE_KEY_PASSWORD` | facultatif ; celui du magasin à défaut, ce qui est le cas en PKCS12, où la clé n'a pas de mot de passe distinct |
-
-Les valeurs facultatives se replient sur leur défaut **aussi quand le secret est vide**, et non
-seulement quand il n'existe pas : un secret absent est transmis à la construction comme chaîne
-vide, jamais comme variable non définie.
+différente. La clé des Releases ne vit pas dans le dépôt ; voir
+[Développement](docs/developpement.md#la-clé-de-signature).
 
 Pour reconstruire sans machine, l'onglet **Actions → build → Run workflow** fait le même
 travail, fond de carte compris.
@@ -420,67 +389,7 @@ marge, c'est-à-dire rien du champ. L'heure se déduit d'un jour fixe et du couc
 pour ce jour-là, de sorte que les images de contrôle ne changent pas d'une exécution à
 l'autre.
 
-### La taille réelle
-
-La fenêtre s'ouvre à la taille **physique** de l'écran du Karoo 3 — 31,3 mm de large sur
-52,2 mm de haut, soit 2,4 pouces de diagonale. C'est tout l'intérêt du banc d'essai :
-juger d'un corps de police ou d'une épaisseur de trait sur une image trois fois trop grande
-ne dit rien de ce qu'on lira en roulant.
-
-Encore faut-il connaître la densité de l'écran hôte, et **Java ne sait pas la mesurer** :
-sur macOS il déclare soixante-douze points au pouce quel que soit l'écran, valeur héritée de
-la typographie et sans rapport avec la réalité, qui tourne plutôt autour de 110 à 130 sur un
-portable récent. La fenêtre s'ouvre donc à une taille plausible mais fausse tant qu'on ne la
-lui a pas dite :
-
-```
-./gradlew :app:simulateur -Pguidage.ppp=125
-```
-
-Pour trouver la valeur : divisez la largeur de votre écran **en points** (celle que le
-système affiche dans ses réglages d'affichage) par sa largeur **en pouces**. Sur un MacBook
-Pro 14 pouces en résolution par défaut : 1512 points pour 12,05 pouces, soit 125.
-
-À défaut, la **règle graduée** à gauche de l'image est à la même échelle qu'elle. Posez-y une
-vraie règle : si les millimètres coïncident, le tableau de bord est à sa taille physique ;
-sinon, `+` et `-` l'ajustent par pas de cinq pour cent, et la ligne du bas affiche la largeur
-obtenue.
-
-### La taille du champ
-
-Le champ plein écran n'a pas les 480 × 800 points de l'écran : le Karoo garde une bande de
-158 points en haut pour l'heure et la batterie, et un liseré d'un point de chaque côté. La
-place réellement laissée, relevée sur un Karoo 3, est de **478 × 642** — soit près d'un
-cinquième de la hauteur en moins.
-
-Sur l'appareil la question ne se pose pas : `ViewConfig.viewSize` donne la place allouée et
-le rendu s'y ajuste. Le banc d'essai, lui, doit la connaître, et il l'a longtemps ignorée —
-il montrait une mise en page plus haute que la vraie : rangs plus espacés, chiffres plus
-grands que ce qu'on lira en roulant.
-
-La valeur, 642, est figée dans `Simulateur`, et se change sans recompiler pour un autre
-appareil ou un autre gabarit de page :
-
-```
-./gradlew :app:simulateur -Pguidage.hauteur=600
-```
-
-Pour la relever, **sans rien brancher** : poser le champ **« Tableau de bord »** (dans
-le sélecteur, « Guidage » est le nom de l'extension, pas celui du champ) sur une page, ouvrir
-cette page une fois, puis lancer l'application Guidage depuis le launcher du Karoo. La carte
-« Place allouée au champ », en bas de l'écran de configuration, donne les dimensions telles
-que le système les a réellement accordées — pour chaque champ posé, et en séparant l'édition
-de la sortie, car rien ne garantit qu'elles coïncident.
-
-Avec `adb`, la même chose se lit au journal :
-
-```bash
-adb logcat -s GuidageExtension:D | grep "champ ouvert"
-```
-
-Dans les deux cas s'affiche aussi le **corps natif** en sp, celui que le Karoo emploie pour un
-champ numérique de cette taille : c'est la référence typographique de l'appareil, plus sûre
-que celle d'une maquette.
+La fenêtre se pilote au clavier :
 
 | Touche | Effet |
 | --- | --- |
@@ -496,16 +405,12 @@ que celle d'une maquette.
 | `échap` | quitter |
 
 **Les dix champs graphiques à la fois.** Les pleines pages d'abord — tableau de bord,
-autonomie, avant la nuit, réserve, virages, revêtement — puis les champs de bande — profil à venir, suivant
-la sortie, prochaine côte, budget d'effort —, en colonnes, tous alimentés par le même instant
-de la sortie et tracés **au même facteur**. C'est la seule disposition qui permette de juger des
+autonomie, avant la nuit, réserve, virages, revêtement — puis les champs de bande — profil à
+venir, suivant la sortie, prochaine côte, budget d'effort —, en colonnes, tous alimentés par
+le même instant de la sortie et tracés **au même facteur**. C'est la seule disposition qui permette de juger des
 tailles de texte d'un champ à l'autre : les mettre chacun à sa taille confortable donnerait
 des chiffres qui paraissent comparables sans l'être. Le champ « Prochain point d'intérêt »
 n'y figure pas — il est numérique, et c'est le Karoo qui le dessine.
-
-Seule la taille du plein écran est un relevé. Celles des autres se déduisent de la grille de
-soixante et restent donc des approximations, jusqu'à ce qu'on pose ces champs sur une page et
-qu'on lise la carte « Place allouée au champ ».
 
 L'horloge du champ « Suivant la sortie » est celle de la sortie jouée, non celle de la
 machine : sa bascule attend qu'un état se confirme, et à seize fois la vitesse réelle une
@@ -515,8 +420,7 @@ hystérésis de trois secondes en durerait moins d'une demie.
 l'affichage : le simulateur assemble l'état d'une sortie, puis appelle les constructeurs de
 modèle et les rendus de l'extension — les mêmes classes exactement, dessinant dans le même
 `Canvas` d'Android. C'est ce qui le sépare d'une maquette, et c'est pourquoi ses images
-servent d'illustration à ce README plutôt qu'un dessin fait à part : un dessin fait à part
-dérive, et l'ancien l'a fait.
+servent d'illustration à ce README plutôt qu'un dessin fait à part, qui dériverait.
 
 Le `Canvas` d'Android n'existe pas sur une machine de bureau ; c'est Robolectric qui le
 fournit, avec le vrai moteur Skia — mais seulement sous un lanceur de tests. D'où la forme
@@ -531,19 +435,9 @@ Les mêmes tests tournent **sans fenêtre** à chaque poussée : ils vérifient 
 dessine bien la trace, ce qu'une compilation ne dirait pas — un écran noir compile très bien.
 Les images de contrôle sont écrites dans `app/build/simulateur/`.
 
-### Régénérer les captures
-
-Elles se refont **toutes seules**. Le workflow `captures` part à chaque poussée sur `main` qui
-touche ce qui décide de l'affichage — les rendus, les constructeurs de modèle, les libellés,
-le parcours d'aperçu, le simulateur. Il exécute les tests du simulateur, range les PNG dans
-`docs/captures/` et les commite. Si les images sont identiques à celles du dépôt, il s'arrête
-sans rien écrire.
-
-Un changement dans `core/` ou dans le convertisseur de cartes ne déplace aucun pixel et ne le
-déclenche donc pas. Au besoin, **Actions → captures → Run workflow** le force à la main.
-
-Le dossier est vidé avant d'être rempli : une capture ne doit pas survivre au champ qu'elle
-montrait.
+Le réglage de la fenêtre à la taille physique de l'écran, le relevé de la place qu'un champ
+reçoit et la régénération des captures sont décrits dans
+[Développement](docs/developpement.md).
 
 ## Architecture
 
