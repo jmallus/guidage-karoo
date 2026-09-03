@@ -1,7 +1,7 @@
 # Champs de données et guidage - Hammerhead Karoo
 
 Extension **Karoo 3** qui enrichit le **guidage d'itinéraire** : elle lit
-l'itinéraire chargé dans le Karoo et en tire **dix champs de données** — un tableau de bord
+l'itinéraire chargé dans le Karoo et en tire **onze champs de données** — un tableau de bord
 plein écran avec minicarte sur fond de carte embarqué, le profil à venir, la prochaine côte,
 le coût du reste en kilojoules, les virages d'une descente, le revêtement, l'espacement des
 ravitaillements — et des annonces à l'écran.
@@ -82,7 +82,7 @@ carte, puis hors itinéraire — le tracé passe au rouge :
   </tr>
 </table>
 
-**Sept d'entre eux publient aussi une valeur numérique**, réutilisable dans n'importe quel
+**Huit d'entre eux publient aussi une valeur numérique**, réutilisable dans n'importe quel
 champ ou enregistrée dans le fichier de la sortie : la distance au pied ou au sommet
 (« Prochaine côte »), au prochain point (« Prochain point d'intérêt »), au virage le plus
 serré devant (« Virages »), au prochain changement de sol (« Revêtement ») ; la longueur de
@@ -380,12 +380,12 @@ d'effort, virages, revêtement, réserve, format de fond de carte — vit dans l
 sans dépendance Android : elle se teste sans SDK Android, sans appareil et **sans jeton**.
 
 ```bash
-./gradlew :core:test :tools:test     # 220 tests, aucun prérequis
-./gradlew :app:testDebugUnitTest     # 22 tests de plus, sous Robolectric ; demande le jeton
+./gradlew :core:test :tools:test     # 232 tests, aucun prérequis
+./gradlew :app:testDebugUnitTest     # 33 tests de plus, sous Robolectric ; demande le jeton
 ```
 
 Les tests d'`:app` rendent les champs entiers et vérifient qu'à chaque portée la trace se
-voit : une compilation ne dirait rien d'un écran noir, qui compile parfaitement. Les 242
+voit : une compilation ne dirait rien d'un écran noir, qui compile parfaitement. Les 265
 tournent à chaque poussée.
 
 ## Le simulateur
@@ -571,7 +571,7 @@ app/                         extension Android
   karoo/KarooFlows.kt        ponts callback → Flow de karoo-ext
   karoo/GuidanceProvider.kt  assemble l'état de guidage depuis les événements Karoo
   karoo/RideDataProvider.kt  les relevés chiffrés, et l'allure apprise au fil de la sortie
-  extension/                 service d'extension, les dix champs, alertes
+  extension/                 service d'extension, les onze champs, alertes
   extension/*Models.kt       construisent ce qu'affichent les champs — partagés avec le simulateur
   ui/                        rendu des champs (Canvas + Glance) et écran de réglages
   settings/                  persistance des réglages
