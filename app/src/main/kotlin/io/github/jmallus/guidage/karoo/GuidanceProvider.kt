@@ -155,14 +155,17 @@ class GuidanceProvider(
         private fun NavigationState.toRoute(): Route? = when (this) {
             is NavigationState.Idle -> null
 
-            is NavigationState.NavigatingRoute -> Route(
-                name = name,
-                totalDistance = routeDistance,
-                profile = ElevationProfile.fromEncoded(routeElevationPolyline),
-                climbs = climbs.map { it.toRouteClimb() },
-                pois = pois.flatMap { poi -> poi.toRoutePois() },
-                path = decodePath(routePolyline),
-            )
+            is NavigationState.NavigatingRoute -> {
+                val path = decodePath(routePolyline)
+                Route(
+                    name = name,
+                    totalDistance = routeDistance,
+                    profile = ElevationProfile.fromEncoded(routeElevationPolyline),
+                    climbs = climbs.map { it.toRouteClimb() },
+                    pois = pois.flatMap { poi -> poi.toRoutePois(path, routeDistance) },
+                    path = path,
+                )
+            }
 
             is NavigationState.NavigatingToDestination -> {
                 // En navigation vers un point, la longueur du trajet n'est pas fournie
@@ -191,17 +194,44 @@ class GuidanceProvider(
         /**
          * Un même POI peut être rencontré plusieurs fois sur un parcours en boucle :
          * il devient alors un point par passage, avec un identifiant distinct.
+         *
+         * `distancesAlongRoute` est **facultatif** — karoo-ext le dit ainsi, et sa valeur par
+         * défaut est la liste vide. Or ce sont ces distances que l'on parcourait : un point
+         * qui n'en portait aucune ne produisait aucun `RoutePoi` et **disparaissait purement
+         * et simplement**, quel que fût son type. Une fontaine et une boulangerie posées sur
+         * l'itinéraire se sont ainsi volatilisées, le Karoo continuant de les afficher de son
+         * côté, et le champ « Réserve » annonçant « Aucun ravitaillement sur l'itinéraire ».
+         * L'écart n'était pas dans le tri des types : le point n'arrivait jamais jusqu'à lui.
+         *
+         * Faute de distance annoncée, on la calcule : le point se pose sur le tracé, ce qui
+         * est la même opération que celle du Karoo, faite de notre côté.
          */
-        private fun Symbol.POI.toRoutePois(): List<RoutePoi> =
-            distancesAlongRoute.mapIndexed { index, distance ->
+        private fun Symbol.POI.toRoutePois(path: List<GeoPoint>, totalDistance: Double): List<RoutePoi> {
+            val position = GeoPoint(lat, lng)
+            val distances = distancesAlongRoute.ifEmpty {
+                listOfNotNull(Geo.distanceAlongPath(path, position, POI_MAX_DEVIATION_METERS))
+            }
+            return distances.mapIndexed { index, distance ->
                 RoutePoi(
                     id = if (index == 0) id else "$id#$index",
                     name = name,
                     type = type,
-                    distanceAlongRoute = distance,
-                    position = GeoPoint(lat, lng),
+                    // Le tracé décodé et la longueur annoncée peuvent différer de quelques
+                    // mètres ; la fraction qu'en tirent les champs doit rester dans la ligne.
+                    distanceAlongRoute = distance.coerceIn(0.0, totalDistance.coerceAtLeast(0.0)),
+                    position = position,
                 )
             }
+        }
+
+        /**
+         * Écart maximal entre un point d'intérêt et le tracé pour l'y rattacher (m).
+         *
+         * Assez large pour un commerce en retrait de la chaussée, assez court pour ne pas
+         * happer celui de la rue parallèle. Ne sert qu'au rattrapage : quand le Karoo annonce
+         * lui-même les distances, ce sont les siennes qui font foi.
+         */
+        private const val POI_MAX_DEVIATION_METERS = 250.0
 
         /** Le tracé est encodé en polyligne Google de précision 5. */
         private fun decodePath(encoded: String): List<GeoPoint> =

@@ -82,6 +82,55 @@ object Geo {
     }
 
     /**
+     * Où [point] tombe le long de [path], en mètres depuis le départ — ou null s'il en est
+     * trop loin.
+     *
+     * Le Karoo attache les points d'intérêt à l'itinéraire par proximité et annonce lui-même
+     * leur distance ; mais ce champ est facultatif, et il arrive qu'il soit vide alors que le
+     * point est bien là. On refait alors le calcul : c'est la même question — sur quel segment
+     * du tracé ce point se pose-t-il, et à combien du départ.
+     *
+     * [maxDeviation] écarte ce qui n'est pas sur l'itinéraire. Un commerce à cinquante mètres
+     * de la route en est ; celui du village d'à côté n'en est pas, et l'annoncer comme
+     * ravitaillement enverrait le coureur là où il n'y a rien.
+     */
+    fun distanceAlongPath(
+        path: List<GeoPoint>,
+        point: GeoPoint,
+        maxDeviation: Double,
+    ): Double? {
+        if (path.size < 2) return null
+
+        var parcouru = 0.0
+        var meilleureDistance = 0.0
+        var meilleurEcart = Double.MAX_VALUE
+
+        for (i in 1 until path.size) {
+            val debut = path[i - 1]
+            val fin = path[i]
+            // Le repère est centré sur le début du segment : sur quelques dizaines de mètres,
+            // la projection équirectangulaire est exacte bien au-delà de ce qu'on mesure.
+            val versFin = project(debut, fin)
+            val versPoint = project(debut, point)
+            val longueur = hypot(versFin.x, versFin.y)
+            if (longueur <= 0.0) continue
+
+            // Position du pied de la perpendiculaire sur le segment, bornée à ses extrémités :
+            // un point situé au-delà d'un bout s'y rattache, il ne prolonge pas le segment.
+            val t = ((versPoint.x * versFin.x + versPoint.y * versFin.y) / (longueur * longueur))
+                .coerceIn(0.0, 1.0)
+            val ecart = hypot(versPoint.x - t * versFin.x, versPoint.y - t * versFin.y)
+            if (ecart < meilleurEcart) {
+                meilleurEcart = ecart
+                meilleureDistance = parcouru + t * longueur
+            }
+            parcouru += longueur
+        }
+
+        return meilleureDistance.takeIf { meilleurEcart <= maxDeviation }
+    }
+
+    /**
      * Échelle « ronde » à afficher sous la barre d'échelle, la plus grande qui tienne
      * dans [maxMeters] : 100 m, 200 m, 500 m, 1 km, 2 km…
      */
