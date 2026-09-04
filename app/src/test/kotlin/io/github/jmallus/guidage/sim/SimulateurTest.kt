@@ -240,6 +240,20 @@ class SimulateurTest {
                 if (rubanVisible(image)) vues++
                 if (part == PART_CAPTURE) {
                     ecrire(image, File(dossier, "carte-${portee.rangeMeters.toInt()}m.png"))
+                    // Deux planches de comparaison, le temps de choisir le plancher de
+                    // lisibilité sur image plutôt que sur un tableau de chiffres. Elles
+                    // partiront avec le choix : ce ne sont pas des captures du produit.
+                    if (portee == MapZoom.NEAR) {
+                        PLANCHERS.forEach { (nom, mm) ->
+                            ecrire(
+                                simulateur.image(
+                                    simulateur.sortie.duree * part,
+                                    encreMinimaleMm = mm,
+                                ),
+                                File(dossier, "comparaison-plancher-$nom.png"),
+                            )
+                        }
+                    }
                 }
             }
             assertTrue(
@@ -529,6 +543,16 @@ class SimulateurTest {
          * couloir de virages en contient. Tous les champs ont quelque chose à montrer.
          */
         const val PART_CAPTURE = 0.25
+
+        /**
+         * Les deux planchers de lisibilité mis en regard, le temps d'en choisir un.
+         *
+         * Le premier est le niveau du plus petit libellé que le tableau de bord écrit
+         * aujourd'hui ; le second une marge franche au-dessus. Ils ne diffèrent pas seulement
+         * par la taille : au second, les chiffres de l'axe du profil ne tiennent plus et
+         * disparaissent au profit des seuls traits. C'est cet arbitrage qu'on regarde.
+         */
+        val PLANCHERS = listOf("085" to 0.85f, "115" to 1.15f)
 
         /**
          * Le fond que l'appareil pose derrière un champ.

@@ -177,7 +177,13 @@ object DashboardRenderer {
     /** Nombre de cases du rang sous la carte. */
     private const val MID_TILES = 3
 
-    fun render(context: Context, width: Int, height: Int, model: DashboardModel): Bitmap {
+    fun render(
+        context: Context,
+        width: Int,
+        height: Int,
+        model: DashboardModel,
+        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+    ): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
@@ -287,7 +293,13 @@ object DashboardRenderer {
         }
 
         // Ligne du bas : la bande « Avant la nuit », sur toute la largeur.
-        NightRenderer.drawBand(canvas, RectF(padding, footerTop, right, footerBottom), model.night, model.palette)
+        NightRenderer.drawBand(
+            canvas,
+            RectF(padding, footerTop, right, footerBottom),
+            model.night,
+            model.palette,
+            encreMinimaleMm,
+        )
 
         // Tout en bas : le parcours restant, sur toute la largeur, par le rendu du champ
         // « Profil à venir » lui-même. Le redessiner ici en aurait fait une seconde écriture.
@@ -297,6 +309,7 @@ object DashboardRenderer {
                 area = RectF(padding, contentHeight, width - padding, height.toFloat()),
                 model = band,
                 palette = model.palette,
+                encreMinimaleMm = encreMinimaleMm,
             )
         }
         return bitmap

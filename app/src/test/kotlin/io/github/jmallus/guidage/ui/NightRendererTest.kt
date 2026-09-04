@@ -34,6 +34,7 @@ class NightRendererTest {
         arrivalFraction = 0.62f,
         arrivalSpread = 0.1f,
         arrivalLabel = "arrivée 20:38 ± 14",
+        arrivalShortLabel = "arrivée 20:38",
         sunsetFraction = 0.68f,
         sunsetLabel = "coucher 20:46",
         duskFraction = 0.86f,
@@ -152,44 +153,65 @@ class NightRendererTest {
     }
 
     /**
-     * La bande du tableau de bord : le mot dans sa couleur, le coucher sur la frise.
+     * La bande du tableau de bord : le mot dans sa couleur, les deux heures dessous.
      *
-     * Le verdict est compté dans le seul rang du haut, et non sur l'image entière : la frise
-     * porte elle aussi la couleur du verdict — le trait d'arrivée et son heure — et un total
-     * ne dirait plus si le mot est là. Le seuil est bas à dessein : il constate une présence,
-     * la taille du mot étant un arbitrage que le rendu documente et non une promesse.
+     * Le verdict est compté dans le seul rang du haut, et non sur l'image entière : le seuil
+     * constate une présence, la taille du mot étant un arbitrage que le rendu documente et non
+     * une promesse.
      */
     @Test
-    fun `la bande porte le mot et le coucher`() {
+    fun `la bande porte le mot et les deux heures`() {
         val image = bande(model(NightVerdict.TIGHT, "JUSTE"), hauteur = hauteurBande)
         assertTrue("le verdict manque", countTop(image, NightRenderer.TIGHT, 0.30) > 150)
-        assertTrue("le coucher manque", count(image, KarooColors.LEMON_YELLOW) > 10)
-        // Le pied de page et le pire cas n'ont pas leur place dans une bande : leur texte
-        // s'écrirait en teinte primaire, qui ne sert ici qu'au triangle du présent. Le seuil
-        // sépare largement les deux — le triangle pèse quelques dizaines de pixels, la moindre
-        // ligne de texte plusieurs centaines.
-        assertTrue("du texte de pleine page s'est glissé dans la bande", count(image, palette.textPrimary) < 200)
+        assertTrue("la ligne des heures manque", count(image, palette.textSecondary) > 200)
+        // La bande ne dessine plus de frise : elle n'y tenait pas à une taille lisible. Le
+        // jaune du coucher et le blanc du triangle en étaient les deux marques.
+        assertEquals("un rail de frise subsiste dans la bande", 0, count(image, KarooColors.LEMON_YELLOW))
+        assertEquals("le triangle du présent subsiste dans la bande", 0, count(image, palette.textPrimary))
+    }
+
+    /** La hauteur d'encre d'une couleur, en pixels : de sa première à sa dernière rangée. */
+    private fun hauteurEncre(image: Bitmap, color: Int): Int {
+        var haut = -1
+        var bas = -1
+        for (y in 0 until image.height) {
+            for (x in 0 until image.width) {
+                val pixel = image.getPixel(x, y)
+                if (Color.alpha(pixel) >= OPACITE_MINIMALE && (pixel and RVB) == (color and RVB)) {
+                    if (haut < 0) haut = y
+                    bas = y
+                    break
+                }
+            }
+        }
+        return if (haut < 0) 0 else bas - haut + 1
     }
 
     /**
-     * La frise écrit d'autant plus gros qu'on lui donne de la place.
+     * La ligne des heures respecte le plancher de lisibilité, et le suit quand il monte.
      *
-     * Le corps de ses libellés se déduisait de bornes fixes, et butait sur son plafond bien
-     * avant la hauteur réelle du pied : la frise laissait alors du vide sous elle et écrivait
-     * en dessous de ce que la place permettait. Il se déduit maintenant de la hauteur restante,
-     * et une bande plus haute porte donc plus d'encre — c'est ce que ce contrôle vérifie, la
-     * taille d'un texte ne se lisant pas autrement sur une image.
-     *
-     * La comparaison se fait vers le bas, contre une bande étroite, et non vers le haut : le
-     * corps est plafonné, et deux bandes hautes écrivent donc de la même taille sans que rien
-     * n'aille mal.
+     * C'est le contrôle qui porte tout le réglage. Les textes se dimensionnaient contre la
+     * place disponible, avec des planchers en pixels : sur un écran de quinze points au
+     * millimètre, ils laissaient passer des heures d'un demi-millimètre d'encre, nettes sur
+     * une capture regardée de près et invisibles sur un vélo. Le corps se déduit maintenant
+     * d'une hauteur d'encre voulue, et ce contrôle la mesure là où elle se lit : sur les
+     * pixels.
      */
     @Test
-    fun `la frise grandit avec la bande`() {
+    fun `la ligne des heures tient le plancher de lisibilite`() {
         val modele = model(NightVerdict.TIGHT, "JUSTE")
-        val serree = count(bande(modele, hauteur = hauteurBande * 2 / 3), KarooColors.LEMON_YELLOW)
-        val aise = count(bande(modele, hauteur = hauteurBande), KarooColors.LEMON_YELLOW)
-        assertTrue("la frise n'a pas profité de la hauteur : $serree puis $aise", aise > serree)
+        for ((mm, minimum) in listOf(0.85f to 11, 1.15f to 15)) {
+            val image = Bitmap.createBitmap(466, hauteurBande, Bitmap.Config.ARGB_8888)
+            NightRenderer.drawBand(
+                android.graphics.Canvas(image),
+                android.graphics.RectF(0f, 0f, 466f, hauteurBande.toFloat()),
+                modele,
+                palette,
+                mm,
+            )
+            val encre = hauteurEncre(image, palette.textSecondary)
+            assertTrue("au plancher de $mm mm, les heures ne font que $encre px d'encre", encre >= minimum)
+        }
     }
 
     @Test

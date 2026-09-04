@@ -24,6 +24,14 @@ data class NightTimeline(
     /** Demi-largeur de la fourchette d'arrivée, dans la même unité. */
     val arrivalSpread: Float = 0f,
     val arrivalLabel: String? = null,
+    /**
+     * La même heure sans son incertitude, pour les places où « ± 10 » ne tient pas.
+     *
+     * Deux libellés plutôt qu'une troncature : la bande du tableau de bord abandonne
+     * l'incertitude avant d'abandonner l'heure, et abandonne l'heure avant de rétrécir sous
+     * le plancher de lisibilité. Ce choix se fait sur des textes entiers, pas sur des pixels.
+     */
+    val arrivalShortLabel: String? = null,
     val sunsetFraction: Float,
     val sunsetLabel: String,
     /** La fin du crépuscule civil, ou null les nuits blanches. */
@@ -69,13 +77,25 @@ data class NightFieldModel(
  */
 object NightRenderer {
 
-    fun render(width: Int, height: Int, model: NightFieldModel, palette: Palette): Bitmap {
+    fun render(
+        width: Int,
+        height: Int,
+        model: NightFieldModel,
+        palette: Palette,
+        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+    ): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
-        draw(Canvas(bitmap), RectF(0f, 0f, width.toFloat(), height.toFloat()), model, palette)
+        draw(Canvas(bitmap), RectF(0f, 0f, width.toFloat(), height.toFloat()), model, palette, encreMinimaleMm)
         return bitmap
     }
 
-    fun draw(canvas: Canvas, area: RectF, model: NightFieldModel, palette: Palette) {
+    fun draw(
+        canvas: Canvas,
+        area: RectF,
+        model: NightFieldModel,
+        palette: Palette,
+        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+    ) {
         val width = area.width()
         val height = area.height()
         if (width <= 0f || height <= 0f) return
@@ -154,6 +174,10 @@ object NightRenderer {
 
         if (timeline != null) {
             val timelineHeight = (height * 0.27f).coerceIn(40f, 180f)
+            // Les libellés de la frise ne descendent pas sous le plancher : si la hauteur ne
+            // les porte pas à cette taille, la frise entière est abandonnée par le contrôle
+            // de place de drawTimeline, plutôt que dessinée avec des heures illisibles.
+            val labelSize = max((timelineHeight * 0.12f).coerceAtMost(22f), Lisibilite.corpsPourCapitale(encreMinimaleMm))
             if (cursor + timelineHeight <= contentBottom) {
                 drawTimeline(
                     canvas = canvas,
@@ -164,8 +188,8 @@ object NightRenderer {
                     bottom = cursor + timelineHeight,
                     verdict = model.verdict,
                     palette = palette,
-                    labelSize = (timelineHeight * 0.12f).coerceIn(8f, 18f),
-                    railHeight = (timelineHeight * 0.07f).coerceIn(3f, 10f),
+                    labelSize = labelSize,
+                    railHeight = (labelSize * RAIL_RATIO).coerceIn(3f, 10f),
                     compact = false,
                 )
                 cursor += timelineHeight
@@ -207,67 +231,95 @@ object NightRenderer {
     }
 
     /**
-     * Le champ réduit à une bande : le pied du tableau de bord.
+     * Le champ réduit à une bande : le pied du tableau de bord. Deux lignes de texte.
      *
-     * Le mot à gauche, la marge à sa suite, la frise dessous. Ni titre — le tableau de bord
-     * n'en met à aucune case, et le mot se comprend seul —, ni pied de page, ni le pire cas :
-     * une bande de quatre-vingts points n'a de place que pour la réponse et ce qui la montre.
-     * La frise perd ses libellés « maintenant » et « nuit » : le triangle et le rail assombri
-     * les disent encore, et deux rangs de texte n'entrent pas dans la hauteur.
+     * La frise dessinée y a été essayée, et lue sur le vélo : elle n'y tient pas. Cinq
+     * millimètres et demi de hauteur doivent porter un mot, une marge, un rail, un triangle et
+     * deux heures ; ce qui restait aux heures faisait un demi-millimètre d'encre, moitié moins
+     * que le plus petit libellé lisible de l'écran. Une frise illisible ne dit pas moins bien
+     * ce qu'elle montre : elle ne dit rien, et prend la place de ce qui parlerait.
+     *
+     * Restent donc les deux choses qui répondent à la question — le verdict, et les deux heures
+     * qu'il compare — écrites assez grand pour se lire d'un coup d'œil. La frise dessinée garde
+     * tout son sens dans le champ « Avant la nuit » en pleine page, qui a dix fois la hauteur.
      */
-    fun drawBand(canvas: Canvas, area: RectF, model: NightFieldModel, palette: Palette) {
+    fun drawBand(
+        canvas: Canvas,
+        area: RectF,
+        model: NightFieldModel,
+        palette: Palette,
+        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+    ) {
         val width = area.width()
         val height = area.height()
         if (width <= 0f || height <= 0f) return
         val padding = (height * 0.05f).coerceIn(2f, 6f)
         val left = area.left + padding
         val right = area.right - padding
+        val place = right - left
 
-        val headRow = height * BAND_HEAD_FRACTION
-        val baseline = area.top + headRow * 0.82f
+        // La seconde ligne fixe le partage : elle s'écrit au plancher, jamais en dessous, et
+        // c'est ce qui reste qui revient au mot. L'inverse — donner d'abord au mot — est ce
+        // qui avait réduit les heures à rien.
+        val corpsMinimal = Lisibilite.corpsPourCapitale(encreMinimaleMm)
+        val candidate = model.timeline?.let { ligneDesHeures(it, corpsMinimal, place) }
+        // Une bande trop courte pour porter les deux garde le mot : il répond à la question,
+        // les heures ne font que la justifier. Rien n'est rétréci pour les faire entrer.
+        val hauteurSeconde = if (candidate == null) 0f else corpsMinimal * LIGNE_HAUTEUR
+        val reste = height - 2 * padding - hauteurSeconde
+        val secondeLigne = candidate.takeIf { reste >= corpsMinimal }
+        val hauteurTete = if (secondeLigne == null) height - 2 * padding else reste
+
+        val baseline = area.top + padding + hauteurTete * 0.82f
         val verdictLabel = model.verdictLabel
         if (verdictLabel != null && model.verdict != null) {
             val accent = verdictColor(model.verdict)
             val verdictPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = accent
-                textSize = headRow * 0.9f
+                textSize = hauteurTete * 0.9f
                 typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             }
-            fit(verdictPaint, verdictLabel, (right - left) * 0.6f)
+            fit(verdictPaint, verdictLabel, place * 0.55f)
             canvas.drawText(verdictLabel, left, baseline, verdictPaint)
             model.marginLabel?.let { margin ->
-                val marginSize = (height * 0.17f).coerceIn(10f, 16f)
+                val marginSize = max(hauteurTete * 0.42f, corpsMinimal)
                 val x = left + verdictPaint.measureText(verdictLabel) + marginSize * 0.6f
                 drawMargin(canvas, margin, model.uncertaintyLabel, x, baseline, right, marginSize, accent, palette)
             }
         } else {
             model.emptyMessage?.let { message ->
-                val paint = labelPaint((height * 0.17f).coerceIn(10f, 16f), palette.textSecondary, bold = true)
-                fit(paint, message, right - left)
+                val paint = labelPaint(max(hauteurTete * 0.42f, corpsMinimal), palette.textSecondary, bold = true)
+                fit(paint, message, place)
                 canvas.drawText(message, left, baseline, paint)
             }
         }
 
-        model.timeline?.let { timeline ->
-            // La frise prend ce que le mot lui laisse, et son corps s'en déduit plutôt que de
-            // la hauteur de la bande : c'est la place réellement disponible qui décide, et
-            // l'ancien calcul laissait un doigt de vide sous les libellés.
-            val friseHeight = area.bottom - (area.top + headRow)
-            val labelSize = (friseHeight / TIMELINE_ROWS).coerceIn(9f, 18f)
-            drawTimeline(
-                canvas = canvas,
-                timeline = timeline,
-                left = left,
-                top = area.top + headRow,
-                right = right,
-                bottom = area.bottom,
-                verdict = model.verdict,
-                palette = palette,
-                labelSize = labelSize,
-                railHeight = (labelSize * RAIL_RATIO).coerceIn(3f, 8f),
-                compact = true,
+        secondeLigne?.let { texte ->
+            canvas.drawText(
+                texte,
+                left,
+                area.bottom - padding - corpsMinimal * LIGNE_DESCENTE,
+                Lisibilite.pinceau(corpsMinimal, palette.textSecondary),
             )
         }
+    }
+
+    /**
+     * Les deux heures de la seconde ligne, dans la version la plus complète qui tienne.
+     *
+     * On abandonne d'abord l'incertitude, puis l'heure d'arrivée, et jamais le coucher : c'est
+     * la référence, celle qu'on ne connaît pas de tête. Rien n'est rétréci — un texte qui ne
+     * tient pas au plancher est un texte qu'on n'écrit pas.
+     */
+    private fun ligneDesHeures(timeline: NightTimeline, corps: Float, place: Float): String? {
+        val coucher = Lisibilite.libelle(timeline.sunsetLabel)
+        val candidats = listOfNotNull(
+            timeline.arrivalLabel?.let { "${Lisibilite.libelle(it)}  ·  $coucher" },
+            timeline.arrivalShortLabel?.let { "${Lisibilite.libelle(it)}  ·  $coucher" },
+            coucher,
+        )
+        val mesure = Lisibilite.pinceau(corps, 0)
+        return candidats.firstOrNull { mesure.measureText(it) <= place }
     }
 
     /**
@@ -368,7 +420,8 @@ object NightRenderer {
                 strokeWidth = (railHeight * 0.4f).coerceIn(2f, 4f)
             }
             canvas.drawLine(x(arrival), railTop - railHeight * 1.6f, x(arrival), railBottom + railHeight * 1.6f, mark)
-            timeline.arrivalLabel?.let { label ->
+            timeline.arrivalLabel?.let {
+                val label = Lisibilite.libelle(it)
                 val paint = labelPaint(labelSize, accent, bold = true)
                 canvas.drawText(label, anchored(paint, label, x(arrival), left, right), railTop - railHeight * MARK_OVERSHOOT, paint)
             }
@@ -389,7 +442,8 @@ object NightRenderer {
         val firstRow = railBottom + railHeight * MARK_OVERSHOOT * 0.55f + labelSize * ROW_LEADING
         val secondRow = firstRow + labelSize * ROW_PITCH
         val sunsetPaint = labelPaint(labelSize, KarooColors.LEMON_YELLOW)
-        val sunsetLeft = anchored(sunsetPaint, timeline.sunsetLabel, sunsetX, left, right)
+        val sunsetLabel = Lisibilite.libelle(timeline.sunsetLabel)
+        val sunsetLeft = anchored(sunsetPaint, sunsetLabel, sunsetX, left, right)
 
         // Maintenant : un triangle blanc sous le rail, à l'origine.
         val tri = Path().apply {
@@ -401,17 +455,18 @@ object NightRenderer {
         canvas.drawPath(tri, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = palette.textPrimary })
 
         if (compact) {
-            canvas.drawText(timeline.sunsetLabel, sunsetLeft, firstRow, sunsetPaint)
+            canvas.drawText(sunsetLabel, sunsetLeft, firstRow, sunsetPaint)
             return
         }
 
         // « Maintenant » au bord gauche ; le coucher au rang du haut s'il ne le touche pas,
         // au rang du bas sinon — et la nuit prend le rang qui reste libre.
         val nowPaint = labelPaint(labelSize, palette.textSecondary)
-        val nowWidth = nowPaint.measureText(timeline.nowLabel)
+        val nowLabel = Lisibilite.libelle(timeline.nowLabel)
+        val nowWidth = nowPaint.measureText(nowLabel)
         val sunsetOnFirstRow = sunsetLeft > left + nowWidth + labelSize * 0.6f
-        canvas.drawText(timeline.sunsetLabel, sunsetLeft, if (sunsetOnFirstRow) firstRow else secondRow, sunsetPaint)
-        canvas.drawText(timeline.nowLabel, left, firstRow, nowPaint)
+        canvas.drawText(sunsetLabel, sunsetLeft, if (sunsetOnFirstRow) firstRow else secondRow, sunsetPaint)
+        canvas.drawText(nowLabel, left, firstRow, nowPaint)
 
         timeline.duskFraction?.let { dusk ->
             val duskX = x(dusk)
@@ -426,7 +481,8 @@ object NightRenderer {
                     strokeWidth = 1.5f
                 },
             )
-            timeline.duskLabel?.let { label ->
+            timeline.duskLabel?.let {
+                val label = Lisibilite.libelle(it)
                 val paint = labelPaint(labelSize, palette.textSecondary)
                 val duskLeft = anchored(paint, label, duskX, left, right)
                 val row = if (sunsetOnFirstRow) secondRow else firstRow
@@ -446,7 +502,9 @@ object NightRenderer {
     private fun labelPaint(size: Float, color: Int, bold: Boolean = false) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = color
         textSize = size
-        typeface = Typeface.create(Typeface.DEFAULT, if (bold) Typeface.BOLD else Typeface.NORMAL)
+        // Graisse moyenne par défaut, comme les libellés du Karoo : à corps égal elle rend
+        // près de moitié plus d'encre qu'une graisse normale, sans coûter un pixel.
+        typeface = if (bold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Lisibilite.LIBELLE
     }
 
     private fun rulePaint(palette: Palette) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -501,16 +559,9 @@ object NightRenderer {
     private const val TWILIGHT = KarooColors.AEGEAN_BLUE
     private const val NIGHT = 0xFF11181C.toInt()
 
-    /**
-     * Part de la bande donnée au mot et à sa marge ; la frise prend le reste.
-     *
-     * Le partage est un arbitrage, et il coûte cher dans un sens : la frise se partageant en
-     * quatre hauteurs de libellé, un point gagné sur elles s'achète à trois ou quatre points
-     * sur le mot. Il a été poussé jusqu'ici parce que le mot reste lisible bien en dessous de
-     * sa taille d'origine — il est en gras, en capitales, et seul de sa couleur — là où les
-     * heures de la frise, elles, se lisent chiffre à chiffre.
-     */
-    private const val BAND_HEAD_FRACTION = 0.26f
+    /** Hauteur du rang de la seconde ligne, et descente sous sa ligne de base, en corps. */
+    private const val LIGNE_HAUTEUR = 1.45f
+    private const val LIGNE_DESCENTE = 0.25f
 
     /**
      * De combien le trait d'arrivée dépasse le rail, en multiples de son épaisseur, et où se
@@ -525,16 +576,6 @@ object NightRenderer {
     /** Ce que la hampe des majuscules monte, et le jambage des lettres descend. */
     private const val ASCENT_RATIO = 0.78f
     private const val DESCENT_RATIO = 0.25f
-
-    /**
-     * Hauteurs de libellé qu'une frise compacte occupe en tout, rail et marges compris.
-     *
-     * Elle sert à choisir le corps d'après la place : `labelSize = hauteur / TIMELINE_ROWS`.
-     * Sa valeur se déduit des ratios ci-dessus avec un rail à [RAIL_RATIO] du corps — la somme
-     * fait 3,89 — arrondie au-dessus pour que l'arrondi des calculs ne fasse pas manquer la
-     * frise d'un dixième de point : elle ne se dessine pas du tout quand elle ne tient pas.
-     */
-    private const val TIMELINE_ROWS = 4.0f
 
     /** Épaisseur du rail, en part du corps des libellés. */
     private const val RAIL_RATIO = 0.4f

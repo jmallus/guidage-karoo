@@ -176,6 +176,9 @@ object NightModels {
                     context.getString(R.string.field_night_arrival, clock)
                 }
             },
+            arrivalShortLabel = arrivalMillis?.let {
+                context.getString(R.string.field_night_arrival, Format.clock(it.toDouble()))
+            },
             sunsetFraction = fraction(sun.sunsetMillis),
             sunsetLabel = context.getString(R.string.field_night_sunset, Format.clock(sun.sunsetMillis.toDouble())),
             duskFraction = sun.duskMillis?.let { fraction(it) },
