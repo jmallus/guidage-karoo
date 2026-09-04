@@ -222,20 +222,19 @@ object DashboardModels {
     )
 
     /**
-     * Case de gauche sous la transmission : la fréquence cardiaque, seule.
+     * Case de gauche sous la transmission : la fréquence cardiaque, à sa couleur de zone.
      *
      * Elle portait sa zone deux fois — l'aplat de couleur derrière le nombre, et le numéro à
-     * sa gauche. Les deux sont partis quand la case a été coupée en deux pour accueillir la
-     * distance restante : sur cent seize points de large, l'aplat mange le fond que le chiffre
-     * doit occuper, et le numéro lui prend un tiers de la largeur pour dire ce que la couleur
-     * disait déjà. Ce qu'on regarde ici, c'est le nombre.
-     *
-     * La zone reste lisible où elle ne coûte rien : la vitesse et la puissance gardent leur
-     * aplat en haut de l'écran, sur des cases pleine largeur.
+     * sa gauche. Le numéro est parti quand la case a été coupée en deux pour accueillir la
+     * distance restante : sur cent seize points de large, il prenait un tiers de la place pour
+     * dire ce que la couleur dit déjà. L'aplat reste : il ne coûte pas un point de largeur,
+     * la zone se lit sans quitter le nombre des yeux, et c'est ainsi que la vitesse et la
+     * puissance l'annoncent en haut de l'écran.
      */
     private fun heartRateTile(context: Context, rideData: RideData): Tile = Tile(
         label = context.getString(R.string.dashboard_label_heart_rate),
         value = rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
+        background = rideData.heartRate?.let { Zones.heartRateColor(it, rideData.heartRateZones) },
         icon = R.drawable.ic_heart_rate,
     )
 
