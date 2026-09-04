@@ -50,15 +50,6 @@ data class Tile(
      * reconnaît à sa hauteur. « 38,5 » s'écrit donc « 38 » suivi d'un « 5 » surélevé.
      */
     val decimal: String? = null,
-    /**
-     * Chiffre porté à gauche de la valeur, sur la même ligne de base : le numéro de zone.
-     *
-     * L'aplat de couleur dit déjà la zone, mais il faut connaître la palette par cœur pour
-     * la nommer — et le saumon de la zone 4 tient de près à l'orange de la zone 5. Le chiffre
-     * lève le doute. Il se tient en marge, contre le bord : la valeur se centre dans la place
-     * qui reste après lui, et non dans la case entière.
-     */
-    val leading: String? = null,
     /** Aplat de fond, ou null pour laisser le fond de l'écran. */
     val background: Int? = null,
     /** Icône posée devant le libellé. */
@@ -405,21 +396,10 @@ object DashboardRenderer {
         val tailWidth = tail?.let { suffixPaint.measureText(it) } ?: 0f
         val baseline = valueTop(bounds, top, labelHeight, valueHeight) - valuePaint.ascent()
 
-        // Le numéro de zone garde le bord gauche : c'est un indice posé en marge, non un
-        // membre du nombre. La valeur se centre donc dans la place qui reste après lui —
-        // dans la case entière, elle viendrait s'écrire par-dessus dès que la case est
-        // étroite, ce qu'est justement celle de la fréquence cardiaque.
-        val leadingPaint =
-            paint(valueSize * LEADING_RATIO, translucent(ink, LEADING_ALPHA), Typeface.DEFAULT_BOLD)
-        val leadingWidth = tile.leading?.let { leadingPaint.measureText(it) + EDGE_INSET } ?: 0f
-        val bandLeft = bounds.left + EDGE_INSET + leadingWidth
+        val bandLeft = bounds.left + EDGE_INSET
         val bandRight = bounds.right - EDGE_INSET
         val left = (bandLeft + (bandRight - bandLeft - (valueWidth + tailWidth)) / 2f)
             .coerceAtLeast(bandLeft)
-
-        tile.leading?.let { leading ->
-            canvas.drawText(leading, bounds.left + EDGE_INSET, baseline, leadingPaint)
-        }
 
         canvas.drawText(tile.value, left, baseline, valuePaint)
         if (tail != null) {
@@ -480,7 +460,10 @@ object DashboardRenderer {
         val iconSize = labelSize * ICON_RATIO
         val labelWidth = labelPaint.measureText(tile.label)
         val iconWidth = if (icone != null) iconSize + LABEL_GAP else 0f
-        val left = (bounds.right - EDGE_INSET - iconWidth - labelWidth)
+        // L'intitulé se centre sur sa case, icône comprise, comme la valeur qu'il surmonte.
+        // Aligné à droite, il se collait au bord et l'œil devait le chercher ailleurs que là
+        // où il cherche le chiffre — deux points de fixation par case au lieu d'un.
+        val left = (bounds.centerX() - (labelWidth + iconWidth) / 2f)
             .coerceAtLeast(bounds.left + EDGE_INSET)
 
         canvas.drawText(tile.label, left, top - labelPaint.ascent(), labelPaint)
@@ -789,13 +772,8 @@ object DashboardRenderer {
     private fun fitValueSize(tile: Tile, maxWidth: Float, preferredSize: Float): Float {
         val size = preferredSize.coerceIn(12f, 140f)
         val tail = tile.decimal ?: tile.suffix
-        // Le numéro de zone occupe la gauche de la même ligne : il entre dans le compte,
-        // sinon la valeur viendrait s'écrire par-dessus dans les cases étroites.
         val measured = paint(size, 0, VALUE_TYPEFACE).measureText(tile.value) +
-            (tail?.let { paint(size * SUFFIX_RATIO, 0, VALUE_TYPEFACE).measureText(it) } ?: 0f) +
-            (tile.leading?.let {
-                paint(size * LEADING_RATIO, 0, Typeface.DEFAULT_BOLD).measureText(it) + EDGE_INSET
-            } ?: 0f)
+            (tail?.let { paint(size * SUFFIX_RATIO, 0, VALUE_TYPEFACE).measureText(it) } ?: 0f)
         if (measured <= maxWidth || measured <= 0f) return size
         return (size * maxWidth / measured).coerceAtLeast(10f)
     }
@@ -803,12 +781,6 @@ object DashboardRenderer {
     private fun translucent(color: Int, alpha: Int): Int = (color and 0x00FFFFFF) or (alpha shl 24)
 
     private const val LABEL_ALPHA = 0xCC
-
-    /** Corps du numéro de zone, en part de celui de la valeur. */
-    private const val LEADING_RATIO = 0.54f
-
-    /** Le numéro de zone s'efface un peu : c'est la fréquence qu'on lit d'abord. */
-    private const val LEADING_ALPHA = 0xB0
 
     private const val ICON_RATIO = 1.15f
 

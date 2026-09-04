@@ -132,7 +132,20 @@ object FieldModels {
             ?: return ResupplyFieldModel(emptyMessage = context.getString(R.string.field_no_route))
         val points = Resupply.stops(route, types)
         if (points.isEmpty()) {
-            return ResupplyFieldModel(emptyMessage = context.getString(R.string.field_resupply_none))
+            // « Aucun ravitaillement sur l'itinéraire » se disait aussi quand l'itinéraire en
+            // portait, mais d'un type où l'on ne remplit pas un bidon — un contrôle, un
+            // sommet, un parking. Le profil, lui, marque tous les points : les deux champs se
+            // contredisaient à l'écran sans que rien n'explique pourquoi. Le message dit
+            // maintenant ce qu'il en est, et le réglage en cause quand c'en est un.
+            val total = route.pois.size
+            return ResupplyFieldModel(
+                emptyMessage = when {
+                    total == 0 -> context.getString(R.string.field_resupply_no_poi)
+                    types == ResupplyTypes.WATER_ONLY ->
+                        context.getString(R.string.field_resupply_no_water, total)
+                    else -> context.getString(R.string.field_resupply_none_usable, total)
+                },
+            )
         }
 
         val status = Resupply.status(route, along, types)

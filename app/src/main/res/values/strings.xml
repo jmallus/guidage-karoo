@@ -165,5 +165,7 @@
     <string name="field_resupply_last_useful">DERNIER UTILE</string>
     <string name="field_resupply_dry">RIEN</string>
     <string name="field_resupply_nothing_ahead">PLUS RIEN JUSQU\'À L\'ARRIVÉE</string>
-    <string name="field_resupply_none">Aucun ravitaillement sur l\'itinéraire</string>
+    <string name="field_resupply_no_poi">Aucun point sur l\'itinéraire</string>
+    <string name="field_resupply_none_usable">%1$d points, aucun où se ravitailler</string>
+    <string name="field_resupply_no_water">%1$d points, aucun point d\'eau</string>
 </resources>
