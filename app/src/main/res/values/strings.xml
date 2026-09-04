@@ -28,7 +28,7 @@
     <string name="basemap_unreadable">Fond de carte illisible</string>
     <string name="basemap_out_of_area">Hors de la région couverte</string>
     <string name="basemap_empty">Aucune voie ici</string>
-    <string name="dashboard_label_remaining">RESTANT %1$s</string>
+    <string name="dashboard_label_remaining">REST.</string>
     <string name="dashboard_label_arrival">ARRIVÉE</string>
     <string name="dashboard_zoom_whole_route">Parcours</string>
     <string name="dashboard_climb_title">Côte %1$d/%2$d — %3$s à %4$s</string>
