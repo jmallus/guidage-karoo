@@ -85,7 +85,7 @@ object DashboardModels {
             topTiles = effortTiles(context, units, rideData),
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
-            midTiles = midTiles(context, units, rideData),
+            remainingTile = remainingTile(context, units, rideData),
             // Le rang du bas est à la bande du soir, quoi qu'elle ait à dire : sans position ni
             // coucher, elle le dit, et la mise en page ne bouge pas en cours de route.
             night = NightModels.build(context, snapshot, rideData, preview, nowMillis),
@@ -252,33 +252,21 @@ object DashboardModels {
     )
 
     /**
-     * Rang sous la carte : distance parcourue, distance restante, pente instantanée.
+     * La case du restant, à droite du cœur.
      *
-     * La distance restante y a rejoint la parcourue : les deux se lisent ensemble — où j'en
-     * suis, ce qui reste — et le rang du bas, qu'elle occupait, est allé tout entier à la
-     * bande du soir.
+     * Elle vient d'un rang de trois — distance parcourue, restant, pente — supprimé après
+     * essai sur le vélo : ses voisines redisaient ce que le Karoo enregistre et ce que la
+     * couleur du profil montre, et leur hauteur manquait cruellement aux deux champs du bas,
+     * qui écrivaient trop petit pour être lus.
      */
-    private fun midTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
-        Tile(
-            label = context.getString(R.string.dashboard_label_distance),
-            value = rideData.distance?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-            icon = R.drawable.ic_distance,
-        ).splitDecimal(),
-        Tile(
-            label = context.getString(
-                R.string.dashboard_label_remaining,
-                remainingUnit(units).uppercase(),
-            ),
-            value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
-            icon = R.drawable.ic_distance_remaining,
-        ).splitDecimal(),
-        Tile(
-            label = context.getString(R.string.dashboard_label_grade),
-            value = rideData.grade?.roundToInt()?.toString() ?: PLACEHOLDER,
-            suffix = "%",
-            icon = R.drawable.ic_grade,
+    private fun remainingTile(context: Context, units: Units, rideData: RideData): Tile = Tile(
+        label = context.getString(
+            R.string.dashboard_label_remaining,
+            remainingUnit(units).uppercase(),
         ),
-    )
+        value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
+        icon = R.drawable.ic_distance_remaining,
+    ).splitDecimal()
 
     /**
      * Détache la décimale, écrite ensuite en exposant et sans séparateur.

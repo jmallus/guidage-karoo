@@ -105,8 +105,16 @@ data class DashboardModel(
     val drivetrain: DrivetrainModel? = null,
     /** Case de gauche suivante : la fréquence cardiaque. */
     val heartRateTile: Tile? = null,
-    /** Rang sous la carte : distance parcourue, distance restante, pente. */
-    val midTiles: List<Tile> = emptyList(),
+    /**
+     * À droite du cœur : ce qu'il reste à parcourir.
+     *
+     * Il occupait un rang à lui, avec la distance parcourue et la pente instantanée. Ce rang
+     * a disparu : la distance parcourue redit ce que le Karoo enregistre, la pente se lit à la
+     * couleur du profil sous la position du coureur, et les quatre-vingts points ainsi rendus
+     * étaient la seule réserve de place de l'écran. Le restant, lui, se regarde tout le temps :
+     * il vient à côté du cœur.
+     */
+    val remainingTile: Tile? = null,
     /**
      * Dernier rang : le champ « Avant la nuit » réduit à une bande, sur toute la largeur.
      *
@@ -135,10 +143,10 @@ object DashboardRenderer {
     private const val TILE_COLUMN_FRACTION = 0.5f
 
     /** Hauteur d'un rang de la grille, en part de la hauteur utile ; le reste va au pied. */
-    private const val ROW_HEIGHT_FRACTION = 0.227f
+    private const val ROW_HEIGHT_FRACTION = 0.2455f
 
-    /** Nombre de rangs avant la dernière ligne. */
-    private const val GRID_ROWS = 4
+    /** Nombre de rangs de grille avant le pied : l'effort, puis les deux du guidage. */
+    private const val GRID_ROWS = 3
 
     /** Nombre de hauteurs de rang occupées par le guidage. */
     private const val GUIDANCE_ROWS = 2
@@ -159,23 +167,12 @@ object DashboardRenderer {
     /**
      * Hauteur du bandeau de profil.
      *
-     * Un sixième, contre un dixième du temps où il ne montrait que deux kilomètres. Le
-     * parcours entier y tient désormais, et une bande de soixante points n'aurait pas de quoi
-     * porter à la fois une silhouette et les graduations qui disent la compression.
+     * Près d'un quart, contre un sixième tant qu'un rang de nombres s'intercalait au-dessus du
+     * pied. La moitié de ce rang lui est revenue, et c'est ce qui lui permet de porter les
+     * chiffres de son axe à une taille qui se lise en roulant : à cent trois points il fallait
+     * les écrire à sept dixièmes de millimètre, ou les abandonner.
      */
-    private const val PROFILE_BAND_FRACTION = 0.16f
-
-    /**
-     * Hauteur du rang « distance et pente », plus courte que les autres.
-     *
-     * C'est à lui qu'on prend la place donnée au bandeau, et non à parts égales sur tous les
-     * rangs. La distance parcourue et la pente sont deux nombres courts, que leur case tenait
-     * trop au large ; le bandeau, lui, dessine.
-     */
-    private const val MID_ROW_FRACTION = 0.154f
-
-    /** Nombre de cases du rang sous la carte. */
-    private const val MID_TILES = 3
+    private const val PROFILE_BAND_FRACTION = 0.224f
 
     fun render(
         context: Context,
@@ -198,10 +195,11 @@ object DashboardRenderer {
         val usableHeight = contentHeight - 2 * padding
         val rowHeight = usableHeight * ROW_HEIGHT_FRACTION
         fun row(index: Int) = padding + index * rowHeight
-        // Le rang de la distance et de la pente a sa propre hauteur, plus courte : les rangs
-        // au-dessus gardent ainsi leur taille malgré le bandeau agrandi.
-        val midTop = row(GRID_ROWS - 1)
-        val footerTop = midTop + usableHeight * MID_ROW_FRACTION
+        // Le pied commence où finit la grille : le rang « distance parcourue et pente » qui
+        // s'intercalait ici a été supprimé, et sa hauteur partagée entre la bande du soir et
+        // le bandeau de profil — les deux seuls endroits de l'écran qui manquaient de place
+        // pour écrire lisiblement.
+        val footerTop = row(GRID_ROWS)
         val footerBottom = contentHeight - padding
 
         // Rang du haut : l'effort instantané, trois cases côte à côte. Il a sa propre taille
@@ -226,41 +224,30 @@ object DashboardRenderer {
             labelFraction = LABEL_HEIGHT_FRACTION,
         )
 
-        // Colonne gauche : le cœur sous la transmission.
-        val heartTile = model.heartRateTile
-        val valueSize = if (heartTile == null) {
+        // Colonne gauche, sous la transmission : le cœur et ce qu'il reste, côte à côte.
+        //
+        // Les deux partagent un rang que le cœur occupait seul. C'est ce que la suppression du
+        // rang « distance parcourue · restant · pente » a rendu nécessaire — et possible : la
+        // distance parcourue et la pente instantanée disaient ce que le Karoo enregistre de
+        // son côté et ce que la couleur du profil montre déjà, quand la distance restante est
+        // le nombre qu'on regarde le plus.
+        val colonneTiles = listOfNotNull(model.heartRateTile, model.remainingTile)
+        val valueSize = if (colonneTiles.isEmpty()) {
             rowHeight * VALUE_HEIGHT_FRACTION
         } else {
+            val cellWidth = (columnSplit - padding) / colonneTiles.size
             drawTiles(
                 context = context,
                 canvas = canvas,
-                bounds = listOf(RectF(padding, row(2), columnSplit, row(3))),
-                tiles = listOf(heartTile),
-                palette = model.palette,
-                valueFraction = VALUE_HEIGHT_FRACTION,
-                labelFraction = LABEL_HEIGHT_FRACTION,
-            )
-        }
-
-        // Rang sous la carte : distance parcourue, distance restante, pente, à parts égales.
-        // Il est dessiné à part du cœur, et non avec lui : son rang est plus court, et une
-        // taille commune aux deux serait ou trop grande pour lui — les chiffres débordant sur
-        // le pied — ou trop petite pour le cœur.
-        val midTiles = model.midTiles.take(MID_TILES)
-        if (midTiles.isNotEmpty()) {
-            val midWidth = (width - 2 * padding) / midTiles.size
-            drawTiles(
-                context = context,
-                canvas = canvas,
-                bounds = midTiles.indices.map { index ->
+                bounds = colonneTiles.indices.map { index ->
                     RectF(
-                        padding + index * midWidth,
-                        midTop,
-                        padding + (index + 1) * midWidth,
-                        footerTop,
+                        padding + index * cellWidth,
+                        row(2),
+                        padding + (index + 1) * cellWidth,
+                        row(3),
                     )
                 },
-                tiles = midTiles,
+                tiles = colonneTiles,
                 palette = model.palette,
                 valueFraction = VALUE_HEIGHT_FRACTION,
                 labelFraction = LABEL_HEIGHT_FRACTION,
@@ -288,7 +275,7 @@ object DashboardRenderer {
                     hasIcon = drivetrain.icon != null,
                     maxWidth = columnSplit - padding - EDGE_INSET * 2,
                     preferredSize = rowHeight * LABEL_HEIGHT_FRACTION,
-                ),
+                ).size,
             )
         }
 
@@ -340,16 +327,20 @@ object DashboardRenderer {
         val cellHeight = bounds.minOf { it.height() }
         // Une seule taille de libellé pour le groupe, comme pour les valeurs : celle qui
         // laisse l'icône à découvert dans la plus étroite des cases.
-        val labelSize = tiles.zip(bounds).minOf { (tile, box) ->
+        val ajustements = tiles.zip(bounds).map { (tile, box) ->
             fitLabelSize(tile.label, tile.icon != null, box.width() - EDGE_INSET * 2, cellHeight * labelFraction)
         }
+        val labelSize = ajustements.minOf { it.size }
+        // L'icône tombe pour tout le groupe ou pour personne : une case ornée à côté d'une case
+        // nue se lit comme deux choses de nature différente.
+        val avecIcones = ajustements.all { it.avecIcone }
         val preferred = cellHeight * valueFraction
         val valueSize = tiles.zip(bounds).minOf { (tile, box) ->
             fitValueSize(tile, box.width() - EDGE_INSET * 2, preferred)
         }
 
         tiles.zip(bounds).forEach { (tile, box) ->
-            drawTile(context, canvas, box, tile, palette, valueSize, labelSize)
+            drawTile(context, canvas, box, tile, palette, valueSize, labelSize, avecIcones)
         }
         return valueSize
     }
@@ -375,6 +366,7 @@ object DashboardRenderer {
         palette: Palette,
         valueSize: Float,
         labelSize: Float,
+        avecIcone: Boolean = true,
     ) {
         val ink = tile.background?.let { Contrast.bestTextColor(it) } ?: palette.textPrimary
         val labelInk = if (tile.background == null) {
@@ -404,7 +396,7 @@ object DashboardRenderer {
         val valueHeight = valuePaint.descent() - valuePaint.ascent()
         val top = labelTop(bounds, labelHeight)
 
-        drawLabelRow(context, canvas, bounds, tile, labelPaint, iconInk, top, labelSize)
+        drawLabelRow(context, canvas, bounds, tile, labelPaint, iconInk, top, labelSize, avecIcone)
 
         // La valeur, sa décimale et son unité forment un bloc unique, centré dans ce qui reste
         // sous le libellé.
@@ -482,16 +474,18 @@ object DashboardRenderer {
         iconInk: Int,
         top: Float,
         labelSize: Float,
+        avecIcone: Boolean = true,
     ) {
+        val icone = tile.icon.takeIf { avecIcone }
         val iconSize = labelSize * ICON_RATIO
         val labelWidth = labelPaint.measureText(tile.label)
-        val iconWidth = if (tile.icon != null) iconSize + LABEL_GAP else 0f
+        val iconWidth = if (icone != null) iconSize + LABEL_GAP else 0f
         val left = (bounds.right - EDGE_INSET - iconWidth - labelWidth)
             .coerceAtLeast(bounds.left + EDGE_INSET)
 
         canvas.drawText(tile.label, left, top - labelPaint.ascent(), labelPaint)
 
-        tile.icon?.let { resource ->
+        icone?.let { resource ->
             val drawable = ContextCompat.getDrawable(context, resource)
             if (drawable != null) {
                 // L'icône est plus grande que le libellé et se pose sur la même ligne médiane.
@@ -755,19 +749,34 @@ object DashboardRenderer {
      * L'icône étant dimensionnée d'après le libellé, les deux se réduisent ensemble : la
      * largeur totale est proportionnelle au corps, et une seule mise à l'échelle suffit.
      */
+    /**
+     * Le corps du libellé, et si l'icône y a encore sa place.
+     *
+     * Le libellé ne descend pas sous le plancher de lisibilité : dans une case étroite, c'est
+     * l'**icône** qui cède, puis, si cela ne suffit toujours pas, le libellé se rétrécit — mais
+     * jamais en dessous du plancher, où il ne serait plus lu. Les cases sont devenues deux fois
+     * plus étroites en accueillant le cœur et le restant côte à côte, et « RESTANT KM » avec
+     * son icône n'y tenait plus qu'en tombant à deux tiers de millimètre.
+     */
     private fun fitLabelSize(
         label: String,
         hasIcon: Boolean,
         maxWidth: Float,
         preferredSize: Float,
-    ): Float {
-        val size = preferredSize.coerceIn(MINIMUM_LABEL_SIZE, MAXIMUM_LABEL_SIZE)
-        if (label.isEmpty() || maxWidth <= 0f) return size
+    ): LabelFit {
+        val plancher = Lisibilite.corpsPourCapitale()
+        val size = preferredSize.coerceIn(max(MINIMUM_LABEL_SIZE, plancher), MAXIMUM_LABEL_SIZE)
+        if (label.isEmpty() || maxWidth <= 0f) return LabelFit(size, hasIcon)
+        val texte = paint(size, 0, LABEL_TYPEFACE).measureText(label)
         val icon = if (hasIcon) size * ICON_RATIO + LABEL_GAP else 0f
-        val measured = paint(size, 0, LABEL_TYPEFACE).measureText(label) + icon
-        if (measured <= maxWidth || measured <= 0f) return size
-        return (size * maxWidth / measured).coerceAtLeast(MINIMUM_LABEL_SIZE)
+        if (texte + icon <= maxWidth) return LabelFit(size, hasIcon)
+        if (hasIcon && texte <= maxWidth) return LabelFit(size, avecIcone = false)
+        val reduit = (size * maxWidth / (texte + icon)).coerceAtLeast(plancher)
+        return LabelFit(reduit, avecIcone = false)
     }
+
+    /** Un corps de libellé, et le sort de l'icône qui l'accompagnait. */
+    private data class LabelFit(val size: Float, val avecIcone: Boolean)
 
     /** Bornes du corps des libellés. */
     private const val MINIMUM_LABEL_SIZE = 9f

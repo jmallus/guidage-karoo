@@ -27,7 +27,10 @@ class NightRendererTest {
     private val palette get() = FieldPalette.of(RuntimeEnvironment.getApplication())
 
     /** La hauteur que le dernier rang du tableau de bord laisse à la bande, sur un Karoo 3. */
-    private val hauteurBande = 87
+    private val hauteurBande = 128
+
+    /** Une bande courte, où la frise ne tient plus à une taille lisible. */
+    private val hauteurBandeCourte = 87
 
     private val timeline = NightTimeline(
         nowLabel = "maintenant",
@@ -153,21 +156,32 @@ class NightRendererTest {
     }
 
     /**
-     * La bande du tableau de bord : le mot dans sa couleur, les deux heures dessous.
+     * La bande du tableau de bord porte la frise dès qu'elle peut l'écrire lisiblement.
      *
-     * Le verdict est compté dans le seul rang du haut, et non sur l'image entière : le seuil
-     * constate une présence, la taille du mot étant un arbitrage que le rendu documente et non
-     * une promesse.
+     * Le verdict est compté dans le seul rang du haut, et non sur l'image entière : la frise
+     * porte elle aussi la couleur du verdict — le trait d'arrivée et son heure — et un total
+     * ne dirait plus si le mot est là.
      */
     @Test
-    fun `la bande porte le mot et les deux heures`() {
+    fun `la bande porte le mot et la frise`() {
         val image = bande(model(NightVerdict.TIGHT, "JUSTE"), hauteur = hauteurBande)
         assertTrue("le verdict manque", countTop(image, NightRenderer.TIGHT, 0.30) > 150)
+        assertTrue("la frise manque", count(image, KarooColors.LEMON_YELLOW) > 20)
+    }
+
+    /**
+     * Une bande trop courte pour la frise écrit les deux heures en toutes lettres.
+     *
+     * C'est la règle du plancher appliquée à un dessin plutôt qu'à un texte : une frise qu'on
+     * ne lirait pas ne dit pas moins bien ce qu'elle montre, elle ne dit rien, et prend la
+     * place de ce qui parlerait. Le rail jaune et le triangle blanc en sont les deux marques.
+     */
+    @Test
+    fun `une bande courte abandonne la frise pour les heures`() {
+        val image = bande(model(NightVerdict.TIGHT, "JUSTE"), hauteur = hauteurBandeCourte)
+        assertEquals("un rail de frise subsiste", 0, count(image, KarooColors.LEMON_YELLOW))
+        assertEquals("le triangle du présent subsiste", 0, count(image, palette.textPrimary))
         assertTrue("la ligne des heures manque", count(image, palette.textSecondary) > 200)
-        // La bande ne dessine plus de frise : elle n'y tenait pas à une taille lisible. Le
-        // jaune du coucher et le blanc du triangle en étaient les deux marques.
-        assertEquals("un rail de frise subsiste dans la bande", 0, count(image, KarooColors.LEMON_YELLOW))
-        assertEquals("le triangle du présent subsiste dans la bande", 0, count(image, palette.textPrimary))
     }
 
     /** La hauteur d'encre d'une couleur, en pixels : de sa première à sa dernière rangée. */
@@ -195,16 +209,16 @@ class NightRendererTest {
      * millimètre, ils laissaient passer des heures d'un demi-millimètre d'encre, nettes sur
      * une capture regardée de près et invisibles sur un vélo. Le corps se déduit maintenant
      * d'une hauteur d'encre voulue, et ce contrôle la mesure là où elle se lit : sur les
-     * pixels.
+     * pixels. La bande courte s'y prête, la frise n'y tenant à aucun des deux planchers.
      */
     @Test
     fun `la ligne des heures tient le plancher de lisibilite`() {
         val modele = model(NightVerdict.TIGHT, "JUSTE")
         for ((mm, minimum) in listOf(0.85f to 11, 1.15f to 15)) {
-            val image = Bitmap.createBitmap(466, hauteurBande, Bitmap.Config.ARGB_8888)
+            val image = Bitmap.createBitmap(466, hauteurBandeCourte, Bitmap.Config.ARGB_8888)
             NightRenderer.drawBand(
                 android.graphics.Canvas(image),
-                android.graphics.RectF(0f, 0f, 466f, hauteurBande.toFloat()),
+                android.graphics.RectF(0f, 0f, 466f, hauteurBandeCourte.toFloat()),
                 modele,
                 palette,
                 mm,
