@@ -9,7 +9,7 @@ ravitaillements — et des annonces à l'écran.
 Tout est calculé **sur l'appareil**, à partir des données que Karoo OS fournit déjà :
 aucune connexion réseau, aucun compte, rien à synchroniser.
 
-<img src="docs/captures/carte-300m.png" alt="Le tableau de bord plein écran : effort en haut, transmission et fréquence cardiaque à gauche, minicarte à droite, distance et arrivée en bas, profil à venir en bandeau" width="300">
+<img src="docs/captures/carte-300m.png" alt="Le tableau de bord plein écran : effort en haut, transmission à gauche et minicarte à droite, fréquence cardiaque et distance restante côte à côte, le verdict du soir avec sa frise, profil à venir en bandeau" width="300">
 
 **Toutes les images de ce README sortent du rendu de l'appareil.** Elles ne sont pas des
 maquettes : le [simulateur](docs/developpement.md#le-simulateur) appelle les mêmes classes que
