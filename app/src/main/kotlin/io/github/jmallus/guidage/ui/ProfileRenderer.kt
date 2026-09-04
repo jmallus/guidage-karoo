@@ -56,13 +56,20 @@ data class ProfileFieldModel(
  */
 object ProfileRenderer {
 
-    fun render(width: Int, height: Int, model: ProfileFieldModel, palette: Palette): Bitmap {
+    fun render(
+        width: Int,
+        height: Int,
+        model: ProfileFieldModel,
+        palette: Palette,
+        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+    ): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         draw(
             Canvas(bitmap),
             RectF(0f, 0f, width.toFloat(), height.toFloat()),
             model,
             palette,
+            encreMinimaleMm,
         )
         return bitmap
     }
@@ -74,16 +81,31 @@ object ProfileRenderer {
      * dans un bitmap intermédiaire : une image de plus par seconde, et surtout une seconde
      * écriture du profil, qui aurait dérivé de celle-ci.
      */
-    fun draw(canvas: Canvas, area: RectF, model: ProfileFieldModel, palette: Palette) {
+    fun draw(
+        canvas: Canvas,
+        area: RectF,
+        model: ProfileFieldModel,
+        palette: Palette,
+        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+    ) {
         val width = area.width()
         val height = area.height()
-        val labelSize = (height * 0.16f).coerceIn(9f, 20f)
         val padding = (min(width, height) * 0.04f).coerceIn(2f, 8f)
-        val tickSize = (labelSize * TICK_TEXT_RATIO).coerceAtLeast(MIN_TICK_TEXT)
+        // Les textes ne descendent pas sous le plancher : ils sont écrits assez gros pour être
+        // lus, ou pas écrits du tout. Le corps se déduit de la hauteur d'encre voulue, jamais
+        // de la place qui reste — c'est l'inversion de règle qui rendait le bandeau illisible.
+        val corpsMinimal = Lisibilite.corpsPourCapitale(encreMinimaleMm)
+        val labelSize = max((height * 0.16f).coerceAtMost(26f), corpsMinimal)
+        val tickSize = max(labelSize * TICK_TEXT_RATIO, corpsMinimal)
+        // Les chiffres de l'axe ne s'écrivent que si la bande peut les porter à cette taille,
+        // la silhouette gardant sa part. Sinon les traits restent seuls : ils disent la
+        // compression de l'échelle, qui est l'essentiel, et n'occupent aucune hauteur de texte.
         val labelled = height >= tickSize * LABELLED_AXIS_HEIGHTS
         val axis = if (labelled) TICK_LENGTH + tickSize * 1.35f else TICK_LENGTH
 
-        val top = area.top + padding + labelSize
+        // Les libellés du haut disparaissent avec la même règle que les chiffres de l'axe.
+        val entetes = height >= labelSize * ENTETE_HEIGHTS
+        val top = area.top + padding + if (entetes) labelSize else 0f
         val bottom = area.bottom - padding - axis
         val left = area.left + padding
         val right = area.right - padding
@@ -99,7 +121,7 @@ object ProfileRenderer {
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         drawPositionMarker(canvas, left, top, bottom, palette)
-        drawLabels(canvas, model, left, right, top, labelSize, palette)
+        if (entetes) drawLabels(canvas, model, left, right, top, labelSize, palette)
     }
 
     /**
@@ -209,9 +231,10 @@ object ProfileRenderer {
             color = palette.textSecondary
             strokeWidth = 2f
         }
-        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.textSecondary
-            textSize = tickSize
+        // Graisse moyenne : à corps égal, des chiffres maigres en bleu pâle par-dessus une
+        // silhouette colorée se lisent nettement moins bien qu'en medium, pour le même
+        // encombrement. C'est la fonte que le Karoo emploie lui-même pour ses libellés.
+        val text = Lisibilite.pinceau(tickSize, palette.textSecondary).apply {
             textAlign = Paint.Align.CENTER
         }
         val unit = Format.longDistanceUnit(model.units)
@@ -482,7 +505,8 @@ object ProfileRenderer {
      * des libellés, pas ce rapport.
      */
     private const val TICK_TEXT_RATIO = 1.0f
-    private const val MIN_TICK_TEXT = 11f
+    /** Hauteurs de libellé qu'il faut à la bande pour porter aussi les en-têtes. */
+    private const val ENTETE_HEIGHTS = 4.2f
 
     /**
      * Le champ ne porte les chiffres de l'axe qu'à partir de cette hauteur, en corps.

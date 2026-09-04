@@ -36,6 +36,7 @@ import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.ContextRenderer
 import io.github.jmallus.guidage.ui.EffortRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
+import io.github.jmallus.guidage.ui.Lisibilite
 import io.github.jmallus.guidage.ui.NightRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
@@ -407,8 +408,12 @@ class Simulateur(
         )
     }
 
-    fun image(secondes: Double, largeur: Int = LARGEUR, hauteur: Int = HAUTEUR): Bitmap =
-        DashboardRenderer.render(context, largeur, hauteur, modele(secondes))
+    fun image(
+        secondes: Double,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR,
+        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+    ): Bitmap = DashboardRenderer.render(context, largeur, hauteur, modele(secondes), encreMinimaleMm)
 
     /** Heure d'arrivée estimée : ce qui reste, à la moyenne tenue jusque-là. */
     private fun arrivee(instant: InstantSortie, maintenant: Long): Double {
