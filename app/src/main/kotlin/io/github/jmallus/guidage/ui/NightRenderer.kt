@@ -284,13 +284,13 @@ object NightRenderer {
             else -> reste
         }
 
-        val baseline = area.top + padding + hauteurTete * 0.82f
+        val baseline = area.top + padding + hauteurTete * HEAD_BASELINE_FRACTION
         val verdictLabel = model.verdictLabel
         if (verdictLabel != null && model.verdict != null) {
             val accent = verdictColor(model.verdict)
             val verdictPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = accent
-                textSize = hauteurTete * 0.9f
+                textSize = hauteurTete * VERDICT_SIZE_FRACTION
                 typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             }
             fit(verdictPaint, verdictLabel, place * 0.55f)
@@ -298,7 +298,14 @@ object NightRenderer {
             model.marginLabel?.let { margin ->
                 val marginSize = max(hauteurTete * 0.42f, corpsMinimal)
                 val x = left + verdictPaint.measureText(verdictLabel) + marginSize * 0.6f
-                drawMargin(canvas, margin, model.uncertaintyLabel, x, baseline, right, marginSize, accent, palette)
+                // La marge se cale sur le **haut** du mot, non sur sa ligne de base : deux
+                // corps aussi éloignés partageant une ligne de base laissent, au-dessus du
+                // petit, un vide aussi haut que la différence — et ce vide était pris sur la
+                // bande, donc sur la frise. Alignés par la hampe, ils occupent la même
+                // hauteur d'encre, et la place rendue va aux heures.
+                val hautDuMot = baseline - Lisibilite.CAPITALE * verdictPaint.textSize
+                val ligneDeLaMarge = hautDuMot + Lisibilite.CAPITALE * marginSize
+                drawMargin(canvas, margin, model.uncertaintyLabel, x, ligneDeLaMarge, right, marginSize, accent, palette)
             }
         } else {
             model.emptyMessage?.let { message ->
@@ -601,8 +608,27 @@ object NightRenderer {
     private const val TWILIGHT = KarooColors.AEGEAN_BLUE
     private const val NIGHT = 0xFF11181C.toInt()
 
-    /** Part de la bande donnée au mot et à sa marge ; la frise prend le reste. */
-    private const val BAND_HEAD_FRACTION = 0.30f
+    /**
+     * Part de la bande donnée au mot et à sa marge ; la frise prend le reste.
+     *
+     * Descendue de trois dixièmes à moins d'un quart **sans réduire le mot** : le rang lui
+     * réservait de quoi loger un jambage sous sa ligne de base, alors que les trois verdicts
+     * — OUI, JUSTE, NON — sont des capitales qui n'en ont pas. [VERDICT_SIZE_FRACTION] et
+     * [HEAD_BASELINE_FRACTION] rendent au mot, dans un rang plus court, la taille qu'il avait
+     * dans le rang long. Ce sont les huit points ainsi récupérés qui grossissent les heures.
+     */
+    private const val BAND_HEAD_FRACTION = 0.24f
+
+    /**
+     * Corps du mot, en part de la hauteur du rang — et sa ligne de base dans ce rang.
+     *
+     * Le corps dépasse la hauteur du rang parce qu'on ne loge que la hampe : à 0,71 du corps,
+     * une capitale de vingt points en réclame vingt-neuf, dont les huit du bas ne servent
+     * qu'à des jambages qui n'existent pas ici. La ligne de base descend d'autant, laissant
+     * juste le blanc qu'il faut au-dessus de la hampe.
+     */
+    private const val VERDICT_SIZE_FRACTION = 1.18f
+    private const val HEAD_BASELINE_FRACTION = 0.92f
 
     /**
      * Hauteurs de libellé qu'une frise compacte occupe en tout, rail et marges compris.

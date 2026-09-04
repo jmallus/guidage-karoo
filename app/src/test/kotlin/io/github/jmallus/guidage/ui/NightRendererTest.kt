@@ -165,7 +165,9 @@ class NightRendererTest {
     @Test
     fun `la bande porte le mot et la frise`() {
         val image = bande(model(NightVerdict.TIGHT, "JUSTE"), hauteur = hauteurBande)
-        assertTrue("le verdict manque", countTop(image, NightRenderer.TIGHT, 0.30) > 150)
+        // La part comptée suit celle que la bande donne au mot : au-delà commence la frise,
+        // qui porte la même couleur et rendrait le contrôle muet sur la présence du mot.
+        assertTrue("le verdict manque", countTop(image, NightRenderer.TIGHT, 0.24) > 150)
         assertTrue("la frise manque", count(image, KarooColors.LEMON_YELLOW) > 20)
     }
 

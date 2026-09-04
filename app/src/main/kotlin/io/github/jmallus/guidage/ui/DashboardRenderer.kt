@@ -621,22 +621,22 @@ object DashboardRenderer {
         val (current, count) = comb
         if (area.width() <= 0f) return
         val pitch = area.width() / count
-        val stroke = (barWidth * BAR_STROKE_FRACTION).coerceIn(1.5f, 4f)
 
-        // Contour pour tous, remplissage pour le seul rapport engagé : c'est le dessin du
-        // système visuel de Hammerhead, et il dit deux choses là où nos barres pleines n'en
-        // disaient qu'une — le contour donne la denture disponible, le remplissage l'endroit
-        // où l'on se trouve dedans.
-        val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = stroke
-            color = palette.textPrimary
+        // Barres pleines, grises pour les rapports libres et blanche pour l'engagé — le dessin
+        // de Hammerhead. Le contour blanc qui les creusait tenait le même discours en trois
+        // fois plus d'encre : à cette taille, deux traits fins et le blanc entre eux forment
+        // une barre plus lourde à l'œil qu'un aplat gris, et le peigne se lisait comme une
+        // grille plutôt que comme une denture. Le gris suffit à porter les rapports
+        // disponibles ; c'est le contraste qui désigne celui qu'on tient.
+        val libre = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = palette.textSecondary
         }
-        // Le rapport engagé est rempli de blanc, non du vert vif que le système réserve à la
-        // donnée vive. C'est un écart assumé : le contour porte déjà toute la distinction —
-        // creux partout, plein à un seul endroit — et la couleur n'y ajoutait qu'un signal de
-        // plus, là où l'écran en compte déjà sept avec les aplats de zone. Le blanc est celui
-        // des valeurs : le rapport engagé est un chiffre qu'on lit, pas un voyant.
+        // Le rapport engagé est blanc, non du vert vif que le système réserve à la donnée
+        // vive. C'est un écart assumé : l'écart de valeur avec le gris porte déjà toute la
+        // distinction, et la couleur n'y ajoutait qu'un signal de plus, là où l'écran en
+        // compte déjà sept avec les aplats de zone. Le blanc est celui des valeurs : le
+        // rapport engagé est un chiffre qu'on lit, pas un voyant.
         val engaged = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
             color = palette.textPrimary
@@ -651,20 +651,7 @@ object DashboardRenderer {
             // Bouts arrondis : à cette taille, des angles vifs font des barres sales.
             val radius = barWidth / 2f
 
-            if (index == current) {
-                canvas.drawRoundRect(bar, radius, radius, engaged)
-            } else {
-                // Le contour se dessine sur la ligne médiane du trait : il faut donc rentrer
-                // le rectangle d'une demi-épaisseur, sans quoi les barres se touchent et
-                // débordent du bas de la bande.
-                val demi = stroke / 2f
-                canvas.drawRoundRect(
-                    RectF(bar.left + demi, bar.top + demi, bar.right - demi, bar.bottom - demi),
-                    radius,
-                    radius,
-                    outline,
-                )
-            }
+            canvas.drawRoundRect(bar, radius, radius, if (index == current) engaged else libre)
         }
     }
 
@@ -688,14 +675,11 @@ object DashboardRenderer {
     /**
      * Largeur d'une barre, en part du pas.
      *
-     * Elle a été élargie en passant au contour : une barre pleine se voit par sa surface, une
-     * barre creuse par son seul trait, et onze traits fins de deux pixels sur cette largeur
-     * faisaient une grille plutôt qu'un peigne.
+     * Elle avait été élargie pour que le contour se voie ; les barres étant redevenues
+     * pleines, la largeur reste — c'est par sa surface qu'une barre pleine se lit, et le
+     * peigne y gagne la même franchise.
      */
     private const val BAR_WIDTH_FRACTION = 0.74f
-
-    /** Épaisseur du contour, en part de la largeur de la barre. */
-    private const val BAR_STROKE_FRACTION = 0.22f
 
     /** Hauteur de la plus petite barre, en part de la plus grande. */
     private const val BAR_MIN_HEIGHT = 0.35f
@@ -723,23 +707,20 @@ object DashboardRenderer {
     private const val COMB_TOP_MARGIN = 0.32f
 
     /**
-     * Plus grande taille de titre tenant dans la case, icône comprise.
+     * Le corps du libellé tenant dans la case, et si l'icône y a encore sa place.
      *
-     * L'icône et le mot forment un bloc centré : ils ne peuvent plus se recouvrir, mais rien
-     * n'empêche le bloc entier de dépasser des deux côtés. Les trois cases du bandeau du haut
-     * font la moitié de la largeur des autres, et « VITESSE 3S » y sortait du cadre.
+     * L'icône et le mot forment un bloc centré : ils ne peuvent pas se recouvrir, mais rien
+     * n'empêche le bloc entier de dépasser des deux côtés — « VITESSE 3S » sortait du cadre
+     * des cases du haut, qui font la moitié de la largeur des autres.
      *
-     * L'icône étant dimensionnée d'après le libellé, les deux se réduisent ensemble : la
-     * largeur totale est proportionnelle au corps, et une seule mise à l'échelle suffit.
-     */
-    /**
-     * Le corps du libellé, et si l'icône y a encore sa place.
+     * L'ordre des sacrifices a été retourné. On faisait céder l'**icône** d'abord, pour garder
+     * au libellé sa taille de confort ; mais le symbole ne se lit pas, il se reconnaît, et
+     * deux points de corps en moins ne coûtent rien à côté de lui. Le libellé se réduit donc
+     * avec son icône jusqu'au plancher de lisibilité, et l'icône ne cède que si, au plancher,
+     * elle ne tient toujours pas.
      *
-     * Le libellé ne descend pas sous le plancher de lisibilité : dans une case étroite, c'est
-     * l'**icône** qui cède, puis, si cela ne suffit toujours pas, le libellé se rétrécit — mais
-     * jamais en dessous du plancher, où il ne serait plus lu. Les cases sont devenues deux fois
-     * plus étroites en accueillant le cœur et le restant côte à côte, et « RESTANT KM » avec
-     * son icône n'y tenait plus qu'en tombant à deux tiers de millimètre.
+     * Le sort en est commun à tout le rang : c'est le libellé le plus large qui décide pour
+     * les autres. « RESTANT KM » le décidait, et privait la fréquence cardiaque de son cœur.
      */
     private fun fitLabelSize(
         label: String,
@@ -753,9 +734,14 @@ object DashboardRenderer {
         val texte = paint(size, 0, LABEL_TYPEFACE).measureText(label)
         val icon = if (hasIcon) size * ICON_RATIO + LABEL_GAP else 0f
         if (texte + icon <= maxWidth) return LabelFit(size, hasIcon)
+
+        // Texte et icône grandissent ensemble avec le corps : une seule règle de trois donne
+        // le corps qui les fait tenir tous les deux.
+        val avecIcone = size * maxWidth / (texte + icon)
+        if (avecIcone >= plancher) return LabelFit(avecIcone, hasIcon)
+
         if (hasIcon && texte <= maxWidth) return LabelFit(size, avecIcone = false)
-        val reduit = (size * maxWidth / (texte + icon)).coerceAtLeast(plancher)
-        return LabelFit(reduit, avecIcone = false)
+        return LabelFit((size * maxWidth / texte).coerceAtLeast(plancher), avecIcone = false)
     }
 
     /** Un corps de libellé, et le sort de l'icône qui l'accompagnait. */

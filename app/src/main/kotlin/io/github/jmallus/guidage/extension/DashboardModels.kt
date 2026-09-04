@@ -85,7 +85,7 @@ object DashboardModels {
             topTiles = effortTiles(context, units, rideData),
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
-            remainingTile = remainingTile(context, units, rideData),
+            remainingTile = remainingTile(context, rideData, units),
             // Le rang du bas est à la bande du soir, quoi qu'elle ait à dire : sans position ni
             // coucher, elle le dit, et la mise en page ne bouge pas en cours de route.
             night = NightModels.build(context, snapshot, rideData, preview, nowMillis),
@@ -257,12 +257,16 @@ object DashboardModels {
      * essai sur le vélo : ses voisines redisaient ce que le Karoo enregistre et ce que la
      * couleur du profil montre, et leur hauteur manquait cruellement aux deux champs du bas,
      * qui écrivaient trop petit pour être lus.
+     *
+     * Le libellé porte « REST. » et non plus « RESTANT KM ». L'unité y coûtait trois lettres
+     * pour redire ce que le réglage du Karoo fixe une fois pour toutes, et le mot entier
+     * débordait de la case jusque sous la minicarte. Ce n'est pas que de la propreté : le
+     * libellé le plus large du groupe décide de l'icône de **tous** — elle tombe pour tout le
+     * monde ou pour personne — et c'est « RESTANT KM » qui privait la fréquence cardiaque de
+     * la sienne. En raccourcissant, les deux cases retrouvent leur symbole.
      */
-    private fun remainingTile(context: Context, units: Units, rideData: RideData): Tile = Tile(
-        label = context.getString(
-            R.string.dashboard_label_remaining,
-            remainingUnit(units).uppercase(),
-        ),
+    private fun remainingTile(context: Context, rideData: RideData, units: Units): Tile = Tile(
+        label = context.getString(R.string.dashboard_label_remaining),
         value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
         icon = R.drawable.ic_distance_remaining,
     ).splitDecimal()
@@ -294,11 +298,6 @@ object DashboardModels {
         } else {
             Format.longDistance(meters, units).substringBefore(' ')
         }
-    }
-
-    private fun remainingUnit(units: Units): String = when (units) {
-        Units.METRIC -> "km"
-        Units.IMPERIAL -> "mi"
     }
 
     private const val PLACEHOLDER = "--"
