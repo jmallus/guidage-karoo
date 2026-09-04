@@ -165,5 +165,7 @@
     <string name="field_resupply_last_useful">LAST USEFUL</string>
     <string name="field_resupply_dry">NOTHING</string>
     <string name="field_resupply_nothing_ahead">NOTHING LEFT TO THE FINISH</string>
-    <string name="field_resupply_none">No resupply on this route</string>
+    <string name="field_resupply_no_poi">No point on the route</string>
+    <string name="field_resupply_none_usable">%1$d points, none to resupply at</string>
+    <string name="field_resupply_no_water">%1$d points, no water</string>
 </resources>

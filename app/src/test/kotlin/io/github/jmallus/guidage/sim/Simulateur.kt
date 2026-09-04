@@ -36,7 +36,6 @@ import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.ContextRenderer
 import io.github.jmallus.guidage.ui.EffortRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
-import io.github.jmallus.guidage.ui.Lisibilite
 import io.github.jmallus.guidage.ui.NightRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
@@ -76,9 +75,8 @@ class Simulateur(
     /**
      * Zones d'effort, empruntées aux relevés de l'aperçu.
      *
-     * Sans zones réglées, les aplats de couleur disparaissent et le numéro de zone à gauche
-     * de la fréquence cardiaque ne s'écrit pas : le simulateur ne montrerait alors qu'une
-     * moitié de ce que voit un coureur équipé.
+     * Sans zones réglées, les aplats de couleur de la vitesse et de la puissance disparaissent :
+     * le simulateur ne montrerait alors qu'une moitié de ce que voit un coureur équipé.
      */
     private val zones by lazy { PreviewData.rideSamples(departMillis).first() }
 
@@ -412,8 +410,7 @@ class Simulateur(
         secondes: Double,
         largeur: Int = LARGEUR,
         hauteur: Int = HAUTEUR,
-        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
-    ): Bitmap = DashboardRenderer.render(context, largeur, hauteur, modele(secondes), encreMinimaleMm)
+    ): Bitmap = DashboardRenderer.render(context, largeur, hauteur, modele(secondes))
 
     /** Heure d'arrivée estimée : ce qui reste, à la moyenne tenue jusque-là. */
     private fun arrivee(instant: InstantSortie, maintenant: Long): Double {
