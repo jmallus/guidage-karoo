@@ -9,6 +9,7 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import io.github.jmallus.guidage.core.FisheyeScale
 import io.github.jmallus.guidage.core.Format
+import io.github.jmallus.guidage.core.PaceLearner
 import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
@@ -18,6 +19,24 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+
+/**
+ * Ce que la silhouette remplit sous sa crête.
+ *
+ * Trois dessins mis en regard le temps d'en choisir un, après une sortie où le profil s'est
+ * révélé illisible : un aplat gris sur tout le plat et toute la descente pèse plus que les
+ * montées qu'on vient y chercher, et l'œil ne trouve plus la bosse dans la masse.
+ */
+enum class ProfilStyle {
+    /** Rempli partout, du sommet de la crête au bas de la bande. */
+    PLEIN,
+
+    /** Rempli sous les seules montées ; le reste n'est qu'une crête. */
+    MONTEES,
+
+    /** Crête nue, et une réglette basse qui porte la couleur des montées. */
+    TRAIT,
+}
 
 /** Données prêtes à dessiner pour le champ « profil à venir ». */
 data class ProfileFieldModel(
@@ -87,6 +106,7 @@ object ProfileRenderer {
         model: ProfileFieldModel,
         palette: Palette,
         encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+        style: ProfilStyle = ProfilStyle.PLEIN,
     ) {
         val width = area.width()
         val height = area.height()
@@ -116,7 +136,7 @@ object ProfileRenderer {
             return
         }
 
-        drawProfile(canvas, model, scale, left, top, right, bottom, palette)
+        drawProfile(canvas, model, scale, left, top, right, bottom, palette, style)
         drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
@@ -142,6 +162,7 @@ object ProfileRenderer {
         right: Float,
         bottom: Float,
         palette: Palette,
+        style: ProfilStyle,
     ) {
         val window = model.window
         val points = window.points
@@ -181,7 +202,17 @@ object ProfileRenderer {
             // tracé du tout et la silhouette se troue — précisément là où le terrain est le
             // plus régulier, c'est-à-dire là où un trou ressemble le moins à un accident.
             val crestY = min(y(crest), bottom - 1f)
-            canvas.drawRect(x, crestY, x + 1f, bottom, fill)
+            val monte = grade >= PaceLearner.CLIMB_GRADE
+            when (style) {
+                ProfilStyle.PLEIN -> canvas.drawRect(x, crestY, x + 1f, bottom, fill)
+                // Le plat et la descente ne sont plus qu'une crête : ils n'ont rien à peser.
+                ProfilStyle.MONTEES -> if (monte) canvas.drawRect(x, crestY, x + 1f, bottom, fill)
+                // La réglette de Barberfish : une bande basse qui ne dit que la pente, sous
+                // une crête laissée nue. Le relief se lit à la courbe, l'effort à la réglette.
+                ProfilStyle.TRAIT -> if (monte) {
+                    canvas.drawRect(x, bottom - (bottom - top) * REGLETTE_FRACTION, x + 1f, bottom, fill)
+                }
+            }
             if (column == 0) ridge.moveTo(x, crestY) else ridge.lineTo(x + 0.5f, crestY)
         }
 
@@ -489,6 +520,9 @@ object ProfileRenderer {
     private const val POI_TIP_RATIO = 1.2f
 
     /** Longueur du trait d'une graduation sous l'axe. */
+    /** Hauteur de la réglette de pente du style « trait », en part de celle de la bande. */
+    private const val REGLETTE_FRACTION = 0.14f
+
     private const val TICK_LENGTH = 4f
 
     /**

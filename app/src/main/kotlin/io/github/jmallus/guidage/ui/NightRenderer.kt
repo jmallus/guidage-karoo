@@ -263,50 +263,57 @@ object NightRenderer {
         // qui avait réduit les heures à rien.
         val corpsMinimal = Lisibilite.corpsPourCapitale(encreMinimaleMm)
 
-        // La frise d'abord, si la bande peut la porter à une taille lisible : elle montre ce
-        // qu'un texte ne fait que dire — l'arrivée entre le présent et la nuit, avec sa
-        // fourchette. Quand la hauteur ne suffit pas, on écrit les deux heures en toutes
-        // lettres plutôt que de dessiner une frise qu'on ne lira pas.
-        val hauteurFrise = height - height * BAND_HEAD_FRACTION
+        // La frise prend toute la bande, et le mot du verdict s'écrit sur le rang de l'arrivée
+        // plutôt que sur un rang à lui.
+        //
+        // Il avait le sien, avec à sa suite la marge — « 8 min d'avance · estimation ± 10 ».
+        // Trois choses y étaient dites qui n'en font qu'une : l'heure d'arrivée, sa
+        // fourchette, et l'écart au coucher. La frise les montre déjà toutes les trois, et
+        // mieux — le trait de l'arrivée, la bande de l'incertitude autour, la distance au
+        // trait jaune du coucher. La marge n'ajoutait donc rien qu'une phrase, et son rang
+        // coûtait à la frise le quart de la bande.
+        val hauteurFrise = height - 2 * padding
         val corpsFrise = max(hauteurFrise / TIMELINE_ROWS, corpsMinimal)
         val friseTient = model.timeline != null &&
             placeNecessaire(corpsFrise, corpsFrise * RAIL_RATIO, rowsBelow = 1) <= hauteurFrise
 
-        val candidate = if (friseTient) null else model.timeline?.let { ligneDesHeures(it, corpsMinimal, place) }
-        // Une bande trop courte pour porter les deux garde le mot : il répond à la question,
-        // les heures ne font que la justifier. Rien n'est rétréci pour les faire entrer.
+        if (friseTient) {
+            drawTimeline(
+                canvas = canvas,
+                timeline = model.timeline!!,
+                left = left,
+                top = area.top + padding,
+                right = right,
+                bottom = area.bottom - padding,
+                verdict = model.verdict,
+                palette = palette,
+                labelSize = corpsFrise,
+                railHeight = corpsFrise * RAIL_RATIO,
+                compact = true,
+                motDuVerdict = model.verdictLabel,
+            )
+            return
+        }
+
+        // Trop courte pour une frise : le mot seul, et les heures écrites en toutes lettres.
+        // Rien n'est rétréci pour les faire entrer — le mot répond à la question, les heures
+        // ne font que la justifier.
+        val candidate = model.timeline?.let { ligneDesHeures(it, corpsMinimal, place) }
         val hauteurSeconde = if (candidate == null) 0f else corpsMinimal * LIGNE_HAUTEUR
         val reste = height - 2 * padding - hauteurSeconde
         val secondeLigne = candidate.takeIf { reste >= corpsMinimal }
-        val hauteurTete = when {
-            friseTient -> height * BAND_HEAD_FRACTION - padding
-            secondeLigne == null -> height - 2 * padding
-            else -> reste
-        }
+        val hauteurTete = if (secondeLigne == null) height - 2 * padding else reste
 
         val baseline = area.top + padding + hauteurTete * HEAD_BASELINE_FRACTION
         val verdictLabel = model.verdictLabel
         if (verdictLabel != null && model.verdict != null) {
-            val accent = verdictColor(model.verdict)
             val verdictPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = accent
+                color = verdictColor(model.verdict)
                 textSize = hauteurTete * VERDICT_SIZE_FRACTION
                 typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             }
-            fit(verdictPaint, verdictLabel, place * 0.55f)
+            fit(verdictPaint, verdictLabel, place)
             canvas.drawText(verdictLabel, left, baseline, verdictPaint)
-            model.marginLabel?.let { margin ->
-                val marginSize = max(hauteurTete * 0.42f, corpsMinimal)
-                val x = left + verdictPaint.measureText(verdictLabel) + marginSize * 0.6f
-                // La marge se cale sur le **haut** du mot, non sur sa ligne de base : deux
-                // corps aussi éloignés partageant une ligne de base laissent, au-dessus du
-                // petit, un vide aussi haut que la différence — et ce vide était pris sur la
-                // bande, donc sur la frise. Alignés par la hampe, ils occupent la même
-                // hauteur d'encre, et la place rendue va aux heures.
-                val hautDuMot = baseline - Lisibilite.CAPITALE * verdictPaint.textSize
-                val ligneDeLaMarge = hautDuMot + Lisibilite.CAPITALE * marginSize
-                drawMargin(canvas, margin, model.uncertaintyLabel, x, ligneDeLaMarge, right, marginSize, accent, palette)
-            }
         } else {
             model.emptyMessage?.let { message ->
                 val paint = labelPaint(max(hauteurTete * 0.42f, corpsMinimal), palette.textSecondary, bold = true)
@@ -321,22 +328,6 @@ object NightRenderer {
                 left,
                 area.bottom - padding - corpsMinimal * LIGNE_DESCENTE,
                 Lisibilite.pinceau(corpsMinimal, palette.textSecondary),
-            )
-        }
-
-        if (friseTient) {
-            drawTimeline(
-                canvas = canvas,
-                timeline = model.timeline!!,
-                left = left,
-                top = area.top + height * BAND_HEAD_FRACTION,
-                right = right,
-                bottom = area.bottom,
-                verdict = model.verdict,
-                palette = palette,
-                labelSize = corpsFrise,
-                railHeight = corpsFrise * RAIL_RATIO,
-                compact = true,
             )
         }
     }
@@ -408,6 +399,7 @@ object NightRenderer {
         labelSize: Float,
         railHeight: Float,
         compact: Boolean,
+        motDuVerdict: String? = null,
     ): Boolean {
         // Un rang de libellé au-dessus (l'arrivée), un ou deux dessous. La place nécessaire est
         // comptée sur ce qui sera réellement dessiné — le trait d'arrivée qui dépasse le rail,
@@ -436,8 +428,21 @@ object NightRenderer {
             canvas.drawRoundRect(RectF(x(dusk), railTop, railRight, railBottom), radius, radius, fill)
         }
 
-        // L'arrivée : la bande d'abord, sous les traits, pour ne rien cacher.
         val accent = verdictColor(verdict)
+
+        // Le mot du verdict tient le bord gauche du rang de l'arrivée, sur sa ligne de base.
+        // Les deux disent la même chose — quand on arrive, et si cela passe — et les séparer
+        // en deux rangs coûtait à la frise la hauteur qui lui manquait. Il est un peu plus
+        // gros que les heures, autant que le rang le permet sans rogner la hampe.
+        val ligneDuRang = railTop - railHeight * MARK_OVERSHOOT
+        var borneGauche = left
+        motDuVerdict?.takeIf { verdict != null }?.let { mot ->
+            val paint = labelPaint(labelSize * VERDICT_ROW_RATIO, accent, bold = true)
+            canvas.drawText(mot, left, ligneDuRang, paint)
+            borneGauche = left + paint.measureText(mot) + labelSize * 0.5f
+        }
+
+        // L'arrivée : la bande d'abord, sous les traits, pour ne rien cacher.
         timeline.arrivalFraction?.let { arrival ->
             val spread = timeline.arrivalSpread
             if (spread > 0f) {
@@ -457,7 +462,9 @@ object NightRenderer {
             timeline.arrivalLabel?.let {
                 val label = Lisibilite.libelle(it)
                 val paint = labelPaint(labelSize, accent, bold = true)
-                canvas.drawText(label, anchored(paint, label, x(arrival), left, right), railTop - railHeight * MARK_OVERSHOOT, paint)
+                // Bornée à droite du mot du verdict : centrée sur son trait, l'heure viendrait
+                // s'écrire par-dessus lui dès qu'on arrive tôt dans la soirée.
+                canvas.drawText(label, anchored(paint, label, x(arrival), borneGauche, right), ligneDuRang, paint)
             }
         }
 
@@ -609,23 +616,23 @@ object NightRenderer {
     private const val NIGHT = 0xFF11181C.toInt()
 
     /**
-     * Part de la bande donnée au mot et à sa marge ; la frise prend le reste.
+     * Corps du mot sur le rang de l'arrivée, en part de celui des heures.
      *
-     * Descendue de trois dixièmes à moins d'un quart **sans réduire le mot** : le rang lui
-     * réservait de quoi loger un jambage sous sa ligne de base, alors que les trois verdicts
-     * — OUI, JUSTE, NON — sont des capitales qui n'en ont pas. [VERDICT_SIZE_FRACTION] et
-     * [HEAD_BASELINE_FRACTION] rendent au mot, dans un rang plus court, la taille qu'il avait
-     * dans le rang long. Ce sont les huit points ainsi récupérés qui grossissent les heures.
+     * Le rang réserve au-dessus du rail de quoi loger une hampe de [ASCENT_RATIO] du corps
+     * des heures ; à 0,71 de hampe par corps, un mot jusqu'à 1,1 fois ce corps y tient sans
+     * mordre le haut de la bande. C'est le plus gros qu'il puisse être sans coûter un point
+     * à la frise, et c'est déjà plus gros qu'il n'était sur son rang à lui.
      */
-    private const val BAND_HEAD_FRACTION = 0.24f
+    private const val VERDICT_ROW_RATIO = 1.1f
 
     /**
-     * Corps du mot, en part de la hauteur du rang — et sa ligne de base dans ce rang.
+     * Corps du mot quand il est seul, en part de la hauteur qui lui revient — et sa ligne de
+     * base dans cette hauteur.
      *
-     * Le corps dépasse la hauteur du rang parce qu'on ne loge que la hampe : à 0,71 du corps,
-     * une capitale de vingt points en réclame vingt-neuf, dont les huit du bas ne servent
-     * qu'à des jambages qui n'existent pas ici. La ligne de base descend d'autant, laissant
-     * juste le blanc qu'il faut au-dessus de la hampe.
+     * Le corps dépasse la hauteur parce qu'on ne loge que la hampe : à 0,71 du corps, une
+     * capitale de vingt points en réclame vingt-neuf, dont les huit du bas ne servent qu'à
+     * des jambages qu'OUI, JUSTE et NON n'ont pas. La ligne de base descend d'autant,
+     * laissant juste le blanc qu'il faut au-dessus de la hampe.
      */
     private const val VERDICT_SIZE_FRACTION = 1.18f
     private const val HEAD_BASELINE_FRACTION = 0.92f

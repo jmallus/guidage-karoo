@@ -25,6 +25,8 @@ data class MapPoi(val position: GeoPoint, val label: String)
 data class MapModel(
     /** Tracé de l'itinéraire. */
     val path: List<GeoPoint> = emptyList(),
+    /** Chemin de rejointe calculé par le Karoo, vide tant qu'on est sur l'itinéraire. */
+    val rejoinPath: List<GeoPoint> = emptyList(),
     /** Position du coureur ; sans elle, rien ne peut être orienté. */
     val position: GeoPoint? = null,
     /** Cap en degrés (0 = nord). Null quand il est inconnu : la carte reste alors nord en haut. */
@@ -100,6 +102,7 @@ object MapRenderer {
             canvas = canvas,
             model = model,
             screenPath = screenPath,
+            rejoinScreen = model.rejoinPath.map { projection.toScreen(it) },
             area = area,
             width = routeWidth(model.rangeMeters),
             riderX = riderX,
@@ -358,13 +361,18 @@ object MapRenderer {
      * l'itinéraire. Deux bleus francs n'ont pas ce défaut : le clair reste un ruban, il ne
      * disparaît pas, et l'on voit du premier coup d'œil ce qui est fait et ce qui reste.
      *
-     * Hors itinéraire, tout passe au rouge de rejointe du Karoo, d'un seul tenant : ce n'est
-     * plus le moment de savoir où l'on en est du parcours, mais qu'on n'y est plus.
+     * Hors itinéraire, l'itinéraire reste bleu et c'est le **chemin de rejointe** que le
+     * Karoo calcule qui s'écrit en rouge par-dessus. On avait fait l'inverse : tout
+     * l'itinéraire passait au rouge, faute de savoir que karoo-ext livre ce chemin. Mais
+     * rougir l'itinéraire, c'est teindre ce dont on ne s'est pas écarté — la seule question
+     * qui se pose alors est « par où j'y retourne », et cette réponse-là n'était nulle part.
+     * Le rouge la porte maintenant, et le bleu continue de dire où l'on allait.
      */
     private fun drawPath(
         canvas: Canvas,
         model: MapModel,
         screenPath: List<PlanePoint>,
+        rejoinScreen: List<PlanePoint>,
         area: RectF,
         width: Float,
         riderX: Float,
@@ -393,7 +401,10 @@ object MapRenderer {
 
         val route = polyline(screenPath)
         if (model.offRoute) {
-            paint.color = OFF_ROUTE_COLOR
+            // L'itinéraire d'un seul bleu : hors de lui, le partage entre le fait et le
+            // restant se calculait sur le point le plus proche du coureur, qui peut être à
+            // des kilomètres et n'a plus de sens comme repère d'avancement.
+            paint.color = ROUTE_COLOR
             canvas.drawPath(route, paint)
         } else {
             // La part faite d'abord, celle qui reste par-dessus : leur point commun est
@@ -402,6 +413,12 @@ object MapRenderer {
             canvas.drawPath(polyline(behind), paint)
             paint.color = ROUTE_COLOR
             canvas.drawPath(polyline(ahead), paint)
+        }
+
+        // La rejointe par-dessus tout le reste : c'est elle qu'on suit tant qu'on est dehors.
+        if (rejoinScreen.size >= 2) {
+            paint.color = OFF_ROUTE_COLOR
+            canvas.drawPath(polyline(rejoinScreen), paint)
         }
 
         // Le ruban sert de gabarit aux chevrons. Leurs branches sont taillées à sa

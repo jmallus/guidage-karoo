@@ -146,6 +146,7 @@ object DashboardModels {
             roads = roads,
             roadsMessage = if (roads.isEmpty() && !preview) roadSource.notice(context, position) else null,
             path = route?.path.orEmpty(),
+            rejoinPath = route?.rejoinPath.orEmpty(),
             position = position,
             heading = location?.heading,
             pois = route?.pois.orEmpty().mapNotNull { poi ->
