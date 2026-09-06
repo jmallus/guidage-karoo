@@ -31,6 +31,9 @@ enum class ProfilStyle {
     /** Rempli partout, du sommet de la crête au bas de la bande. */
     PLEIN,
 
+    /** Rempli partout, mais sans le trait blanc qui souligne la crête. */
+    PLEIN_NU,
+
     /** Rempli sous les seules montées ; le reste n'est qu'une crête. */
     MONTEES,
 
@@ -49,6 +52,15 @@ data class ProfileFieldModel(
     val ascentLabel: String? = null,
     /** Texte de la distance restante, ex. « 41,2 km ». */
     val rangeLabel: String? = null,
+    /**
+     * Où se trouve le coureur, en distance depuis le départ de l'itinéraire.
+     *
+     * La fenêtre commence un peu **avant** lui, de sorte que sa marque ne soit pas collée au
+     * bord : une marque posée sur le bord se confond avec le cadre, et l'on ne sait plus si
+     * la silhouette commence sous les roues ou si elle est coupée. Le court bout de terrain
+     * déjà parcouru qu'on voit alors n'est pas perdu — c'est la pente dont on sort.
+     */
+    val positionDistance: Double? = null,
     /** Message affiché quand il n'y a rien à montrer. */
     val emptyMessage: String? = null,
     val colorByGrade: Boolean = true,
@@ -140,7 +152,11 @@ object ProfileRenderer {
         drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
-        drawPositionMarker(canvas, left, top, bottom, palette)
+        val positionX = model.positionDistance
+            ?.let { left + (scale.fractionAt(it - model.window.start) * (right - left)).toFloat() }
+            ?.coerceIn(left, right)
+            ?: left
+        drawPositionMarker(canvas, positionX, top, bottom, palette)
         if (entetes) drawLabels(canvas, model, left, right, top, labelSize, palette)
     }
 
@@ -204,7 +220,7 @@ object ProfileRenderer {
             val crestY = min(y(crest), bottom - 1f)
             val monte = grade >= PaceLearner.CLIMB_GRADE
             when (profilStyle) {
-                ProfilStyle.PLEIN -> canvas.drawRect(x, crestY, x + 1f, bottom, fill)
+                ProfilStyle.PLEIN, ProfilStyle.PLEIN_NU -> canvas.drawRect(x, crestY, x + 1f, bottom, fill)
                 // Le plat et la descente ne sont plus qu'une crête : ils n'ont rien à peser.
                 ProfilStyle.MONTEES -> if (monte) canvas.drawRect(x, crestY, x + 1f, bottom, fill)
                 // La réglette de Barberfish : une bande basse qui ne dit que la pente, sous
@@ -216,14 +232,18 @@ object ProfileRenderer {
             if (column == 0) ridge.moveTo(x, crestY) else ridge.lineTo(x + 0.5f, crestY)
         }
 
-        canvas.drawPath(
-            ridge,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = 2f
-                color = palette.outline
-            },
-        )
+        // Le trait de crête souligne la silhouette. Sur un remplissage plein il ne fait que
+        // redire le bord de l'aplat ; sur une crête nue, il **est** la silhouette.
+        if (profilStyle != ProfilStyle.PLEIN_NU) {
+            canvas.drawPath(
+                ridge,
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = 2f
+                    color = palette.outline
+                },
+            )
+        }
     }
 
     /**
@@ -304,23 +324,31 @@ object ProfileRenderer {
             typeface = Typeface.DEFAULT_BOLD
         }
 
+        // La pente moyenne est écrite sur les trois prochaines côtes, même étroites : ce sont
+        // celles qu'on prépare, et l'échelle comprimée les rétrécit précisément à mesure
+        // qu'elles s'éloignent — la troisième n'aurait jamais eu son chiffre. Au-delà, seules
+        // les côtes assez larges le portent : à dix kilomètres, un pourcentage n'est plus une
+        // information mais un encombrement.
+        var precedentDroite = Float.NEGATIVE_INFINITY
         model.climbs
             .filter { it.endDistance > window.start && it.startDistance < window.end }
-            .forEach { climb ->
+            .forEachIndexed { rang, climb ->
                 val startX = x(max(climb.startDistance, window.start))
                 val endX = x(min(climb.endDistance, window.end))
-                if (endX - startX < 6f) return@forEach
+                if (endX - startX < 6f) return@forEachIndexed
 
                 overlay.color = FieldPalette.translucent(FieldPalette.gradeColor(climb.grade), 40)
                 canvas.drawRect(startX, top, endX, bottom, overlay)
 
-                if (endX - startX > labelSize * 2.4f) {
-                    canvas.drawText(
-                        "${climb.grade.toInt()}%",
-                        (startX + endX) / 2,
-                        top + labelSize,
-                        text,
-                    )
+                val etiquette = "${climb.grade.toInt()}%"
+                val demi = text.measureText(etiquette) / 2f
+                val centre = ((startX + endX) / 2).coerceIn(left + demi, right - demi)
+                // Deux chiffres qui se chevauchent n'en font qu'un illisible : le second cède.
+                if ((rang < COTES_ETIQUETEES || endX - startX > labelSize * 2.4f) &&
+                    centre - demi > precedentDroite
+                ) {
+                    canvas.drawText(etiquette, centre, top + labelSize, text)
+                    precedentDroite = centre + demi + labelSize * 0.3f
                 }
             }
     }
@@ -401,18 +429,18 @@ object ProfileRenderer {
             }
     }
 
-    private fun drawPositionMarker(canvas: Canvas, left: Float, top: Float, bottom: Float, palette: Palette) {
+    private fun drawPositionMarker(canvas: Canvas, x: Float, top: Float, bottom: Float, palette: Palette) {
         val marker = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.position
             strokeWidth = 3f
             style = Paint.Style.STROKE
         }
-        canvas.drawLine(left, top, left, bottom, marker)
+        canvas.drawLine(x, top, x, bottom, marker)
 
         val triangle = Path().apply {
-            moveTo(left, bottom)
-            lineTo(left - 5f, bottom + 5f)
-            lineTo(left + 5f, bottom + 5f)
+            moveTo(x, bottom)
+            lineTo(x - 5f, bottom + 5f)
+            lineTo(x + 5f, bottom + 5f)
             close()
         }
         canvas.drawPath(
@@ -522,6 +550,9 @@ object ProfileRenderer {
     /** Longueur du trait d'une graduation sous l'axe. */
     /** Hauteur de la réglette de pente du style « trait », en part de celle de la bande. */
     private const val REGLETTE_FRACTION = 0.14f
+
+    /** Nombre de côtes portant leur pente moyenne quelle que soit leur largeur à l'écran. */
+    private const val COTES_ETIQUETEES = 3
 
     private const val TICK_LENGTH = 4f
 

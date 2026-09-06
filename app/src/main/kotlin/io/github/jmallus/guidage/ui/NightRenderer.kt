@@ -482,7 +482,10 @@ object NightRenderer {
         )
         val firstRow = railBottom + railHeight * MARK_OVERSHOOT * 0.55f + labelSize * ROW_LEADING
         val secondRow = firstRow + labelSize * ROW_PITCH
-        val sunsetPaint = labelPaint(labelSize, KarooColors.LEMON_YELLOW)
+        // Le coucher s'écrit un cinquième plus petit que l'arrivée. Ce n'est pas la donnée
+        // qu'on suit : c'est la borne contre laquelle on la lit, et elle ne bouge pas de la
+        // sortie. Écrite au même corps, elle disputait l'œil à l'heure qui, elle, change.
+        val sunsetPaint = labelPaint(labelSize * SUNSET_LABEL_RATIO, KarooColors.LEMON_YELLOW)
         val sunsetLabel = Lisibilite.libelle(timeline.sunsetLabel)
         val sunsetLeft = anchored(sunsetPaint, sunsetLabel, sunsetX, left, right)
 
@@ -624,6 +627,9 @@ object NightRenderer {
      * à la frise, et c'est déjà plus gros qu'il n'était sur son rang à lui.
      */
     private const val VERDICT_ROW_RATIO = 1.1f
+
+    /** Corps du coucher, en part de celui de l'arrivée : une borne, non une donnée suivie. */
+    private const val SUNSET_LABEL_RATIO = 0.8f
 
     /**
      * Corps du mot quand il est seul, en part de la hauteur qui lui revient — et sa ligne de
