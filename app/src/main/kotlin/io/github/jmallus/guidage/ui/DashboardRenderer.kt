@@ -171,7 +171,6 @@ object DashboardRenderer {
         height: Int,
         model: DashboardModel,
         encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
-        profilStyle: ProfilStyle = ProfilStyle.PLEIN,
     ): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -289,7 +288,6 @@ object DashboardRenderer {
                 model = band,
                 palette = model.palette,
                 encreMinimaleMm = encreMinimaleMm,
-                profilStyle = profilStyle,
             )
         }
         return bitmap

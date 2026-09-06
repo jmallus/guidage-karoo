@@ -40,7 +40,6 @@ import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.NightRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
-import io.github.jmallus.guidage.ui.ProfilStyle
 import io.github.jmallus.guidage.ui.ResupplyRenderer
 import io.github.jmallus.guidage.ui.SurfaceRenderer
 import io.hammerhead.karooext.models.ViewConfig
@@ -426,14 +425,7 @@ class Simulateur(
         secondes: Double,
         largeur: Int = LARGEUR,
         hauteur: Int = HAUTEUR,
-        profilStyle: ProfilStyle = ProfilStyle.PLEIN,
-    ): Bitmap = DashboardRenderer.render(
-        context,
-        largeur,
-        hauteur,
-        modele(secondes),
-        profilStyle = profilStyle,
-    )
+    ): Bitmap = DashboardRenderer.render(context, largeur, hauteur, modele(secondes))
 
     /** Heure d'arrivée estimée : ce qui reste, à la moyenne tenue jusque-là. */
     private fun arrivee(instant: InstantSortie, maintenant: Long): Double {

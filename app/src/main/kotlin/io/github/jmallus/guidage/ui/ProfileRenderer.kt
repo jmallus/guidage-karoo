@@ -9,7 +9,6 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import io.github.jmallus.guidage.core.FisheyeScale
 import io.github.jmallus.guidage.core.Format
-import io.github.jmallus.guidage.core.PaceLearner
 import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
@@ -19,27 +18,6 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
-
-/**
- * Ce que la silhouette remplit sous sa crête.
- *
- * Trois dessins mis en regard le temps d'en choisir un, après une sortie où le profil s'est
- * révélé illisible : un aplat gris sur tout le plat et toute la descente pèse plus que les
- * montées qu'on vient y chercher, et l'œil ne trouve plus la bosse dans la masse.
- */
-enum class ProfilStyle {
-    /** Rempli partout, du sommet de la crête au bas de la bande. */
-    PLEIN,
-
-    /** Rempli partout, mais sans le trait blanc qui souligne la crête. */
-    PLEIN_NU,
-
-    /** Rempli sous les seules montées ; le reste n'est qu'une crête. */
-    MONTEES,
-
-    /** Crête nue, et une réglette basse qui porte la couleur des montées. */
-    TRAIT,
-}
 
 /** Données prêtes à dessiner pour le champ « profil à venir ». */
 data class ProfileFieldModel(
@@ -118,7 +96,6 @@ object ProfileRenderer {
         model: ProfileFieldModel,
         palette: Palette,
         encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
-        profilStyle: ProfilStyle = ProfilStyle.PLEIN,
     ) {
         val width = area.width()
         val height = area.height()
@@ -148,14 +125,15 @@ object ProfileRenderer {
             return
         }
 
-        drawProfile(canvas, model, scale, left, top, right, bottom, palette, profilStyle)
-        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
-        drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
-        drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         val positionX = model.positionDistance
             ?.let { left + (scale.fractionAt(it - model.window.start) * (right - left)).toFloat() }
             ?.coerceIn(left, right)
             ?: left
+
+        drawProfile(canvas, model, scale, left, top, right, bottom, palette)
+        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette, positionX)
+        drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
+        drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         drawPositionMarker(canvas, positionX, top, bottom, palette)
         if (entetes) drawLabels(canvas, model, left, right, top, labelSize, palette)
     }
@@ -168,6 +146,13 @@ object ProfileRenderer {
      * empiler cent rectangles d'un pixel de large dont seul le dernier se voit — le profil
      * lointain se criblait de trous et prenait la couleur du dernier segment tiré. En
      * partant des colonnes, chacune est peinte une fois, de la pente qu'elle couvre vraiment.
+     *
+     * Le trait blanc qui soulignait la crête est parti. Sur un aplat, il ne faisait que
+     * redire le bord de la couleur, en l'appuyant : la silhouette entière prenait le poids
+     * d'un contour, et l'on ne voyait plus la masse mais son ourlet. Sans lui, les teintes
+     * de pente se lisent pour elles-mêmes et les côtes ressortent de la masse grise.
+     * Trois autres dessins ont été mis en regard avant d'en arriver là — remplissage sous les
+     * seules montées, et crête nue à réglette de pente, à la manière de Barberfish.
      */
     private fun drawProfile(
         canvas: Canvas,
@@ -178,7 +163,6 @@ object ProfileRenderer {
         right: Float,
         bottom: Float,
         palette: Palette,
-        profilStyle: ProfilStyle,
     ) {
         val window = model.window
         val points = window.points
@@ -198,7 +182,6 @@ object ProfileRenderer {
         // ne ferait que rendre floues des frontières franches. La crête, elle, est une courbe et
         // reste adoucie.
         val fill = Paint().apply { style = Paint.Style.FILL }
-        val ridge = Path()
 
         for (column in 0 until columns) {
             val from = window.start + scale.distanceAt(column.toDouble() / columns)
@@ -218,31 +201,7 @@ object ProfileRenderer {
             // tracé du tout et la silhouette se troue — précisément là où le terrain est le
             // plus régulier, c'est-à-dire là où un trou ressemble le moins à un accident.
             val crestY = min(y(crest), bottom - 1f)
-            val monte = grade >= PaceLearner.CLIMB_GRADE
-            when (profilStyle) {
-                ProfilStyle.PLEIN, ProfilStyle.PLEIN_NU -> canvas.drawRect(x, crestY, x + 1f, bottom, fill)
-                // Le plat et la descente ne sont plus qu'une crête : ils n'ont rien à peser.
-                ProfilStyle.MONTEES -> if (monte) canvas.drawRect(x, crestY, x + 1f, bottom, fill)
-                // La réglette de Barberfish : une bande basse qui ne dit que la pente, sous
-                // une crête laissée nue. Le relief se lit à la courbe, l'effort à la réglette.
-                ProfilStyle.TRAIT -> if (monte) {
-                    canvas.drawRect(x, bottom - (bottom - top) * REGLETTE_FRACTION, x + 1f, bottom, fill)
-                }
-            }
-            if (column == 0) ridge.moveTo(x, crestY) else ridge.lineTo(x + 0.5f, crestY)
-        }
-
-        // Le trait de crête souligne la silhouette. Sur un remplissage plein il ne fait que
-        // redire le bord de l'aplat ; sur une crête nue, il **est** la silhouette.
-        if (profilStyle != ProfilStyle.PLEIN_NU) {
-            canvas.drawPath(
-                ridge,
-                Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    style = Paint.Style.STROKE
-                    strokeWidth = 2f
-                    color = palette.outline
-                },
-            )
+            canvas.drawRect(x, crestY, x + 1f, bottom, fill)
         }
     }
 
@@ -311,6 +270,7 @@ object ProfileRenderer {
         bottom: Float,
         labelSize: Float,
         palette: Palette,
+        positionX: Float,
     ) {
         val window = model.window
         fun x(distance: Double) =
@@ -342,7 +302,18 @@ object ProfileRenderer {
 
                 val etiquette = "${climb.grade.toInt()}%"
                 val demi = text.measureText(etiquette) / 2f
-                val centre = ((startX + endX) / 2).coerceIn(left + demi, right - demi)
+                // Le trait de position ne doit jamais barrer un chiffre : quand il tomberait
+                // dedans, l'étiquette s'écarte du côté où il reste de la place. C'est presque
+                // toujours vers la droite — le trait se tient dans le premier dixième — mais
+                // un coureur au tout début de sa côte pousserait l'étiquette hors du cadre.
+                val ecart = demi + labelSize * ECART_TRAIT
+                val vise = (startX + endX) / 2
+                val decale = when {
+                    kotlin.math.abs(vise - positionX) >= ecart -> vise
+                    positionX + ecart + demi <= right -> positionX + ecart
+                    else -> positionX - ecart
+                }
+                val centre = decale.coerceIn(left + demi, right - demi)
                 // Deux chiffres qui se chevauchent n'en font qu'un illisible : le second cède.
                 if ((rang < COTES_ETIQUETEES || endX - startX > labelSize * 2.4f) &&
                     centre - demi > precedentDroite
@@ -548,11 +519,11 @@ object ProfileRenderer {
     private const val POI_TIP_RATIO = 1.2f
 
     /** Longueur du trait d'une graduation sous l'axe. */
-    /** Hauteur de la réglette de pente du style « trait », en part de celle de la bande. */
-    private const val REGLETTE_FRACTION = 0.14f
-
     /** Nombre de côtes portant leur pente moyenne quelle que soit leur largeur à l'écran. */
     private const val COTES_ETIQUETEES = 3
+
+    /** Blanc gardé entre le trait de position et une étiquette de pente, en corps de celle-ci. */
+    private const val ECART_TRAIT = 0.45f
 
     private const val TICK_LENGTH = 4f
 

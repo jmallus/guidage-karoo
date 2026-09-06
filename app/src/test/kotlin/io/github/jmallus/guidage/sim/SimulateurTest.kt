@@ -7,7 +7,6 @@ import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.KarooColors
 import io.github.jmallus.guidage.ui.PreviewData
-import io.github.jmallus.guidage.ui.ProfilStyle
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
@@ -240,17 +239,6 @@ class SimulateurTest {
                 if (rubanVisible(image)) vues++
                 if (part == PART_CAPTURE) {
                     ecrire(image, File(dossier, "carte-${portee.rangeMeters.toInt()}m.png"))
-                    // Les trois remplissages du profil mis en regard, le temps d'en choisir
-                    // un. Elles partiront avec le choix : ce ne sont pas des captures du
-                    // produit, seulement de quoi voir avant de trancher.
-                    if (portee == MapZoom.NEAR) {
-                        ProfilStyle.entries.forEach { style ->
-                            ecrire(
-                                simulateur.image(simulateur.sortie.duree * part, profilStyle = style),
-                                File(dossier, "comparaison-profil-${style.name.lowercase()}.png"),
-                            )
-                        }
-                    }
                 }
             }
             assertTrue(
