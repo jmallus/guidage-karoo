@@ -13,9 +13,16 @@ name: captures
 #
 # Le travail est de toute façon sans effet quand rien n'a bougé : les images sont comparées
 # à celles du dépôt, et le job s'arrête sans commiter si elles sont identiques.
+#
+# Il tourne aussi sur les branches de travail, et y commite les images comme il le fait sur
+# `main`. C'est le seul moyen de *voir* une proposition d'affichage avant de la retenir : la
+# session qui écrit le code ne compile pas `:app` — ni Gradle, ni SDK Android, ni karoo-ext —
+# et ne peut donc rien rendre. Sans cela, toute variante se discutait à l'aveugle, en mots.
+# Les images arrivant sur la branche, elles entrent dans la fusion et le passage sur `main`
+# n'a plus rien à recommiter.
 on:
   push:
-    branches: [main]
+    branches: [main, "claude/**"]
     paths:
       - "app/src/main/kotlin/io/github/jmallus/guidage/ui/**"
       - "app/src/main/kotlin/io/github/jmallus/guidage/extension/*Models.kt"
@@ -25,7 +32,9 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: captures
+  # Par référence : sans cela, une poussée sur une branche annulerait la régénération en
+  # cours sur `main`, et les deux se voleraient le tour.
+  group: captures-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -36,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref_name }}
 
       - id: creds
         run: echo "available=${{ secrets.GPR_KEY != '' }}" >> "$GITHUB_OUTPUT"
@@ -85,8 +94,18 @@ jobs:
             echo "Les captures n'ont pas changé."
             exit 0
           fi
-          # « [skip ci] » évite de relancer la construction de l'APK : ces images ne
-          # partent pas dedans, et republier une Release pour un PNG serait du gâchis.
-          git commit -m "Régénère les captures du simulateur [skip ci]" \
+          # Sur `main`, la mention qui fait sauter le CI évite de relancer la construction de
+          # l'APK : ces images n'y partent pas, et republier une Release pour un PNG serait du
+          # gâchis. Sur une branche, au contraire, elle est à proscrire : le commit devient le
+          # sommet de la pull request, et ses contrôles ne tourneraient jamais — la branche
+          # resterait sans verdict, ce qui est précisément ce qu'on lui demande.
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            sujet="Régénère les captures du simulateur [skip ci]"
+          else
+            sujet="Régénère les captures du simulateur"
+          fi
+          git commit -m "$sujet" \
             -m "Rendues par le code de l'appareil sous Robolectric, à partir de $GITHUB_SHA."
-          git push origin HEAD:main
+          # Les chemins surveillés ne comprennent pas « docs/captures/ » : ce commit-ci ne
+          # peut donc pas relancer ce workflow, sur une branche comme sur « main ».
+          git push origin "HEAD:$GITHUB_REF_NAME"
