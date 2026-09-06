@@ -131,6 +131,51 @@ object Geo {
     }
 
     /**
+     * La portion de [path] comprise entre deux distances depuis son départ.
+     *
+     * Les deux bouts sont interpolés sur le segment qu'ils coupent, et non arrondis au sommet
+     * le plus proche : sur un tracé dont les points sont espacés de cinquante mètres, arrondir
+     * déplacerait la frontière d'autant, et une bascule de revêtement se verrait au mauvais
+     * endroit — à l'échelle de la minicarte, cinquante mètres sont un cinquième de l'écran.
+     *
+     * Rend une liste vide quand l'intervalle est vide ou hors du tracé.
+     */
+    fun pathBetween(path: List<GeoPoint>, from: Double, to: Double): List<GeoPoint> {
+        if (path.size < 2 || to <= from) return emptyList()
+
+        val portion = mutableListOf<GeoPoint>()
+        var parcouru = 0.0
+        for (i in 1 until path.size) {
+            val segment = distance(path[i - 1], path[i])
+            if (segment <= 0.0) continue
+            val fin = parcouru + segment
+
+            if (fin > from && parcouru < to) {
+                // Le premier point est le début du segment, ou le point coupé quand la
+                // portion commence au milieu de celui-ci.
+                if (portion.isEmpty()) {
+                    val part = ((from - parcouru) / segment).coerceIn(0.0, 1.0)
+                    portion += interpolate(path[i - 1], path[i], part)
+                }
+                if (fin <= to) {
+                    portion += path[i]
+                } else {
+                    portion += interpolate(path[i - 1], path[i], ((to - parcouru) / segment).coerceIn(0.0, 1.0))
+                    break
+                }
+            }
+            parcouru = fin
+        }
+        return portion.takeIf { it.size >= 2 }.orEmpty()
+    }
+
+    /** Le point situé à la fraction [part] du segment allant de [from] à [to]. */
+    private fun interpolate(from: GeoPoint, to: GeoPoint, part: Double): GeoPoint = GeoPoint(
+        lat = from.lat + (to.lat - from.lat) * part,
+        lng = from.lng + (to.lng - from.lng) * part,
+    )
+
+    /**
      * Échelle « ronde » à afficher sous la barre d'échelle, la plus grande qui tienne
      * dans [maxMeters] : 100 m, 200 m, 500 m, 1 km, 2 km…
      */

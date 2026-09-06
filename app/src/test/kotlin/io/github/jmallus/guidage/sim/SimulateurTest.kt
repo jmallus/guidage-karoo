@@ -248,6 +248,14 @@ class SimulateurTest {
             )
         }
 
+        // Une planche de plus, le temps de valider les rayures de chemin : la sortie d'exemple
+        // passe sur un chemin d'exploitation au kilomètre 7,2, que l'instant de capture
+        // ordinaire — le quart de la sortie, soit le kilomètre 4,7 — ne montre pas. Elle
+        // partira avec la validation : ce n'est pas une capture du produit.
+        simulateur.portee = MapZoom.NEAR
+        val surChemin = instantA(simulateur.sortie, 7_800.0).secondes
+        ecrire(simulateur.image(surChemin), File(dossier, "comparaison-chemin.png"))
+
         // Le profil en portrait, l'autre zone de guidage.
         simulateur.zone = GuidanceZoneType.PROFILE
         val profil = simulateur.image(simulateur.sortie.duree * PART_CAPTURE)
