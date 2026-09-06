@@ -862,9 +862,16 @@ object MapRenderer {
      */
     private const val ROUTE_COLOR = 0xFF2E8BFF.toInt()
 
-    /** Blanc des rayures de chemin, et longueur d'un tiret en largeurs de ruban. */
+    /**
+     * Blanc des rayures de chemin, et largeur d'une bande en largeurs de ruban.
+     *
+     * Descendue de neuf dixièmes à six : à bandes larges, la portion se lisait comme une
+     * alternance de deux choses de même poids, et le bleu perdait la main sur son propre
+     * ruban. Resserrées, les rayures redeviennent une texture posée dessus — le trait reste
+     * bleu, et il est hachuré.
+     */
     private const val TRAIL_STRIPE_COLOR = 0xFFFFFFFF.toInt()
-    private const val TRAIL_DASH_RATIO = 0.9f
+    private const val TRAIL_DASH_RATIO = 0.6f
 
     /**
      * Le bleu clair de ce qui est déjà fait.
