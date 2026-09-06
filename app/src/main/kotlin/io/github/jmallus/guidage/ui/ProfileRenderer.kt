@@ -106,7 +106,7 @@ object ProfileRenderer {
         model: ProfileFieldModel,
         palette: Palette,
         encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
-        style: ProfilStyle = ProfilStyle.PLEIN,
+        profilStyle: ProfilStyle = ProfilStyle.PLEIN,
     ) {
         val width = area.width()
         val height = area.height()
@@ -136,7 +136,7 @@ object ProfileRenderer {
             return
         }
 
-        drawProfile(canvas, model, scale, left, top, right, bottom, palette, style)
+        drawProfile(canvas, model, scale, left, top, right, bottom, palette, profilStyle)
         drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
@@ -162,7 +162,7 @@ object ProfileRenderer {
         right: Float,
         bottom: Float,
         palette: Palette,
-        style: ProfilStyle,
+        profilStyle: ProfilStyle,
     ) {
         val window = model.window
         val points = window.points
@@ -203,7 +203,7 @@ object ProfileRenderer {
             // plus régulier, c'est-à-dire là où un trou ressemble le moins à un accident.
             val crestY = min(y(crest), bottom - 1f)
             val monte = grade >= PaceLearner.CLIMB_GRADE
-            when (style) {
+            when (profilStyle) {
                 ProfilStyle.PLEIN -> canvas.drawRect(x, crestY, x + 1f, bottom, fill)
                 // Le plat et la descente ne sont plus qu'une crête : ils n'ont rien à peser.
                 ProfilStyle.MONTEES -> if (monte) canvas.drawRect(x, crestY, x + 1f, bottom, fill)

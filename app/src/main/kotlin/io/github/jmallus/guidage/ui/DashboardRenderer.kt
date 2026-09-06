@@ -289,7 +289,7 @@ object DashboardRenderer {
                 model = band,
                 palette = model.palette,
                 encreMinimaleMm = encreMinimaleMm,
-                style = profilStyle,
+                profilStyle = profilStyle,
             )
         }
         return bitmap
