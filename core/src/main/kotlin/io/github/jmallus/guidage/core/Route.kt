@@ -37,6 +37,13 @@ data class Route(
     val pois: List<RoutePoi> = emptyList(),
     /** Tracé de l'itinéraire, pour la minicarte. */
     val path: List<GeoPoint> = emptyList(),
+    /**
+     * Chemin de rejointe calculé par le Karoo, quand le coureur a quitté l'itinéraire.
+     *
+     * Vide tant qu'on est dessus. Ce n'est pas une portion de [path] : c'est un tracé à part,
+     * qui part de la position et rejoint l'itinéraire plus loin.
+     */
+    val rejoinPath: List<GeoPoint> = emptyList(),
 )
 
 /** État d'une côte relativement à la position courante. */

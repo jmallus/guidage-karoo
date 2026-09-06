@@ -58,16 +58,27 @@ object FieldModels {
 
         // La position est arrondie pour éviter de redessiner à chaque mètre parcouru.
         val quantized = (along / POSITION_STEP_METERS).toInt() * POSITION_STEP_METERS
-        val window = Guidance.profileToFinish(route, quantized)
+        // La fenêtre commence un peu avant le coureur : sa marque était collée au bord gauche,
+        // où elle se confondait avec le cadre — on ne savait plus si la silhouette commençait
+        // sous les roues ou si elle était coupée. Sous l'échelle comprimée, ces cent vingt
+        // mètres occupent près d'un dixième de la largeur : de quoi détacher la marque, et
+        // montrer la pente dont on sort.
+        val depart = (quantized - RECUL_METERS).coerceAtLeast(0.0)
+        val window = Guidance.profileToFinish(route, depart)
         val units = snapshot.units
-        val ascent = route.profile?.ascentBetween(window.start, window.end)
+        // Le dénivelé et la distance se comptent depuis le coureur, jamais depuis le bord de
+        // la fenêtre : celle-ci commence en arrière de lui, et les compter de là ajouterait au
+        // « restant » ce qui est déjà fait.
+        val ascent = route.profile?.ascentBetween(quantized, window.end)
+        val restant = (window.end - quantized).takeIf { it > 0.0 }
 
         return ProfileFieldModel(
             window = window,
             climbs = route.climbs,
             pois = route.pois,
             ascentLabel = ascent?.let { "+${Format.elevation(it, units)}" },
-            rangeLabel = window.distanceSpan.takeIf { it > 0.0 }?.let { Format.longDistance(it, units) },
+            rangeLabel = restant?.let { Format.longDistance(it, units) },
+            positionDistance = quantized,
             emptyMessage = context.getString(R.string.field_no_route),
             colorByGrade = settings.colorByGrade,
             units = units,
@@ -256,4 +267,7 @@ object FieldModels {
         "${Format.distance(status.climb.length, units)} · +${Format.elevation(status.climb.totalElevation, units)}"
 
     private const val POSITION_STEP_METERS = 10.0
+
+    /** De combien la fenêtre du profil commence avant le coureur (m). */
+    private const val RECUL_METERS = 120.0
 }

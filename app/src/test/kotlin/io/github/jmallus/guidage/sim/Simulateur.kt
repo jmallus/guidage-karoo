@@ -3,6 +3,7 @@ package io.github.jmallus.guidage.sim
 import android.content.Context
 import android.graphics.Bitmap
 import io.github.jmallus.guidage.core.ClimbProgress
+import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
@@ -86,7 +87,7 @@ class Simulateur(
     /** Carte ou profil, comme le réglage de l'extension. */
     var zone: GuidanceZoneType = GuidanceZoneType.MAP
 
-    /** Pour voir passer le tracé au rouge, comme lorsque le Karoo décroche de l'itinéraire. */
+    /** Pour voir le chemin de rejointe, comme lorsque le Karoo décroche de l'itinéraire. */
     var horsItineraire: Boolean = false
 
     private val source = object : RoadSource {
@@ -167,7 +168,7 @@ class Simulateur(
         val instant = sortie.a(secondes)
         val maintenant = departMillis + (secondes * 1_000).toLong()
         val etat = GuidanceState(
-            route = PreviewData.route,
+            route = PreviewData.route.copy(rejoinPath = rejointe(instant)),
             distanceAlongRoute = instant.distance,
             distanceRemaining = instant.distanceRestante,
             currentGrade = instant.pente,
@@ -180,6 +181,20 @@ class Simulateur(
             units = Units.METRIC,
             location = RiderLocation(instant.position, instant.cap, receivedAtMillis = maintenant),
         )
+    }
+
+    /**
+     * Le chemin de rejointe, quand on a décroché : une boucle qui part du coureur, s'écarte
+     * perpendiculairement à son cap, et revient sur l'itinéraire un peu plus loin.
+     *
+     * Le vrai vient du Karoo, qui le calcule sur ses cartes ; celui-ci n'a qu'à ressembler à
+     * un détour pour qu'on juge du dessin — un trait rouge qui quitte le bleu et le rejoint.
+     */
+    private fun rejointe(instant: InstantSortie): List<GeoPoint> {
+        if (!horsItineraire) return emptyList()
+        val retour = sortie.a((instant.secondes + REJOINTE_SECONDES).coerceAtMost(sortie.duree))
+        val ecart = Geo.advance(instant.position, instant.cap + 90.0, REJOINTE_ECART_METRES)
+        return listOf(instant.position, ecart, Geo.advance(ecart, instant.cap, REJOINTE_ECART_METRES), retour.position)
     }
 
     private fun reglages() = GuidageSettings(guidanceZone = zone, mapZoom = portee)
@@ -430,6 +445,10 @@ class Simulateur(
 
         /** L'avance de l'arrivée moyenne sur le coucher à cet instant-là (ms) : huit minutes. */
         private const val AVANCE_NUIT_MS = 8 * 60_000L
+
+        /** De combien le détour simulé s'écarte du tracé, et où il le rejoint. */
+        private const val REJOINTE_ECART_METRES = 120.0
+        private const val REJOINTE_SECONDES = 45.0
 
         /**
          * La largeur laissée au champ.

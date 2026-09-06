@@ -523,24 +523,25 @@ object DashboardRenderer {
             labelSize = labelSize,
         )
 
-        // Le schéma occupe la même bande que les chiffres des autres cases, mais s'arrête
-        // franchement au-dessus du bord. Ailleurs, le bas de cette bande est vide — les
-        // chiffres n'ont pas de jambages — tandis qu'ici la ligne des dentures s'y pose. Or
-        // la case du dessous porte un aplat de couleur qui commence net : une ligne écrite à
-        // un cheveu de lui paraît lui appartenir, et déborder si peu que ce soit l'y jette.
+        // Le schéma occupe la même bande que les chiffres des autres cases, et s'arrête
+        // franchement au-dessus du bord : la case du dessous porte un aplat de couleur qui
+        // commence net, et ce qui se pose à un cheveu de lui paraît lui appartenir.
         val schematicTop = valueTop(bounds, top, labelHeight, valueHeight)
         val schematicBottom = (schematicTop + valueHeight).coerceAtMost(bounds.bottom - EDGE_INSET)
         val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicBottom)
         if (area.width() <= 0 || area.height() <= 0) return
 
-        val teeth = teethLabel(model)
-        val teethSize = valueSize * TEETH_RATIO
-        val teethPaint = paint(teethSize, palette.textPrimary, VALUE_TYPEFACE)
+        val teethPaint = paint(valueSize * TEETH_RATIO, palette.textPrimary, VALUE_TYPEFACE)
 
         // Les barres montent depuis le bas de cette bande et occupent toute sa largeur : elles
         // passent donc sous le titre et son icône, que rien ne décale plus sur le côté. Il
         // faut leur réserver du blanc en haut, sans quoi la plus haute vient le toucher.
-        val combBottom = area.bottom - if (teeth == null) 0f else teethSize * TEETH_LEADING
+        //
+        // Elles descendent jusqu'au bas de la bande depuis que « 34×21 » n'est plus écrit
+        // dessous. Les dentures étaient une donnée de catalogue : on ne change pas de braquet
+        // parce qu'on a lu 21, on en change parce qu'on voit qu'il reste deux pignons. Le
+        // peigne le dit déjà, et il le dit mieux avec la hauteur qu'elles occupaient.
+        val combBottom = area.bottom
         val combTop = (area.top + labelHeight * COMB_TOP_MARGIN).coerceAtMost(combBottom)
 
         val front = comb(model.front, model.frontCount)
@@ -574,13 +575,6 @@ object DashboardRenderer {
             drawComb(canvas, RectF(rearLeft, combTop, area.right, combBottom), it, barWidth, ascending = false, palette = palette)
         }
 
-        // Les dentures restent contre le bord droit, seules de toute la page à ne pas se
-        // centrer. Elles ne sont pas la valeur de la case — celle-ci est le schéma, qui prend
-        // toute la largeur — mais une légende posée dessous. Centrée, elle tombait sous le
-        // creux du peigne et se lisait comme la mesure de la barre qu'elle avait au-dessus.
-        teeth?.let {
-            canvas.drawText(it, right - teethPaint.measureText(it), area.bottom - teethPaint.descent(), teethPaint)
-        }
     }
 
     /**
@@ -622,21 +616,22 @@ object DashboardRenderer {
         if (area.width() <= 0f) return
         val pitch = area.width() / count
 
-        // Barres pleines, grises pour les rapports libres et blanche pour l'engagé — le dessin
-        // de Hammerhead. Le contour blanc qui les creusait tenait le même discours en trois
-        // fois plus d'encre : à cette taille, deux traits fins et le blanc entre eux forment
-        // une barre plus lourde à l'œil qu'un aplat gris, et le peigne se lisait comme une
-        // grille plutôt que comme une denture. Le gris suffit à porter les rapports
-        // disponibles ; c'est le contraste qui désigne celui qu'on tient.
+        // Rapports libres : creux, contour blanc sur le fond de l'écran. Rapport engagé :
+        // plein. C'est le dessin retenu après essai sur le vélo — les barres grises pleines
+        // l'avaient emporté sur planche, mais en roulant le peigne devenait un bloc où le
+        // rapport tenu ne ressortait plus assez. Le vide entre les contours donne au plein
+        // tout son contraste.
+        val stroke = (barWidth * BAR_STROKE_FRACTION).coerceIn(1f, 3f)
         val libre = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = palette.textSecondary
+            style = Paint.Style.STROKE
+            strokeWidth = stroke
+            color = palette.textPrimary
         }
         // Le rapport engagé est blanc, non du vert vif que le système réserve à la donnée
-        // vive. C'est un écart assumé : l'écart de valeur avec le gris porte déjà toute la
-        // distinction, et la couleur n'y ajoutait qu'un signal de plus, là où l'écran en
-        // compte déjà sept avec les aplats de zone. Le blanc est celui des valeurs : le
-        // rapport engagé est un chiffre qu'on lit, pas un voyant.
+        // vive. C'est un écart assumé : creux partout, plein à un seul endroit porte déjà
+        // toute la distinction, et la couleur n'y ajoutait qu'un signal de plus, là où
+        // l'écran en compte déjà sept avec les aplats de zone. Le blanc est celui des
+        // valeurs : le rapport engagé est un chiffre qu'on lit, pas un voyant.
         val engaged = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
             color = palette.textPrimary
@@ -651,19 +646,19 @@ object DashboardRenderer {
             // Bouts arrondis : à cette taille, des angles vifs font des barres sales.
             val radius = barWidth / 2f
 
-            canvas.drawRoundRect(bar, radius, radius, if (index == current) engaged else libre)
-        }
-    }
-
-    /** « 34×17 » quand les dentures sont connues, sinon rien. */
-    private fun teethLabel(model: DrivetrainModel): String? {
-        val front = model.frontTeeth?.takeIf { it > 0 }
-        val rear = model.rearTeeth?.takeIf { it > 0 }
-        return when {
-            front != null && rear != null -> "$front×$rear"
-            rear != null -> "$rear"
-            front != null -> "$front"
-            else -> null
+            if (index == current) {
+                canvas.drawRoundRect(bar, radius, radius, engaged)
+            } else {
+                // Le contour se trace sur la ligne médiane : rentrer d'une demi-épaisseur,
+                // sans quoi les barres se touchent et débordent du bas de la bande.
+                val demi = stroke / 2f
+                canvas.drawRoundRect(
+                    RectF(bar.left + demi, bar.top + demi, bar.right - demi, bar.bottom - demi),
+                    radius,
+                    radius,
+                    libre,
+                )
+            }
         }
     }
 
@@ -675,27 +670,28 @@ object DashboardRenderer {
     /**
      * Largeur d'une barre, en part du pas.
      *
-     * Elle avait été élargie pour que le contour se voie ; les barres étant redevenues
-     * pleines, la largeur reste — c'est par sa surface qu'une barre pleine se lit, et le
-     * peigne y gagne la même franchise.
+     * Amincie en même temps que les barres ont grandi : à trois quarts du pas, les barres se
+     * touchaient presque et le peigne faisait un bloc où le rapport engagé se perdait. C'est
+     * le vide entre elles qui les rend comptables d'un coup d'œil — savoir qu'il reste deux
+     * pignons demande de les compter, et on ne compte pas des barres jointives.
      */
-    private const val BAR_WIDTH_FRACTION = 0.74f
+    private const val BAR_WIDTH_FRACTION = 0.52f
+
+    /** Épaisseur du contour d'une barre libre, en part de sa largeur. */
+    private const val BAR_STROKE_FRACTION = 0.26f
 
     /** Hauteur de la plus petite barre, en part de la plus grande. */
     private const val BAR_MIN_HEIGHT = 0.35f
 
     /**
-     * Taille des dentures, en part de celle des chiffres des autres cases.
+     * Taille du « -- » qui remplace le peigne quand le groupe ne rapporte rien.
      *
-     * « 50×17 » est un renseignement d'appoint — la position dans la cassette se lit sur les
-     * barres, pas sur les nombres. À quatre dixièmes il pesait autant qu'une vraie valeur, et
-     * il prend sa place sur la hauteur du peigne : chaque dixième rendu ici est rendu aux
-     * barres, qui sont ce qu'on regarde.
+     * Elle servait aussi aux dentures, « 34×21 », écrites sous les barres et retirées depuis :
+     * la position dans la cassette se lit sur le peigne, et le nombre de dents est un
+     * renseignement de catalogue qu'on ne consulte pas en roulant. Il prenait à lui seul un
+     * bon huitième de la hauteur de la case.
      */
     private const val TEETH_RATIO = 0.28f
-
-    /** Blanc entre le bas des barres et la ligne des dentures, en part du corps de celle-ci. */
-    private const val TEETH_LEADING = 1.35f
 
     /**
      * Blanc réservé au-dessus des barres, en part de la hauteur du libellé.

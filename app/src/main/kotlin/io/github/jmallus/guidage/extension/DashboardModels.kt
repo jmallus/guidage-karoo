@@ -3,12 +3,16 @@ package io.github.jmallus.guidage.extension
 import android.content.Context
 import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.Format
+import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.core.ProfileWindow
+import io.github.jmallus.guidage.core.Route
+import io.github.jmallus.guidage.core.SurfaceClass
+import io.github.jmallus.guidage.core.Surfaces
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.Zones
 import io.github.jmallus.guidage.core.map.RoadSegment
@@ -146,6 +150,8 @@ object DashboardModels {
             roads = roads,
             roadsMessage = if (roads.isEmpty() && !preview) roadSource.notice(context, position) else null,
             path = route?.path.orEmpty(),
+            rejoinPath = route?.rejoinPath.orEmpty(),
+            trailPaths = trailPaths(route, state.distanceAlongRoute, roads, zoom),
             position = position,
             heading = location?.heading,
             pois = route?.pois.orEmpty().mapNotNull { poi ->
@@ -158,6 +164,43 @@ object DashboardModels {
                 if (route == null) R.string.field_no_route else R.string.field_waiting_for_position,
             ),
         )
+    }
+
+    /**
+     * Les portions de l'itinéraire visibles qui passent sur un chemin.
+     *
+     * Le calcul est le même que celui du champ « Revêtement » — échantillonner le tracé,
+     * chercher pour chaque échantillon la voie du fond qui passe dessous — mais sur la
+     * fenêtre de la carte au lieu des cinq kilomètres de ce champ, et sans son cache : il
+     * porte ici sur quelques dizaines d'échantillons contre plus de cent, et les voies sont
+     * déjà en main puisque la carte vient de les demander pour les dessiner.
+     *
+     * Le seuil d'absorption descend aussi. Cent cinquante mètres conviennent à un champ qui
+     * regarde loin — en deçà, ce n'est pas un revêtement mais un carrefour attrapé au
+     * passage. Sur une carte à trois cents mètres de portée, ce seuil effacerait la moitié
+     * de ce qu'on regarde.
+     */
+    private fun trailPaths(
+        route: Route?,
+        along: Double?,
+        roads: List<RoadSegment>,
+        zoom: MapZoom,
+    ): List<List<GeoPoint>> {
+        if (route == null || along == null || roads.isEmpty() || route.path.size < 2) return emptyList()
+        // Un peu en arrière du coureur : il est dans le bas de la vue, mais le cadre tourne
+        // avec son cap et découvre derrière lui à chaque virage.
+        val debut = (along - zoom.rangeMeters * TRAIL_BEHIND_FRACTION).coerceAtLeast(0.0)
+        val portee = zoom.rangeMeters * (1.0 + TRAIL_BEHIND_FRACTION)
+        return Surfaces.ahead(
+            path = route.path,
+            segments = roads,
+            distanceAlongRoute = debut,
+            lookahead = portee,
+            minRunMeters = TRAIL_MIN_RUN_METERS,
+        )
+            .filter { it.surface == SurfaceClass.TRAIL }
+            .map { Geo.pathBetween(route.path, it.fromDistance, it.toDistance) }
+            .filter { it.size >= 2 }
     }
 
     private fun profileModel(
@@ -305,4 +348,10 @@ object DashboardModels {
 
     /** Rayon de lecture du fond de carte, en multiples de la portée affichée. */
     private const val ROADS_RADIUS_FACTOR = 1.6
+
+    /** Part de la portée regardée en arrière du coureur pour les rayures de chemin. */
+    private const val TRAIL_BEHIND_FRACTION = 0.5
+
+    /** Longueur en deçà de laquelle une portion de chemin est absorbée par sa voisine (m). */
+    private const val TRAIL_MIN_RUN_METERS = 60.0
 }

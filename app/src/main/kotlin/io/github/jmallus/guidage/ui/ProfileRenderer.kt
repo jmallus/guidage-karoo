@@ -30,6 +30,15 @@ data class ProfileFieldModel(
     val ascentLabel: String? = null,
     /** Texte de la distance restante, ex. « 41,2 km ». */
     val rangeLabel: String? = null,
+    /**
+     * Où se trouve le coureur, en distance depuis le départ de l'itinéraire.
+     *
+     * La fenêtre commence un peu **avant** lui, de sorte que sa marque ne soit pas collée au
+     * bord : une marque posée sur le bord se confond avec le cadre, et l'on ne sait plus si
+     * la silhouette commence sous les roues ou si elle est coupée. Le court bout de terrain
+     * déjà parcouru qu'on voit alors n'est pas perdu — c'est la pente dont on sort.
+     */
+    val positionDistance: Double? = null,
     /** Message affiché quand il n'y a rien à montrer. */
     val emptyMessage: String? = null,
     val colorByGrade: Boolean = true,
@@ -116,11 +125,16 @@ object ProfileRenderer {
             return
         }
 
+        val positionX = model.positionDistance
+            ?.let { left + (scale.fractionAt(it - model.window.start) * (right - left)).toFloat() }
+            ?.coerceIn(left, right)
+            ?: left
+
         drawProfile(canvas, model, scale, left, top, right, bottom, palette)
-        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
+        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette, positionX)
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
-        drawPositionMarker(canvas, left, top, bottom, palette)
+        drawPositionMarker(canvas, positionX, top, bottom, palette)
         if (entetes) drawLabels(canvas, model, left, right, top, labelSize, palette)
     }
 
@@ -132,6 +146,13 @@ object ProfileRenderer {
      * empiler cent rectangles d'un pixel de large dont seul le dernier se voit — le profil
      * lointain se criblait de trous et prenait la couleur du dernier segment tiré. En
      * partant des colonnes, chacune est peinte une fois, de la pente qu'elle couvre vraiment.
+     *
+     * Le trait blanc qui soulignait la crête est parti. Sur un aplat, il ne faisait que
+     * redire le bord de la couleur, en l'appuyant : la silhouette entière prenait le poids
+     * d'un contour, et l'on ne voyait plus la masse mais son ourlet. Sans lui, les teintes
+     * de pente se lisent pour elles-mêmes et les côtes ressortent de la masse grise.
+     * Trois autres dessins ont été mis en regard avant d'en arriver là — remplissage sous les
+     * seules montées, et crête nue à réglette de pente, à la manière de Barberfish.
      */
     private fun drawProfile(
         canvas: Canvas,
@@ -161,7 +182,6 @@ object ProfileRenderer {
         // ne ferait que rendre floues des frontières franches. La crête, elle, est une courbe et
         // reste adoucie.
         val fill = Paint().apply { style = Paint.Style.FILL }
-        val ridge = Path()
 
         for (column in 0 until columns) {
             val from = window.start + scale.distanceAt(column.toDouble() / columns)
@@ -182,17 +202,7 @@ object ProfileRenderer {
             // plus régulier, c'est-à-dire là où un trou ressemble le moins à un accident.
             val crestY = min(y(crest), bottom - 1f)
             canvas.drawRect(x, crestY, x + 1f, bottom, fill)
-            if (column == 0) ridge.moveTo(x, crestY) else ridge.lineTo(x + 0.5f, crestY)
         }
-
-        canvas.drawPath(
-            ridge,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = 2f
-                color = palette.outline
-            },
-        )
     }
 
     /**
@@ -260,6 +270,7 @@ object ProfileRenderer {
         bottom: Float,
         labelSize: Float,
         palette: Palette,
+        positionX: Float,
     ) {
         val window = model.window
         fun x(distance: Double) =
@@ -273,23 +284,42 @@ object ProfileRenderer {
             typeface = Typeface.DEFAULT_BOLD
         }
 
+        // La pente moyenne est écrite sur les trois prochaines côtes, même étroites : ce sont
+        // celles qu'on prépare, et l'échelle comprimée les rétrécit précisément à mesure
+        // qu'elles s'éloignent — la troisième n'aurait jamais eu son chiffre. Au-delà, seules
+        // les côtes assez larges le portent : à dix kilomètres, un pourcentage n'est plus une
+        // information mais un encombrement.
+        var precedentDroite = Float.NEGATIVE_INFINITY
         model.climbs
             .filter { it.endDistance > window.start && it.startDistance < window.end }
-            .forEach { climb ->
+            .forEachIndexed { rang, climb ->
                 val startX = x(max(climb.startDistance, window.start))
                 val endX = x(min(climb.endDistance, window.end))
-                if (endX - startX < 6f) return@forEach
+                if (endX - startX < 6f) return@forEachIndexed
 
                 overlay.color = FieldPalette.translucent(FieldPalette.gradeColor(climb.grade), 40)
                 canvas.drawRect(startX, top, endX, bottom, overlay)
 
-                if (endX - startX > labelSize * 2.4f) {
-                    canvas.drawText(
-                        "${climb.grade.toInt()}%",
-                        (startX + endX) / 2,
-                        top + labelSize,
-                        text,
-                    )
+                val etiquette = "${climb.grade.toInt()}%"
+                val demi = text.measureText(etiquette) / 2f
+                // Le trait de position ne doit jamais barrer un chiffre : quand il tomberait
+                // dedans, l'étiquette s'écarte du côté où il reste de la place. C'est presque
+                // toujours vers la droite — le trait se tient dans le premier dixième — mais
+                // un coureur au tout début de sa côte pousserait l'étiquette hors du cadre.
+                val ecart = demi + labelSize * ECART_TRAIT
+                val vise = (startX + endX) / 2
+                val decale = when {
+                    kotlin.math.abs(vise - positionX) >= ecart -> vise
+                    positionX + ecart + demi <= right -> positionX + ecart
+                    else -> positionX - ecart
+                }
+                val centre = decale.coerceIn(left + demi, right - demi)
+                // Deux chiffres qui se chevauchent n'en font qu'un illisible : le second cède.
+                if ((rang < COTES_ETIQUETEES || endX - startX > labelSize * 2.4f) &&
+                    centre - demi > precedentDroite
+                ) {
+                    canvas.drawText(etiquette, centre, top + labelSize, text)
+                    precedentDroite = centre + demi + labelSize * 0.3f
                 }
             }
     }
@@ -370,18 +400,18 @@ object ProfileRenderer {
             }
     }
 
-    private fun drawPositionMarker(canvas: Canvas, left: Float, top: Float, bottom: Float, palette: Palette) {
+    private fun drawPositionMarker(canvas: Canvas, x: Float, top: Float, bottom: Float, palette: Palette) {
         val marker = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = palette.position
             strokeWidth = 3f
             style = Paint.Style.STROKE
         }
-        canvas.drawLine(left, top, left, bottom, marker)
+        canvas.drawLine(x, top, x, bottom, marker)
 
         val triangle = Path().apply {
-            moveTo(left, bottom)
-            lineTo(left - 5f, bottom + 5f)
-            lineTo(left + 5f, bottom + 5f)
+            moveTo(x, bottom)
+            lineTo(x - 5f, bottom + 5f)
+            lineTo(x + 5f, bottom + 5f)
             close()
         }
         canvas.drawPath(
@@ -489,6 +519,12 @@ object ProfileRenderer {
     private const val POI_TIP_RATIO = 1.2f
 
     /** Longueur du trait d'une graduation sous l'axe. */
+    /** Nombre de côtes portant leur pente moyenne quelle que soit leur largeur à l'écran. */
+    private const val COTES_ETIQUETEES = 3
+
+    /** Blanc gardé entre le trait de position et une étiquette de pente, en corps de celle-ci. */
+    private const val ECART_TRAIT = 0.45f
+
     private const val TICK_LENGTH = 4f
 
     /**

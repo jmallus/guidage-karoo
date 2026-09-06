@@ -147,6 +147,36 @@ class GeoTest {
         assertNull(Geo.distanceAlongPath(listOf(origin), origin, 100.0))
     }
 
+    /** Le tracé nord fait cent dix mètres et demi par sommet ; dix segments en tout. */
+    private val pasNord = 110.54
+
+    @Test
+    fun `une portion du trace se coupe entre deux sommets`() {
+        val portion = Geo.pathBetween(traceNord, pasNord * 1.5, pasNord * 3.5)
+
+        // Un point coupé, deux sommets entiers, un point coupé.
+        assertEquals(4, portion.size)
+        assertEquals(0.0, Geo.distance(portion.first(), GeoPoint(origin.lat + 0.0015, origin.lng)), 0.5)
+        assertEquals(0.0, Geo.distance(portion.last(), GeoPoint(origin.lat + 0.0035, origin.lng)), 0.5)
+    }
+
+    @Test
+    fun `une portion couvrant tout le trace le rend entier`() {
+        val portion = Geo.pathBetween(traceNord, 0.0, pasNord * 20)
+        assertEquals(traceNord.size, portion.size)
+        assertEquals(0.0, Geo.distance(portion.first(), traceNord.first()), 0.01)
+        assertEquals(0.0, Geo.distance(portion.last(), traceNord.last()), 0.01)
+    }
+
+    @Test
+    fun `une portion vide ou hors du trace ne rend rien`() {
+        assertEquals(emptyList<GeoPoint>(), Geo.pathBetween(traceNord, 300.0, 300.0))
+        assertEquals(emptyList<GeoPoint>(), Geo.pathBetween(traceNord, 400.0, 100.0))
+        // Au-delà de la fin : il ne reste pas deux points pour faire un trait.
+        assertEquals(emptyList<GeoPoint>(), Geo.pathBetween(traceNord, pasNord * 20, pasNord * 30))
+        assertEquals(emptyList<GeoPoint>(), Geo.pathBetween(listOf(origin), 0.0, 100.0))
+    }
+
     @Test
     fun `nice scale picks the largest round value that fits`() {
         assertEquals(500.0, Geo.niceScale(900.0), 1e-9)

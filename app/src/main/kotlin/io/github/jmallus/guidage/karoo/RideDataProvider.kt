@@ -78,6 +78,18 @@ class RideDataProvider(
     private var lastObservationMillis: Long? = null
     private var lastDistance: Double? = null
 
+    /**
+     * Vrai dès qu'une cadence a été rapportée depuis le début de la sortie.
+     *
+     * Le Karoo cesse d'émettre la cadence quand on arrête de pédaler : il ne dit pas « zéro »,
+     * il ne dit plus rien, et la case affichait « -- » — c'est-à-dire « je ne sais pas », là
+     * où l'on sait très bien. Une fois le capteur entendu, son silence veut dire zéro.
+     *
+     * Avant de l'avoir entendu, « -- » reste juste : sans capteur, la cadence est inconnue et
+     * non nulle. C'est tout l'intérêt de retenir ce fait plutôt que d'écrire zéro d'emblée.
+     */
+    private var cadenceVue = false
+
     val data: StateFlow<RideData> = combine(
         metrics(),
         zones(),
@@ -85,12 +97,13 @@ class RideDataProvider(
         climb(),
     ) { values, profile, drivetrain, climb ->
         observePace(speed = values[0], grade = values[5], power = values[2], distance = values[6])
+        if (values[4] != null) cadenceVue = true
         RideData(
             speed = values[0],
             averageSpeed = values[1],
             power = values[2],
             heartRate = values[3],
-            cadence = values[4],
+            cadence = values[4] ?: 0.0.takeIf { cadenceVue },
             grade = values[5],
             distance = values[6],
             distanceRemaining = values[7],

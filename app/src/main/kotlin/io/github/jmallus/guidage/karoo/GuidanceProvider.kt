@@ -164,6 +164,10 @@ class GuidanceProvider(
                     climbs = climbs.map { it.toRouteClimb() },
                     pois = pois.flatMap { poi -> poi.toRoutePois(path, routeDistance) },
                     path = path,
+                    // Le Karoo calcule lui-même le chemin du retour vers l'itinéraire et nous
+                    // le donne ; il est nul tant qu'on est dessus, et aussi hors itinéraire
+                    // quand la navigation se fait au fil d'Ariane, sans virage à virage.
+                    rejoinPath = rejoinPolyline?.let { decodePath(it) }.orEmpty(),
                 )
             }
 

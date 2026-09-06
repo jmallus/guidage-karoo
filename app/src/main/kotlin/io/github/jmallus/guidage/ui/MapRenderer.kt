@@ -25,6 +25,16 @@ data class MapPoi(val position: GeoPoint, val label: String)
 data class MapModel(
     /** Tracé de l'itinéraire. */
     val path: List<GeoPoint> = emptyList(),
+    /** Chemin de rejointe calculé par le Karoo, vide tant qu'on est sur l'itinéraire. */
+    val rejoinPath: List<GeoPoint> = emptyList(),
+    /**
+     * Les portions de l'itinéraire qui passent sur un chemin, rayées sur le ruban.
+     *
+     * Le revêtement se lisait sur un champ à part, qu'il fallait avoir sous les yeux au bon
+     * moment. Or c'est en regardant la carte qu'on se demande si le trait bleu qu'on suit va
+     * rester roulant : la réponse est mieux là où la question se pose.
+     */
+    val trailPaths: List<List<GeoPoint>> = emptyList(),
     /** Position du coureur ; sans elle, rien ne peut être orienté. */
     val position: GeoPoint? = null,
     /** Cap en degrés (0 = nord). Null quand il est inconnu : la carte reste alors nord en haut. */
@@ -100,6 +110,8 @@ object MapRenderer {
             canvas = canvas,
             model = model,
             screenPath = screenPath,
+            rejoinScreen = model.rejoinPath.map { projection.toScreen(it) },
+            trailScreen = model.trailPaths.map { portion -> portion.map { projection.toScreen(it) } },
             area = area,
             width = routeWidth(model.rangeMeters),
             riderX = riderX,
@@ -358,13 +370,19 @@ object MapRenderer {
      * l'itinéraire. Deux bleus francs n'ont pas ce défaut : le clair reste un ruban, il ne
      * disparaît pas, et l'on voit du premier coup d'œil ce qui est fait et ce qui reste.
      *
-     * Hors itinéraire, tout passe au rouge de rejointe du Karoo, d'un seul tenant : ce n'est
-     * plus le moment de savoir où l'on en est du parcours, mais qu'on n'y est plus.
+     * Hors itinéraire, l'itinéraire reste bleu et c'est le **chemin de rejointe** que le
+     * Karoo calcule qui s'écrit en rouge par-dessus. On avait fait l'inverse : tout
+     * l'itinéraire passait au rouge, faute de savoir que karoo-ext livre ce chemin. Mais
+     * rougir l'itinéraire, c'est teindre ce dont on ne s'est pas écarté — la seule question
+     * qui se pose alors est « par où j'y retourne », et cette réponse-là n'était nulle part.
+     * Le rouge la porte maintenant, et le bleu continue de dire où l'on allait.
      */
     private fun drawPath(
         canvas: Canvas,
         model: MapModel,
         screenPath: List<PlanePoint>,
+        rejoinScreen: List<PlanePoint>,
+        trailScreen: List<List<PlanePoint>>,
         area: RectF,
         width: Float,
         riderX: Float,
@@ -393,7 +411,10 @@ object MapRenderer {
 
         val route = polyline(screenPath)
         if (model.offRoute) {
-            paint.color = OFF_ROUTE_COLOR
+            // L'itinéraire d'un seul bleu : hors de lui, le partage entre le fait et le
+            // restant se calculait sur le point le plus proche du coureur, qui peut être à
+            // des kilomètres et n'a plus de sens comme repère d'avancement.
+            paint.color = ROUTE_COLOR
             canvas.drawPath(route, paint)
         } else {
             // La part faite d'abord, celle qui reste par-dessus : leur point commun est
@@ -402,6 +423,31 @@ object MapRenderer {
             canvas.drawPath(polyline(behind), paint)
             paint.color = ROUTE_COLOR
             canvas.drawPath(polyline(ahead), paint)
+        }
+
+        // Les chemins se rayent de blanc par-dessus le bleu : les tirets laissent voir le
+        // ruban entre eux, si bien que la portion reste l'itinéraire — elle n'est pas d'une
+        // autre couleur, elle est le même trait, hachuré. Une seconde teinte aurait posé la
+        // question de savoir si c'était encore le parcours.
+        if (trailScreen.isNotEmpty()) {
+            val tiret = width * TRAIL_DASH_RATIO
+            val raye = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = width
+                // Bouts droits : arrondis, chaque tiret déborde d'une demi-largeur de part et
+                // d'autre et les blancs se rejoignent presque, effaçant le bleu entre eux.
+                strokeCap = Paint.Cap.BUTT
+                strokeJoin = Paint.Join.ROUND
+                color = TRAIL_STRIPE_COLOR
+                pathEffect = DashPathEffect(floatArrayOf(tiret, tiret), 0f)
+            }
+            trailScreen.filter { it.size >= 2 }.forEach { canvas.drawPath(polyline(it), raye) }
+        }
+
+        // La rejointe par-dessus tout le reste : c'est elle qu'on suit tant qu'on est dehors.
+        if (rejoinScreen.size >= 2) {
+            paint.color = OFF_ROUTE_COLOR
+            canvas.drawPath(polyline(rejoinScreen), paint)
         }
 
         // Le ruban sert de gabarit aux chevrons. Leurs branches sont taillées à sa
@@ -815,6 +861,17 @@ object MapRenderer {
      * une départementale orange ou un chemin brun ne peuvent pas être pris pour l'itinéraire.
      */
     private const val ROUTE_COLOR = 0xFF2E8BFF.toInt()
+
+    /**
+     * Blanc des rayures de chemin, et largeur d'une bande en largeurs de ruban.
+     *
+     * Descendue de neuf dixièmes à six : à bandes larges, la portion se lisait comme une
+     * alternance de deux choses de même poids, et le bleu perdait la main sur son propre
+     * ruban. Resserrées, les rayures redeviennent une texture posée dessus — le trait reste
+     * bleu, et il est hachuré.
+     */
+    private const val TRAIL_STRIPE_COLOR = 0xFFFFFFFF.toInt()
+    private const val TRAIL_DASH_RATIO = 0.6f
 
     /**
      * Le bleu clair de ce qui est déjà fait.

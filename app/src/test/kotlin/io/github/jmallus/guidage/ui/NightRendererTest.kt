@@ -29,8 +29,15 @@ class NightRendererTest {
     /** La hauteur que le dernier rang du tableau de bord laisse à la bande, sur un Karoo 3. */
     private val hauteurBande = 128
 
-    /** Une bande courte, où la frise ne tient plus à une taille lisible. */
-    private val hauteurBandeCourte = 87
+    /**
+     * Une bande courte, où la frise ne tient plus à une taille lisible.
+     *
+     * Descendue de 87 à 76 le jour où le mot du verdict a rejoint le rang de l'arrivée : la
+     * frise ayant cessé de céder le quart du haut, elle tient désormais dans des bandes qui
+     * la refusaient. Le seuil se calcule — au plancher, elle réclame 3,894 fois son corps,
+     * soit 71,5 points de hauteur utile — et 76 moins ses marges en laisse 68.
+     */
+    private val hauteurBandeCourte = 76
 
     private val timeline = NightTimeline(
         nowLabel = "maintenant",
@@ -165,8 +172,8 @@ class NightRendererTest {
     @Test
     fun `la bande porte le mot et la frise`() {
         val image = bande(model(NightVerdict.TIGHT, "JUSTE"), hauteur = hauteurBande)
-        // La part comptée suit celle que la bande donne au mot : au-delà commence la frise,
-        // qui porte la même couleur et rendrait le contrôle muet sur la présence du mot.
+        // Le mot est désormais sur le rang de l'arrivée, tout en haut de la bande : au-delà
+        // du quart supérieur viennent le rail et le coucher, qui portent d'autres couleurs.
         assertTrue("le verdict manque", countTop(image, NightRenderer.TIGHT, 0.24) > 150)
         assertTrue("la frise manque", count(image, KarooColors.LEMON_YELLOW) > 20)
     }

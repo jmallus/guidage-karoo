@@ -12,7 +12,6 @@ import java.io.FileOutputStream
 import java.util.Locale
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume
 import org.junit.Test
@@ -255,11 +254,21 @@ class SimulateurTest {
         assertTrue("le profil ne montre presque rien", couleursDistinctes(profil) > 12)
         ecrire(profil, File(dossier, "profil.png"))
 
-        // Et le tracé au rouge, quand le Karoo décroche de l'itinéraire.
+        // Et le chemin de rejointe au rouge, quand le Karoo décroche de l'itinéraire.
+        //
+        // Le contrôle a été retourné le jour où le rouge a changé de porteur. Il exigeait que
+        // le ruban bleu **disparaisse** — tout l'itinéraire passait alors au rouge. Or teindre
+        // l'itinéraire, c'est teindre ce dont on ne s'est pas écarté, et cela laissait sans
+        // réponse la seule question du moment : par où y retourner. Le bleu reste donc, et le
+        // rouge dit le retour. Les deux doivent se voir ensemble.
         simulateur.zone = GuidanceZoneType.MAP
         simulateur.horsItineraire = true
         val decroche = simulateur.image(simulateur.sortie.duree * PART_CAPTURE)
-        assertFalse("le tracé reste bleu alors qu'on est hors itinéraire", rubanVisible(decroche))
+        assertTrue("l'itinéraire a disparu alors qu'il reste à rejoindre", rubanVisible(decroche))
+        assertTrue(
+            "aucun chemin de rejointe en rouge",
+            pixelsDe(decroche).count { it == FieldPalette.REJOIN } > 100,
+        )
         ecrire(decroche, File(dossier, "hors-itineraire.png"))
     }
 
