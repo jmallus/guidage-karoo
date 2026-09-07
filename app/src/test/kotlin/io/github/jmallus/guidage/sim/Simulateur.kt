@@ -17,8 +17,8 @@ import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.ContextModels
 import io.github.jmallus.guidage.extension.DashboardModels
+import io.github.jmallus.guidage.extension.EffortModels
 import io.github.jmallus.guidage.extension.FieldModels
-import io.github.jmallus.guidage.extension.NightModels
 import io.github.jmallus.guidage.extension.ResupplyTypes
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
@@ -32,7 +32,6 @@ import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.ContextRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
-import io.github.jmallus.guidage.ui.NightRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
 import io.github.jmallus.guidage.ui.ResupplyRenderer
