@@ -15,13 +15,10 @@ import io.github.jmallus.guidage.core.Pacing
 import io.github.jmallus.guidage.core.Sun
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.map.RoadSegment
-import io.github.jmallus.guidage.extension.BendModels
 import io.github.jmallus.guidage.extension.ContextModels
 import io.github.jmallus.guidage.extension.DashboardModels
-import io.github.jmallus.guidage.extension.EffortModels
 import io.github.jmallus.guidage.extension.FieldModels
 import io.github.jmallus.guidage.extension.NightModels
-import io.github.jmallus.guidage.extension.SurfaceModels
 import io.github.jmallus.guidage.extension.ResupplyTypes
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
@@ -30,18 +27,15 @@ import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.AutonomyFieldModel
 import io.github.jmallus.guidage.ui.AutonomyRenderer
-import io.github.jmallus.guidage.ui.BendRenderer
 import io.github.jmallus.guidage.ui.ClimbRenderer
 import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.ContextRenderer
-import io.github.jmallus.guidage.ui.EffortRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.NightRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
 import io.github.jmallus.guidage.ui.ResupplyRenderer
-import io.github.jmallus.guidage.ui.SurfaceRenderer
 import io.hammerhead.karooext.models.ViewConfig
 
 /**
@@ -67,9 +61,9 @@ class Simulateur(
     /**
      * Le fond de carte engendré, à qui l'on donne le tracé.
      *
-     * Sans lui, le décor ne croise l'itinéraire qu'aux carrefours et le champ « Revêtement »
-     * ne reconnaît rien : la voie que le parcours emprunte doit exister sur la carte, comme
-     * elle existe sur la vraie.
+     * Sans lui, le décor ne croise l'itinéraire qu'aux carrefours et les rayures de chemin
+     * de la minicarte ne se déclenchent jamais : la voie que le parcours emprunte doit
+     * exister sur la carte, comme elle existe sur la vraie.
      */
     private val decor = DecorSimule(PreviewData.location.position, PreviewData.route.path)
 
@@ -272,9 +266,7 @@ class Simulateur(
      * modèle que l'appareil — extraites dans `*Models` — et par les mêmes rendus.
      */
 
-    private val virages = BendModels()
     private val contexte = ContextModels { instantSimule }
-    private val revetement = SurfaceModels { position, rayon -> decor.autour(position, rayon) }
 
     /**
      * L'instant de la sortie fictive, vu comme une horloge.
@@ -291,36 +283,6 @@ class Simulateur(
         instantSimule = departMillis + (secondes * 1_000).toLong()
     }
 
-    /** Le champ « Budget d'effort ». */
-    fun imageEffort(
-        secondes: Double,
-        largeur: Int = LARGEUR_ANNEXE,
-        hauteur: Int = HAUTEUR_ANNEXE,
-    ): Bitmap = EffortRenderer.render(
-        largeur,
-        hauteur,
-        EffortModels.build(context, instantane(secondes).state, releve(secondes), preview = false),
-        FieldPalette.of(context),
-    )
-
-    /**
-     * Le champ « Virages », en pleine page.
-     *
-     * Comme le revêtement et la réserve : ces trois-là ne portent pas une valeur mais une
-     * répartition, et une bande n'en montrerait que les deux chiffres — c'est-à-dire ce que
-     * les autres champs disent déjà.
-     */
-    fun imageVirages(
-        secondes: Double,
-        largeur: Int = LARGEUR,
-        hauteur: Int = HAUTEUR,
-    ): Bitmap = BendRenderer.render(
-        largeur,
-        hauteur,
-        virages.build(context, instantane(secondes), preview = false),
-        FieldPalette.of(context),
-    )
-
     /** Le champ « Suivant la sortie ». */
     fun imageContexte(
         secondes: Double,
@@ -335,18 +297,6 @@ class Simulateur(
             FieldPalette.of(context),
         )
     }
-
-    /** Le champ « Revêtement », en pleine page. */
-    fun imageRevetement(
-        secondes: Double,
-        largeur: Int = LARGEUR,
-        hauteur: Int = HAUTEUR,
-    ): Bitmap = SurfaceRenderer.render(
-        largeur,
-        hauteur,
-        revetement.build(context, instantane(secondes), preview = false),
-        FieldPalette.of(context),
-    )
 
     /** Le champ « Réserve », en pleine page. */
     fun imageReserve(
@@ -386,24 +336,6 @@ class Simulateur(
                 releve(secondes),
                 preview = false,
             ),
-        ),
-        FieldPalette.of(context),
-    )
-
-    /** Le champ « Avant la nuit », en pleine page — la sortie part le soir, voir [departMillis]. */
-    fun imageNuit(
-        secondes: Double,
-        largeur: Int = LARGEUR,
-        hauteur: Int = HAUTEUR,
-    ): Bitmap = NightRenderer.render(
-        largeur,
-        hauteur,
-        NightModels.build(
-            context,
-            instantane(secondes),
-            releve(secondes),
-            preview = false,
-            nowMillis = departMillis + (secondes * 1_000).toLong(),
         ),
         FieldPalette.of(context),
     )

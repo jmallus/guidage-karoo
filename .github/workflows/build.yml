@@ -210,7 +210,7 @@ jobs:
             captures=$(
               for f in docs/captures/carte-300m.png \
                        docs/captures/champ-autonomie.png \
-                       docs/captures/champ-virages.png; do
+                       docs/captures/champ-contexte.png; do
                 [ -e "$f" ] || continue
                 echo "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/${f}"
               done | jq -R . | jq -s .

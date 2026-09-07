@@ -303,17 +303,13 @@ class SimulateurTest {
                 couleursDistinctes(cote) > 3,
             )
 
-            // Les quatre venus des vues proposées. Le contrôle est le même — ils dessinent —
-            // mais volontairement lâche sur le nombre de teintes : un champ de texte en porte
+            // Les autres pleines pages. Le contrôle est le même — elles dessinent — mais
+            // volontairement lâche sur le nombre de teintes : un champ de texte en porte
             // moins qu'un profil, et le seuil doit tenir aux quatre moments de la sortie.
             val autres = mapOf(
                 "champ-contexte" to simulateur.imageContexte(secondes),
-                "champ-revetement" to simulateur.imageRevetement(secondes),
-                "champ-effort" to simulateur.imageEffort(secondes),
-                "champ-virages" to simulateur.imageVirages(secondes),
                 "champ-reserve" to simulateur.imageReserve(secondes),
                 "champ-autonomie" to simulateur.imageAutonomie(secondes),
-                "champ-nuit" to simulateur.imageNuit(secondes),
             )
             autres.forEach { (nom, image) ->
                 assertTrue(
@@ -405,14 +401,10 @@ class SimulateurTest {
         // Les pleines pages d'abord, chacune tenant sa colonne ; les champs de bande ensuite.
         champ("Tableau de bord", simulateur.image(secondes)),
         champ("Autonomie", simulateur.imageAutonomie(secondes)),
-        champ("Avant la nuit", simulateur.imageNuit(secondes)),
         champ("Réserve", simulateur.imageReserve(secondes)),
-        champ("Virages", simulateur.imageVirages(secondes)),
-        champ("Revêtement", simulateur.imageRevetement(secondes)),
         champ("Profil à venir", simulateur.imageProfil(secondes)),
         champ("Suivant la sortie", simulateur.imageContexte(secondes)),
         champ("Prochaine côte", simulateur.imageCote(secondes)),
-        champ("Budget d'effort", simulateur.imageEffort(secondes)),
     )
 
     private fun champ(nom: String, image: Bitmap) =

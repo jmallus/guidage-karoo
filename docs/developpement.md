@@ -125,7 +125,7 @@ marque de position glisse dessus et les chevrons filent devant elle, le bandeau 
 avance, les aplats de zone changent de couleur avec l'effort.
 
 Elle part **en fin d'après-midi**, à l'heure qui place l'arrivée estimée quelques minutes
-avant le coucher du soleil. Ce n'est pas un détail de décor : le verdict d'« Avant la nuit »
+avant le coucher du soleil. Ce n'est pas un détail de décor : le verdict du soir
 se joue là, et une sortie partie le matin n'aurait montré qu'un « oui » à dix heures de
 marge, c'est-à-dire rien du champ. L'heure se déduit d'un jour fixe et du coucher calculé
 pour ce jour-là, de sorte que les images de contrôle ne changent pas d'une exécution à

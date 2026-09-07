@@ -32,32 +32,11 @@
         icon="@drawable/ic_climb" />
 
     <DataType
-        typeId="effort"
-        displayName="@string/field_effort_name"
-        description="@string/field_effort_description"
-        graphical="true"
-        icon="@drawable/ic_power" />
-
-    <DataType
-        typeId="virages"
-        displayName="@string/field_bends_name"
-        description="@string/field_bends_description"
-        graphical="true"
-        icon="@drawable/ic_climb" />
-
-    <DataType
         typeId="contexte"
         displayName="@string/field_context_name"
         description="@string/field_context_description"
         graphical="true"
         icon="@drawable/ic_guidage" />
-
-    <DataType
-        typeId="revetement"
-        displayName="@string/field_surface_name"
-        description="@string/field_surface_description"
-        graphical="true"
-        icon="@drawable/ic_distance" />
 
     <DataType
         typeId="reserve"
@@ -72,13 +51,6 @@
         description="@string/field_autonomy_description"
         graphical="true"
         icon="@drawable/ic_poi" />
-
-    <DataType
-        typeId="nuit"
-        displayName="@string/field_night_name"
-        description="@string/field_night_description"
-        graphical="true"
-        icon="@drawable/ic_arrival" />
 
     <DataType
         typeId="poi"
