@@ -56,6 +56,14 @@ enum class Bilan(
 
     /** Le temps par zone en barre empilée, et la zone où il s'est le plus passé. */
     ZONES("bilan-zones"),
+
+    /**
+     * Ce qu'il reste de la réserve anaérobie.
+     *
+     * La seule des sept qui soit un calcul et non un nombre du Karoo rangé autrement : le
+     * modèle de puissance critique, tenu par l'extension au fil de la sortie.
+     */
+    RESERVE("bilan-reserve-w"),
 }
 
 object LevelModels {
@@ -76,6 +84,9 @@ object LevelModels {
             Bilan.DENIVELE -> level.elevationGain
             Bilan.INTENSITE -> level.intensityFactor
             Bilan.ZONES -> level.dominantHeartRateZone?.toDouble()
+            // En joules, non en pourcentage : c'est ce qui s'enregistre et se compare d'une
+            // sortie à l'autre, le pourcentage dépendant d'une échelle qui peut changer.
+            Bilan.RESERVE -> level.wPrimeBalance
         }
     }
 
@@ -97,6 +108,7 @@ object LevelModels {
             Bilan.DENIVELE -> denivele(context, snapshot, data)
             Bilan.INTENSITE -> intensite(context, data)
             Bilan.ZONES -> zones(context, data)
+            Bilan.RESERVE -> reserve(context, data)
         }
     }
 
@@ -293,6 +305,56 @@ object LevelModels {
     }
 
     /**
+     * La réserve anaérobie : ce qu'il en reste, en part et en kilojoules.
+     *
+     * Le pourcentage est en grand parce que c'est lui qui se lit en roulant — il reste des
+     * cartouches, ou il n'en reste plus. Les kilojoules sont à côté pour qui sait ce qu'ils
+     * valent chez lui, et la puissance critique retenue est écrite en pied de case : ce
+     * nombre-là est une hypothèse, et une jauge dont on ignore l'échelle ne se lit pas.
+     */
+    private fun reserve(context: Context, data: RideData): LevelFieldModel {
+        val level = data.level
+        val part = level.wPrimeShare
+        val reste = level.wPrimeBalance
+        if (part == null || reste == null) {
+            return LevelFieldModel(
+                label = context.getString(R.string.field_level_reserve_label),
+                value = "--",
+                emptyMessage = context.getString(R.string.field_level_no_reserve),
+            )
+        }
+        return LevelFieldModel(
+            label = context.getString(R.string.field_level_reserve_label),
+            value = (part * 100).roundToInt().toString(),
+            unit = context.getString(R.string.unit_percent),
+            referenceLabel = context.getString(R.string.field_level_reserve_left),
+            referenceValue = context.getString(
+                R.string.field_level_reserve_kilojoules,
+                decimales(reste / 1_000.0, 1),
+            ),
+            caption = level.criticalPower?.let {
+                context.getString(R.string.field_level_reserve_cp, it.roundToInt())
+            },
+            slices = listOf(
+                LevelSlice(part, couleurDeReserve(part)),
+                LevelSlice(1f - part, RESTANT),
+            ),
+        )
+    }
+
+    /**
+     * La couleur de la jauge, aux seuils où le coureur change de conduite.
+     *
+     * Au-dessus de la moitié on relance sans y penser ; sous le quart, chaque effort au-dessus
+     * du seuil se paie et il faut choisir lequel. Entre les deux, on compte.
+     */
+    private fun couleurDeReserve(part: Float): Int = when {
+        part >= 0.5f -> RESERVE_PLEINE
+        part >= 0.25f -> RESERVE_ENTAMEE
+        else -> RESERVE_VIDE
+    }
+
+    /**
      * Le mot de la variabilité, aux seuils de la littérature d'entraînement.
      *
      * En deçà de 1,05 la puissance s'est tenue ; au-delà de 1,15 la sortie fut une succession
@@ -352,4 +414,14 @@ object LevelModels {
     /** La barre du dénivelé : ce qui est monté, et ce qui attend. */
     private const val MONTE = 0xFF0092DC.toInt()
     private const val RESTANT = 0xFF37474F.toInt()
+
+    /**
+     * La jauge de la réserve, dans la palette des zones du Karoo.
+     *
+     * Le vert menthe de la zone 2, le jaune de la zone 3, le rouge de la zone 6 : ce sont les
+     * teintes que le coureur associe déjà à « facile », « ça compte » et « ça fait mal ».
+     */
+    private val RESERVE_PLEINE = Zones.POWER_COLORS[1]
+    private val RESERVE_ENTAMEE = Zones.POWER_COLORS[2]
+    private val RESERVE_VIDE = Zones.POWER_COLORS[5]
 }

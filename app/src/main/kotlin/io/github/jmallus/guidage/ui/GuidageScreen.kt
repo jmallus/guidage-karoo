@@ -26,6 +26,7 @@ import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceZoneType
+import io.github.jmallus.guidage.core.WPrimeSettings
 import io.github.jmallus.guidage.extension.AutonomyDataType
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.ClimbDataType
@@ -37,6 +38,7 @@ import io.github.jmallus.guidage.extension.ProfileDataType
 import io.github.jmallus.guidage.extension.ResupplyDataType
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -240,6 +242,7 @@ private fun fieldName(typeId: String): String = when (typeId) {
     Bilan.DENIVELE.typeId -> stringResource(R.string.field_level_ascent_name)
     Bilan.INTENSITE.typeId -> stringResource(R.string.field_level_intensity_name)
     Bilan.ZONES.typeId -> stringResource(R.string.field_level_zones_name)
+    Bilan.RESERVE.typeId -> stringResource(R.string.field_level_reserve_name)
     else -> typeId
 }
 
@@ -301,6 +304,60 @@ private fun SettingsCard(
                 checked = settings.resupplyWaterOnly,
                 onCheckedChange = { onChange(settings.copy(resupplyWaterOnly = it)) },
             )
+
+            SectionTitle(R.string.settings_section_reserve)
+
+            // Les deux paramètres ne s'affichent que si l'on décoche : cochés, ils valent ce
+            // que le Karoo sait du coureur, et montrer des curseurs sans effet ferait croire
+            // le contraire. Décocher les remplit de ces mêmes valeurs — on part de là, on ne
+            // recommence pas de zéro.
+            val wPrimeAuto = settings.wPrime.criticalPower == null && settings.wPrime.capacityJoules == null
+            SwitchRow(
+                label = stringResource(R.string.settings_wprime_auto),
+                hint = stringResource(R.string.settings_wprime_auto_hint),
+                checked = wPrimeAuto,
+                onCheckedChange = { auto ->
+                    onChange(
+                        settings.copy(
+                            wPrime = if (auto) {
+                                WPrimeSettings()
+                            } else {
+                                WPrimeSettings(
+                                    criticalPower = DEFAUT_CP_AFFICHE,
+                                    capacityJoules = DEFAUT_RESERVE_AFFICHEE,
+                                )
+                            },
+                        ),
+                    )
+                },
+            )
+            if (!wPrimeAuto) {
+                SliderRow(
+                    label = stringResource(
+                        R.string.settings_wprime_cp,
+                        settings.wPrime.criticalPower ?: DEFAUT_CP_AFFICHE,
+                    ),
+                    value = (settings.wPrime.criticalPower ?: DEFAUT_CP_AFFICHE).toFloat(),
+                    range = 100f..450f,
+                    steps = 69,
+                    onValueChange = {
+                        onChange(settings.copy(wPrime = settings.wPrime.copy(criticalPower = it.roundToInt())))
+                    },
+                )
+                val reserve = settings.wPrime.capacityJoules ?: DEFAUT_RESERVE_AFFICHEE
+                SliderRow(
+                    label = stringResource(
+                        R.string.settings_wprime_capacity,
+                        String.format(Locale.getDefault(), "%.1f", reserve / 1_000.0),
+                    ),
+                    value = reserve.toFloat(),
+                    range = 8_000f..40_000f,
+                    steps = 63,
+                    onValueChange = {
+                        onChange(settings.copy(wPrime = settings.wPrime.copy(capacityJoules = it.roundToInt())))
+                    },
+                )
+            }
 
             SectionTitle(R.string.settings_section_alerts)
 
@@ -389,3 +446,14 @@ private fun SliderRow(
         )
     }
 }
+
+/**
+ * Les valeurs de départ des deux curseurs, quand on décoche la déduction automatique.
+ *
+ * Ce ne sont pas les valeurs par défaut du champ — celles-là viennent de l'appareil, et cet
+ * écran ne les connaît pas : il ne lit pas le profil du coureur, seulement les réglages. Ce
+ * sont des points de départ plausibles, que le coureur corrige aussitôt puisqu'il vient
+ * précisément de dire qu'il voulait les siens.
+ */
+private const val DEFAUT_CP_AFFICHE = 250
+private const val DEFAUT_RESERVE_AFFICHEE = 21_000

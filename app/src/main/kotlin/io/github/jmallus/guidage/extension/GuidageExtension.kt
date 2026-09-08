@@ -20,7 +20,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
@@ -56,7 +58,11 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
         karooSystem = KarooSystemService(this)
         settingsRepository = SettingsRepository(this)
         provider = GuidanceProvider(karooSystem, scope)
-        rideDataProvider = RideDataProvider(karooSystem, scope)
+        rideDataProvider = RideDataProvider(
+            karooSystem,
+            scope,
+            settingsRepository.settings.map { it.wPrime }.distinctUntilChanged(),
+        )
         alertPresenter = AlertPresenter(this)
         roadMapRepository = RoadMapRepository(this)
 

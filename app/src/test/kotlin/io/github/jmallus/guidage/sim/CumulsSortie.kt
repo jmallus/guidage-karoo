@@ -1,6 +1,8 @@
 package io.github.jmallus.guidage.sim
 
 import io.github.jmallus.guidage.core.RideLevel
+import io.github.jmallus.guidage.core.WPrime
+import io.github.jmallus.guidage.core.WPrimeTracker
 import io.github.jmallus.guidage.core.ZoneClock
 import io.github.jmallus.guidage.core.ZoneRange
 import io.github.jmallus.guidage.core.Zones
@@ -38,6 +40,15 @@ class CumulsSortie {
     private val horloge = ZoneClock()
     private var horlogeMillis = 0L
 
+    /**
+     * La réserve anaérobie, suivie par le vrai code de l'extension.
+     *
+     * À la différence des autres cumuls, celui-ci n'est pas une imitation de ce que
+     * l'appareil publierait : c'est le même suiveur que le champ exécute sur le Karoo. Le
+     * banc d'essai ne lui fournit que la puissance, comme le ferait le capteur.
+     */
+    private val reserve = WPrimeTracker()
+
     fun reset() {
         jusqua = 0.0
         secondesCumulees = 0.0
@@ -49,6 +60,7 @@ class CumulsSortie {
         echantillonsQuatriemes = 0
         horloge.reset()
         horlogeMillis = 0L
+        reserve.reset()
     }
 
     fun ajouter(pas: Double, instant: InstantSortie, zonesCardiaques: List<ZoneRange>) {
@@ -70,6 +82,7 @@ class CumulsSortie {
         // tient lui-même — le banc d'essai doit donc passer par lui.
         horlogeMillis += (pas * 1_000).toLong()
         horloge.observe(horlogeMillis, Zones.zoneOf(instant.cardiaque, zonesCardiaques))
+        reserve.observe(horlogeMillis, instant.puissance, FTP_SIMULEE, RESERVE_SIMULEE)
     }
 
     fun niveau(elevationGain: Double, elevationRemaining: Double): RideLevel {
@@ -91,6 +104,9 @@ class CumulsSortie {
             intensityFactor = facteur,
             trainingStressScore = secondesCumulees * normalisee * facteur / (FTP_SIMULEE * 36.0),
             heartRateZoneSeconds = horloge.elapsed.take(ZONES_CARDIAQUES),
+            wPrimeBalance = reserve.balance,
+            wPrimeCapacity = reserve.size,
+            criticalPower = FTP_SIMULEE,
         )
     }
 
@@ -103,5 +119,8 @@ class CumulsSortie {
 
         /** Le Karoo règle cinq zones cardiaques ; l'horloge en tient sept. */
         const val ZONES_CARDIAQUES = 5
+
+        /** La réserve anaérobie du coureur fictif (J) : soixante-dix kilos à la règle du pouce. */
+        val RESERVE_SIMULEE = WPrime.defaultCapacity(70.0)
     }
 }

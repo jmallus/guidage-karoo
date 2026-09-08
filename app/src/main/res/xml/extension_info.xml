@@ -105,6 +105,13 @@
         graphical="true"
         icon="@drawable/ic_guidage" />
 
+    <DataType
+        typeId="bilan-reserve-w"
+        displayName="@string/field_level_reserve_name"
+        description="@string/field_level_reserve_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
     <BonusAction
         actionId="prochaine-cote"
         displayName="@string/action_next_climb" />

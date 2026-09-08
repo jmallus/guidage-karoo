@@ -377,6 +377,11 @@ object PreviewData {
         intensityFactor = 0.74,
         trainingStressScore = 138.0,
         heartRateZoneSeconds = listOf(720.0, 3_600.0, 2_940.0, 1_380.0, 240.0),
+        // Une réserve aux deux tiers : assez entamée pour que la jauge se voie, assez pleine
+        // pour qu'elle ne soit pas rouge — l'aperçu doit montrer le champ, pas une alarme.
+        wPrimeBalance = 13_800.0,
+        wPrimeCapacity = 21_000.0,
+        criticalPower = 250.0,
     )
 
     /**

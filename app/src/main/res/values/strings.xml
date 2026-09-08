@@ -181,7 +181,7 @@
 
     <string name="field_level_intensity_name">Bilan · intensité</string>
     <string name="field_level_intensity_description">Le facteur d\'intensité de la sortie et sa charge d\'entraînement, avec le mot qui les nomme : endurance, tempo, seuil ou course. Les deux nombres sont ceux du Karoo, rien n\'est recalculé. Demande un capteur de puissance et une FTP réglée. Tient dans une case ordinaire.</string>
-    <string name="field_level_intensity_load">CHARGE</string>
+    <string name="field_level_intensity_load">TSS</string>
     <string name="field_level_intensity_endurance">ENDURANCE</string>
     <string name="field_level_intensity_tempo">TEMPO</string>
     <string name="field_level_intensity_threshold">SEUIL</string>
@@ -196,6 +196,21 @@
     <string name="field_level_duration_hours">%1$d h %2$02d</string>
     <string name="field_level_zones_spent">PASSÉ</string>
     <string name="field_level_no_zones">Pas de zones mesurées</string>
+
+    <string name="unit_percent"> %</string>
+    <string name="field_level_reserve_name">Bilan · réserve W′</string>
+    <string name="field_level_reserve_description">Ce qu\'il reste de la réserve anaérobie — le modèle de puissance critique, calculé par l\'extension et non publié par le Karoo. Au-dessus de la puissance critique elle se vide, en dessous elle se recharge d\'autant plus vite qu\'elle est basse. La puissance critique vient de la FTP réglée sur l\'appareil et la réserve du poids ; les deux se corrigent dans les réglages de l\'application. À lire comme une jauge relative, non comme un nombre de joules exact. Demande un capteur de puissance. Tient dans une case ordinaire.</string>
+    <string name="field_level_reserve_label">RÉSERVE W′</string>
+    <string name="field_level_reserve_left">RESTE</string>
+    <string name="field_level_reserve_kilojoules">%1$s kJ</string>
+    <string name="field_level_reserve_cp">CP %1$d W</string>
+    <string name="field_level_no_reserve">Pas de puissance critique connue</string>
+
+    <string name="settings_section_reserve">Réserve anaérobie</string>
+    <string name="settings_wprime_auto">Déduire de la FTP et du poids du Karoo</string>
+    <string name="settings_wprime_auto_hint">Champ « Bilan · réserve W′ ». Décoché, les deux valeurs ci-dessous s\'appliquent.</string>
+    <string name="settings_wprime_cp">Puissance critique : %1$d W</string>
+    <string name="settings_wprime_capacity">Réserve W′ : %1$s kJ</string>
 
     <string name="field_level_heart_label">CŒUR</string>
     <string name="field_level_power_label">PUISSANCE</string>

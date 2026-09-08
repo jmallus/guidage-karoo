@@ -27,7 +27,25 @@ data class RideLevel(
      * zone 1. Vide tant qu'aucune zone n'est réglée ou qu'aucun cœur n'est rapporté.
      */
     val heartRateZoneSeconds: List<Double> = emptyList(),
+    /**
+     * Ce qu'il reste de la réserve anaérobie, et sa taille (J).
+     *
+     * Les seules valeurs du bilan que le Karoo ne publie pas : elles sont calculées par
+     * l'extension, voir [WPrime].
+     */
+    val wPrimeBalance: Double? = null,
+    val wPrimeCapacity: Double? = null,
+    /** La puissance critique retenue pour ce calcul (W), telle qu'elle sera affichée. */
+    val criticalPower: Double? = null,
 ) {
+    /** Part de la réserve encore disponible, de 0 à 1. */
+    val wPrimeShare: Float?
+        get() {
+            val taille = wPrimeCapacity?.takeIf { it > 0.0 } ?: return null
+            val reste = wPrimeBalance ?: return null
+            return (reste / taille).toFloat().coerceIn(0f, 1f)
+        }
+
     /**
      * Le rapport de la normalisée à la moyenne, dit « indice de variabilité ».
      *

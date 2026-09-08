@@ -177,7 +177,7 @@
 
     <string name="field_level_intensity_name">Summary · intensity</string>
     <string name="field_level_intensity_description">The ride\'s intensity factor and its training load, with the word that names them: endurance, tempo, threshold or race. Both numbers are the Karoo\'s own, nothing is recomputed. Needs a power meter and an FTP set. Fits in an ordinary tile.</string>
-    <string name="field_level_intensity_load">LOAD</string>
+    <string name="field_level_intensity_load">TSS</string>
     <string name="field_level_intensity_endurance">ENDURANCE</string>
     <string name="field_level_intensity_tempo">TEMPO</string>
     <string name="field_level_intensity_threshold">THRESHOLD</string>
@@ -192,6 +192,21 @@
     <string name="field_level_duration_hours">%1$d h %2$02d</string>
     <string name="field_level_zones_spent">SPENT</string>
     <string name="field_level_no_zones">No zones measured</string>
+
+    <string name="unit_percent"> %</string>
+    <string name="field_level_reserve_name">Summary · W′ reserve</string>
+    <string name="field_level_reserve_description">What is left of the anaerobic reserve — the critical power model, computed by the extension and not published by the Karoo. Above critical power it drains; below, it recharges all the faster for being low. Critical power comes from the FTP set on the device and the reserve from your weight; both can be corrected in the app settings. Read it as a relative gauge, not as an exact number of joules. Needs a power meter. Fits in an ordinary tile.</string>
+    <string name="field_level_reserve_label">W′ RESERVE</string>
+    <string name="field_level_reserve_left">LEFT</string>
+    <string name="field_level_reserve_kilojoules">%1$s kJ</string>
+    <string name="field_level_reserve_cp">CP %1$d W</string>
+    <string name="field_level_no_reserve">No critical power known</string>
+
+    <string name="settings_section_reserve">Anaerobic reserve</string>
+    <string name="settings_wprime_auto">Derive from the Karoo\'s FTP and weight</string>
+    <string name="settings_wprime_auto_hint">“Summary · W′ reserve” field. Unchecked, the two values below apply.</string>
+    <string name="settings_wprime_cp">Critical power: %1$d W</string>
+    <string name="settings_wprime_capacity">W′ reserve: %1$s kJ</string>
 
     <string name="field_level_heart_label">HEART</string>
     <string name="field_level_power_label">POWER</string>
