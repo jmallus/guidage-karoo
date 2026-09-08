@@ -145,4 +145,95 @@
     <string name="field_resupply_no_poi">No point on the route</string>
     <string name="field_resupply_none_usable">%1$d points, none to resupply at</string>
     <string name="field_resupply_no_water">%1$d points, no water</string>
+
+    <string name="unit_bpm"> bpm</string>
+    <string name="unit_watt"> W</string>
+
+    <string name="field_level_heart_name">Summary · heart</string>
+    <string name="field_level_heart_description">The ride\'s average heart rate, with the maximum reached right beside it, on a flat of the colour of the zone the average falls into. An average alone says nothing: it is its distance from the maximum that tells you whether the ride was steady or made of hard efforts. Fits in an ordinary tile.</string>
+    <string name="field_level_heart_max">MAX</string>
+    <string name="field_level_no_heart">No heart rate monitor</string>
+
+    <string name="field_level_power_name">Summary · power</string>
+    <string name="field_level_power_description">The ride\'s average power and, beside it, the normalized one — the one that counts surges for what they cost. Their ratio is spelled out: smooth, rolling or choppy. Needs a power meter. Fits in an ordinary tile.</string>
+    <string name="field_level_power_normalized">NORMALIZED</string>
+    <string name="field_level_power_smooth">SMOOTH · VI %1$s</string>
+    <string name="field_level_power_rolling">ROLLING · VI %1$s</string>
+    <string name="field_level_power_choppy">CHOPPY · VI %1$s</string>
+    <string name="field_level_no_power">No power meter</string>
+
+    <string name="field_level_arrival_name">Summary · arrival</string>
+    <string name="field_level_arrival_description">The estimated arrival time, the sunset time beside it, and a green, yellow or red flat depending on whether you get there before dark, only just, or after. Sunset is computed offline from your position. Needs a loaded route. Fits in an ordinary tile.</string>
+    <string name="field_level_arrival_sunset">SUNSET</string>
+    <string name="field_level_arrival_ahead">%1$d MIN TO SPARE</string>
+    <string name="field_level_arrival_behind">%1$d MIN LATE</string>
+    <string name="field_level_arrival_ahead_hours">%1$d H %2$02d TO SPARE</string>
+    <string name="field_level_arrival_behind_hours">%1$d H %2$02d LATE</string>
+
+    <string name="field_level_ascent_name">Summary · ascent</string>
+    <string name="field_level_ascent_description">The elevation already climbed, what is left to the finish, and a bar showing the share done. Twelve hundred metres says nothing until you know whether it is a third or nine tenths. The remainder needs a loaded route. Fits in an ordinary tile.</string>
+    <string name="field_level_ascent_remaining">LEFT</string>
+    <string name="field_level_no_ascent">Waiting for elevation</string>
+
+    <string name="field_level_intensity_name">Summary · intensity</string>
+    <string name="field_level_intensity_description">The ride\'s intensity factor and its training load, with the word that names them: endurance, tempo, threshold or race. Both numbers are the Karoo\'s own, nothing is recomputed. Needs a power meter and an FTP set. Fits in an ordinary tile.</string>
+    <string name="field_level_intensity_load">TSS</string>
+    <string name="field_level_intensity_endurance">ENDURANCE</string>
+    <string name="field_level_intensity_tempo">TEMPO</string>
+    <string name="field_level_intensity_threshold">THRESHOLD</string>
+    <string name="field_level_intensity_race">RACE</string>
+    <string name="field_level_no_intensity">Waiting for intensity</string>
+
+    <string name="field_level_zones_name">Summary · zones</string>
+    <string name="field_level_zones_description">Time spent in each heart rate zone since the start, as a stacked bar in zone order, with the dominant zone writ large. Where the bulk of the bar sits tells you the level of the ride faster than any number. Needs a heart rate monitor and zones set. Fits in an ordinary tile.</string>
+    <string name="field_level_zones_label">TIME IN ZONE</string>
+    <string name="field_level_zones_value">Z%1$d</string>
+    <string name="field_level_duration_minutes">%1$d min</string>
+    <string name="field_level_duration_hours">%1$d h %2$02d</string>
+    <string name="field_level_zones_spent">SPENT</string>
+    <string name="field_level_no_zones">No zones measured</string>
+
+    <string name="unit_percent"> %</string>
+    <string name="field_level_reserve_name">Summary · W′ reserve</string>
+    <string name="field_level_reserve_description">What is left of the anaerobic reserve — the critical power model, computed by the extension and not published by the Karoo. Above critical power it drains; below, it recharges all the faster for being low. Critical power comes from the FTP set on the device and the reserve from your weight; both can be corrected in the app settings. Read it as a relative gauge, not as an exact number of joules. Needs a power meter. Fits in an ordinary tile.</string>
+    <string name="field_level_reserve_label">W′ RESERVE</string>
+    <string name="field_level_reserve_left">LEFT</string>
+    <string name="field_level_reserve_kilojoules">%1$s kJ</string>
+    <string name="field_level_reserve_cp">CP %1$d W</string>
+    <string name="field_level_no_reserve">No critical power known</string>
+
+    <string name="field_level_drift_name">Summary · drift</string>
+    <string name="field_level_drift_description">What the same effort costs the heart late in the ride compared with early on: the power-to-heart-rate ratio of the second half against the first. If it takes more beats for the same watts, you are paying for it. No head unit shows this while riding — you find it afterwards, when it is too late to act on it. The extension computes it itself, over effort time only. Needs a power meter and a heart rate monitor, and stays quiet below an hour of effort. Fits in an ordinary tile.</string>
+    <string name="field_level_drift_label">PW:HR DRIFT</string>
+    <string name="field_level_drift_over">OVER</string>
+    <string name="field_level_drift_solid">SOLID</string>
+    <string name="field_level_drift_drifting">DRIFTING</string>
+    <string name="field_level_drift_cooked">COOKED</string>
+    <string name="field_level_no_drift">Less than an hour of effort</string>
+
+    <string name="field_level_stops_name">Summary · stops</string>
+    <string name="field_level_stops_description">Time spent riding, time left at stops beside it, and a bar showing the share. The Karoo publishes both durations, never their difference — and the difference is what decides a brevet. Nobody looks at it before the finish, where it is too late. Fits in an ordinary tile.</string>
+    <string name="field_level_stops_label">RIDING</string>
+    <string name="field_level_stops_stopped">STOPPED</string>
+    <string name="field_level_no_stops">Ride not started</string>
+
+    <string name="field_level_battery_name">Summary · battery</string>
+    <string name="field_level_battery_description">The device\'s charge, and what will be left of it at the finish given how fast it is going down. The level alone answers nothing: forty per cent is comfortable an hour out and hopeless six hours out. A green, yellow or red flat carries the verdict. The projection needs a loaded route; without one, the tile shows the charge and its slope. Fits in an ordinary tile.</string>
+    <string name="field_level_battery_label">BATTERY</string>
+    <string name="field_level_battery_at_arrival">AT FINISH</string>
+    <string name="field_level_battery_percent">%1$d%%</string>
+    <string name="field_level_battery_rate">−%1$d%% PER HOUR</string>
+    <string name="field_level_no_battery">Charge unknown</string>
+
+    <string name="settings_section_reserve">Anaerobic reserve</string>
+    <string name="settings_wprime_auto">Derive from the Karoo\'s FTP and weight</string>
+    <string name="settings_wprime_auto_hint">“Summary · W′ reserve” field. Unchecked, the two values below apply.</string>
+    <string name="settings_wprime_cp">Critical power: %1$d W</string>
+    <string name="settings_wprime_capacity">W′ reserve: %1$s kJ</string>
+
+    <string name="field_level_heart_label">AVG HEART RATE</string>
+    <string name="field_level_power_label">AVERAGE POWER</string>
+    <string name="field_level_arrival_label">ARRIVAL</string>
+    <string name="field_level_ascent_label">ASCENT</string>
+    <string name="field_level_intensity_label">INTENSITY</string>
 </resources>

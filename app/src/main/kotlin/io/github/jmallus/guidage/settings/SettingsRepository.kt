@@ -6,6 +6,7 @@ import io.github.jmallus.guidage.core.AlertSettings
 import io.github.jmallus.guidage.core.GraphZoom
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
+import io.github.jmallus.guidage.core.WPrimeSettings
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -30,6 +31,15 @@ data class GuidageSettings(
      * café comme un point utile lui fait croire à un secours qu'il ne prendra pas.
      */
     val resupplyWaterOnly: Boolean = false,
+    /**
+     * Les paramètres du champ « Bilan · réserve W′ ».
+     *
+     * Vides par défaut : la puissance critique et la réserve se déduisent alors de la FTP et
+     * du poids réglés sur le Karoo, et le champ marche sans qu'on ait rien à toucher. Les
+     * renseigner est pour qui connaît les siens — un test de puissance critique en donne de
+     * bien meilleurs que la règle du pouce.
+     */
+    val wPrime: WPrimeSettings = WPrimeSettings(),
 )
 
 /**
@@ -62,6 +72,12 @@ class SettingsRepository(context: Context) {
                 poiEnabled = prefs.getBoolean(KEY_POI_ENABLED, defaults.alerts.poiEnabled),
                 poiDistance = prefs.getFloat(KEY_POI_DISTANCE, defaults.alerts.poiDistance.toFloat()).toDouble(),
             ),
+            // Zéro veut dire « non renseigné » : les préférences ne rangent pas d'entier
+            // facultatif, et une clé absente ne se distingue pas d'une valeur nulle.
+            wPrime = WPrimeSettings(
+                criticalPower = prefs.getInt(KEY_WPRIME_CP, 0).takeIf { it > 0 },
+                capacityJoules = prefs.getInt(KEY_WPRIME_CAPACITY, 0).takeIf { it > 0 },
+            ),
         )
     }
 
@@ -74,6 +90,8 @@ class SettingsRepository(context: Context) {
             .putBoolean(KEY_RESUPPLY_WATER_ONLY, settings.resupplyWaterOnly)
             .putBoolean(KEY_POI_ENABLED, settings.alerts.poiEnabled)
             .putFloat(KEY_POI_DISTANCE, settings.alerts.poiDistance.toFloat())
+            .putInt(KEY_WPRIME_CP, settings.wPrime.criticalPower ?: 0)
+            .putInt(KEY_WPRIME_CAPACITY, settings.wPrime.capacityJoules ?: 0)
             .apply()
     }
 
@@ -91,5 +109,7 @@ class SettingsRepository(context: Context) {
         // oubliés ne gênent personne.
         const val KEY_POI_ENABLED = "poi_alerts"
         const val KEY_POI_DISTANCE = "poi_alert_distance"
+        const val KEY_WPRIME_CP = "wprime_critical_power"
+        const val KEY_WPRIME_CAPACITY = "wprime_capacity"
     }
 }

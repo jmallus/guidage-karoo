@@ -12,13 +12,16 @@ import io.github.jmallus.guidage.core.LearnedPace
 import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.core.PaceLearner
 import io.github.jmallus.guidage.core.Pacing
+import io.github.jmallus.guidage.core.RideLevel
 import io.github.jmallus.guidage.core.Sun
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.map.RoadSegment
+import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.ContextModels
 import io.github.jmallus.guidage.extension.DashboardModels
 import io.github.jmallus.guidage.extension.EffortModels
 import io.github.jmallus.guidage.extension.FieldModels
+import io.github.jmallus.guidage.extension.LevelModels
 import io.github.jmallus.guidage.extension.ResupplyTypes
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
@@ -29,9 +32,10 @@ import io.github.jmallus.guidage.ui.AutonomyFieldModel
 import io.github.jmallus.guidage.ui.AutonomyRenderer
 import io.github.jmallus.guidage.ui.ClimbRenderer
 import io.github.jmallus.guidage.ui.DashboardModel
-import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.ContextRenderer
+import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
+import io.github.jmallus.guidage.ui.LevelRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
 import io.github.jmallus.guidage.ui.ResupplyRenderer
@@ -257,6 +261,32 @@ class Simulateur(
             heartRateZones = zones.heartRateZones,
             pace = allure(secondes),
             climb = montee(instant.distance),
+            level = bilan(secondes),
+        )
+    }
+
+    /**
+     * Le bilan de la sortie fictive, tenu comme le Karoo le tient.
+     *
+     * L'appareil publie ces cumuls ; le banc d'essai doit donc les fabriquer, faute de quoi
+     * les six cases de bilan ne montreraient que leurs messages d'attente. Ils sont accumulés
+     * pas à pas et non recalculés à chaque image : les images se demandent dans le désordre —
+     * la frise du simulateur saute où elle veut — et repartir de zéro chaque fois rendrait la
+     * fenêtre inutilisable au bout de quelques minutes de sortie simulée.
+     */
+    private val cumuls = CumulsSortie()
+
+    private fun bilan(secondes: Double): RideLevel {
+        if (secondes < cumuls.jusqua) cumuls.reset()
+        while (cumuls.jusqua + PAS_BILAN <= secondes) {
+            val instant = sortie.a(cumuls.jusqua + PAS_BILAN)
+            cumuls.ajouter(PAS_BILAN, instant, zones.heartRateZones)
+        }
+        val distance = sortie.a(secondes).distance
+        val profil = PreviewData.route.profile
+        return cumuls.niveau(
+            elevationGain = profil?.ascentBetween(0.0, distance) ?: 0.0,
+            elevationRemaining = profil?.let { it.ascentBetween(distance, it.totalDistance) } ?: 0.0,
         )
     }
 
@@ -339,6 +369,32 @@ class Simulateur(
         FieldPalette.of(context),
     )
 
+    /**
+     * Une case de bilan, à la taille qu'elle a sur une page qui en porte dix.
+     *
+     * Le Karoo découpe l'écran sur une grille de soixante : dix cases font deux colonnes de
+     * cinq, soit une demi-largeur sur un cinquième de hauteur. C'est la seule taille où ces
+     * cases se jugent — à pleine page elles seraient somptueuses et personne ne les y mettrait.
+     */
+    fun imageBilan(
+        variante: Bilan,
+        secondes: Double,
+        largeur: Int = LARGEUR_BILAN,
+        hauteur: Int = HAUTEUR_BILAN,
+    ): Bitmap = LevelRenderer.render(
+        largeur,
+        hauteur,
+        LevelModels.build(
+            context,
+            variante,
+            instantane(secondes),
+            releve(secondes),
+            preview = false,
+            nowMillis = departMillis + (secondes * 1_000).toLong(),
+        ),
+        FieldPalette.of(context),
+    )
+
     fun modele(secondes: Double): DashboardModel {
         val maintenant = departMillis + (secondes * 1_000).toLong()
         return DashboardModels.build(
@@ -367,6 +423,15 @@ class Simulateur(
     companion object {
         /** Pas d'apprentissage de l'allure (s). */
         private const val PAS_APPRENTISSAGE = 2.0
+
+        /**
+         * Pas d'accumulation du bilan (s).
+         *
+         * Sous les dix secondes que [io.github.jmallus.guidage.core.ZoneClock] accepte :
+         * au-delà, l'horloge écarterait chaque pas comme un trou dans les mesures et le temps
+         * par zone resterait obstinément vide.
+         */
+        private const val PAS_BILAN = 5.0
 
         /**
          * L'instant de la sortie sur lequel l'heure de départ est calée : le même que celui
@@ -433,6 +498,10 @@ class Simulateur(
 
         /** La hauteur des autres champs annexes, sur le même quart de grille. */
         val HAUTEUR_ANNEXE: Int = HAUTEUR / 4
+
+        /** Une case de bilan sur une page qui en porte dix : 30 × 12 sur la grille. */
+        val LARGEUR_BILAN: Int = LARGEUR / 2
+        val HAUTEUR_BILAN: Int = HAUTEUR / 5
 
         /**
          * Le corps que le Karoo emploie lui-même pour un champ numérique de cette taille.

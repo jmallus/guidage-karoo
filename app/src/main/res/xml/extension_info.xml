@@ -59,6 +59,80 @@
         graphical="false"
         icon="@drawable/ic_poi" />
 
+    <!--
+      Les six cases de bilan. Elles tiennent dans une case ordinaire, et une page en porte
+      dix : c'est pour cela qu'elles existent séparément plutôt qu'en une page unique.
+    -->
+    <DataType
+        typeId="bilan-coeur"
+        displayName="@string/field_level_heart_name"
+        description="@string/field_level_heart_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="bilan-puissance"
+        displayName="@string/field_level_power_name"
+        description="@string/field_level_power_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="bilan-arrivee"
+        displayName="@string/field_level_arrival_name"
+        description="@string/field_level_arrival_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="bilan-denivele"
+        displayName="@string/field_level_ascent_name"
+        description="@string/field_level_ascent_description"
+        graphical="true"
+        icon="@drawable/ic_climb" />
+
+    <DataType
+        typeId="bilan-intensite"
+        displayName="@string/field_level_intensity_name"
+        description="@string/field_level_intensity_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="bilan-zones"
+        displayName="@string/field_level_zones_name"
+        description="@string/field_level_zones_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="bilan-reserve-w"
+        displayName="@string/field_level_reserve_name"
+        description="@string/field_level_reserve_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="bilan-derive"
+        displayName="@string/field_level_drift_name"
+        description="@string/field_level_drift_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="bilan-arrets"
+        displayName="@string/field_level_stops_name"
+        description="@string/field_level_stops_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="bilan-batterie"
+        displayName="@string/field_level_battery_name"
+        description="@string/field_level_battery_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
     <BonusAction
         actionId="prochaine-cote"
         displayName="@string/action_next_climb" />

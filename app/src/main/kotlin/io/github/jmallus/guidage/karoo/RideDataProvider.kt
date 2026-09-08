@@ -1,10 +1,18 @@
 package io.github.jmallus.guidage.karoo
 
+import io.github.jmallus.guidage.core.BatteryDrain
 import io.github.jmallus.guidage.core.ClimbProgress
+import io.github.jmallus.guidage.core.DriftTracker
 import io.github.jmallus.guidage.core.Drivetrain
 import io.github.jmallus.guidage.core.LearnedPace
 import io.github.jmallus.guidage.core.PaceLearner
+import io.github.jmallus.guidage.core.RideLevel
+import io.github.jmallus.guidage.core.WPrime
+import io.github.jmallus.guidage.core.WPrimeSettings
+import io.github.jmallus.guidage.core.WPrimeTracker
+import io.github.jmallus.guidage.core.ZoneClock
 import io.github.jmallus.guidage.core.ZoneRange
+import io.github.jmallus.guidage.core.Zones
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.UserProfile
@@ -14,9 +22,24 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+
+/**
+ * Le coureur tel que le Karoo le connaît : ses zones, son seuil, son poids.
+ *
+ * Rassemblés en un seul objet parce qu'ils arrivent tous du même événement `UserProfile` :
+ * les lire séparément multiplierait les abonnements sans rien garantir sur la simultanéité.
+ */
+data class RiderProfile(
+    val powerZones: List<ZoneRange> = emptyList(),
+    val heartRateZones: List<ZoneRange> = emptyList(),
+    /** Puissance au seuil réglée sur l'appareil (W), à défaut de puissance critique mesurée. */
+    val ftp: Int? = null,
+    val weightKilograms: Double? = null,
+)
 
 /** Les valeurs chiffrées affichées par le tableau de bord. */
 data class RideData(
@@ -54,6 +77,8 @@ data class RideData(
     val heartRateZones: List<ZoneRange> = emptyList(),
     /** Allure apprise depuis le départ, dont se déduit l'heure d'arrivée. */
     val pace: LearnedPace = LearnedPace.UNKNOWN,
+    /** Ce que la sortie vaut depuis le départ : moyennes, maxima, répartition. */
+    val level: RideLevel = RideLevel.UNKNOWN,
 )
 
 /**
@@ -65,6 +90,13 @@ data class RideData(
 class RideDataProvider(
     private val karooSystem: KarooSystemService,
     scope: CoroutineScope,
+    /**
+     * Les paramètres de la réserve anaérobie, qui viennent des réglages de l'application.
+     *
+     * C'est le seul réglage que les relevés lisent : les autres décident de ce qu'on montre,
+     * celui-ci décide de ce qu'on calcule, et le calcul se mène sur la sortie entière.
+     */
+    private val wPrimeSettings: Flow<WPrimeSettings> = flowOf(WPrimeSettings()),
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     /**
@@ -90,14 +122,46 @@ class RideDataProvider(
      */
     private var cadenceVue = false
 
+    /**
+     * Le temps passé dans chaque zone de fréquence cardiaque.
+     *
+     * Il vit ici pour la même raison que l'allure apprise : il se mesure sur la sortie
+     * entière, non sur la durée d'affichage d'une page. Le Karoo publie la zone courante,
+     * jamais le temps qu'on y a passé.
+     */
+    private val zoneClock = ZoneClock()
+
+    /** La réserve anaérobie, pour la même raison : elle se vide et se remplit sur la sortie. */
+    private val wPrime = WPrimeTracker()
+
+    /** La dérive aérobie et la décharge de l'appareil, deux cumuls de plus que rien ne publie. */
+    private val drift = DriftTracker()
+    private val battery = BatteryDrain()
+
     val data: StateFlow<RideData> = combine(
         metrics(),
-        zones(),
+        profile(),
         gears(),
         climb(),
-    ) { values, profile, drivetrain, climb ->
+        bilan(),
+    ) { values, profile, drivetrain, climb, bilan ->
+        val (summary, reglages) = bilan
         observePace(speed = values[0], grade = values[5], power = values[2], distance = values[6])
         if (values[4] != null) cadenceVue = true
+        zoneClock.observe(clock(), Zones.zoneOf(values[3] ?: 0.0, profile.heartRateZones))
+        // Les paramètres réglés priment sur ce que l'appareil sait du coureur : la FTP et le
+        // poids ne sont qu'un point de départ, et qui a mesuré les siens a mieux.
+        wPrime.observe(
+            nowMillis = clock(),
+            powerWatts = values[2],
+            criticalPower = (reglages.criticalPower ?: profile.ftp)?.toDouble(),
+            capacityJoules = reglages.capacityJoules?.toDouble()
+                ?: profile.weightKilograms?.let { WPrime.defaultCapacity(it) },
+        )
+        // La puissance est prise lissée et le cœur brut : le cœur l'est déjà par nature, il
+        // met une demi-minute à répondre, là où la puissance saute à chaque coup de pédale.
+        drift.observe(clock(), powerWatts = values[2], heartRate = values[3])
+        battery.observe(clock(), summary[8])
         RideData(
             speed = values[0],
             averageSpeed = values[1],
@@ -112,9 +176,31 @@ class RideDataProvider(
             climb = climb,
             onRoute = values[9]?.let { it > 0.5 },
             energyOutput = values[10],
-            powerZones = profile.first,
-            heartRateZones = profile.second,
+            powerZones = profile.powerZones,
+            heartRateZones = profile.heartRateZones,
             pace = paceLearner.pace,
+            level = RideLevel(
+                averageHeartRate = summary[0],
+                maxHeartRate = summary[1],
+                averagePower = summary[2],
+                normalizedPower = summary[3],
+                elevationGain = summary[4],
+                elevationRemaining = summary[5],
+                intensityFactor = summary[6],
+                trainingStressScore = summary[7],
+                // Coupé au nombre de zones réglées : l'horloge en tient sept, l'appareil en
+                // règle cinq pour le cœur, et deux cases toujours vides feraient croire à
+                // deux zones où l'on n'est jamais monté.
+                heartRateZoneSeconds = zoneClock.elapsed.take(profile.heartRateZones.size),
+                wPrimeBalance = wPrime.balance,
+                wPrimeCapacity = wPrime.size,
+                criticalPower = (reglages.criticalPower ?: profile.ftp)?.toDouble(),
+                totalSeconds = summary[9],
+                movingSeconds = summary[10],
+                drift = drift.drift(),
+                batteryPercent = battery.percent,
+                batteryPerHour = battery.perHour,
+            ),
         )
     }
         .distinctUntilChanged()
@@ -137,13 +223,55 @@ class RideDataProvider(
         ),
     ) { it }
 
-    /** Zones de puissance et de fréquence cardiaque telles que réglées sur l'appareil. */
-    private fun zones(): Flow<Pair<List<ZoneRange>, List<ZoneRange>>> =
+    /**
+     * Les cumuls de la sortie, que le Karoo tient lui-même.
+     *
+     * Rien n'est recalculé ici : ces huit valeurs sont celles de l'enregistrement, et les
+     * reconstruire de notre côté les ferait diverger de ce que le fichier de sortie
+     * contiendra. Le seul cumul que nous tenons est le temps par zone, que l'appareil ne
+     * publie pas.
+     */
+    private fun summary(): Flow<Array<Double?>> = combine(
+        listOf(
+            value(DataType.Type.AVERAGE_HR),
+            value(DataType.Type.MAX_HR),
+            value(DataType.Type.AVERAGE_POWER),
+            value(DataType.Type.NORMALIZED_POWER),
+            value(DataType.Type.ELEVATION_GAIN),
+            value(DataType.Type.ELEVATION_REMAINING),
+            value(DataType.Type.INTENSITY_FACTOR),
+            value(DataType.Type.TRAINING_STRESS_SCORE),
+            value(DataType.Type.BATTERY_PERCENT),
+            // Les noms du Karoo sont trompeurs et se lisent à l'envers de l'intuition :
+            // « RIDE_TIME » est le temps total, pauses comprises, et « ELAPSED_TIME » celui
+            // passé à enregistrer. Les échanger ferait un temps d'arrêt négatif.
+            value(DataType.Type.RIDE_TIME),
+            value(DataType.Type.ELAPSED_TIME),
+        ),
+    ) { it }
+
+    /**
+     * Les cumuls et les réglages qui décident de la réserve, réunis en un seul flux.
+     *
+     * `combine` ne se décline en arguments nommés que jusqu'à cinq flux ; au-delà il faut
+     * passer par un tableau non typé. Les rassembler ici garde les cinq et, accessoirement,
+     * garantit que les réglages appliqués sont ceux de l'instant qu'on rapporte.
+     */
+    private fun bilan(): Flow<Pair<Array<Double?>, WPrimeSettings>> =
+        combine(summary(), wPrimeSettings) { cumuls, reglages -> cumuls to reglages }
+
+    /** Le coureur tel que l'appareil le connaît : zones, seuil et poids. */
+    private fun profile(): Flow<RiderProfile> =
         karooSystem.consumerFlow<UserProfile>()
             .map { profile ->
-                profile.powerZones.map { it.toRange() } to profile.heartRateZones.map { it.toRange() }
+                RiderProfile(
+                    powerZones = profile.powerZones.map { it.toRange() },
+                    heartRateZones = profile.heartRateZones.map { it.toRange() },
+                    ftp = profile.ftp.takeIf { it > 0 },
+                    weightKilograms = profile.weight.toDouble().takeIf { it > 0.0 },
+                )
             }
-            .onStart { emit(emptyList<ZoneRange>() to emptyList()) }
+            .onStart { emit(RiderProfile()) }
 
     /**
      * Rapport engagé, lu d'un seul flux.
@@ -200,6 +328,12 @@ class RideDataProvider(
             val previous = lastDistance
             if (previous != null && distance < previous - NEW_RIDE_DROP_METERS) {
                 paceLearner.reset()
+                // Le bilan est celui de la sortie, non celui de la journée : le temps par
+                // zone repart de zéro en même temps que l'allure apprise.
+                zoneClock.reset()
+                wPrime.reset()
+                drift.reset()
+                battery.reset()
                 lastObservationMillis = null
             }
             lastDistance = distance

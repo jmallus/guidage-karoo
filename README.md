@@ -31,10 +31,58 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 | **Réserve** | graphique, **pleine page** | Après quel point de ravitaillement il n'y a plus rien. La ligne porte l'itinéraire entier : points passés en gris, prochain en blanc, dernier utile cerclé de jaune, et à sa droite un segment rouge qui ne porte rien. |
 | **Autonomie** | graphique, **pleine page** | Les deux réserves qui s'épuisent sur une seule page : la réserve d'eau en haut, le budget d'effort en bas. On ne s'arrête qu'une fois, et c'est en voyant les deux ensemble qu'on décide de s'arrêter à ce point-ci ou de tenir jusqu'au suivant. Demande en outre un capteur de puissance pour sa moitié basse. |
 
+S'y ajoutent **dix cases de bilan**, décrites plus bas : elles tiennent dans une case
+ordinaire, là où les précédentes demandent une bande ou une page entière.
+
 Tous s'adaptent à la **taille** que le profil de page leur alloue ; « Prochaine côte » suit en
-outre l'**alignement** configuré. Les six champs graphiques affichent un aperçu réaliste dans
+outre l'**alignement** configuré. Les seize champs graphiques affichent un aperçu réaliste dans
 l'écran d'édition des pages — « Prochain point d'intérêt » n'en a pas besoin, c'est le Karoo
 qui le dessine.
+
+### Le bilan de la sortie
+
+Dix cases qui disent ce que la sortie **vaut depuis le départ**. Elles tiennent chacune dans
+une case ordinaire — une page en porte dix — et c'est là toute leur raison d'être : le Karoo
+publie déjà la plupart de ces nombres, mais **un par champ**, si bien qu'une moyenne et son
+maximum coûtent deux emplacements et que le coureur fait la soustraction de tête. Ici les deux
+voyagent ensemble, et la case dit en plus ce que leur voisinage veut dire.
+
+| Case | Grand chiffre | À côté | Ce que la case ajoute |
+| --- | --- | --- | --- |
+| **FC moyenne** | fréquence moyenne | maximum de la sortie | aplat de la couleur de la zone où tombe la moyenne |
+| **Puissance moyenne** | moyenne | normalisée | le mot que leur écart forme : lisse, roulante ou hachée |
+| **Arrivée** | heure estimée | coucher du soleil | aplat vert, jaune ou rouge, et la marge en toutes lettres |
+| **Dénivelé** | déjà monté | restant | une barre qui montre la part faite |
+| **Intensité** | facteur d'intensité | TSS | le mot qui les nomme, coloré selon le niveau |
+| **Zones** | zone dominante | temps qu'on y a passé | la barre empilée des cinq zones, dans leur ordre |
+| **Réserve W′** | part restante | kilojoules | une jauge qui se vide, et la puissance critique retenue |
+| **Dérive PW/FC** | dérive aérobie | temps d'effort mesuré | le verdict : solide, ça dérive, ou cuit |
+| **Arrêts** | temps en selle | temps arrêté | la part perdue aux haltes, en barre |
+| **Batterie** | charge | charge projetée à l'arrivée | aplat vert, jaune ou rouge, et la décharge par heure |
+
+Deux d'entre elles ne sont **pas** des nombres du Karoo rangés autrement, mais des calculs de
+l'extension, faits localement et sans réseau comme tout le reste :
+
+- **Réserve W′** applique le modèle de puissance critique dans sa forme différentielle
+  (Froncioni ; Clarke et Skiba, 2013). La puissance critique vient de la FTP réglée sur
+  l'appareil et la réserve du poids — 300 J/kg — et les deux se corrigent dans les réglages.
+  À lire comme une jauge relative, non comme un nombre de joules exact : la FTP n'est pas la
+  puissance critique, et 300 J/kg est une moyenne de population.
+- **Dérive PW/FC** compare le rapport puissance / fréquence cardiaque de la seconde moitié de
+  la sortie à celui de la première. S'il faut plus de battements pour les mêmes watts, ça se
+  paie. Aucun compteur ne l'affiche en roulant. Elle se calcule sur le temps d'effort seul et
+  se tait sous une heure.
+
+Les dix, posées comme sur une page — au quart de la sortie simulée, puis à son terme. Trois
+d'entre elles n'existent pas encore au quart : la dérive se tait, les haltes n'ont pas eu
+lieu, la charge n'a pas assez descendu pour qu'on lui connaisse une pente.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/captures/champ-bilan.png" width="300" alt="Les dix cases de bilan au quart de la sortie"><br><b>Au quart de la sortie</b></td>
+    <td align="center"><img src="docs/captures/champ-bilan-fin.png" width="300" alt="Les dix cases de bilan à l'arrivée"><br><b>À l'arrivée</b></td>
+  </tr>
+</table>
 
 ### À quoi ils ressemblent
 
@@ -180,6 +228,13 @@ dans son état d'usine, ce qui revient à ne pas l'avoir écrit.
   cafés et haltes comptent aussi. Le choix vaut pour « Réserve », « Autonomie », « Suivant la
   sortie » **et les annonces** : une voix qui nommerait un dernier ravitaillement que l'écran
   ne montre pas serait pire que pas de voix.
+
+**Réserve anaérobie**
+
+- déduire la puissance critique et la réserve W′ de la FTP et du poids réglés sur le Karoo.
+  C'est le défaut, et la case « Bilan · réserve W′ » marche donc sans qu'on touche à rien.
+  Décoché, deux curseurs prennent le relais, pour qui a mesuré les siens — un test de
+  puissance critique en donne de bien meilleurs que la règle du pouce.
 
 **Annonces**
 
