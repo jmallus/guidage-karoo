@@ -202,6 +202,29 @@
     <string name="field_level_reserve_cp">CP %1$d W</string>
     <string name="field_level_no_reserve">No critical power known</string>
 
+    <string name="field_level_drift_name">Summary · drift</string>
+    <string name="field_level_drift_description">What the same effort costs the heart late in the ride compared with early on: the power-to-heart-rate ratio of the second half against the first. If it takes more beats for the same watts, you are paying for it. No head unit shows this while riding — you find it afterwards, when it is too late to act on it. The extension computes it itself, over effort time only. Needs a power meter and a heart rate monitor, and stays quiet below an hour of effort. Fits in an ordinary tile.</string>
+    <string name="field_level_drift_label">DRIFT</string>
+    <string name="field_level_drift_over">OVER</string>
+    <string name="field_level_drift_solid">SOLID</string>
+    <string name="field_level_drift_drifting">DRIFTING</string>
+    <string name="field_level_drift_cooked">COOKED</string>
+    <string name="field_level_no_drift">Less than an hour of effort</string>
+
+    <string name="field_level_stops_name">Summary · stops</string>
+    <string name="field_level_stops_description">Time spent riding, time left at stops beside it, and a bar showing the share. The Karoo publishes both durations, never their difference — and the difference is what decides a brevet. Nobody looks at it before the finish, where it is too late. Fits in an ordinary tile.</string>
+    <string name="field_level_stops_label">RIDING</string>
+    <string name="field_level_stops_stopped">STOPPED</string>
+    <string name="field_level_no_stops">Ride not started</string>
+
+    <string name="field_level_battery_name">Summary · battery</string>
+    <string name="field_level_battery_description">The device\'s charge, and what will be left of it at the finish given how fast it is going down. The level alone answers nothing: forty per cent is comfortable an hour out and hopeless six hours out. A green, yellow or red flat carries the verdict. The projection needs a loaded route; without one, the tile shows the charge and its slope. Fits in an ordinary tile.</string>
+    <string name="field_level_battery_label">BATTERY</string>
+    <string name="field_level_battery_at_arrival">AT FINISH</string>
+    <string name="field_level_battery_percent">%1$d%%</string>
+    <string name="field_level_battery_rate">−%1$d%% PER HOUR</string>
+    <string name="field_level_no_battery">Charge unknown</string>
+
     <string name="settings_section_reserve">Anaerobic reserve</string>
     <string name="settings_wprime_auto">Derive from the Karoo\'s FTP and weight</string>
     <string name="settings_wprime_auto_hint">“Summary · W′ reserve” field. Unchecked, the two values below apply.</string>

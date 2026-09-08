@@ -37,7 +37,28 @@ data class RideLevel(
     val wPrimeCapacity: Double? = null,
     /** La puissance critique retenue pour ce calcul (W), telle qu'elle sera affichée. */
     val criticalPower: Double? = null,
+    /**
+     * Le temps que la sortie a pris, et celui qu'on a passé à rouler (s).
+     *
+     * Les deux viennent du Karoo, dont les noms sont trompeurs : `RIDE_TIME` est le temps
+     * total, pauses comprises, et `ELAPSED_TIME` celui de l'enregistrement.
+     */
+    val totalSeconds: Double? = null,
+    val movingSeconds: Double? = null,
+    /** La dérive aérobie, que l'extension calcule elle-même — voir [DriftTracker]. */
+    val drift: AerobicDrift? = null,
+    /** Charge de l'appareil (%) et vitesse à laquelle elle descend (points par heure). */
+    val batteryPercent: Double? = null,
+    val batteryPerHour: Double? = null,
 ) {
+    /** Temps passé à l'arrêt (s), quand les deux durées sont connues. */
+    val stoppedSeconds: Double?
+        get() {
+            val total = totalSeconds ?: return null
+            val roule = movingSeconds ?: return null
+            return (total - roule).coerceAtLeast(0.0)
+        }
+
     /** Part de la réserve encore disponible, de 0 à 1. */
     val wPrimeShare: Float?
         get() {

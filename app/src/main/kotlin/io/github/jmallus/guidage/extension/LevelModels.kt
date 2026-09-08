@@ -11,6 +11,7 @@ import io.github.jmallus.guidage.core.Sun
 import io.github.jmallus.guidage.core.Zones
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
+import io.github.jmallus.guidage.ui.KarooColors
 import io.github.jmallus.guidage.ui.LevelFieldModel
 import io.github.jmallus.guidage.ui.LevelSlice
 import io.github.jmallus.guidage.ui.NightRenderer
@@ -21,7 +22,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * Les six cases de bilan : ce que la sortie vaut depuis le départ.
+ * Les dix cases de bilan : ce que la sortie vaut depuis le départ.
  *
  * Chacune tient dans une case ordinaire, et une page en porte dix. C'est là toute leur raison
  * d'être : le Karoo publie déjà chacun de ces nombres, mais un par champ, si bien qu'une
@@ -64,6 +65,20 @@ enum class Bilan(
      * modèle de puissance critique, tenu par l'extension au fil de la sortie.
      */
     RESERVE("bilan-reserve-w"),
+
+    /**
+     * La dérive aérobie : ce que le même effort coûte au cœur, à la fin par rapport au début.
+     *
+     * Calculée elle aussi par l'extension. C'est la seule des huit qui dise où en est le
+     * coureur plutôt que ce qu'il a fait.
+     */
+    DERIVE("bilan-derive"),
+
+    /** Le temps passé en selle, et celui qu'on a laissé aux arrêts. */
+    ARRETS("bilan-arrets"),
+
+    /** La charge de l'appareil, et ce qu'il en restera à l'arrivée. */
+    BATTERIE("bilan-batterie"),
 }
 
 object LevelModels {
@@ -87,6 +102,9 @@ object LevelModels {
             // En joules, non en pourcentage : c'est ce qui s'enregistre et se compare d'une
             // sortie à l'autre, le pourcentage dépendant d'une échelle qui peut changer.
             Bilan.RESERVE -> level.wPrimeBalance
+            Bilan.DERIVE -> level.drift?.ratio?.let { it * 100.0 }
+            Bilan.ARRETS -> level.stoppedSeconds
+            Bilan.BATTERIE -> level.batteryPercent
         }
     }
 
@@ -109,6 +127,9 @@ object LevelModels {
             Bilan.INTENSITE -> intensite(context, data)
             Bilan.ZONES -> zones(context, data)
             Bilan.RESERVE -> reserve(context, data)
+            Bilan.DERIVE -> derive(context, data)
+            Bilan.ARRETS -> arrets(context, data)
+            Bilan.BATTERIE -> batterie(context, snapshot, data, preview, nowMillis)
         }
     }
 
@@ -343,6 +364,154 @@ object LevelModels {
     }
 
     /**
+     * La dérive : ce que le même effort coûte au cœur, à la fin par rapport au début.
+     *
+     * Le chiffre en grand parce que son signe compte autant que sa valeur — une dérive
+     * négative n'est pas une anomalie, c'est un coureur qui s'est installé après
+     * l'échauffement. Le temps sur lequel le verdict repose est écrit à côté : à une heure
+     * d'effort il ne vaut pas grand-chose, à cinq il vaut beaucoup, et rien d'autre ne le dit.
+     */
+    private fun derive(context: Context, data: RideData): LevelFieldModel {
+        val label = context.getString(R.string.field_level_drift_label)
+        val derive = data.level.drift
+            ?: return LevelFieldModel(
+                label = label,
+                value = "--",
+                emptyMessage = context.getString(R.string.field_level_no_drift),
+            )
+        val pourcent = derive.ratio * 100.0
+        return LevelFieldModel(
+            label = label,
+            value = (if (pourcent >= 0) "+" else "−") + decimales(abs(pourcent), 1),
+            unit = context.getString(R.string.unit_percent),
+            referenceLabel = context.getString(R.string.field_level_drift_over),
+            referenceValue = duree(context, derive.seconds),
+            caption = context.getString(motDeDerive(derive.ratio)),
+        )
+    }
+
+    /**
+     * Les arrêts : le temps en selle en grand, celui qu'on a laissé aux ravitaillements à
+     * côté, et la barre qui dit la part.
+     *
+     * Le Karoo publie les deux durées, jamais leur différence — et c'est la différence qui
+     * décide d'un brevet. Personne ne la regarde avant l'arrivée, où il est trop tard.
+     */
+    private fun arrets(context: Context, data: RideData): LevelFieldModel {
+        val level = data.level
+        val label = context.getString(R.string.field_level_stops_label)
+        val roule = level.movingSeconds
+        val arrete = level.stoppedSeconds
+        if (roule == null || arrete == null) {
+            return LevelFieldModel(
+                label = label,
+                value = "--",
+                emptyMessage = context.getString(R.string.field_level_no_stops),
+            )
+        }
+        val total = roule + arrete
+        return LevelFieldModel(
+            label = label,
+            value = duree(context, roule),
+            referenceLabel = context.getString(R.string.field_level_stops_stopped),
+            referenceValue = duree(context, arrete),
+            slices = if (total <= 0.0) {
+                emptyList()
+            } else {
+                listOf(
+                    LevelSlice((roule / total).toFloat(), EN_SELLE),
+                    LevelSlice((arrete / total).toFloat(), A_L_ARRET),
+                )
+            },
+        )
+    }
+
+    /**
+     * La batterie : la charge en grand, ce qu'il en restera à l'arrivée à côté.
+     *
+     * Le niveau seul ne répond à rien — quarante pour cent, c'est confortable à une heure de
+     * l'arrivée et perdu d'avance à six. C'est la projection qui répond, et l'aplat qui la
+     * porte, comme pour la nuit. Sans itinéraire chargé, la case reste la charge et sa pente :
+     * on ne peut pas projeter sur une arrivée qu'on ne connaît pas.
+     */
+    private fun batterie(
+        context: Context,
+        snapshot: GuidanceSnapshot,
+        data: RideData,
+        preview: Boolean,
+        nowMillis: Long,
+    ): LevelFieldModel {
+        val level = data.level
+        val label = context.getString(R.string.field_level_battery_label)
+        val charge = level.batteryPercent
+            ?: return LevelFieldModel(
+                label = label,
+                value = "--",
+                emptyMessage = context.getString(R.string.field_level_no_battery),
+            )
+        val base = LevelFieldModel(
+            label = label,
+            value = charge.roundToInt().toString(),
+            unit = context.getString(R.string.unit_percent),
+            caption = level.batteryPerHour?.let {
+                context.getString(R.string.field_level_battery_rate, it.roundToInt())
+            },
+        )
+
+        val pente = level.batteryPerHour ?: return base
+        val heures = heuresJusquALArrivee(snapshot, data, preview, nowMillis) ?: return base
+        val restante = (charge - pente * heures).coerceAtLeast(0.0)
+        return base.copy(
+            referenceLabel = context.getString(R.string.field_level_battery_at_arrival),
+            referenceValue = context.getString(R.string.field_level_battery_percent, restante.roundToInt()),
+            background = couleurDeBatterie(restante),
+        )
+    }
+
+    /**
+     * Combien d'heures il reste à rouler, de la même source que la case « Arrivée ».
+     *
+     * L'allure apprise d'abord, l'heure du Karoo à défaut : deux cases qui projetteraient sur
+     * deux arrivées différentes se contrediraient sur la même page.
+     */
+    private fun heuresJusquALArrivee(
+        snapshot: GuidanceSnapshot,
+        data: RideData,
+        preview: Boolean,
+        nowMillis: Long,
+    ): Double? {
+        val state = if (preview && !snapshot.state.navigating) {
+            GuidanceState(PreviewData.route, PreviewData.DISTANCE_ALONG_ROUTE, null, null)
+        } else {
+            snapshot.state
+        }
+        if (state.route == null) return null
+        val secondes = FieldModels.arrival(state, data)?.seconds
+            ?: data.arrivalTime?.let { (it - nowMillis) / 1_000.0 }
+            ?: return null
+        return (secondes / 3_600.0).takeIf { it > 0.0 }
+    }
+
+    /**
+     * Le mot de la dérive, aux seuils de Friel.
+     *
+     * En deçà de cinq pour cent, le coureur tient son allure ; au-delà de dix, il la subit.
+     * Une dérive négative est comptée comme solide : elle veut dire qu'on s'est installé.
+     */
+    private fun motDeDerive(ratio: Double): Int = when {
+        ratio < 0.05 -> R.string.field_level_drift_solid
+        ratio < 0.10 -> R.string.field_level_drift_drifting
+        else -> R.string.field_level_drift_cooked
+    }
+
+    /** L'aplat de la batterie, aux seuils où l'on commence à éteindre des choses. */
+    private fun couleurDeBatterie(restante: Double): Int = when {
+        restante >= 20.0 -> KarooColors.HIGH_VIS_GREEN
+        restante >= 5.0 -> NightRenderer.TIGHT
+        else -> KarooColors.UI_RED
+    }
+
+    /**
      * La couleur de la jauge, aux seuils où le coureur change de conduite.
      *
      * Au-dessus de la moitié on relance sans y penser ; sous le quart, chaque effort au-dessus
@@ -424,4 +593,8 @@ object LevelModels {
     private val RESERVE_PLEINE = Zones.POWER_COLORS[1]
     private val RESERVE_ENTAMEE = Zones.POWER_COLORS[2]
     private val RESERVE_VIDE = Zones.POWER_COLORS[5]
+
+    /** La barre des arrêts : ce qu'on a roulé, et ce qu'on a laissé aux ravitaillements. */
+    private val EN_SELLE = Zones.POWER_COLORS[1]
+    private const val A_L_ARRET = 0xFF37474F.toInt()
 }

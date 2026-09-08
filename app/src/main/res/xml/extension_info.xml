@@ -112,6 +112,27 @@
         graphical="true"
         icon="@drawable/ic_guidage" />
 
+    <DataType
+        typeId="bilan-derive"
+        displayName="@string/field_level_drift_name"
+        description="@string/field_level_drift_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="bilan-arrets"
+        displayName="@string/field_level_stops_name"
+        description="@string/field_level_stops_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="bilan-batterie"
+        displayName="@string/field_level_battery_name"
+        description="@string/field_level_battery_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
     <BonusAction
         actionId="prochaine-cote"
         displayName="@string/action_next_climb" />

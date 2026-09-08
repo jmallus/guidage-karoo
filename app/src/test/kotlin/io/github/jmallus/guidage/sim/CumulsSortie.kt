@@ -1,5 +1,7 @@
 package io.github.jmallus.guidage.sim
 
+import io.github.jmallus.guidage.core.BatteryDrain
+import io.github.jmallus.guidage.core.DriftTracker
 import io.github.jmallus.guidage.core.RideLevel
 import io.github.jmallus.guidage.core.WPrime
 import io.github.jmallus.guidage.core.WPrimeTracker
@@ -49,6 +51,20 @@ class CumulsSortie {
      */
     private val reserve = WPrimeTracker()
 
+    /**
+     * La dérive et la décharge, elles aussi tenues par le code de l'appareil.
+     *
+     * La dérive a besoin d'un cœur qui monte à effort constant, ce que la sortie fictive
+     * produit toute seule : sa fréquence rejoint sa cible avec retard, et les côtes de la
+     * seconde moitié la trouvent plus haute qu'au départ.
+     *
+     * La décharge, elle, n'a rien à quoi se raccrocher — le banc d'essai n'a pas de batterie.
+     * On lui en invente une qui se vide à [DECHARGE_PAR_HEURE], ce qui est l'ordre de grandeur
+     * d'un Karoo écran allumé, carte affichée.
+     */
+    private val derive = DriftTracker()
+    private val batterie = BatteryDrain()
+
     fun reset() {
         jusqua = 0.0
         secondesCumulees = 0.0
@@ -61,6 +77,8 @@ class CumulsSortie {
         horloge.reset()
         horlogeMillis = 0L
         reserve.reset()
+        derive.reset()
+        batterie.reset()
     }
 
     fun ajouter(pas: Double, instant: InstantSortie, zonesCardiaques: List<ZoneRange>) {
@@ -83,6 +101,11 @@ class CumulsSortie {
         horlogeMillis += (pas * 1_000).toLong()
         horloge.observe(horlogeMillis, Zones.zoneOf(instant.cardiaque, zonesCardiaques))
         reserve.observe(horlogeMillis, instant.puissance, FTP_SIMULEE, RESERVE_SIMULEE)
+        derive.observe(horlogeMillis, instant.puissance, instant.cardiaque)
+        batterie.observe(
+            horlogeMillis,
+            CHARGE_AU_DEPART - DECHARGE_PAR_HEURE * horlogeMillis / 3_600_000.0,
+        )
     }
 
     fun niveau(elevationGain: Double, elevationRemaining: Double): RideLevel {
@@ -107,8 +130,26 @@ class CumulsSortie {
             wPrimeBalance = reserve.balance,
             wPrimeCapacity = reserve.size,
             criticalPower = FTP_SIMULEE,
+            // Le temps total est celui de la sortie ; les arrêts sont inventés, la sortie
+            // fictive roulant sans jamais s'arrêter.
+            totalSeconds = secondesCumulees + arretsCumules(),
+            movingSeconds = secondesCumulees,
+            drift = derive.drift(),
+            batteryPercent = batterie.percent,
+            batteryPerHour = batterie.perHour,
         )
     }
+
+    /**
+     * Les arrêts de la sortie fictive.
+     *
+     * Le coureur simulé ne s'arrête jamais : il faut donc lui inventer ses haltes, faute de
+     * quoi la case des arrêts montrerait une barre pleine et n'apprendrait rien. Une halte de
+     * [HALTE_SECONDES] à chaque ravitaillement franchi, ce qui est le rythme d'une longue
+     * sortie — on remplit les bidons, on mange, on repart.
+     */
+    private fun arretsCumules(): Double =
+        (secondesCumulees / SECONDES_ENTRE_HALTES).toInt() * HALTE_SECONDES
 
     private companion object {
         /** La fenêtre de lissage de la puissance normalisée (s). */
@@ -122,5 +163,13 @@ class CumulsSortie {
 
         /** La réserve anaérobie du coureur fictif (J) : soixante-dix kilos à la règle du pouce. */
         val RESERVE_SIMULEE = WPrime.defaultCapacity(70.0)
+
+        /** La batterie du Karoo fictif : sa charge au départ (%) et ce qu'elle perd par heure. */
+        const val CHARGE_AU_DEPART = 92.0
+        const val DECHARGE_PAR_HEURE = 11.0
+
+        /** Le rythme des haltes de la sortie fictive, et ce qu'elles durent (s). */
+        const val SECONDES_ENTRE_HALTES = 5_400.0
+        const val HALTE_SECONDES = 420.0
     }
 }

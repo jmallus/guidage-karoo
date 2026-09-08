@@ -355,6 +355,13 @@ class SimulateurTest {
                 ecrire(pageDeBilan(simulateur, secondes), File(dossier, "champ-bilan.png"))
             }
         }
+
+        // Une seconde planche à la fin de la sortie. Trois cases n'existent pas au quart :
+        // la dérive se tait sous une heure d'effort, les arrêts n'ont pas encore eu lieu, et
+        // la batterie n'a pas assez descendu pour qu'on lui connaisse une pente. Une planche
+        // qui ne montre que leurs messages d'attente ne les juge pas.
+        val fin = simulateur.sortie.duree * PART_CAPTURE_FIN
+        ecrire(pageDeBilan(simulateur, fin), File(dossier, "champ-bilan-fin.png"))
     }
 
     /**
@@ -590,6 +597,17 @@ class SimulateurTest {
          * couloir de virages en contient. Tous les champs ont quelque chose à montrer.
          */
         const val PART_CAPTURE = 0.25
+
+        /**
+         * Le second moment que les cases de bilan montrent : la fin de la sortie.
+         *
+         * Un bilan n'existe pas au départ. Trois des dix cases demandent du temps avant de
+         * dire quoi que ce soit — une heure d'effort pour la dérive, une halte pour les
+         * arrêts, quelques points de charge pour la batterie — et c'est précisément ce qui
+         * fait leur intérêt. Les juger au quart de la sortie reviendrait à juger un compteur
+         * kilométrique sur le parking.
+         */
+        const val PART_CAPTURE_FIN = 0.98
 
         /**
          * Le fond que l'appareil pose derrière un champ.

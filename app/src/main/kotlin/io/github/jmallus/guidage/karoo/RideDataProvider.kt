@@ -1,6 +1,8 @@
 package io.github.jmallus.guidage.karoo
 
+import io.github.jmallus.guidage.core.BatteryDrain
 import io.github.jmallus.guidage.core.ClimbProgress
+import io.github.jmallus.guidage.core.DriftTracker
 import io.github.jmallus.guidage.core.Drivetrain
 import io.github.jmallus.guidage.core.LearnedPace
 import io.github.jmallus.guidage.core.PaceLearner
@@ -132,6 +134,10 @@ class RideDataProvider(
     /** La réserve anaérobie, pour la même raison : elle se vide et se remplit sur la sortie. */
     private val wPrime = WPrimeTracker()
 
+    /** La dérive aérobie et la décharge de l'appareil, deux cumuls de plus que rien ne publie. */
+    private val drift = DriftTracker()
+    private val battery = BatteryDrain()
+
     val data: StateFlow<RideData> = combine(
         metrics(),
         profile(),
@@ -152,6 +158,10 @@ class RideDataProvider(
             capacityJoules = reglages.capacityJoules?.toDouble()
                 ?: profile.weightKilograms?.let { WPrime.defaultCapacity(it) },
         )
+        // La puissance est prise lissée et le cœur brut : le cœur l'est déjà par nature, il
+        // met une demi-minute à répondre, là où la puissance saute à chaque coup de pédale.
+        drift.observe(clock(), powerWatts = values[2], heartRate = values[3])
+        battery.observe(clock(), summary[8])
         RideData(
             speed = values[0],
             averageSpeed = values[1],
@@ -185,6 +195,11 @@ class RideDataProvider(
                 wPrimeBalance = wPrime.balance,
                 wPrimeCapacity = wPrime.size,
                 criticalPower = (reglages.criticalPower ?: profile.ftp)?.toDouble(),
+                totalSeconds = summary[9],
+                movingSeconds = summary[10],
+                drift = drift.drift(),
+                batteryPercent = battery.percent,
+                batteryPerHour = battery.perHour,
             ),
         )
     }
@@ -226,6 +241,12 @@ class RideDataProvider(
             value(DataType.Type.ELEVATION_REMAINING),
             value(DataType.Type.INTENSITY_FACTOR),
             value(DataType.Type.TRAINING_STRESS_SCORE),
+            value(DataType.Type.BATTERY_PERCENT),
+            // Les noms du Karoo sont trompeurs et se lisent à l'envers de l'intuition :
+            // « RIDE_TIME » est le temps total, pauses comprises, et « ELAPSED_TIME » celui
+            // passé à enregistrer. Les échanger ferait un temps d'arrêt négatif.
+            value(DataType.Type.RIDE_TIME),
+            value(DataType.Type.ELAPSED_TIME),
         ),
     ) { it }
 
@@ -311,6 +332,8 @@ class RideDataProvider(
                 // zone repart de zéro en même temps que l'allure apprise.
                 zoneClock.reset()
                 wPrime.reset()
+                drift.reset()
+                battery.reset()
                 lastObservationMillis = null
             }
             lastDistance = distance

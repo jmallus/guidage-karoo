@@ -206,6 +206,29 @@
     <string name="field_level_reserve_cp">CP %1$d W</string>
     <string name="field_level_no_reserve">Pas de puissance critique connue</string>
 
+    <string name="field_level_drift_name">Bilan · dérive</string>
+    <string name="field_level_drift_description">Ce que le même effort coûte au cœur à la fin de la sortie, par rapport au début : le rapport puissance / fréquence cardiaque de la seconde moitié comparé à celui de la première. S\'il faut plus de battements pour les mêmes watts, c\'est que ça se paie. Aucun compteur ne l\'affiche en roulant — on le découvre après coup, quand il est trop tard pour en tenir compte. Le calcul est celui de l\'extension, sur le temps d\'effort seul. Demande un capteur de puissance et un cardiofréquencemètre, et se tait sous une heure d\'effort. Tient dans une case ordinaire.</string>
+    <string name="field_level_drift_label">DÉRIVE</string>
+    <string name="field_level_drift_over">SUR</string>
+    <string name="field_level_drift_solid">SOLIDE</string>
+    <string name="field_level_drift_drifting">ÇA DÉRIVE</string>
+    <string name="field_level_drift_cooked">CUIT</string>
+    <string name="field_level_no_drift">Moins d\'une heure d\'effort</string>
+
+    <string name="field_level_stops_name">Bilan · arrêts</string>
+    <string name="field_level_stops_description">Le temps passé en selle, celui qu\'on a laissé aux arrêts à côté, et la barre qui dit la part. Le Karoo publie les deux durées, jamais leur différence — et c\'est la différence qui décide d\'un brevet. Personne ne la regarde avant l\'arrivée, où il est trop tard. Tient dans une case ordinaire.</string>
+    <string name="field_level_stops_label">EN SELLE</string>
+    <string name="field_level_stops_stopped">ARRÊTÉ</string>
+    <string name="field_level_no_stops">Sortie non démarrée</string>
+
+    <string name="field_level_battery_name">Bilan · batterie</string>
+    <string name="field_level_battery_description">La charge de l\'appareil, et ce qu\'il en restera à l\'arrivée compte tenu de la vitesse à laquelle elle descend. Le niveau seul ne répond à rien : quarante pour cent, c\'est confortable à une heure de l\'arrivée et perdu d\'avance à six. L\'aplat vert, jaune ou rouge porte le verdict. La projection demande un itinéraire chargé ; sans lui, la case montre la charge et sa pente. Tient dans une case ordinaire.</string>
+    <string name="field_level_battery_label">BATTERIE</string>
+    <string name="field_level_battery_at_arrival">À L\'ARRIVÉE</string>
+    <string name="field_level_battery_percent">%1$d %%</string>
+    <string name="field_level_battery_rate">−%1$d %% PAR HEURE</string>
+    <string name="field_level_no_battery">Charge inconnue</string>
+
     <string name="settings_section_reserve">Réserve anaérobie</string>
     <string name="settings_wprime_auto">Déduire de la FTP et du poids du Karoo</string>
     <string name="settings_wprime_auto_hint">Champ « Bilan · réserve W′ ». Décoché, les deux valeurs ci-dessous s\'appliquent.</string>

@@ -243,6 +243,9 @@ private fun fieldName(typeId: String): String = when (typeId) {
     Bilan.INTENSITE.typeId -> stringResource(R.string.field_level_intensity_name)
     Bilan.ZONES.typeId -> stringResource(R.string.field_level_zones_name)
     Bilan.RESERVE.typeId -> stringResource(R.string.field_level_reserve_name)
+    Bilan.DERIVE.typeId -> stringResource(R.string.field_level_drift_name)
+    Bilan.ARRETS.typeId -> stringResource(R.string.field_level_stops_name)
+    Bilan.BATTERIE.typeId -> stringResource(R.string.field_level_battery_name)
     else -> typeId
 }
 
