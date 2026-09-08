@@ -285,8 +285,8 @@ class Simulateur(
         val distance = sortie.a(secondes).distance
         val profil = PreviewData.route.profile
         return cumuls.niveau(
-            elevationGain = profil.ascentBetween(0.0, distance),
-            elevationRemaining = profil.ascentBetween(distance, profil.totalDistance),
+            elevationGain = profil?.ascentBetween(0.0, distance) ?: 0.0,
+            elevationRemaining = profil?.let { it.ascentBetween(distance, it.totalDistance) } ?: 0.0,
         )
     }
 
