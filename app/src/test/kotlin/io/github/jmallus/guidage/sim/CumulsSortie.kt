@@ -144,9 +144,12 @@ class CumulsSortie {
      * Les arrêts de la sortie fictive.
      *
      * Le coureur simulé ne s'arrête jamais : il faut donc lui inventer ses haltes, faute de
-     * quoi la case des arrêts montrerait une barre pleine et n'apprendrait rien. Une halte de
-     * [HALTE_SECONDES] à chaque ravitaillement franchi, ce qui est le rythme d'une longue
-     * sortie — on remplit les bidons, on mange, on repart.
+     * quoi la case des arrêts montrerait une barre pleine et n'apprendrait rien.
+     *
+     * Une halte toutes les quarante minutes, ce qui est le rythme d'une flânerie et non celui
+     * d'un brevet. Le rythme réel — une halte par heure et demie — ne se déclencherait jamais :
+     * la sortie fictive ne dure qu'un peu plus d'une heure, et la case resterait à zéro d'un
+     * bout à l'autre. C'est le parcours d'aperçu qui est court, pas le coureur qui est pressé.
      */
     private fun arretsCumules(): Double =
         (secondesCumulees / SECONDES_ENTRE_HALTES).toInt() * HALTE_SECONDES
@@ -169,7 +172,7 @@ class CumulsSortie {
         const val DECHARGE_PAR_HEURE = 11.0
 
         /** Le rythme des haltes de la sortie fictive, et ce qu'elles durent (s). */
-        const val SECONDES_ENTRE_HALTES = 5_400.0
+        const val SECONDES_ENTRE_HALTES = 2_400.0
         const val HALTE_SECONDES = 420.0
     }
 }
