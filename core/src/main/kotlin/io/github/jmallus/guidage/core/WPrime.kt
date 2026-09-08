@@ -115,14 +115,17 @@ class WPrimeTracker {
         }
         // Un changement de réglage en cours de sortie repart d'une réserve pleine : la
         // proportion tenue jusque-là ne veut plus rien dire une fois l'échelle changée, et
-        // la transposer donnerait un chiffre faux d'apparence exacte.
+        // la transposer donnerait un chiffre faux d'apparence exacte. Le pas courant est
+        // perdu avec elle — c'est une frontière, comme un départ.
         if (taille != capacity) {
             capacity = taille
             balance = taille
+            lastMillis = nowMillis
+            return false
         }
         val precedent = lastMillis
         lastMillis = nowMillis
-        val courant = balance ?: capacity.also { balance = it }
+        val courant = balance ?: return false
         if (precedent == null) return false
 
         val pas = (nowMillis - precedent) / 1_000.0

@@ -34,10 +34,24 @@ class WPrimeTest {
         assertTrue("$presqueVide contre $presquePleine", presqueVide > presquePleine * 5)
     }
 
+    /** Le vide, lui, s'atteint : un effort assez long au-dessus du seuil épuise la réserve. */
     @Test
-    fun `la reserve ne depasse ni le plein ni le vide`() {
-        assertEquals(20_000.0, WPrime.step(19_990.0, 20_000.0, 250.0, 0.0, 60.0), 1e-9)
+    fun `la reserve ne descend jamais sous zero`() {
         assertEquals(0.0, WPrime.step(500.0, 20_000.0, 250.0, 900.0, 30.0), 1e-9)
+    }
+
+    /**
+     * La recharge est proportionnelle au vide qui reste : elle approche le plein sans
+     * l'atteindre. Le plafond n'est donc pas ce qui la retient — c'est la formule elle-même,
+     * et c'est ce qui rend le modèle plausible plutôt qu'une jauge qui se remplirait d'un coup.
+     */
+    @Test
+    fun `la recharge approche le plein sans le depasser`() {
+        var reserve = 19_990.0
+        repeat(100) { reserve = WPrime.step(reserve, 20_000.0, 250.0, 0.0, 10.0) }
+
+        assertTrue("$reserve dépasse le plein", reserve <= 20_000.0)
+        assertTrue("$reserve n'a pas approché le plein", reserve > 19_999.0)
     }
 
     @Test
@@ -93,15 +107,22 @@ class WPrimeTest {
         assertEquals(20_000.0, suiveur.balance!!, 1e-9)
     }
 
-    /** Changer l'échelle en roulant repart d'une réserve pleine, faute de mieux. */
+    /**
+     * Changer l'échelle en roulant repart d'une réserve pleine, faute de mieux — et le pas
+     * courant est perdu avec elle, comme au départ d'une sortie.
+     */
     @Test
     fun `un changement de reserve remet le plein`() {
         val suiveur = WPrimeTracker()
         suiveur.observe(0L, 400.0, 250.0, 20_000.0)
         suiveur.observe(5_000L, 400.0, 250.0, 20_000.0)
 
-        suiveur.observe(10_000L, 400.0, 250.0, 24_000.0)
+        assertFalse(suiveur.observe(10_000L, 400.0, 250.0, 24_000.0))
         assertEquals(24_000.0, suiveur.balance!!, 1e-9)
+
+        // Le pas suivant, lui, s'impute bien à la nouvelle échelle.
+        assertTrue(suiveur.observe(15_000L, 400.0, 250.0, 24_000.0))
+        assertEquals(23_250.0, suiveur.balance!!, 1e-9)
     }
 
     @Test
