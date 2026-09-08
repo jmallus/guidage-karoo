@@ -32,10 +32,10 @@ class DecorSimule(private val origine: GeoPoint, trace: List<GeoPoint> = emptyLi
     /**
      * La voie que l'itinéraire emprunte, découpée en portions de classes différentes.
      *
-     * Sans elle, le décor ne rencontre le tracé que par hasard, aux croisements : le champ
-     * « Revêtement » apparie alors une poignée d'échantillons sur cent et conclut « aucune
-     * voie reconnue », ce qui est vrai du décor mais faux de tout parcours réel — un
-     * itinéraire suit toujours quelque chose. La voie est donc posée **sur** le tracé, et le
+     * Sans elle, le décor ne rencontre le tracé que par hasard, aux croisements :
+     * l'appariement du revêtement retrouve alors une poignée d'échantillons sur cent et
+     * conclut qu'aucune voie n'est reconnue, ce qui est vrai du décor mais faux de tout
+     * parcours réel — un itinéraire suit toujours quelque chose. La voie est donc posée **sur** le tracé, et le
      * découpage rejoue une sortie de gravel ordinaire : du bitume, un long chemin, une voie
      * verte, du bitume encore.
      */
@@ -79,7 +79,7 @@ class DecorSimule(private val origine: GeoPoint, trace: List<GeoPoint> = emptyLi
         }
 
         // La voie suivie en dernier : à égale distance, c'est elle qui doit l'emporter, et
-        // l'appariement du champ « Revêtement » retient le plus proche à distance égale.
+        // l'appariement du revêtement retient le plus proche à distance égale.
         voieSuivie.forEach { portion ->
             val dedans = portion.ouest <= plan.x + rayonMetres && portion.est >= plan.x - rayonMetres &&
                 portion.sud <= plan.y + rayonMetres && portion.nord >= plan.y - rayonMetres

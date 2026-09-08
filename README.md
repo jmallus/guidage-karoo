@@ -1,10 +1,9 @@
 # Champs de données et guidage - Hammerhead Karoo
 
 Extension **Karoo 3** qui enrichit le **guidage d'itinéraire** : elle lit
-l'itinéraire chargé dans le Karoo et en tire **onze champs de données** — un tableau de bord
+l'itinéraire chargé dans le Karoo et en tire **sept champs de données** — un tableau de bord
 plein écran avec minicarte sur fond de carte embarqué, le profil à venir, la prochaine côte,
-le coût du reste en kilojoules, les virages d'une descente, le revêtement, l'espacement des
-ravitaillements — et des annonces à l'écran.
+l'espacement des ravitaillements, le coût du reste en kilojoules — et des annonces à l'écran.
 
 Tout est calculé **sur l'appareil**, à partir des données que Karoo OS fournit déjà :
 aucune connexion réseau, aucun compte, rien à synchroniser.
@@ -24,34 +23,27 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 
 | Champ | Type | Contenu |
 | --- | --- | --- |
-| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, le verdict « Avant la nuit » sur toute la largeur avec sa frise — heure d'arrivée **avec sa marge**, coucher, nuit — et le profil **à venir** en bandeau. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
+| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, le verdict du soir sur toute la largeur avec sa frise — heure d'arrivée **avec sa marge**, coucher, nuit — et le profil **à venir** en bandeau. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Rempli en couleur selon la pente, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
-| **Budget d'effort** | graphique | Ce que coûte le reste, en kilojoules, découpé par poste : le roulant, puis chaque côte. Déduit du temps estimé de chaque poste et de la puissance tenue dans ce régime. La barre porte aussi ce qui est **déjà payé**, que le Karoo intègre de son côté, et la ligne sous elle rapproche la part d'effort de la part de distance. Demande un capteur de puissance. |
-| **Virages** | graphique, **pleine page** | Les virages des trois prochains kilomètres sur la route redressée : une barre par virage, longue et rouge selon son rayon. Sur une page, la route se dresse à la verticale — la distance monte, le coureur est en bas. |
 | **Suivant la sortie** | graphique | Un champ dont la moitié basse change avec ce que fait la sortie — montée, descente, ravitaillement, roulage — la moitié haute restant fixe. |
-| **Revêtement** | graphique, **pleine page** | Route, chemin ou voie verte sur les cinq prochains kilomètres, en posant le tracé sur le fond de carte embarqué, avec la légende des classes rencontrées. |
 | **Réserve** | graphique, **pleine page** | Après quel point de ravitaillement il n'y a plus rien. La ligne porte l'itinéraire entier : points passés en gris, prochain en blanc, dernier utile cerclé de jaune, et à sa droite un segment rouge qui ne porte rien. |
 | **Autonomie** | graphique, **pleine page** | Les deux réserves qui s'épuisent sur une seule page : la réserve d'eau en haut, le budget d'effort en bas. On ne s'arrête qu'une fois, et c'est en voyant les deux ensemble qu'on décide de s'arrêter à ce point-ci ou de tenir jusqu'au suivant. Demande en outre un capteur de puissance pour sa moitié basse. |
-| **Avant la nuit** | graphique, **pleine page** | Arriverez-vous avant le coucher du soleil ? Un mot — **OUI**, **JUSTE**, **NON** — jugé sur la fourchette de l'heure d'arrivée et non sur sa seule moyenne, puis la frise du soir : l'arrivée avec son incertitude, le coucher, la nuit civile. Quand le pire cas ne passe pas, à quelle distance de l'arrivée la nuit vous prendrait. Le coucher est calculé sur l'appareil, depuis votre position, sans réseau. |
 
 Tous s'adaptent à la **taille** que le profil de page leur alloue ; « Prochaine côte » suit en
-outre l'**alignement** configuré. Les dix champs graphiques affichent un aperçu réaliste dans
+outre l'**alignement** configuré. Les six champs graphiques affichent un aperçu réaliste dans
 l'écran d'édition des pages — « Prochain point d'intérêt » n'en a pas besoin, c'est le Karoo
 qui le dessine.
 
 ### À quoi ils ressemblent
 
-Les cinq pleines pages, au même instant de la sortie simulée :
+Les deux pleines pages, au même instant de la sortie simulée :
 
 <table>
   <tr>
     <td align="center"><img src="docs/captures/champ-autonomie.png" width="180" alt="Autonomie"><br><b>Autonomie</b></td>
-    <td align="center"><img src="docs/captures/champ-nuit.png" width="180" alt="Avant la nuit"><br><b>Avant la nuit</b></td>
     <td align="center"><img src="docs/captures/champ-reserve.png" width="180" alt="Réserve"><br><b>Réserve</b></td>
-    <td align="center"><img src="docs/captures/champ-virages.png" width="180" alt="Virages"><br><b>Virages</b></td>
-    <td align="center"><img src="docs/captures/champ-revetement.png" width="180" alt="Revêtement"><br><b>Revêtement</b></td>
   </tr>
 </table>
 
@@ -63,13 +55,12 @@ Les champs de bande, qui se posent sur un rang d'une page ordinaire :
     <td align="center"><img src="docs/captures/champ-contexte.png" width="300" alt="Suivant la sortie"><br><b>Suivant la sortie</b></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/captures/champ-cote.png" width="300" alt="Prochaine côte"><br><b>Prochaine côte</b></td>
-    <td align="center"><img src="docs/captures/champ-effort.png" width="300" alt="Budget d'effort"><br><b>Budget d'effort</b></td>
+    <td align="center" colspan="2"><img src="docs/captures/champ-cote.png" width="300" alt="Prochaine côte"><br><b>Prochaine côte</b></td>
   </tr>
 </table>
 
 Et le tableau de bord à ses trois portées de carte, puis avec le profil à la place de la
-carte, puis hors itinéraire — le tracé passe au rouge :
+carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge :
 
 <table>
   <tr>
@@ -81,20 +72,17 @@ carte, puis hors itinéraire — le tracé passe au rouge :
   </tr>
 </table>
 
-**Huit d'entre eux publient aussi une valeur numérique**, réutilisable dans n'importe quel
+**Quatre d'entre eux publient aussi une valeur numérique**, réutilisable dans n'importe quel
 champ ou enregistrée dans le fichier de la sortie : la distance au pied ou au sommet
-(« Prochaine côte »), au prochain point (« Prochain point d'intérêt »), au virage le plus
-serré devant (« Virages »), au prochain changement de sol (« Revêtement ») ; la longueur de
-la prochaine traversée sans ravitaillement (« Réserve ») ; les kilojoules restants
-(« Budget d'effort », « Autonomie ») ; et l'avance sur le coucher du soleil, en minutes, négative
-quand on arrive après (« Avant la nuit »).
+(« Prochaine côte »), au prochain point (« Prochain point d'intérêt ») ; la longueur de la
+prochaine traversée sans ravitaillement (« Réserve ») ; et les kilojoules restants
+(« Autonomie »).
 
-Cinq champs sont marqués **pleine page**. Ils fonctionnent posés sur un demi-rang, mais ne
-portent pas une valeur : une répartition — les virages d'une descente, les revêtements d'une
-portion, l'espacement des ravitaillements — ou un verdict et ce qui le justifie. Réduits à une
-bande, il ne leur reste que leurs deux chiffres, ou leur mot, c'est-à-dire ce que les champs
-numériques disent déjà. Leur mise en page
-change au-delà d'un rapport hauteur/largeur d'un dixième au-dessus du carré.
+Deux champs sont marqués **pleine page**. Ils fonctionnent posés sur un demi-rang, mais ne
+portent pas une valeur : une répartition — l'espacement des ravitaillements, les deux réserves
+qui s'épuisent. Réduits à une bande, il ne leur reste que leurs deux chiffres, c'est-à-dire ce
+que les champs numériques disent déjà. Leur mise en page change au-delà d'un rapport
+hauteur/largeur d'un dixième au-dessus du carré.
 
 ### L'échelle du profil
 
@@ -136,7 +124,7 @@ la régularité observée de chacune des deux allures et sur ce qui reste à fai
 resserre en approchant. Tant que l'allure n'est pas assez observée, le champ affiche l'heure du
 Karoo sans marge : mieux vaut la sienne qu'une heure tirée de trente secondes de roulage.
 
-Sur le tableau de bord, elle s'écrit dans la bande « Avant la nuit », au pied de l'écran, sur
+Sur le tableau de bord, elle s'écrit dans la bande du soir, au pied de l'écran, sur
 une frise qui la place face au coucher du soleil : c'est à lui qu'on la compare de tête en fin
 de journée, et le mot au-dessus — **OUI**, **JUSTE**, **NON** — fait la comparaison à votre
 place, sur la fourchette et non sur la seule moyenne. Sans position ni coucher, la bande le
@@ -258,6 +246,6 @@ Le reste des emprunts — couleurs de zones, contraste APCA, icônes — est dé
 - La mise à jour depuis le Karoo suppose une Release publiée (un tag `vX.Y.Z`) : les
   constructions intermédiaires, publiées sous la Release préliminaire `latest`, restent
   invisibles pour l'appareil. C'est voulu.
-- Le « Budget d'effort » et la moitié basse d'« Autonomie » demandent un **capteur de
-  puissance** et quelques minutes de roulage. Sans eux, rien n'est annoncé — ce qui vaut
-  mieux qu'un chiffre inventé. « Revêtement » demande de son côté le fond de carte embarqué.
+- La moitié basse d'« Autonomie » demande un **capteur de puissance** et quelques minutes de
+  roulage. Sans eux, rien n'est annoncé — ce qui vaut mieux qu'un chiffre inventé. Les rayures
+  de chemin de la minicarte demandent de leur côté le fond de carte embarqué.

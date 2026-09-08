@@ -15,6 +15,25 @@ data class ContextStat(val label: String, val value: String)
 /** Le bandeau coloré qui annonce ce qui presse. */
 data class ContextBanner(val title: String, val value: String, val color: Int)
 
+/**
+ * Un virage prêt à dessiner.
+ *
+ * Il vivait dans le champ « Virages », en pleine page, retiré depuis. Ce champ répondait à
+ * la même question que la moitié basse de celui-ci quand la sortie descend — ce qui arrive
+ * et à quel point c'est serré — mais sur une page entière, là où ce rang-ci suffit.
+ */
+data class BendMark(
+    /** Position sur la bande, 0 au coureur et 1 au bout de la portée. */
+    val position: Float,
+    /** Longueur de la barre, 0 à 1 : c'est la sévérité. */
+    val extent: Float,
+    /** Sens : -1 à gauche, +1 à droite. */
+    val direction: Int,
+    val color: Int,
+    /** Le plus serré porte un cerne : c'est celui dont la distance est écrite en bas. */
+    val highlighted: Boolean = false,
+)
+
 /** Données prêtes à dessiner pour le champ contextuel. */
 data class ContextFieldModel(
     /** La moitié haute, qui ne bouge jamais. */

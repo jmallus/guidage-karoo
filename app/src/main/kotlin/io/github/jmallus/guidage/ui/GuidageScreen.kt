@@ -27,17 +27,13 @@ import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.extension.AutonomyDataType
-import io.github.jmallus.guidage.extension.BendDataType
 import io.github.jmallus.guidage.extension.ClimbDataType
 import io.github.jmallus.guidage.extension.ContextDataType
 import io.github.jmallus.guidage.extension.DashboardDataType
-import io.github.jmallus.guidage.extension.EffortDataType
 import io.github.jmallus.guidage.extension.FieldReport
-import io.github.jmallus.guidage.extension.NightDataType
 import io.github.jmallus.guidage.extension.PoiDataType
 import io.github.jmallus.guidage.extension.ProfileDataType
 import io.github.jmallus.guidage.extension.ResupplyDataType
-import io.github.jmallus.guidage.extension.SurfaceDataType
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
 import kotlin.math.roundToInt
@@ -233,13 +229,9 @@ private fun fieldName(typeId: String): String = when (typeId) {
     DashboardDataType.TYPE_ID -> stringResource(R.string.field_dashboard_name)
     ProfileDataType.TYPE_ID -> stringResource(R.string.field_profile_name)
     ClimbDataType.TYPE_ID -> stringResource(R.string.field_climb_name)
-    EffortDataType.TYPE_ID -> stringResource(R.string.field_effort_name)
-    BendDataType.TYPE_ID -> stringResource(R.string.field_bends_name)
     ContextDataType.TYPE_ID -> stringResource(R.string.field_context_name)
-    SurfaceDataType.TYPE_ID -> stringResource(R.string.field_surface_name)
     ResupplyDataType.TYPE_ID -> stringResource(R.string.field_resupply_name)
     AutonomyDataType.TYPE_ID -> stringResource(R.string.field_autonomy_name)
-    NightDataType.TYPE_ID -> stringResource(R.string.field_night_name)
     PoiDataType.TYPE_ID -> stringResource(R.string.field_poi_name)
     else -> typeId
 }
