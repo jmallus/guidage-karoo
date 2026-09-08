@@ -226,7 +226,7 @@ jobs:
               --arg version "$version" \
               --argjson code "$(( 1 + GITHUB_RUN_NUMBER ))" \
               --arg dev "jmallus" \
-              --arg desc "Guidage d'itinéraire hors ligne pour Karoo : profil à venir, prochaine côte, ruban de courbure, revêtement, réserve d'eau et budget d'effort. Fond de carte embarqué, aucun accès réseau." \
+              --arg desc "Guidage d'itinéraire hors ligne pour Karoo : tableau de bord plein écran, profil à venir à échelle comprimée, prochaine côte, réserve d'eau et budget d'effort, et dix cases de bilan de sortie. Fond de carte embarqué, aucun accès réseau." \
               --arg notes "$changements" \
               '{label: $label, packageName: $paquet, latestApkUrl: $apk,
                 latestVersion: $version, latestVersionCode: $code,
