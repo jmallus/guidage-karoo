@@ -223,8 +223,9 @@ class SortieSimulee(
         var energie = 0.0
         while (true) {
             val pente = penteA(distance)
-            val vitesse = vitesseA(pente)
-            val puissance = puissanceA(pente, vitesse)
+            val coup = relance(distance, pente)
+            val vitesse = vitesseA(pente, coup)
+            val puissance = puissanceA(pente, vitesse, coup)
             etapes += Etape(distance, secondes, vitesse, pente, puissance, cardiaque, energie)
             if (distance >= distanceTotale) break
 
@@ -273,7 +274,7 @@ class SortieSimulee(
      * qui sont précisément ce qu'on vient juger — resteraient de la même couleur du départ à
      * l'arrivée. Le simulateur ne montrerait qu'une moitié de l'écran.
      */
-    private fun puissanceVoulue(pente: Double): Double {
+    private fun puissanceVoulue(pente: Double, relance: Double = 1.0): Double {
         val facteur = if (pente > 0) {
             val part = (pente / PENTE_PLEIN_EFFORT).coerceAtMost(1.0)
             EFFORT_PLAT + (EFFORT_COTE - EFFORT_PLAT) * part
@@ -281,7 +282,28 @@ class SortieSimulee(
             val part = (pente / PENTE_ROUE_LIBRE).coerceIn(0.0, 1.0)
             EFFORT_PLAT + (EFFORT_DESCENTE - EFFORT_PLAT) * part
         }
-        return profil.puissance * facteur
+        return profil.puissance * facteur * relance
+    }
+
+    /**
+     * Les coups de rein, que le profil ne montre pas.
+     *
+     * Le coureur simulé tenait une puissance qui ne dépendait que de la pente : sur un
+     * parcours lissé aux soixante mètres, cela donnait une sortie d'une régularité que
+     * personne n'a jamais roulée — un indice de variabilité de 1,02, quand une sortie
+     * vallonnée réelle se tient entre 1,05 et 1,15. Deux cases de bilan en dépendaient
+     * directement, et n'avaient donc rien à montrer : celle de la puissance annonçait « lisse »
+     * du départ à l'arrivée, et la réserve anaérobie restait pleine faute d'un seul effort
+     * au-dessus du seuil.
+     *
+     * Le modèle est le plus simple qui soit honnête : dans les pentes, on se met en danseuse
+     * par intermittence. Un quart du chemin en relance, trois quarts assis. Rien sur le plat
+     * ni en descente — c'est en côte que le coureur du dimanche fait ses seuls efforts durs.
+     */
+    private fun relance(distance: Double, pente: Double): Double {
+        if (pente < PENTE_RELANCE) return 1.0
+        val phase = (distance % PERIODE_RELANCE) / PERIODE_RELANCE
+        return if (phase < PART_RELANCE) RELANCE else 1.0
     }
 
     /**
@@ -291,9 +313,9 @@ class SortieSimulee(
      * résistances : pesanteur, roulement, air. C'est le modèle habituel, et il suffit
      * largement ici — l'inertie et le vent sont ignorés, l'affichage ne les montre pas.
      */
-    private fun vitesseA(pente: Double): Double {
+    private fun vitesseA(pente: Double, relance: Double): Double {
         val angle = atan(pente / 100.0)
-        val voulue = puissanceVoulue(pente)
+        val voulue = puissanceVoulue(pente, relance)
         var bas = 0.1
         var haut = 30.0
         repeat(40) {
@@ -317,9 +339,9 @@ class SortieSimulee(
      * le freinage et non par l'effort, et la puissance retombe alors à ce que la résistance
      * demande — voire à rien du tout, roue libre.
      */
-    private fun puissanceA(pente: Double, vitesse: Double): Double {
+    private fun puissanceA(pente: Double, vitesse: Double, relance: Double): Double {
         val demande = resistance(atan(pente / 100.0), vitesse)
-        return demande.coerceIn(0.0, puissanceVoulue(pente))
+        return demande.coerceIn(0.0, puissanceVoulue(pente, relance))
     }
 
     /**
@@ -398,6 +420,14 @@ class SortieSimulee(
         /** Pente à laquelle le coureur donne tout, et celle à partir de laquelle il se relève (%). */
         const val PENTE_PLEIN_EFFORT = 8.0
         const val PENTE_ROUE_LIBRE = -4.0
+
+        /** Pente à partir de laquelle on se met en danseuse (%), et le surcroît que cela coûte. */
+        const val PENTE_RELANCE = 4.0
+        const val RELANCE = 1.35
+
+        /** Période des relances (m), et la part du chemin passée debout. */
+        const val PERIODE_RELANCE = 400.0
+        const val PART_RELANCE = 0.25
 
         const val PESANTEUR = 9.81
         const val DENSITE_AIR = 1.225
