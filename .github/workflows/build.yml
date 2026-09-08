@@ -199,10 +199,14 @@ jobs:
             [ -n "${changements:-}" ] || changements="Première version publiée."
 
             # Les captures du simulateur illustrent la fiche sur l'appareil. Trois, nommées
-            # une à une : le tableau de bord, l'autonomie, les virages. Prendre tous les
-            # champs faisait une planche-contact où le premier coup d'œil ne retenait rien —
-            # ces trois-là disent ce que l'extension apporte, et le tableau de bord d'abord,
-            # puisque c'est par lui qu'on commence.
+            # une à une : le tableau de bord, l'autonomie, le bilan de sortie. Prendre tous
+            # les champs faisait une planche-contact où le premier coup d'œil ne retenait
+            # rien — ces trois-là disent ce que l'extension apporte, et le tableau de bord
+            # d'abord, puisque c'est par lui qu'on commence.
+            #
+            # Le bilan est pris à l'arrivée et non au quart de la sortie : c'est le seul des
+            # deux instants où les dix cases ont quelque chose à montrer, la dérive se taisant
+            # sous une heure d'effort et les haltes n'ayant pas encore eu lieu.
             #
             # Les URL sont figées sur le commit du tag, jamais sur main : une capture
             # renommée plus tard laisserait sinon une image morte dans une Release déjà
@@ -210,7 +214,7 @@ jobs:
             captures=$(
               for f in docs/captures/carte-300m.png \
                        docs/captures/champ-autonomie.png \
-                       docs/captures/champ-contexte.png; do
+                       docs/captures/champ-bilan-fin.png; do
                 [ -e "$f" ] || continue
                 echo "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/${f}"
               done | jq -R . | jq -s .
