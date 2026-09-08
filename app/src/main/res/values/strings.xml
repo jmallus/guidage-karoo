@@ -145,4 +145,61 @@
     <string name="field_resupply_no_poi">Aucun point sur l\'itinéraire</string>
     <string name="field_resupply_none_usable">%1$d points, aucun où se ravitailler</string>
     <string name="field_resupply_no_water">%1$d points, aucun point d\'eau</string>
+
+    <!--
+      Les six cases de bilan. Elles disent ce que la sortie vaut depuis le départ, deux
+      nombres à la fois : le Karoo publie déjà chacun d'eux, mais un par champ.
+    -->
+    <string name="unit_bpm"> bpm</string>
+    <string name="unit_watt"> W</string>
+
+    <string name="field_level_heart_name">Bilan · cœur</string>
+    <string name="field_level_heart_description">La fréquence cardiaque moyenne de la sortie, avec le maximum atteint juste à côté, sur un aplat de la couleur de la zone où la moyenne tombe. Une moyenne seule ne dit rien : c\'est son écart au maximum qui dit si la sortie fut régulière ou faite de coups de force. Tient dans une case ordinaire.</string>
+    <string name="field_level_heart_max">MAX</string>
+    <string name="field_level_no_heart">Pas de cardiofréquencemètre</string>
+
+    <string name="field_level_power_name">Bilan · puissance</string>
+    <string name="field_level_power_description">La puissance moyenne de la sortie et, à côté, la normalisée — celle qui compte les relances pour ce qu\'elles coûtent. Leur rapport est écrit en toutes lettres : lisse, roulante ou hachée. Demande un capteur de puissance. Tient dans une case ordinaire.</string>
+    <string name="field_level_power_normalized">NORMALISÉE</string>
+    <string name="field_level_power_smooth">LISSE · IV %1$s</string>
+    <string name="field_level_power_rolling">ROULANTE · IV %1$s</string>
+    <string name="field_level_power_choppy">HACHÉE · IV %1$s</string>
+    <string name="field_level_no_power">Pas de capteur de puissance</string>
+
+    <string name="field_level_arrival_name">Bilan · arrivée</string>
+    <string name="field_level_arrival_description">L\'heure d\'arrivée estimée, l\'heure du coucher du soleil à côté, et un aplat vert, jaune ou rouge selon qu\'on arrive avant la nuit, tout juste, ou après. Le coucher est calculé hors ligne depuis la position. Demande un itinéraire chargé. Tient dans une case ordinaire.</string>
+    <string name="field_level_arrival_sunset">COUCHER</string>
+    <string name="field_level_arrival_ahead">%1$d MIN D\'AVANCE</string>
+    <string name="field_level_arrival_behind">%1$d MIN DE RETARD</string>
+    <string name="field_level_arrival_ahead_hours">%1$d H %2$02d D\'AVANCE</string>
+    <string name="field_level_arrival_behind_hours">%1$d H %2$02d DE RETARD</string>
+
+    <string name="field_level_ascent_name">Bilan · dénivelé</string>
+    <string name="field_level_ascent_description">Le dénivelé déjà monté, celui qui reste jusqu\'à l\'arrivée, et une barre qui montre la part faite. Mille deux cents mètres ne disent rien tant qu\'on ne sait pas si c\'est le tiers ou les neuf dixièmes. Le restant demande un itinéraire chargé. Tient dans une case ordinaire.</string>
+    <string name="field_level_ascent_remaining">RESTANT</string>
+    <string name="field_level_no_ascent">Dénivelé en attente</string>
+
+    <string name="field_level_intensity_name">Bilan · intensité</string>
+    <string name="field_level_intensity_description">Le facteur d\'intensité de la sortie et sa charge d\'entraînement, avec le mot qui les nomme : endurance, tempo, seuil ou course. Les deux nombres sont ceux du Karoo, rien n\'est recalculé. Demande un capteur de puissance et une FTP réglée. Tient dans une case ordinaire.</string>
+    <string name="field_level_intensity_load">CHARGE</string>
+    <string name="field_level_intensity_endurance">ENDURANCE</string>
+    <string name="field_level_intensity_tempo">TEMPO</string>
+    <string name="field_level_intensity_threshold">SEUIL</string>
+    <string name="field_level_intensity_race">COURSE</string>
+    <string name="field_level_no_intensity">Intensité en attente</string>
+
+    <string name="field_level_zones_name">Bilan · zones</string>
+    <string name="field_level_zones_description">Le temps passé dans chaque zone cardiaque depuis le départ, en une barre empilée dans l\'ordre des zones, avec la zone dominante en grand. C\'est la place du gros de la barre qui dit le niveau de la sortie, plus vite qu\'aucun chiffre. Demande un cardiofréquencemètre et des zones réglées. Tient dans une case ordinaire.</string>
+    <string name="field_level_zones_label">TEMPS PAR ZONE</string>
+    <string name="field_level_zones_value">Z%1$d</string>
+    <string name="field_level_duration_minutes">%1$d min</string>
+    <string name="field_level_duration_hours">%1$d h %2$02d</string>
+    <string name="field_level_zones_spent">PASSÉ</string>
+    <string name="field_level_no_zones">Pas de zones mesurées</string>
+
+    <string name="field_level_heart_label">CŒUR</string>
+    <string name="field_level_power_label">PUISSANCE</string>
+    <string name="field_level_arrival_label">ARRIVÉE</string>
+    <string name="field_level_ascent_label">DÉNIVELÉ</string>
+    <string name="field_level_intensity_label">INTENSITÉ</string>
 </resources>

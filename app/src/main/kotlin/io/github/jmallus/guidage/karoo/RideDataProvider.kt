@@ -4,7 +4,10 @@ import io.github.jmallus.guidage.core.ClimbProgress
 import io.github.jmallus.guidage.core.Drivetrain
 import io.github.jmallus.guidage.core.LearnedPace
 import io.github.jmallus.guidage.core.PaceLearner
+import io.github.jmallus.guidage.core.RideLevel
+import io.github.jmallus.guidage.core.ZoneClock
 import io.github.jmallus.guidage.core.ZoneRange
+import io.github.jmallus.guidage.core.Zones
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.UserProfile
@@ -54,6 +57,8 @@ data class RideData(
     val heartRateZones: List<ZoneRange> = emptyList(),
     /** Allure apprise depuis le départ, dont se déduit l'heure d'arrivée. */
     val pace: LearnedPace = LearnedPace.UNKNOWN,
+    /** Ce que la sortie vaut depuis le départ : moyennes, maxima, répartition. */
+    val level: RideLevel = RideLevel.UNKNOWN,
 )
 
 /**
@@ -90,14 +95,25 @@ class RideDataProvider(
      */
     private var cadenceVue = false
 
+    /**
+     * Le temps passé dans chaque zone de fréquence cardiaque.
+     *
+     * Il vit ici pour la même raison que l'allure apprise : il se mesure sur la sortie
+     * entière, non sur la durée d'affichage d'une page. Le Karoo publie la zone courante,
+     * jamais le temps qu'on y a passé.
+     */
+    private val zoneClock = ZoneClock()
+
     val data: StateFlow<RideData> = combine(
         metrics(),
         zones(),
         gears(),
         climb(),
-    ) { values, profile, drivetrain, climb ->
+        summary(),
+    ) { values, profile, drivetrain, climb, summary ->
         observePace(speed = values[0], grade = values[5], power = values[2], distance = values[6])
         if (values[4] != null) cadenceVue = true
+        zoneClock.observe(clock(), Zones.zoneOf(values[3] ?: 0.0, profile.second))
         RideData(
             speed = values[0],
             averageSpeed = values[1],
@@ -115,6 +131,20 @@ class RideDataProvider(
             powerZones = profile.first,
             heartRateZones = profile.second,
             pace = paceLearner.pace,
+            level = RideLevel(
+                averageHeartRate = summary[0],
+                maxHeartRate = summary[1],
+                averagePower = summary[2],
+                normalizedPower = summary[3],
+                elevationGain = summary[4],
+                elevationRemaining = summary[5],
+                intensityFactor = summary[6],
+                trainingStressScore = summary[7],
+                // Coupé au nombre de zones réglées : l'horloge en tient sept, l'appareil en
+                // règle cinq pour le cœur, et deux cases toujours vides feraient croire à
+                // deux zones où l'on n'est jamais monté.
+                heartRateZoneSeconds = zoneClock.elapsed.take(profile.second.size),
+            ),
         )
     }
         .distinctUntilChanged()
@@ -134,6 +164,27 @@ class RideDataProvider(
             value(DataType.Type.TIME_OF_ARRIVAL),
             field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.ON_ROUTE),
             value(DataType.Type.ENERGY_OUTPUT),
+        ),
+    ) { it }
+
+    /**
+     * Les cumuls de la sortie, que le Karoo tient lui-même.
+     *
+     * Rien n'est recalculé ici : ces huit valeurs sont celles de l'enregistrement, et les
+     * reconstruire de notre côté les ferait diverger de ce que le fichier de sortie
+     * contiendra. Le seul cumul que nous tenons est le temps par zone, que l'appareil ne
+     * publie pas.
+     */
+    private fun summary(): Flow<Array<Double?>> = combine(
+        listOf(
+            value(DataType.Type.AVERAGE_HR),
+            value(DataType.Type.MAX_HR),
+            value(DataType.Type.AVERAGE_POWER),
+            value(DataType.Type.NORMALIZED_POWER),
+            value(DataType.Type.ELEVATION_GAIN),
+            value(DataType.Type.ELEVATION_REMAINING),
+            value(DataType.Type.INTENSITY_FACTOR),
+            value(DataType.Type.TRAINING_STRESS_SCORE),
         ),
     ) { it }
 
@@ -200,6 +251,9 @@ class RideDataProvider(
             val previous = lastDistance
             if (previous != null && distance < previous - NEW_RIDE_DROP_METERS) {
                 paceLearner.reset()
+                // Le bilan est celui de la sortie, non celui de la journée : le temps par
+                // zone repart de zéro en même temps que l'allure apprise.
+                zoneClock.reset()
                 lastObservationMillis = null
             }
             lastDistance = distance

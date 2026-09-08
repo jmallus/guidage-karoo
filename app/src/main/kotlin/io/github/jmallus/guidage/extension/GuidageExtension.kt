@@ -48,7 +48,7 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
             ResupplyDataType(provider, settingsRepository, extension),
             AutonomyDataType(provider, rideDataProvider, settingsRepository, extension),
             PoiDataType(provider, extension),
-        )
+        ) + Bilan.entries.map { LevelDataType(it, provider, rideDataProvider, extension) }
     }
 
     override fun onCreate() {

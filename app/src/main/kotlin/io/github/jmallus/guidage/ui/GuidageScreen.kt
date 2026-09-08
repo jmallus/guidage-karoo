@@ -27,6 +27,7 @@ import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.extension.AutonomyDataType
+import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.ClimbDataType
 import io.github.jmallus.guidage.extension.ContextDataType
 import io.github.jmallus.guidage.extension.DashboardDataType
@@ -233,6 +234,12 @@ private fun fieldName(typeId: String): String = when (typeId) {
     ResupplyDataType.TYPE_ID -> stringResource(R.string.field_resupply_name)
     AutonomyDataType.TYPE_ID -> stringResource(R.string.field_autonomy_name)
     PoiDataType.TYPE_ID -> stringResource(R.string.field_poi_name)
+    Bilan.COEUR.typeId -> stringResource(R.string.field_level_heart_name)
+    Bilan.PUISSANCE.typeId -> stringResource(R.string.field_level_power_name)
+    Bilan.ARRIVEE.typeId -> stringResource(R.string.field_level_arrival_name)
+    Bilan.DENIVELE.typeId -> stringResource(R.string.field_level_ascent_name)
+    Bilan.INTENSITE.typeId -> stringResource(R.string.field_level_intensity_name)
+    Bilan.ZONES.typeId -> stringResource(R.string.field_level_zones_name)
     else -> typeId
 }
 

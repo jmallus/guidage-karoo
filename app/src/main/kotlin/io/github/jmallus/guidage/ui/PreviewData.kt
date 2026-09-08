@@ -5,6 +5,7 @@ import io.github.jmallus.guidage.core.ElevationProfile
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.LearnedPace
 import io.github.jmallus.guidage.core.ProfilePoint
+import io.github.jmallus.guidage.core.RideLevel
 import io.github.jmallus.guidage.core.Route
 import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
@@ -357,6 +358,37 @@ object PreviewData {
         // rapprochement du dépensé et du restant, qui est la moitié du champ.
         energyOutput = 730.0,
     )
+
+    /**
+     * Le bilan d'une sortie déjà bien engagée, pour l'aperçu des cases de bilan.
+     *
+     * Une sortie qui vient de partir n'a pas de bilan : les moyennes valent l'instantané, le
+     * temps par zone est vide, et les six cases montreraient toutes leur message d'attente.
+     * Ces valeurs-là sont celles d'une sortie de deux heures et demie à l'endurance, avec ce
+     * qu'il faut de tempo pour que la barre des zones ait une forme.
+     */
+    val levelSample = RideLevel(
+        averageHeartRate = 142.0,
+        maxHeartRate = 178.0,
+        averagePower = 196.0,
+        normalizedPower = 218.0,
+        elevationGain = 1_240.0,
+        elevationRemaining = 460.0,
+        intensityFactor = 0.74,
+        trainingStressScore = 138.0,
+        heartRateZoneSeconds = listOf(720.0, 3_600.0, 2_940.0, 1_380.0, 240.0),
+    )
+
+    /**
+     * Le relevé d'aperçu des cases de bilan : celui du budget d'effort, augmenté du bilan.
+     *
+     * Il reprend [effortSample] plutôt que d'en refaire un : la case « Arrivée » a besoin de
+     * l'allure apprise et de la distance restante, exactement comme le budget, et deux
+     * relevés d'aperçu finiraient par diverger sans que rien ne le signale.
+     */
+    val levelRide: RideData by lazy {
+        effortSample.copy(level = levelSample, heartRateZones = previewHeartRateZones)
+    }
 
     private fun sample(
         speed: Double,

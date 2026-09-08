@@ -2,8 +2,10 @@ package io.github.jmallus.guidage.sim
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
+import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.KarooColors
 import io.github.jmallus.guidage.ui.PreviewData
@@ -326,6 +328,63 @@ class SimulateurTest {
         }
     }
 
+    /**
+     * Les six cases de bilan, à la taille qu'elles ont sur une page qui en porte dix.
+     *
+     * Elles se contrôlent aux mêmes moments que le reste, et pour la même raison : une case
+     * qui n'a rien à dire ne lève aucune exception et se compile parfaitement. Elle ne se
+     * verrait qu'à l'écran, en roulant, c'est-à-dire trop tard.
+     */
+    @Test
+    fun `les cases de bilan se dessinent tout au long de la sortie`() {
+        val simulateur = Simulateur(context)
+        val dossier = File("build/simulateur").apply { mkdirs() }
+
+        for (part in PARTS_CONTROLEES) {
+            val secondes = simulateur.sortie.duree * part
+            for (variante in Bilan.entries) {
+                val image = simulateur.imageBilan(variante, secondes)
+                assertEquals(Simulateur.LARGEUR_BILAN, image.width)
+                assertEquals(Simulateur.HAUTEUR_BILAN, image.height)
+                assertTrue(
+                    "la case $variante ne montre presque rien à ${(part * 100).toInt()} %",
+                    couleursDistinctes(image) > 2,
+                )
+            }
+            if (part == PART_CAPTURE) {
+                ecrire(pageDeBilan(simulateur, secondes), File(dossier, "champ-bilan.png"))
+            }
+        }
+    }
+
+    /**
+     * Les six cases posées comme sur une page : deux colonnes, trois rangs.
+     *
+     * Elles se jugent ensemble et non une par une — c'est tout leur propos, une page où l'on
+     * lit le bilan d'un coup d'œil — et six fichiers séparés ne montreraient pas si leurs
+     * chiffres s'alignent, si leurs libellés font famille, si un aplat écrase ses voisins.
+     * Les traits sont ceux que le Karoo pose lui-même entre les champs d'une page.
+     */
+    private fun pageDeBilan(simulateur: Simulateur, secondes: Double): Bitmap {
+        val largeur = Simulateur.LARGEUR_BILAN
+        val hauteur = Simulateur.HAUTEUR_BILAN
+        val cases = Bilan.entries
+        val rangs = (cases.size + 1) / 2
+        val page = Bitmap.createBitmap(largeur * 2, hauteur * rangs, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(page)
+        cases.forEachIndexed { index, variante ->
+            val x = (index % 2) * largeur
+            val y = (index / 2) * hauteur
+            canvas.drawBitmap(simulateur.imageBilan(variante, secondes), x.toFloat(), y.toFloat(), null)
+        }
+        val trait = Paint().apply { color = SEPARATEUR }
+        for (rang in 1 until rangs) {
+            canvas.drawRect(0f, (rang * hauteur).toFloat(), page.width.toFloat(), (rang * hauteur + 1).toFloat(), trait)
+        }
+        canvas.drawRect(largeur.toFloat(), 0f, (largeur + 1).toFloat(), page.height.toFloat(), trait)
+        return page
+    }
+
     /* -------------------------------------------------------------- la fenêtre */
 
     /**
@@ -405,6 +464,7 @@ class SimulateurTest {
         champ("Profil à venir", simulateur.imageProfil(secondes)),
         champ("Suivant la sortie", simulateur.imageContexte(secondes)),
         champ("Prochaine côte", simulateur.imageCote(secondes)),
+        champ("Bilan", pageDeBilan(simulateur, secondes)),
     )
 
     private fun champ(nom: String, image: Bitmap) =
@@ -540,6 +600,9 @@ class SimulateurTest {
          * d'Android — il parle `java.awt`, absent d'`android.jar`.
          */
         const val FOND = 0xFF202224.toInt()
+
+        /** Le trait que le Karoo pose entre deux champs d'une même page. */
+        const val SEPARATEUR = 0xFF3A3F44.toInt()
 
         const val IMAGES_PAR_SECONDE = 10
         const val PROPRIETE_FENETRE = "guidage.simulateur"
