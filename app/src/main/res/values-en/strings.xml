@@ -204,7 +204,7 @@
 
     <string name="field_level_drift_name">Summary · drift</string>
     <string name="field_level_drift_description">What the same effort costs the heart late in the ride compared with early on: the power-to-heart-rate ratio of the second half against the first. If it takes more beats for the same watts, you are paying for it. No head unit shows this while riding — you find it afterwards, when it is too late to act on it. The extension computes it itself, over effort time only. Needs a power meter and a heart rate monitor, and stays quiet below an hour of effort. Fits in an ordinary tile.</string>
-    <string name="field_level_drift_label">DRIFT</string>
+    <string name="field_level_drift_label">PW:HR DRIFT</string>
     <string name="field_level_drift_over">OVER</string>
     <string name="field_level_drift_solid">SOLID</string>
     <string name="field_level_drift_drifting">DRIFTING</string>
@@ -231,8 +231,8 @@
     <string name="settings_wprime_cp">Critical power: %1$d W</string>
     <string name="settings_wprime_capacity">W′ reserve: %1$s kJ</string>
 
-    <string name="field_level_heart_label">HEART</string>
-    <string name="field_level_power_label">POWER</string>
+    <string name="field_level_heart_label">AVG HEART RATE</string>
+    <string name="field_level_power_label">AVERAGE POWER</string>
     <string name="field_level_arrival_label">ARRIVAL</string>
     <string name="field_level_ascent_label">ASCENT</string>
     <string name="field_level_intensity_label">INTENSITY</string>

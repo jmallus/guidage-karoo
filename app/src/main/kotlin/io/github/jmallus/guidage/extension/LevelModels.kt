@@ -291,6 +291,10 @@ object LevelModels {
             referenceLabel = level.trainingStressScore?.let { context.getString(R.string.field_level_intensity_load) },
             referenceValue = level.trainingStressScore?.let { entier(it) },
             caption = facteur?.let { context.getString(motDIntensite(it)) },
+            // Le mot porte la couleur du niveau, comme un aplat de zone en porterait une :
+            // « seuil » se lit alors sans être lu, à la teinte, ce qui est tout l'intérêt
+            // d'avoir un mot plutôt qu'un nombre.
+            captionColor = facteur?.let { couleurDIntensite(it) },
             emptyMessage = if (facteur == null) context.getString(R.string.field_level_no_intensity) else null,
         )
     }
@@ -514,12 +518,12 @@ object LevelModels {
     /**
      * La couleur de la jauge, aux seuils où le coureur change de conduite.
      *
-     * Au-dessus de la moitié on relance sans y penser ; sous le quart, chaque effort au-dessus
-     * du seuil se paie et il faut choisir lequel. Entre les deux, on compte.
+     * Au-dessus de la moitié on relance sans y penser ; sous le cinquième, chaque effort
+     * au-dessus du seuil se paie et il faut choisir lequel. Entre les deux, on compte.
      */
     private fun couleurDeReserve(part: Float): Int = when {
         part >= 0.5f -> RESERVE_PLEINE
-        part >= 0.25f -> RESERVE_ENTAMEE
+        part >= 0.2f -> RESERVE_ENTAMEE
         else -> RESERVE_VIDE
     }
 
@@ -541,6 +545,21 @@ object LevelModels {
         facteur < 0.80 -> R.string.field_level_intensity_tempo
         facteur < 0.95 -> R.string.field_level_intensity_threshold
         else -> R.string.field_level_intensity_race
+    }
+
+    /**
+     * La couleur du mot, prise dans la palette des zones de puissance du Karoo.
+     *
+     * Les quatre mots recouvrent à peu près les quatre premières zones — une sortie à 0,72
+     * s'est tenue en tempo — et reprendre leurs teintes fait que le vert veut dire la même
+     * chose ici que sur une case instantanée. Aux mêmes seuils que [motDIntensite], faute de
+     * quoi la teinte et le mot se contrediraient.
+     */
+    private fun couleurDIntensite(facteur: Double): Int = when {
+        facteur < 0.65 -> Zones.POWER_COLORS[1]
+        facteur < 0.80 -> Zones.POWER_COLORS[2]
+        facteur < 0.95 -> Zones.POWER_COLORS[3]
+        else -> Zones.POWER_COLORS[5]
     }
 
     /** « 28 MIN D'AVANCE », ou « 1 H 12 D'AVANCE » au-delà de l'heure. */

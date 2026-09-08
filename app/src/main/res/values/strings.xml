@@ -208,7 +208,7 @@
 
     <string name="field_level_drift_name">Bilan · dérive</string>
     <string name="field_level_drift_description">Ce que le même effort coûte au cœur à la fin de la sortie, par rapport au début : le rapport puissance / fréquence cardiaque de la seconde moitié comparé à celui de la première. S\'il faut plus de battements pour les mêmes watts, c\'est que ça se paie. Aucun compteur ne l\'affiche en roulant — on le découvre après coup, quand il est trop tard pour en tenir compte. Le calcul est celui de l\'extension, sur le temps d\'effort seul. Demande un capteur de puissance et un cardiofréquencemètre, et se tait sous une heure d\'effort. Tient dans une case ordinaire.</string>
-    <string name="field_level_drift_label">DÉRIVE</string>
+    <string name="field_level_drift_label">DÉRIVE PW/FC</string>
     <string name="field_level_drift_over">SUR</string>
     <string name="field_level_drift_solid">SOLIDE</string>
     <string name="field_level_drift_drifting">ÇA DÉRIVE</string>
@@ -235,8 +235,8 @@
     <string name="settings_wprime_cp">Puissance critique : %1$d W</string>
     <string name="settings_wprime_capacity">Réserve W′ : %1$s kJ</string>
 
-    <string name="field_level_heart_label">CŒUR</string>
-    <string name="field_level_power_label">PUISSANCE</string>
+    <string name="field_level_heart_label">FC MOYENNE</string>
+    <string name="field_level_power_label">PUISSANCE MOYENNE</string>
     <string name="field_level_arrival_label">ARRIVÉE</string>
     <string name="field_level_ascent_label">DÉNIVELÉ</string>
     <string name="field_level_intensity_label">INTENSITÉ</string>

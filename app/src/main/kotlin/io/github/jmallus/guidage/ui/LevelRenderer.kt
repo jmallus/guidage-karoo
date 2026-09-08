@@ -34,6 +34,13 @@ data class LevelFieldModel(
     val background: Int? = null,
     /** La ligne du bas, quand la case a un mot à dire plutôt qu'un chiffre. */
     val caption: String? = null,
+    /**
+     * L'encre de ce mot, quand il porte lui-même un verdict.
+     *
+     * Ignorée sur un aplat : le contraste y est mesuré contre le fond, et poser une teinte
+     * saturée sur une autre défait précisément ce que cette mesure garantit.
+     */
+    val captionColor: Int? = null,
     /** La barre empilée, pour la répartition par zone. */
     val slices: List<LevelSlice> = emptyList(),
     /** Message qui remplace tout quand rien n'est mesurable. */
@@ -152,7 +159,8 @@ object LevelRenderer {
         }
 
         model.caption?.let { texte ->
-            val paint = paint(max(height * CAPTION_FRACTION, Lisibilite.corpsPourCapitale()), encreDouce, Lisibilite.LIBELLE)
+            val encreDuMot = model.captionColor?.takeIf { model.background == null } ?: encreDouce
+            val paint = paint(max(height * CAPTION_FRACTION, Lisibilite.corpsPourCapitale()), encreDuMot, Lisibilite.LIBELLE)
             fit(paint, texte, right - left)
             canvas.drawText(texte, left, area.bottom - padding - paint.descent(), paint)
         }
