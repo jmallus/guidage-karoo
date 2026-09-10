@@ -84,9 +84,12 @@ sealed interface GuidanceZone {
 /**
  * Le champ plein écran.
  *
- * Cinq rangs : le bandeau de l'effort instantané en haut, puis la carte à droite sur deux
- * hauteurs avec la transmission et le cœur à sa gauche, les distances et la pente en
- * dessous, et la bande du soir tout en bas.
+ * Trois bandes : l'effort instantané en haut, la zone de guidage au milieu — carte ou graphe
+ * à droite, transmission puis cœur et restant à sa gauche — et le profil de ce qui arrive sur
+ * toute la largeur du bas.
+ *
+ * Seules les deux bandes de chiffres ont une hauteur fixe. Le guidage prend l'entre-deux, si
+ * bien que déplacer la frontière du profil fait descendre la carte sans toucher à un chiffre.
  */
 data class DashboardModel(
     val guidance: GuidanceZone,
@@ -517,9 +520,7 @@ object DashboardRenderer {
         labelSize: Float,
     ) {
         val labelPaint = paint(labelSize, palette.textSecondary, LABEL_TYPEFACE)
-        val valuePaint = paint(valueSize, 0, VALUE_TYPEFACE)
         val labelHeight = labelPaint.descent() - labelPaint.ascent()
-        val valueHeight = valuePaint.descent() - valuePaint.ascent()
         val top = labelTop(bounds, labelHeight)
         val right = bounds.right - EDGE_INSET
 
@@ -534,11 +535,17 @@ object DashboardRenderer {
             labelSize = labelSize,
         )
 
-        // Le schéma occupe la même bande que les chiffres des autres cases, et s'arrête
-        // franchement au-dessus du bord : la case du dessous porte un aplat de couleur qui
-        // commence net, et ce qui se pose à un cheveu de lui paraît lui appartenir.
-        val schematicTop = valueTop(bounds, top, labelHeight, valueHeight)
-        val schematicBottom = (schematicTop + valueHeight).coerceAtMost(bounds.bottom - EDGE_INSET)
+        // Le schéma prend toute la hauteur sous le titre, et non la seule bande d'un chiffre.
+        //
+        // Il occupait cette bande-là du temps où la case en faisait la hauteur. La case a
+        // doublé quand la carte est descendue, et le peigne s'y est retrouvé à flotter au
+        // milieu d'un vide, de la taille qu'il avait dans une case deux fois plus courte. Un
+        // schéma n'a pas de corps de texte à respecter : il prend la place qu'on lui donne.
+        //
+        // Il s'arrête franchement au-dessus du bord : la case du dessous porte un aplat de
+        // couleur qui commence net, et ce qui se pose à un cheveu de lui paraît lui appartenir.
+        val schematicTop = top + labelHeight
+        val schematicBottom = bounds.bottom - EDGE_INSET
         val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicBottom)
         if (area.width() <= 0 || area.height() <= 0) return
 
