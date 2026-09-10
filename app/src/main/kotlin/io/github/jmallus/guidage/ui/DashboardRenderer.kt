@@ -551,17 +551,20 @@ object DashboardRenderer {
         val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicBottom)
         if (area.width() <= 0 || area.height() <= 0) return
 
-        val teethPaint = paint(valueSize * TEETH_RATIO, palette.textPrimary, VALUE_TYPEFACE)
+        val teethSize = valueSize * TEETH_RATIO
+        val teethPaint = paint(teethSize, palette.textPrimary, VALUE_TYPEFACE)
+        val teeth = teethLabel(model)
 
         // Les barres montent depuis le bas de cette bande et occupent toute sa largeur : elles
         // passent donc sous le titre et son icône, que rien ne décale plus sur le côté. Il
         // faut leur réserver du blanc en haut, sans quoi la plus haute vient le toucher.
         //
-        // Elles descendent jusqu'au bas de la bande depuis que « 34×21 » n'est plus écrit
-        // dessous. Les dentures étaient une donnée de catalogue : on ne change pas de braquet
-        // parce qu'on a lu 21, on en change parce qu'on voit qu'il reste deux pignons. Le
-        // peigne le dit déjà, et il le dit mieux avec la hauteur qu'elles occupaient.
-        val combBottom = area.bottom
+        // Elles rendent le pied de la bande aux dentures. Celles-ci avaient été retirées quand
+        // la case ne faisait qu'un rang : elles y coûtaient un bon huitième de la hauteur, et
+        // le peigne, seul dessin de la case, s'en trouvait écrasé. La case en fait un et demi
+        // depuis que la carte est descendue — la place est là, et le renseignement revient
+        // sans que le schéma y perde ce qui le rendait lisible.
+        val combBottom = area.bottom - if (teeth == null) 0f else teethSize * TEETH_LEADING
         val combTop = (area.top + labelHeight * COMB_TOP_MARGIN).coerceAtMost(combBottom)
 
         val front = comb(model.front, model.frontCount)
@@ -595,6 +598,29 @@ object DashboardRenderer {
             drawComb(canvas, RectF(rearLeft, combTop, area.right, combBottom), it, barWidth, ascending = false, palette = palette)
         }
 
+        // Les dentures au pied du peigne, calées à droite comme un chiffre de case.
+        teeth?.let {
+            canvas.drawText(it, right - teethPaint.measureText(it), area.bottom - teethPaint.descent(), teethPaint)
+        }
+    }
+
+    /**
+     * « 50×17 » quand les deux dentures sont connues, l'une des deux sinon, rien du tout à
+     * défaut.
+     *
+     * C'est un renseignement d'appoint : la position dans la cassette se lit sur le peigne, et
+     * l'on ne change pas de braquet parce qu'on a lu 21. Mais savoir sur quel plateau l'on est
+     * a son usage au pied d'une bosse, et le nombre le dit sans qu'il faille compter les barres.
+     */
+    private fun teethLabel(model: DrivetrainModel): String? {
+        val front = model.frontTeeth?.takeIf { it > 0 }
+        val rear = model.rearTeeth?.takeIf { it > 0 }
+        return when {
+            front != null && rear != null -> "$front×$rear"
+            rear != null -> "$rear"
+            front != null -> "$front"
+            else -> null
+        }
     }
 
     /**
@@ -704,14 +730,17 @@ object DashboardRenderer {
     private const val BAR_MIN_HEIGHT = 0.35f
 
     /**
-     * Taille du « -- » qui remplace le peigne quand le groupe ne rapporte rien.
+     * Taille des dentures — « 50×17 » — et du « -- » qui remplace le peigne à défaut.
      *
-     * Elle servait aussi aux dentures, « 34×21 », écrites sous les barres et retirées depuis :
-     * la position dans la cassette se lit sur le peigne, et le nombre de dents est un
-     * renseignement de catalogue qu'on ne consulte pas en roulant. Il prenait à lui seul un
-     * bon huitième de la hauteur de la case.
+     * Elles ont été retirées un temps, quand la case ne faisait qu'un rang : elles y coûtaient
+     * un bon huitième de la hauteur, et le peigne, seul dessin de la case, s'en trouvait
+     * écrasé. La case en fait un et demi depuis que la carte est descendue, et la place est
+     * revenue avec.
      */
     private const val TEETH_RATIO = 0.28f
+
+    /** Hauteur réservée aux dentures sous le peigne, en part de leur corps. */
+    private const val TEETH_LEADING = 1.35f
 
     /**
      * Blanc réservé au-dessus des barres, en part de la hauteur du libellé.
