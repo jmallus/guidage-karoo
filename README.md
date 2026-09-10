@@ -23,7 +23,7 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 
 | Champ | Type | Contenu |
 | --- | --- | --- |
-| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
+| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Rempli en couleur selon la pente, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
@@ -132,18 +132,25 @@ qui s'épuisent. Réduits à une bande, il ne leur reste que leurs deux chiffres
 que les champs numériques disent déjà. Leur mise en page change au-delà d'un rapport
 hauteur/largeur d'un dixième au-dessus du carré.
 
-### L'échelle du profil
+### Les deux échelles du profil
 
-Une portée réglable, de un à quinze kilomètres, serait l'aveu d'un choix impossible : à cinq
-kilomètres on voit la rampe qui arrive mais plus la journée, à quinze on voit la journée mais
-la rampe tient dans deux pixels. Et le choix se poserait en roulant, c'est-à-dire au moment où
-l'on ne veut rien régler.
+Le champ **« Profil à venir »** répond à *qu'est-ce qui reste*. Son échelle horizontale n'est
+pas proportionnelle : la distance est projetée par un logarithme translaté, fin sur les deux
+cents premiers mètres et de plus en plus comprimé ensuite, si bien que la bande couvre **tout
+ce qui reste**, du premier mètre à l'arrivée. Sur cent vingt kilomètres restants, les deux
+cents premiers mètres occupent 10,8 % de la largeur et les vingt derniers kilomètres 2,8 % —
+le proche pèse quatre fois le lointain. Une portée réglable y serait l'aveu d'un choix
+impossible : à cinq kilomètres on voit la rampe qui arrive mais plus la journée, à quinze on
+voit la journée mais la rampe tient dans deux pixels.
 
-L'échelle horizontale n'est donc pas proportionnelle. La distance est projetée par un
-logarithme translaté, fin sur les deux cents premiers mètres et de plus en plus comprimé
-ensuite : la bande couvre **tout ce qui reste**, du premier mètre à l'arrivée. Sur cent vingt
-kilomètres restants, les deux cents premiers mètres occupent 10,8 % de la largeur et les vingt
-derniers kilomètres 2,8 % — le proche pèse quatre fois le lointain.
+Le **bandeau du tableau de bord** répond à l'autre question — *qu'est-ce qui arrive* — et
+demande donc l'autre échelle. Une sortie l'a montré : sur une journée entière, la compression
+écrase les côtes contre le fond de la fenêtre et l'on ne se rend plus compte de ce qui vient.
+Il porte donc une échelle **régulière** sur une portée franche, 5, 10, 20 ou 50 km, dix par
+défaut, que l'appui sur le bas de l'écran fait défiler.
+
+Les deux exécutent le même modèle et le même rendu. Ils ne divergent pas par négligence :
+c'est la question posée qui diffère, et elle ne se pose pas au même moment.
 
 Cette compression ne se voit pas d'elle-même — un œil qui suppose une échelle régulière lit
 un faux relief. Ce sont les graduations sous l'axe qui la disent : leur espacement inégal est
