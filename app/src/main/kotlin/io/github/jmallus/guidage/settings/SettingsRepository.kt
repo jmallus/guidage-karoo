@@ -22,7 +22,7 @@ data class GuidageSettings(
     /** Portée du profil en portrait, changée par appui sur le champ. */
     val graphZoom: GraphZoom = GraphZoom.DEFAULT,
     /** Portée de la minicarte, changée par appui sur le champ. */
-    val mapZoom: MapZoom = MapZoom.NEAR,
+    val mapZoom: MapZoom = MapZoom.DEFAULT,
     /**
      * Ce qui compte comme ravitaillement pour les champs « Réserve » et « Autonomie ».
      *

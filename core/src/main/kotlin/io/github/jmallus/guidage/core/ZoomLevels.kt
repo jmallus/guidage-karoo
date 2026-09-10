@@ -59,7 +59,15 @@ enum class MapZoom(val rangeMeters: Double, val chevronMeters: Double) {
     fun next(): MapZoom = entries[(ordinal + 1) % entries.size]
 
     companion object {
-        fun fromOrdinal(ordinal: Int): MapZoom = entries.getOrElse(ordinal) { NEAR }
+        /**
+         * Le cran d'usine : trois cents mètres, et non le plus court.
+         *
+         * Cent cinquante sert à se situer dans une agglomération, pas à rouler : le proposer
+         * d'emblée obligerait à trois appuis pour retrouver la portée du reste du temps.
+         */
+        val DEFAULT = NEAR
+
+        fun fromOrdinal(ordinal: Int): MapZoom = entries.getOrElse(ordinal) { DEFAULT }
     }
 }
 
