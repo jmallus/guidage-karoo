@@ -84,11 +84,11 @@ sealed interface GuidanceZone {
 /**
  * Le champ plein écran.
  *
- * Trois bandes : l'effort instantané en haut, la zone de guidage au milieu — carte ou graphe
- * à droite, transmission puis cœur et restant à sa gauche — et le profil de ce qui arrive sur
- * toute la largeur du bas.
+ * Trois bandes, comptées en rangs : l'effort instantané en tient un, la zone de guidage deux
+ * et demi — carte ou graphe à droite, transmission puis cœur et restant à sa gauche — et le
+ * profil de ce qui arrive prend ce qui reste, sur toute la largeur du bas.
  *
- * Seules les deux bandes de chiffres ont une hauteur fixe. Le guidage prend l'entre-deux, si
+ * Seuls les deux rangs de chiffres ont une hauteur fixe. Le guidage prend l'entre-deux, si
  * bien que déplacer la frontière du profil fait descendre la carte sans toucher à un chiffre.
  */
 data class DashboardModel(
@@ -159,17 +159,18 @@ object DashboardRenderer {
     private const val SUFFIX_RATIO = 0.52f
 
     /**
-     * Hauteur du bandeau de profil, en part de la hauteur du champ.
+     * Rangs occupés au-dessus du profil : l'effort, puis le guidage.
      *
-     * La bande du soir lui avait laissé son rang, ce qui le portait à plus de deux cent
-     * soixante-dix points — le double de ce qu'il avait. Une sortie a tranché : c'était trop.
-     * Il rend la moitié, et la carte descend d'autant, la transmission avec elle pour que les
-     * deux colonnes restent alignées.
+     * Toute la mise en page se lit ici, dans l'unité où elle se pense — le rang. L'effort en
+     * tient un, le guidage deux et demi, le profil ce qui reste, un peu moins de deux.
      *
-     * Ce qui reste — un cinquième de l'écran, cent trente-cinq points — suffit à porter deux
-     * côtes avec leur pente et les graduations de l'axe, ce qui était tout le problème.
+     * Le guidage en tenait deux, et le profil autant, depuis que la bande du soir lui avait
+     * laissé son rang. Une sortie a tranché : la carte manquait de hauteur et le profil en
+     * avait de trop. Elle en gagne **un demi**, et la transmission le gagne avec elle pour que
+     * les deux colonnes restent alignées — un rang entier, essayé d'abord, faisait une carte
+     * en tour et un bandeau où les étiquettes de côte se marchaient dessus.
      */
-    private const val PROFILE_BAND_FRACTION = 0.212f
+    private const val ROWS_ABOVE_BAND = 3.5f
 
     private fun padding(width: Int, height: Int): Float =
         (min(width, height) * 0.015f).coerceIn(2f, 6f)
@@ -185,7 +186,8 @@ object DashboardRenderer {
      */
     fun bandTop(width: Int, height: Int, hasBand: Boolean): Float {
         if (!hasBand) return height.toFloat()
-        return height - padding(width, height) - height * PROFILE_BAND_FRACTION
+        val padding = padding(width, height)
+        return padding + ROWS_ABOVE_BAND * (height - 2 * padding) * ROW_HEIGHT_FRACTION
     }
 
     fun render(
