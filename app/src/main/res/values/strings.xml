@@ -83,6 +83,8 @@
     <string name="settings_section_dashboard">Tableau de bord</string>
     <string name="settings_section_resupply">Ravitaillement</string>
     <string name="settings_section_alerts">Annonces</string>
+    <string name="settings_map_first">La carte sur tout le champ</string>
+    <string name="settings_map_first_hint">Champ « Tableau de bord ». Les chiffres et le profil se posent sur la carte, sur des voiles à demi transparents. Décoché, chaque donnée a sa case.</string>
     <string name="settings_guidance_map_hint">Champ « Tableau de bord »</string>
     <string name="settings_color_by_grade_hint">Champs « Profil à venir » et « Tableau de bord »</string>
     <string name="settings_water_only">Ne compter que les points d\'eau</string>

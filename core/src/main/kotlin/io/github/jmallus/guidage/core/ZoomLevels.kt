@@ -85,3 +85,26 @@ enum class GuidanceZoneType {
             entries.firstOrNull { it.name == name } ?: MAP
     }
 }
+
+/**
+ * Comment le tableau de bord dispose ses données.
+ *
+ * Les deux montrent la même chose ; ce qui change est ce que l'écran met en avant. En
+ * **cases**, chaque donnée a sa boîte et la carte tient dans une colonne. En **carte
+ * d'abord**, la carte prend tout le champ et le reste se pose dessus, sur des voiles à demi
+ * transparents : on voit deux fois plus loin, au prix d'un contraste qui n'est plus garanti
+ * sur un fond de carte chargé.
+ */
+enum class DashboardLayout {
+    /** Chaque donnée dans sa case, la carte dans sa colonne. */
+    TILES,
+
+    /** La carte sur tout le champ, les données posées dessus. */
+    MAP_FIRST,
+    ;
+
+    companion object {
+        fun fromName(name: String?): DashboardLayout =
+            entries.firstOrNull { it.name == name } ?: MAP_FIRST
+    }
+}

@@ -3,6 +3,7 @@ package io.github.jmallus.guidage.settings
 import android.content.Context
 import android.content.SharedPreferences
 import io.github.jmallus.guidage.core.AlertSettings
+import io.github.jmallus.guidage.core.DashboardLayout
 import io.github.jmallus.guidage.core.GraphZoom
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
@@ -19,6 +20,14 @@ data class GuidageSettings(
     val alerts: AlertSettings = AlertSettings(),
     /** Ce que le tableau de bord montre en haut : carte ou profil. */
     val guidanceZone: GuidanceZoneType = GuidanceZoneType.MAP,
+    /**
+     * Carte sur tout le champ, ou chaque donnée dans sa case.
+     *
+     * La carte d'abord est le défaut : c'est la mise en page choisie sur planches, et la
+     * seule qui montre loin devant. Les cases restent pour qui préfère un contraste garanti à
+     * une carte plus grande — sur un fond de carte chargé, les voiles ne garantissent rien.
+     */
+    val dashboardLayout: DashboardLayout = DashboardLayout.MAP_FIRST,
     /** Portée du profil en portrait, changée par appui sur le champ. */
     val graphZoom: GraphZoom = GraphZoom.DEFAULT,
     /** Portée de la minicarte, changée par appui sur le champ. */
@@ -65,6 +74,7 @@ class SettingsRepository(context: Context) {
         return GuidageSettings(
             colorByGrade = prefs.getBoolean(KEY_COLOR_BY_GRADE, defaults.colorByGrade),
             guidanceZone = GuidanceZoneType.fromName(prefs.getString(KEY_GUIDANCE_ZONE, null)),
+            dashboardLayout = DashboardLayout.fromName(prefs.getString(KEY_DASHBOARD_LAYOUT, null)),
             graphZoom = GraphZoom.fromOrdinal(prefs.getInt(KEY_GRAPH_ZOOM, defaults.graphZoom.ordinal)),
             mapZoom = MapZoom.fromOrdinal(prefs.getInt(KEY_MAP_ZOOM, defaults.mapZoom.ordinal)),
             resupplyWaterOnly = prefs.getBoolean(KEY_RESUPPLY_WATER_ONLY, defaults.resupplyWaterOnly),
@@ -85,6 +95,7 @@ class SettingsRepository(context: Context) {
         prefs.edit()
             .putBoolean(KEY_COLOR_BY_GRADE, settings.colorByGrade)
             .putString(KEY_GUIDANCE_ZONE, settings.guidanceZone.name)
+            .putString(KEY_DASHBOARD_LAYOUT, settings.dashboardLayout.name)
             .putInt(KEY_GRAPH_ZOOM, settings.graphZoom.ordinal)
             .putInt(KEY_MAP_ZOOM, settings.mapZoom.ordinal)
             .putBoolean(KEY_RESUPPLY_WATER_ONLY, settings.resupplyWaterOnly)
@@ -99,6 +110,7 @@ class SettingsRepository(context: Context) {
         const val PREFS_NAME = "guidage-settings"
         const val KEY_COLOR_BY_GRADE = "color_by_grade"
         const val KEY_GUIDANCE_ZONE = "guidance_zone"
+        const val KEY_DASHBOARD_LAYOUT = "dashboard_layout"
         const val KEY_GRAPH_ZOOM = "graph_zoom"
         const val KEY_MAP_ZOOM = "map_zoom"
         const val KEY_RESUPPLY_WATER_ONLY = "resupply_water_only"

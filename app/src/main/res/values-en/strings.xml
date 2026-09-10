@@ -83,6 +83,8 @@
     <string name="settings_section_dashboard">Dashboard</string>
     <string name="settings_section_resupply">Resupply</string>
     <string name="settings_section_alerts">Alerts</string>
+    <string name="settings_map_first">Map across the whole field</string>
+    <string name="settings_map_first_hint">“Dashboard” field. The numbers and the profile sit on top of the map, on half-transparent veils. Unchecked, each value gets its own tile.</string>
     <string name="settings_guidance_map_hint">“Dashboard” field</string>
     <string name="settings_color_by_grade_hint">“Route profile ahead” and “Dashboard” fields</string>
     <string name="settings_water_only">Count water points only</string>

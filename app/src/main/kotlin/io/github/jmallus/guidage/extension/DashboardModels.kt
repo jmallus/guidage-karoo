@@ -92,6 +92,7 @@ object DashboardModels {
             remainingTile = remainingTile(context, rideData, units),
             profileBand = profileBand(context, snapshot, settings, preview),
             palette = FieldPalette.of(context),
+            layout = settings.dashboardLayout,
         )
     }
 

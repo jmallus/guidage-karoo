@@ -78,17 +78,27 @@ object MapRenderer {
     /** Part de la hauteur laissée devant le coureur. */
     private const val AHEAD_FRACTION = 0.80f
 
-    fun draw(canvas: Canvas, area: RectF, model: MapModel, palette: Palette) {
+    /**
+     * Dessine la carte sur [area], en plaçant ce qui doit rester visible dans [focus].
+     *
+     * Les deux se confondent d'ordinaire. Ils divergent quand la carte s'étend sous des
+     * éléments qui la recouvrent — la mise en page « carte d'abord » la fait courir sous une
+     * colonne de chiffres et sous le profil. La carte est alors dessinée sur tout le champ, ce
+     * qui évite un bord vide sous les voiles, mais le coureur, la boussole, l'échelle et la
+     * portée se calent sur la partie à découvert, faute de quoi ils tomberaient sous un
+     * chiffre.
+     */
+    fun draw(canvas: Canvas, area: RectF, model: MapModel, palette: Palette, focus: RectF = area) {
         val origin = model.position
         if (origin == null || area.width() <= 0 || area.height() <= 0) {
             drawMessage(canvas, area, model.emptyMessage, palette)
             return
         }
 
-        val riderX = area.centerX()
-        val riderY = area.top + area.height() * AHEAD_FRACTION
+        val riderX = focus.centerX()
+        val riderY = focus.top + focus.height() * AHEAD_FRACTION
         val metersToPixels =
-            ((area.height() * AHEAD_FRACTION) / model.rangeMeters.coerceAtLeast(1.0)).toFloat()
+            ((focus.height() * AHEAD_FRACTION) / model.rangeMeters.coerceAtLeast(1.0)).toFloat()
         val heading = model.heading ?: 0.0
         val projection = Projection(origin, heading, riderX, riderY, metersToPixels)
 
@@ -100,7 +110,7 @@ object MapRenderer {
         if (model.roads.isEmpty()) {
             // Un fond vide se confond avec un fond qui n'existe pas : le dire coûte une
             // ligne et évite de chercher une panne là où il n'y en a pas.
-            drawBasemapNotice(canvas, area, model.roadsMessage)
+            drawBasemapNotice(canvas, focus, model.roadsMessage)
         } else {
             val (areas, lines) = model.roads.partition { it.kind.isArea }
             drawAreas(canvas, areas, projection)
@@ -123,8 +133,8 @@ object MapRenderer {
             },
         )
         drawPois(canvas, area, model, projection, palette)
-        drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
-        drawCompass(canvas, area, heading)
+        drawScaleBar(canvas, focus, model.rangeMeters, metersToPixels, palette)
+        drawCompass(canvas, focus, heading)
 
         canvas.restore()
     }
@@ -165,8 +175,15 @@ object MapRenderer {
      * Le coin haut droit est le seul libre : la mention du fond absent occupe le gauche,
      * l'échelle le bas.
      */
+    /** Où finit la boussole, pour ce qui veut se poser dessous sans la couvrir. */
+    fun compassBottom(area: RectF): Float =
+        area.top + COMPASS_INSET + 2 * compassRadius(area)
+
+    private fun compassRadius(area: RectF): Float =
+        (area.height() * COMPASS_RADIUS_FRACTION).coerceIn(27f, 48f)
+
     private fun drawCompass(canvas: Canvas, area: RectF, heading: Double) {
-        val rayon = (area.height() * COMPASS_RADIUS_FRACTION).coerceIn(27f, 48f)
+        val rayon = compassRadius(area)
         val cx = area.right - COMPASS_INSET - rayon
         val cy = area.top + COMPASS_INSET + rayon
 

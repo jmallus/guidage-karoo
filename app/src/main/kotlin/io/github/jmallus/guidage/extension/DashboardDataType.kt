@@ -104,7 +104,7 @@ class DashboardDataType(
                     // sait rien de ce découpage, et rien ne peut donc se décaler entre les
                     // deux moitiés. La frontière est celle que le rendu a lui-même employée.
                     val coupure = DashboardRenderer
-                        .bandTop(width, height, model.profileBand != null)
+                        .bandTop(width, height, model.profileBand != null, model.layout)
                         .toInt()
                         .coerceIn(1, height - 1)
                     val densite = context.resources.displayMetrics.density

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.jmallus.guidage.MainViewModel
 import io.github.jmallus.guidage.R
+import io.github.jmallus.guidage.core.DashboardLayout
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceZoneType
@@ -276,6 +277,19 @@ private fun SettingsCard(
             )
 
             SectionTitle(R.string.settings_section_dashboard)
+
+            SwitchRow(
+                label = stringResource(R.string.settings_map_first),
+                hint = stringResource(R.string.settings_map_first_hint),
+                checked = settings.dashboardLayout == DashboardLayout.MAP_FIRST,
+                onCheckedChange = { mapFirst ->
+                    onChange(
+                        settings.copy(
+                            dashboardLayout = if (mapFirst) DashboardLayout.MAP_FIRST else DashboardLayout.TILES,
+                        ),
+                    )
+                },
+            )
 
             // Le réglage de portée du profil a disparu : l'échelle du champ est désormais
             // comprimée au loin, et montre tout ce qui reste sans qu'on ait à choisir.

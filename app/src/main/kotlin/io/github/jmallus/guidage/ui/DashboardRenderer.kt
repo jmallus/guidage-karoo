@@ -11,6 +11,7 @@ import android.graphics.Typeface
 import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import io.github.jmallus.guidage.core.Contrast
+import io.github.jmallus.guidage.core.DashboardLayout
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
 import kotlin.math.max
@@ -124,6 +125,8 @@ data class DashboardModel(
      */
     val profileBand: ProfileFieldModel? = null,
     val palette: Palette,
+    /** Cases, ou carte d'abord. Le rendu et la coupe de l'appui en dépendent tous deux. */
+    val layout: DashboardLayout = DashboardLayout.MAP_FIRST,
 )
 
 object DashboardRenderer {
@@ -184,10 +187,13 @@ object DashboardRenderer {
      * dessin, sinon le doigt agirait sur ce qu'il ne désigne pas — et il n'y a qu'un moyen
      * d'en être sûr, c'est que les deux la lisent au même endroit.
      */
-    fun bandTop(width: Int, height: Int, hasBand: Boolean): Float {
+    fun bandTop(width: Int, height: Int, hasBand: Boolean, layout: DashboardLayout = DashboardLayout.TILES): Float {
         if (!hasBand) return height.toFloat()
         val padding = padding(width, height)
-        return padding + ROWS_ABOVE_BAND * (height - 2 * padding) * ROW_HEIGHT_FRACTION
+        return when (layout) {
+            DashboardLayout.TILES -> padding + ROWS_ABOVE_BAND * (height - 2 * padding) * ROW_HEIGHT_FRACTION
+            DashboardLayout.MAP_FIRST -> height - padding - height * HUD_BAND_FRACTION
+        }
     }
 
     fun render(
@@ -199,6 +205,10 @@ object DashboardRenderer {
     ): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        if (model.layout == DashboardLayout.MAP_FIRST) {
+            drawMapFirst(context, canvas, width, height, model, encreMinimaleMm)
+            return bitmap
+        }
 
         val padding = padding(width, height)
         val columnSplit = width * TILE_COLUMN_FRACTION
@@ -307,6 +317,172 @@ object DashboardRenderer {
             )
         }
         return bitmap
+    }
+
+    // --- Carte d'abord ---------------------------------------------------------------------
+
+    /**
+     * La carte sur tout le champ, et le reste posé dessus.
+     *
+     * Choisie sur planches contre deux autres. Ce qu'elle achète : une carte deux fois plus
+     * large et une fois et demie plus haute, qui montre loin devant et sur les côtés. Ce
+     * qu'elle coûte : les chiffres se posent sur des voiles à demi transparents, et sur un
+     * fond de carte chargé leur contraste n'est plus garanti par le fond. Il l'est par un
+     * **cerne** : chaque texte est tracé d'abord en sombre et épais, puis en clair par-dessus,
+     * si bien qu'un blanc de carte ne peut pas manger un blanc de chiffre.
+     *
+     * La colonne de gauche empile la vitesse, la puissance, le cœur et la cadence — l'ordre
+     * des aplats d'avant, moins la cadence remontée d'un rang parce qu'elle n'a pas de zone —
+     * et finit par la transmission. L'aplat de zone devient une barre au bord gauche : la
+     * couleur est là, elle n'est plus le fond. Le restant va sous la boussole, seul en haut à
+     * droite, et le profil prend le pied du champ sur toute la largeur.
+     *
+     * Le coureur, la boussole et l'échelle se calent sur la partie de carte à découvert, et
+     * non sur le champ entier : voir `MapRenderer.draw` et son paramètre `focus`.
+     */
+    private fun drawMapFirst(
+        context: Context,
+        canvas: Canvas,
+        width: Int,
+        height: Int,
+        model: DashboardModel,
+        encreMinimaleMm: Float,
+    ) {
+        val padding = padding(width, height)
+        val bandTop = bandTop(width, height, model.profileBand != null, model.layout)
+        val column = width * HUD_COLUMN_FRACTION
+        val full = RectF(0f, 0f, width.toFloat(), height.toFloat())
+        val focus = RectF(column, 0f, width.toFloat(), bandTop)
+
+        // Les encres sont fixes, quel que soit le thème : la carte a ses propres couleurs, et
+        // les voiles sont sombres dans les deux cas. Un thème clair mettrait du noir sur eux.
+        val hud = model.palette.copy(
+            textPrimary = HUD_INK,
+            textSecondary = HUD_SOFT_INK,
+            iconTint = HUD_SOFT_INK,
+        )
+
+        when (val guidance = model.guidance) {
+            is GuidanceZone.Map -> MapRenderer.draw(canvas, full, guidance.model, model.palette, focus)
+            is GuidanceZone.Profile -> drawRouteGraph(canvas, focus, guidance.model, model.palette)
+        }
+
+        val veil = Paint().apply { color = HUD_VEIL }
+        val columnBottom = bandTop - padding
+        canvas.drawRect(0f, 0f, column, columnBottom, veil)
+
+        // Vitesse, puissance, cœur, cadence : l'ordre de lecture, la cadence en dernier parce
+        // qu'elle est la seule sans zone et donc sans couleur à porter.
+        val blocks = buildList {
+            model.topTiles.getOrNull(0)?.let { add(it) }
+            model.topTiles.getOrNull(2)?.let { add(it) }
+            model.heartRateTile?.let { add(it) }
+            model.topTiles.getOrNull(1)?.let { add(it) }
+        }
+        val drivetrainHeight = if (model.drivetrain == null) 0f else columnBottom * HUD_DRIVETRAIN_FRACTION
+        val blockHeight = (columnBottom - padding - drivetrainHeight) / blocks.size.coerceAtLeast(1)
+        val labelSize = max(blockHeight * HUD_LABEL_FRACTION, Lisibilite.corpsPourCapitale(encreMinimaleMm))
+        val textWidth = column - HUD_BAR_WIDTH - EDGE_INSET * 2
+        val valueSize = blocks.minOfOrNull { fitValueSize(it, textWidth, blockHeight * HUD_VALUE_FRACTION) }
+            ?: blockHeight * HUD_VALUE_FRACTION
+
+        blocks.forEachIndexed { index, tile ->
+            val top = padding + index * blockHeight
+            drawHudBlock(canvas, RectF(0f, top, column, top + blockHeight), tile, hud, valueSize, labelSize)
+        }
+        model.drivetrain?.let { drivetrain ->
+            drawDrivetrain(
+                context = context,
+                canvas = canvas,
+                bounds = RectF(0f, padding + blocks.size * blockHeight, column, columnBottom),
+                model = drivetrain,
+                palette = hud,
+                valueSize = valueSize,
+                labelSize = labelSize,
+            )
+        }
+
+        // Le restant, sous la boussole : seul en haut à droite, dans son propre voile.
+        model.remainingTile?.let { remaining ->
+            val restWidth = width * HUD_REST_FRACTION
+            val restTop = MapRenderer.compassBottom(focus) + padding
+            val rest = RectF(width - restWidth - padding, restTop, width - padding, restTop + blockHeight)
+            canvas.drawRoundRect(rest, HUD_CORNER, HUD_CORNER, veil)
+            drawHudBlock(canvas, rest, remaining, hud, valueSize, labelSize, bar = false)
+        }
+
+        // Le profil au pied, sur toute la largeur, par le rendu du champ « Profil à venir ».
+        model.profileBand?.let { band ->
+            canvas.drawRect(0f, bandTop, width.toFloat(), height.toFloat(), veil)
+            ProfileRenderer.draw(
+                canvas = canvas,
+                area = RectF(padding, bandTop, width - padding, height - padding),
+                model = band,
+                palette = hud,
+                encreMinimaleMm = encreMinimaleMm,
+            )
+        }
+    }
+
+    /**
+     * Un bloc de la colonne : la barre de zone au bord, le libellé, le chiffre — tous cernés.
+     *
+     * Calé à gauche et non centré : la colonne est étroite, et des chiffres de longueurs
+     * différentes centrés y flotteraient. Alignés sur la barre, ils font une colonne.
+     */
+    private fun drawHudBlock(
+        canvas: Canvas,
+        bounds: RectF,
+        tile: Tile,
+        palette: Palette,
+        valueSize: Float,
+        labelSize: Float,
+        bar: Boolean = true,
+    ) {
+        var left = bounds.left + EDGE_INSET
+        if (bar) {
+            tile.background?.let { color ->
+                canvas.drawRect(
+                    bounds.left,
+                    bounds.top,
+                    bounds.left + HUD_BAR_WIDTH,
+                    bounds.bottom - HUD_BAR_GAP,
+                    Paint().apply { this.color = color },
+                )
+            }
+            left += HUD_BAR_WIDTH
+        }
+        val labelPaint = paint(labelSize, palette.textSecondary, LABEL_TYPEFACE)
+        val valuePaint = paint(valueSize, palette.textPrimary, VALUE_TYPEFACE)
+        val suffixPaint = paint(valueSize * SUFFIX_RATIO, palette.textPrimary, VALUE_TYPEFACE)
+
+        drawHaloed(canvas, tile.label, left, bounds.top + HUD_LABEL_INSET - labelPaint.ascent(), labelPaint)
+
+        val baseline = bounds.bottom - HUD_VALUE_INSET - valuePaint.descent()
+        drawHaloed(canvas, tile.value, left, baseline, valuePaint)
+        val tail = tile.decimal ?: tile.suffix
+        if (tail != null) {
+            val rise = if (tile.decimal == null) 0f else decimalRise(tile.value, tail, valuePaint, suffixPaint)
+            drawHaloed(canvas, tail, left + valuePaint.measureText(tile.value), baseline - rise, suffixPaint)
+        }
+    }
+
+    /**
+     * Un texte cerné : tracé d'abord en sombre et épais, puis en sa couleur par-dessus.
+     *
+     * C'est ce qui rend les voiles possibles à demi-transparence. Sans cerne, le contraste
+     * d'un chiffre dépendrait de ce que la carte met dessous — un champ, un bois, un blanc de
+     * route — et se jugerait donc au hasard du paysage.
+     */
+    private fun drawHaloed(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint) {
+        val halo = Paint(paint).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = (paint.textSize * HUD_HALO_RATIO).coerceAtLeast(2f)
+            strokeJoin = Paint.Join.ROUND
+            color = HUD_HALO
+        }
+        canvas.drawText(text, x, y, halo)
+        canvas.drawText(text, x, y, paint)
     }
 
     // --- Cases de chiffres ---------------------------------------------------------------
@@ -752,6 +928,46 @@ object DashboardRenderer {
 
     /** Hauteur réservée aux dentures sous le peigne, en part de leur corps. */
     private const val TEETH_LEADING = 1.35f
+
+    /**
+     * Carte d'abord : le voile, choisi sur planches à cinquante pour cent.
+     *
+     * Plus clair, on voit la carte sous les chiffres ; plus sombre, on ne voit plus qu'une
+     * colonne. Cinquante est ce qui a été retenu, et c'est le cerne qui rend ce chiffre-là
+     * tenable.
+     */
+    private const val HUD_VEIL = 0x80202224.toInt()
+    private const val HUD_HALO = 0xFF202224.toInt()
+    private const val HUD_INK = 0xFFFFFFFF.toInt()
+    private const val HUD_SOFT_INK = KarooColors.POWDER_BLUE
+
+    /** Part de la largeur donnée à la colonne de gauche. */
+    private const val HUD_COLUMN_FRACTION = 0.335f
+
+    /** Part de la hauteur donnée au profil, choisie sur planches. */
+    private const val HUD_BAND_FRACTION = 0.25f
+
+    /** Part de la colonne donnée à la transmission ; les quatre blocs se partagent le reste. */
+    private const val HUD_DRIVETRAIN_FRACTION = 0.21f
+
+    /** Corps du libellé et du chiffre, en part de la hauteur d'un bloc. */
+    private const val HUD_LABEL_FRACTION = 0.19f
+    private const val HUD_VALUE_FRACTION = 0.60f
+
+    /** La barre de zone au bord gauche, et le blanc qui la sépare de la suivante. */
+    private const val HUD_BAR_WIDTH = 8f
+    private const val HUD_BAR_GAP = 4f
+
+    /** Blancs au-dessus du libellé et sous le chiffre. */
+    private const val HUD_LABEL_INSET = 4f
+    private const val HUD_VALUE_INSET = 6f
+
+    /** Largeur de la case du restant, en part de celle du champ, et son arrondi. */
+    private const val HUD_REST_FRACTION = 0.36f
+    private const val HUD_CORNER = 6f
+
+    /** Épaisseur du cerne, en part du corps. */
+    private const val HUD_HALO_RATIO = 0.09f
 
     /**
      * Blanc réservé au-dessus des barres, en part de la hauteur du libellé.
