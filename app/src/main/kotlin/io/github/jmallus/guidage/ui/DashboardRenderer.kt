@@ -327,9 +327,11 @@ object DashboardRenderer {
      * Choisie sur planches contre deux autres. Ce qu'elle achète : une carte deux fois plus
      * large et une fois et demie plus haute, qui montre loin devant et sur les côtés. Ce
      * qu'elle coûte : les chiffres se posent sur des voiles à demi transparents, et sur un
-     * fond de carte chargé leur contraste n'est plus garanti par le fond. Il l'est par un
-     * **cerne** : chaque texte est tracé d'abord en sombre et épais, puis en clair par-dessus,
-     * si bien qu'un blanc de carte ne peut pas manger un blanc de chiffre.
+     * fond de carte chargé leur contraste n'est plus garanti par le fond. Ils ont porté un
+     * cerne sombre pour cette raison, et l'ont perdu sur planche réelle : il alourdissait
+     * chaque chiffre pour parer un cas — un blanc de route sous un blanc de chiffre — que le
+     * voile à cinquante pour cent suffit à atténuer. C'est le voile, et lui seul, qui garantit
+     * la lecture ; s'il ne suffit pas quelque part, c'est lui qu'il faudra assombrir.
      *
      * La colonne de gauche empile la vitesse, la puissance, le cœur et la cadence — l'ordre
      * des aplats d'avant, moins la cadence remontée d'un rang parce qu'elle n'a pas de zone —
@@ -425,7 +427,7 @@ object DashboardRenderer {
     }
 
     /**
-     * Un bloc de la colonne : la barre de zone au bord, le libellé, le chiffre — tous cernés.
+     * Un bloc de la colonne : la barre de zone au bord, le libellé, le chiffre.
      *
      * Calé à gauche et non centré : la colonne est étroite, et des chiffres de longueurs
      * différentes centrés y flotteraient. Alignés sur la barre, ils font une colonne.
@@ -456,33 +458,15 @@ object DashboardRenderer {
         val valuePaint = paint(valueSize, palette.textPrimary, VALUE_TYPEFACE)
         val suffixPaint = paint(valueSize * SUFFIX_RATIO, palette.textPrimary, VALUE_TYPEFACE)
 
-        drawHaloed(canvas, tile.label, left, bounds.top + HUD_LABEL_INSET - labelPaint.ascent(), labelPaint)
+        canvas.drawText(tile.label, left, bounds.top + HUD_LABEL_INSET - labelPaint.ascent(), labelPaint)
 
         val baseline = bounds.bottom - HUD_VALUE_INSET - valuePaint.descent()
-        drawHaloed(canvas, tile.value, left, baseline, valuePaint)
+        canvas.drawText(tile.value, left, baseline, valuePaint)
         val tail = tile.decimal ?: tile.suffix
         if (tail != null) {
             val rise = if (tile.decimal == null) 0f else decimalRise(tile.value, tail, valuePaint, suffixPaint)
-            drawHaloed(canvas, tail, left + valuePaint.measureText(tile.value), baseline - rise, suffixPaint)
+            canvas.drawText(tail, left + valuePaint.measureText(tile.value), baseline - rise, suffixPaint)
         }
-    }
-
-    /**
-     * Un texte cerné : tracé d'abord en sombre et épais, puis en sa couleur par-dessus.
-     *
-     * C'est ce qui rend les voiles possibles à demi-transparence. Sans cerne, le contraste
-     * d'un chiffre dépendrait de ce que la carte met dessous — un champ, un bois, un blanc de
-     * route — et se jugerait donc au hasard du paysage.
-     */
-    private fun drawHaloed(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint) {
-        val halo = Paint(paint).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = (paint.textSize * HUD_HALO_RATIO).coerceAtLeast(2f)
-            strokeJoin = Paint.Join.ROUND
-            color = HUD_HALO
-        }
-        canvas.drawText(text, x, y, halo)
-        canvas.drawText(text, x, y, paint)
     }
 
     // --- Cases de chiffres ---------------------------------------------------------------
@@ -933,11 +917,10 @@ object DashboardRenderer {
      * Carte d'abord : le voile, choisi sur planches à cinquante pour cent.
      *
      * Plus clair, on voit la carte sous les chiffres ; plus sombre, on ne voit plus qu'une
-     * colonne. Cinquante est ce qui a été retenu, et c'est le cerne qui rend ce chiffre-là
-     * tenable.
+     * colonne. Cinquante est ce qui a été retenu, sans cerne sur les chiffres : c'est donc ce
+     * seul chiffre qui porte la lisibilité, et il se règle ici.
      */
     private const val HUD_VEIL = 0x80202224.toInt()
-    private const val HUD_HALO = 0xFF202224.toInt()
     private const val HUD_INK = 0xFFFFFFFF.toInt()
     private const val HUD_SOFT_INK = KarooColors.POWDER_BLUE
 
@@ -972,9 +955,6 @@ object DashboardRenderer {
     /** Largeur de la case du restant, en part de celle du champ, et son arrondi. */
     private const val HUD_REST_FRACTION = 0.36f
     private const val HUD_CORNER = 6f
-
-    /** Épaisseur du cerne, en part du corps. */
-    private const val HUD_HALO_RATIO = 0.09f
 
     /**
      * Blanc réservé au-dessus des barres, en part de la hauteur du libellé.
