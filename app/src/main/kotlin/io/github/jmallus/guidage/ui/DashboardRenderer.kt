@@ -107,22 +107,17 @@ data class DashboardModel(
      */
     val remainingTile: Tile? = null,
     /**
-     * Dernier rang : le champ « Avant la nuit » réduit à une bande, sur toute la largeur.
+     * Le bas de l'écran, sur toute la largeur : le profil de ce qui arrive.
      *
-     * Il a remplacé la case de l'heure d'arrivée : l'heure y est toujours, sur la frise, mais
-     * rapprochée de ce à quoi on la compare de tête en fin de journée — le coucher. Sans
-     * position ni coucher, la bande le dit ; elle ne cède le rang à rien d'autre, pour que la
-     * mise en page ne bouge pas en cours de route.
-     */
-    val night: NightFieldModel,
-    /**
-     * Bandeau du bas : le champ « Profil à venir », tel quel.
+     * Il occupe deux rangs, celui du bandeau et celui que tenait la bande « Avant la nuit ».
+     * Cette bande portait l'heure d'arrivée, et une sortie réelle a tranché : à cette hauteur
+     * l'heure ne se lisait pas. Elle a désormais sa propre case de bilan, où elle voyage avec
+     * le coucher et le verdict, en grand — et les cent points qu'elle occupait ici reviennent
+     * au seul endroit de l'écran qui en manquait vraiment.
      *
-     * Il portait les deux kilomètres qui entourent le coureur, à échelle régulière. Ce
-     * cadrage-là répondait à « qu'est-ce que je monte », jamais à « qu'est-ce qui reste » —
-     * et la première question a déjà sa réponse ailleurs sur l'écran, dans la pente et la
-     * distance au sommet. Le bandeau montre donc maintenant tout le parcours restant, sur
-     * l'échelle comprimée au loin du champ homonyme, dont il exécute le rendu même.
+     * Le bandeau exécute le rendu du champ « Profil à venir » lui-même : le redessiner ici en
+     * aurait fait une seconde écriture. Il lui passe en revanche une portée, là où le champ
+     * montre tout ce qui reste — les deux ne répondent pas à la même question.
      */
     val profileBand: ProfileFieldModel? = null,
     val palette: Palette,
@@ -156,12 +151,12 @@ object DashboardRenderer {
     private const val SUFFIX_RATIO = 0.52f
 
     /**
-     * Hauteur du bandeau de profil.
+     * Ce que la grille des chiffres laisse au bas de l'écran.
      *
-     * Près d'un quart, contre un sixième tant qu'un rang de nombres s'intercalait au-dessus du
-     * pied. La moitié de ce rang lui est revenue, et c'est ce qui lui permet de porter les
-     * chiffres de son axe à une taille qui se lise en roulant : à cent trois points il fallait
-     * les écrire à sept dixièmes de millimètre, ou les abandonner.
+     * Elle ne mesure plus le bandeau, qui va maintenant du pied de la grille au bas de
+     * l'écran et vaut donc près du double. Elle fixe la hauteur des rangs de chiffres, et
+     * elle est laissée telle quelle pour cette raison : la vitesse, la cadence et le cœur
+     * étaient à la bonne taille, et le rang gagné vient de la bande du soir, pas d'eux.
      */
     private const val PROFILE_BAND_FRACTION = 0.224f
 
@@ -186,12 +181,11 @@ object DashboardRenderer {
         val usableHeight = contentHeight - 2 * padding
         val rowHeight = usableHeight * ROW_HEIGHT_FRACTION
         fun row(index: Int) = padding + index * rowHeight
-        // Le pied commence où finit la grille : le rang « distance parcourue et pente » qui
-        // s'intercalait ici a été supprimé, et sa hauteur partagée entre la bande du soir et
-        // le bandeau de profil — les deux seuls endroits de l'écran qui manquaient de place
-        // pour écrire lisiblement.
+        // Le profil commence où finit la grille. Les rangs de chiffres, eux, gardent la
+        // hauteur qu'ils avaient : [PROFILE_BAND_FRACTION] continue de la leur fixer, si bien
+        // que la vitesse, la cadence et le cœur ne bougent pas d'un point — ils étaient bien
+        // comme ça, c'est la bande du soir qui a cédé sa place.
         val footerTop = row(GRID_ROWS)
-        val footerBottom = contentHeight - padding
 
         // Rang du haut : l'effort instantané, trois cases côte à côte. Il a sa propre taille
         // de chiffres, plus petite : ces cases sont deux fois plus étroites que les autres,
@@ -270,21 +264,13 @@ object DashboardRenderer {
             )
         }
 
-        // Ligne du bas : la bande « Avant la nuit », sur toute la largeur.
-        NightRenderer.drawBand(
-            canvas,
-            RectF(padding, footerTop, right, footerBottom),
-            model.night,
-            model.palette,
-            encreMinimaleMm,
-        )
-
-        // Tout en bas : le parcours restant, sur toute la largeur, par le rendu du champ
-        // « Profil à venir » lui-même. Le redessiner ici en aurait fait une seconde écriture.
+        // Tout le bas : le profil, sur toute la largeur et sur deux rangs — le sien et celui
+        // qu'occupait la bande du soir. Il commence donc où finit la grille des chiffres, et
+        // non au pied de l'écran.
         model.profileBand?.let { band ->
             ProfileRenderer.draw(
                 canvas = canvas,
-                area = RectF(padding, contentHeight, width - padding, height.toFloat()),
+                area = RectF(padding, footerTop, width - padding, height - padding),
                 model = band,
                 palette = model.palette,
                 encreMinimaleMm = encreMinimaleMm,

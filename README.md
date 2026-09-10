@@ -8,7 +8,7 @@ l'espacement des ravitaillements, le coût du reste en kilojoules — et des ann
 Tout est calculé **sur l'appareil**, à partir des données que Karoo OS fournit déjà :
 aucune connexion réseau, aucun compte, rien à synchroniser.
 
-<img src="docs/captures/carte-300m.png" alt="Le tableau de bord plein écran : effort en haut, transmission à gauche et minicarte à droite, fréquence cardiaque et distance restante côte à côte, le verdict du soir avec sa frise, profil à venir en bandeau" width="300">
+<img src="docs/captures/carte-300m.png" alt="Le tableau de bord plein écran : effort en haut, transmission à gauche et minicarte à droite, fréquence cardiaque et distance restante côte à côte, profil de ce qui arrive sur tout le bas" width="300">
 
 **Toutes les images de ce README sortent du rendu de l'appareil.** Elles ne sont pas des
 maquettes : le [simulateur](docs/developpement.md#le-simulateur) appelle les mêmes classes que
@@ -23,7 +23,7 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 
 | Champ | Type | Contenu |
 | --- | --- | --- |
-| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, le verdict du soir sur toute la largeur avec sa frise — heure d'arrivée **avec sa marge**, coucher, nuit — et le profil **à venir** en bandeau. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
+| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression change l'échelle de la carte. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Rempli en couleur selon la pente, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |

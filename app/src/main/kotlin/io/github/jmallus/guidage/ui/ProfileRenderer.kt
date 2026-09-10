@@ -42,6 +42,15 @@ data class ProfileFieldModel(
     /** Message affiché quand il n'y a rien à montrer. */
     val emptyMessage: String? = null,
     val colorByGrade: Boolean = true,
+    /**
+     * Vrai pour l'échelle comprimée au loin, faux pour une échelle régulière.
+     *
+     * La compression répond à « qu'est-ce qui reste » et vaut sur tout le parcours restant.
+     * Sur une fenêtre courte, elle n'a plus rien à faire tenir et écrase le fond de la
+     * fenêtre pour rien : c'est alors une échelle régulière qu'il faut, et la question posée
+     * n'est plus la même — « qu'est-ce qui arrive ».
+     */
+    val compressed: Boolean = true,
     /** Unités du coureur, pour graduer l'axe rondement. */
     val units: Units = Units.METRIC,
 )
@@ -119,7 +128,7 @@ object ProfileRenderer {
         val left = area.left + padding
         val right = area.right - padding
 
-        val scale = FisheyeScale(model.window.distanceSpan)
+        val scale = FisheyeScale(model.window.distanceSpan, compressed = model.compressed)
         if (model.window.isEmpty || !scale.usable || bottom <= top || right <= left) {
             drawEmpty(canvas, area, model.emptyMessage, palette)
             return
