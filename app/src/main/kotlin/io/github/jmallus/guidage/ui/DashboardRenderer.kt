@@ -128,14 +128,19 @@ object DashboardRenderer {
     /** Largeur de la colonne de gauche. */
     private const val TILE_COLUMN_FRACTION = 0.5f
 
-    /** Hauteur d'un rang de la grille, en part de la hauteur utile ; le reste va au pied. */
-    private const val ROW_HEIGHT_FRACTION = 0.2455f
-
-    /** Nombre de rangs de grille avant le pied : l'effort, puis les deux du guidage. */
-    private const val GRID_ROWS = 3
-
-    /** Nombre de hauteurs de rang occupées par le guidage. */
-    private const val GUIDANCE_ROWS = 2
+    /**
+     * Hauteur d'un rang de chiffres, en part de la hauteur utile.
+     *
+     * Deux rangs seulement la portent désormais : le bandeau du haut et celui du cœur. Le
+     * guidage prend tout ce qui reste entre les deux, et grandit donc quand le profil rend de
+     * la hauteur — c'est ce qui permet de déplacer la frontière entre carte et profil sans
+     * toucher à un seul chiffre.
+     *
+     * La valeur est celle qu'avait le rang quand il valait 0,2455 de la hauteur diminuée du
+     * bandeau : elle est réexprimée sur la hauteur entière pour que les cases gardent, au
+     * pixel près, la taille qu'elles avaient — elles étaient jugées bonnes en roulant.
+     */
+    private const val ROW_HEIGHT_FRACTION = 0.1895f
 
     /** Nombre de cases du bandeau du haut. */
     private const val TOP_TILES = 3
@@ -151,14 +156,34 @@ object DashboardRenderer {
     private const val SUFFIX_RATIO = 0.52f
 
     /**
-     * Ce que la grille des chiffres laisse au bas de l'écran.
+     * Hauteur du bandeau de profil, en part de la hauteur du champ.
      *
-     * Elle ne mesure plus le bandeau, qui va maintenant du pied de la grille au bas de
-     * l'écran et vaut donc près du double. Elle fixe la hauteur des rangs de chiffres, et
-     * elle est laissée telle quelle pour cette raison : la vitesse, la cadence et le cœur
-     * étaient à la bonne taille, et le rang gagné vient de la bande du soir, pas d'eux.
+     * La bande du soir lui avait laissé son rang, ce qui le portait à plus de deux cent
+     * soixante-dix points — le double de ce qu'il avait. Une sortie a tranché : c'était trop.
+     * Il rend la moitié, et la carte descend d'autant, la transmission avec elle pour que les
+     * deux colonnes restent alignées.
+     *
+     * Ce qui reste — un cinquième de l'écran, cent trente-cinq points — suffit à porter deux
+     * côtes avec leur pente et les graduations de l'axe, ce qui était tout le problème.
      */
-    private const val PROFILE_BAND_FRACTION = 0.224f
+    private const val PROFILE_BAND_FRACTION = 0.212f
+
+    private fun padding(width: Int, height: Int): Float =
+        (min(width, height) * 0.015f).coerceIn(2f, 6f)
+
+    /**
+     * Où commence le bandeau de profil, en pixels depuis le haut du champ.
+     *
+     * Rendue publique parce que l'appui sur le champ en dépend : le tableau de bord est
+     * découpé à cette hauteur en deux images, celle du haut changeant la portée de la carte
+     * et celle du bas celle du profil. La frontière doit être **la même** que celle du
+     * dessin, sinon le doigt agirait sur ce qu'il ne désigne pas — et il n'y a qu'un moyen
+     * d'en être sûr, c'est que les deux la lisent au même endroit.
+     */
+    fun bandTop(width: Int, height: Int, hasBand: Boolean): Float {
+        if (!hasBand) return height.toFloat()
+        return height - padding(width, height) - height * PROFILE_BAND_FRACTION
+    }
 
     fun render(
         context: Context,
@@ -170,22 +195,21 @@ object DashboardRenderer {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        val padding = (min(width, height) * 0.015f).coerceIn(2f, 6f)
+        val padding = padding(width, height)
         val columnSplit = width * TILE_COLUMN_FRACTION
         val right = width - padding
 
         // Le bandeau mange le bas de l'écran ; tout le reste se serre au-dessus. Il est là
         // dès qu'on navigue, de sorte que la mise en page ne bouge plus en cours de route.
-        val bandHeight = if (model.profileBand == null) 0f else height * PROFILE_BAND_FRACTION
-        val contentHeight = height - bandHeight
-        val usableHeight = contentHeight - 2 * padding
-        val rowHeight = usableHeight * ROW_HEIGHT_FRACTION
-        fun row(index: Int) = padding + index * rowHeight
-        // Le profil commence où finit la grille. Les rangs de chiffres, eux, gardent la
-        // hauteur qu'ils avaient : [PROFILE_BAND_FRACTION] continue de la leur fixer, si bien
-        // que la vitesse, la cadence et le cœur ne bougent pas d'un point — ils étaient bien
-        // comme ça, c'est la bande du soir qui a cédé sa place.
-        val footerTop = row(GRID_ROWS)
+        val bandTop = bandTop(width, height, model.profileBand != null)
+
+        // Deux rangs de chiffres à hauteur fixe — l'effort en haut, le cœur juste au-dessus du
+        // profil — et le guidage qui prend tout l'entre-deux. Écrire la mise en page dans ce
+        // sens-là, plutôt qu'en rangs égaux comptés depuis le haut, est ce qui permet de
+        // déplacer la frontière carte/profil sans qu'aucun chiffre ne change de corps.
+        val rowHeight = (height - 2 * padding) * ROW_HEIGHT_FRACTION
+        val topBottom = padding + rowHeight
+        val heartTop = bandTop - rowHeight
 
         // Rang du haut : l'effort instantané, trois cases côte à côte. Il a sa propre taille
         // de chiffres, plus petite : ces cases sont deux fois plus étroites que les autres,
@@ -198,9 +222,9 @@ object DashboardRenderer {
             bounds = topTiles.indices.map { index ->
                 RectF(
                     padding + index * topWidth,
-                    row(0),
+                    padding,
                     padding + (index + 1) * topWidth,
-                    row(1),
+                    topBottom,
                 )
             },
             tiles = topTiles,
@@ -227,9 +251,9 @@ object DashboardRenderer {
                 bounds = colonneTiles.indices.map { index ->
                     RectF(
                         padding + index * cellWidth,
-                        row(2),
+                        heartTop,
                         padding + (index + 1) * cellWidth,
-                        row(3),
+                        bandTop,
                     )
                 },
                 tiles = colonneTiles,
@@ -239,8 +263,9 @@ object DashboardRenderer {
             )
         }
 
-        // Colonne droite : le guidage sur deux hauteurs de rang.
-        val guidanceArea = RectF(columnSplit, row(1), right, row(1 + GUIDANCE_ROWS))
+        // Colonne droite : le guidage, de sous le bandeau du haut jusqu'au profil. C'est lui
+        // qui absorbe la hauteur rendue par le profil — la carte descend.
+        val guidanceArea = RectF(columnSplit, topBottom, right, bandTop)
         when (val guidance = model.guidance) {
             is GuidanceZone.Map -> MapRenderer.draw(canvas, guidanceArea, guidance.model, model.palette)
             is GuidanceZone.Profile -> drawRouteGraph(canvas, guidanceArea, guidance.model, model.palette)
@@ -251,7 +276,7 @@ object DashboardRenderer {
             drawDrivetrain(
                 context = context,
                 canvas = canvas,
-                bounds = RectF(padding, row(1), columnSplit, row(2)),
+                bounds = RectF(padding, topBottom, columnSplit, heartTop),
                 model = drivetrain,
                 palette = model.palette,
                 valueSize = valueSize,
@@ -270,7 +295,7 @@ object DashboardRenderer {
         model.profileBand?.let { band ->
             ProfileRenderer.draw(
                 canvas = canvas,
-                area = RectF(padding, footerTop, width - padding, height - padding),
+                area = RectF(padding, bandTop, width - padding, height - padding),
                 model = band,
                 palette = model.palette,
                 encreMinimaleMm = encreMinimaleMm,

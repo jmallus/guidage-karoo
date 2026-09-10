@@ -225,16 +225,20 @@ object DashboardModels {
             position = along,
             climbs = route.climbs,
             pois = route.pois.map { GraphPoi(it.distanceAlongRoute, PoiLabels.label(context, it)) },
-            zoomLabel = zoomLabel(context, settings),
+            zoomLabel = zoomLabel(settings),
             colorByGrade = settings.colorByGrade,
         )
     }
 
-    private fun zoomLabel(context: Context, settings: GuidageSettings): String {
-        val lookahead = settings.graphZoom.lookaheadMeters
-            ?: return context.getString(R.string.dashboard_zoom_whole_route)
-        return "${(lookahead / 1_000).toInt()} km"
-    }
+    /**
+     * La portée écrite sur le graphe de guidage.
+     *
+     * Toujours un nombre de kilomètres : le cran « parcours entier » a disparu de l'échelle,
+     * qui n'a plus que des portées franches. C'est le champ « Profil à venir » qui montre
+     * tout ce qui reste, à l'échelle comprimée faite pour ça.
+     */
+    private fun zoomLabel(settings: GuidageSettings): String =
+        "${(settings.graphZoom.lookaheadMeters / 1_000).toInt()} km"
 
     /**
      * Bandeau du haut : l'effort instantané, vitesse, cadence, puissance.
