@@ -570,11 +570,15 @@ object DashboardRenderer {
         val front = comb(model.front, model.frontCount)
         val rear = comb(model.rear, model.rearCount)
         if (front == null && rear == null) {
+            // Le « -- » a son propre corps : il ne remplace pas les dentures mais le peigne
+            // entier, et grossir avec elles en aurait fait un tiret de la taille d'un chiffre
+            // de case dans une case par ailleurs vide.
+            val videPaint = paint(valueSize * PLACEHOLDER_RATIO, palette.textPrimary, VALUE_TYPEFACE)
             canvas.drawText(
                 PLACEHOLDER,
-                right - teethPaint.measureText(PLACEHOLDER),
-                area.top + area.height() / 2f - (teethPaint.descent() + teethPaint.ascent()) / 2f,
-                teethPaint,
+                right - videPaint.measureText(PLACEHOLDER),
+                area.top + area.height() / 2f - (videPaint.descent() + videPaint.ascent()) / 2f,
+                videPaint,
             )
             return
         }
@@ -730,14 +734,21 @@ object DashboardRenderer {
     private const val BAR_MIN_HEIGHT = 0.35f
 
     /**
-     * Taille des dentures — « 50×17 » — et du « -- » qui remplace le peigne à défaut.
+     * Taille des dentures, « 50×17 », en part du chiffre d'une case.
      *
      * Elles ont été retirées un temps, quand la case ne faisait qu'un rang : elles y coûtaient
      * un bon huitième de la hauteur, et le peigne, seul dessin de la case, s'en trouvait
      * écrasé. La case en fait un et demi depuis que la carte est descendue, et la place est
-     * revenue avec.
+     * revenue avec — assez pour les écrire au double du corps qu'elles avaient alors, et
+     * qu'elles se lisent d'un coup d'œil et non en cherchant.
+     *
+     * Ce qu'elles prennent, les barres le rendent : le peigne s'arrête à leur hauteur, si
+     * bien que ce réglage-ci suffit à arbitrer entre les deux.
      */
-    private const val TEETH_RATIO = 0.28f
+    private const val TEETH_RATIO = 0.56f
+
+    /** Taille du « -- » qui remplace le peigne entier quand le groupe ne rapporte rien. */
+    private const val PLACEHOLDER_RATIO = 0.28f
 
     /** Hauteur réservée aux dentures sous le peigne, en part de leur corps. */
     private const val TEETH_LEADING = 1.35f
