@@ -90,9 +90,6 @@ object DashboardModels {
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
             remainingTile = remainingTile(context, rideData, units),
-            // Le rang du bas est à la bande du soir, quoi qu'elle ait à dire : sans position ni
-            // coucher, elle le dit, et la mise en page ne bouge pas en cours de route.
-            night = NightModels.build(context, snapshot, rideData, preview, nowMillis),
             profileBand = profileBand(context, snapshot, settings, preview),
             palette = FieldPalette.of(context),
         )
@@ -106,15 +103,16 @@ object DashboardModels {
      * surgit, et se dérobe précisément quand on voudrait savoir si le faux plat qu'on subit
      * en est un.
      *
-     * Il portait deux kilomètres calés sur le coureur, à échelle régulière. Ce cadrage
-     * répondait à « qu'est-ce que je monte », jamais à « qu'est-ce qui reste » — et la
-     * première question a déjà ses réponses ailleurs sur l'écran : la pente dans son rang, la
-     * distance au sommet dans le champ de côte. Le bandeau montre donc tout le parcours
-     * restant, sur l'échelle comprimée au loin, les côtes y étant surlignées comme dans le
-     * champ homonyme.
+     * Il a montré tout le parcours restant, sur l'échelle comprimée au loin. Une sortie
+     * réelle a montré la limite de ce cadrage : sur une journée entière, la compression écrase
+     * les côtes contre le fond de la fenêtre et l'on ne se rend plus compte de ce qui arrive.
+     * C'est logique — la compression est faite pour répondre à « qu'est-ce qui reste », et le
+     * bandeau est regardé pour savoir « qu'est-ce qui arrive ».
      *
-     * C'est le modèle de ce champ, sans rien de recopié : les deux montrent la même chose et
-     * doivent continuer de le faire.
+     * Il porte donc la portée réglée, à échelle régulière. Le champ « Profil à venir », lui,
+     * garde tout le restant comprimé : les deux ne divergent pas par négligence, ils
+     * répondent chacun à sa question, et c'est le même modèle et le même rendu qui servent
+     * les deux.
      */
     private fun profileBand(
         context: Context,
@@ -122,7 +120,8 @@ object DashboardModels {
         settings: GuidageSettings,
         preview: Boolean,
     ): ProfileFieldModel? =
-        FieldModels.profile(context, snapshot, settings, preview).takeIf { !it.window.isEmpty }
+        FieldModels.profile(context, snapshot, settings, preview, zoom = settings.graphZoom)
+            .takeIf { !it.window.isEmpty }
     private fun mapModel(
         context: Context,
         snapshot: GuidanceSnapshot,
@@ -226,16 +225,20 @@ object DashboardModels {
             position = along,
             climbs = route.climbs,
             pois = route.pois.map { GraphPoi(it.distanceAlongRoute, PoiLabels.label(context, it)) },
-            zoomLabel = zoomLabel(context, settings),
+            zoomLabel = zoomLabel(settings),
             colorByGrade = settings.colorByGrade,
         )
     }
 
-    private fun zoomLabel(context: Context, settings: GuidageSettings): String {
-        val lookahead = settings.graphZoom.lookaheadMeters
-            ?: return context.getString(R.string.dashboard_zoom_whole_route)
-        return "${(lookahead / 1_000).toInt()} km"
-    }
+    /**
+     * La portée écrite sur le graphe de guidage.
+     *
+     * Toujours un nombre de kilomètres : le cran « parcours entier » a disparu de l'échelle,
+     * qui n'a plus que des portées franches. C'est le champ « Profil à venir » qui montre
+     * tout ce qui reste, à l'échelle comprimée faite pour ça.
+     */
+    private fun zoomLabel(settings: GuidageSettings): String =
+        "${(settings.graphZoom.lookaheadMeters / 1_000).toInt()} km"
 
     /**
      * Bandeau du haut : l'effort instantané, vitesse, cadence, puissance.

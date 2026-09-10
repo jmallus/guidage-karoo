@@ -445,10 +445,21 @@ object MapRenderer {
         }
 
         // La rejointe par-dessus tout le reste : c'est elle qu'on suit tant qu'on est dehors.
-        if (rejoinScreen.size >= 2) {
+        val rejointe = rejoinScreen.size >= 2
+        if (rejointe) {
             paint.color = OFF_ROUTE_COLOR
             canvas.drawPath(polyline(rejoinScreen), paint)
         }
+
+        // Les chevrons vont sur ce qu'on doit suivre, et non sur ce qu'on suivait.
+        //
+        // Hors itinéraire ils couraient sur le tracé bleu, c'est-à-dire sur la route qu'on
+        // vient de quitter : ils désignaient alors le sens d'un chemin qu'on ne prend pas,
+        // pendant que le seul trait utile — la rejointe, en rouge — n'en portait aucun. Le
+        // relevé d'une sortie réelle l'a dit. Quand une rejointe existe, elle les prend.
+        val suivi = if (rejointe) rejoinScreen else ahead
+        val gabarit = if (rejointe) polyline(rejoinScreen) else route
+        val portee = if (rejointe) Float.POSITIVE_INFINITY else chevronLimit
 
         // Le ruban sert de gabarit aux chevrons. Leurs branches sont taillées à sa
         // demi-largeur, si bien qu'elles s'arrêtent d'elles-mêmes au bord ; le gabarit ne fait
@@ -456,10 +467,10 @@ object MapRenderer {
         // perpendiculaire au chevron n'est pas tout à fait la sienne, et le coin du trait
         // passait alors outre — mordant sur le fond et sur les voies que le tracé croise.
         val ribbon = Path()
-        paint.getFillPath(route, ribbon)
+        paint.getFillPath(gabarit, ribbon)
         val clip = canvas.save()
         canvas.clipPath(ribbon)
-        drawChevrons(canvas, area, ahead, width, chevronLimit)
+        drawChevrons(canvas, area, suivi, width, portee)
         canvas.restoreToCount(clip)
 
         // La flèche, elle, n'est pas rognée par le ruban : elle est plus large que lui et se
@@ -973,33 +984,49 @@ object MapRenderer {
         metersToPixels: Float,
         palette: Palette,
     ) {
-        val scaleMeters = Geo.niceScale(rangeMeters / 2)
+        // Le quart de la portée, et non la moitié. Au cran le plus court — trois cents
+        // mètres — la moitié donnait une règle de cent mètres, qui traversait la moitié de la
+        // carte et ne se rapportait à rien de ce qu'on y regarde. Le quart y donne cinquante
+        // mètres : la largeur d'un carrefour, l'échelle à laquelle on lit vraiment cette
+        // carte-là. Aux crans plus longs le comportement ne change pas d'un cran de l'échelle
+        // 1-2-5 — cent mètres à cinq cents, deux cents au kilomètre.
+        val scaleMeters = Geo.niceScale(rangeMeters / 4)
         val barWidth = scaleMeters.toFloat() * metersToPixels
         if (barWidth < 10f || barWidth > area.width()) return
 
-        val labelSize = (area.height() * 0.045f).coerceIn(9f, 15f)
-        val y = area.bottom - labelSize * 0.5f
+        val labelSize = (area.height() * 0.062f).coerceIn(11f, 20f)
+        val tick = labelSize * 0.34f
+        val y = area.bottom - tick - 2f
         val left = area.left + 6f
 
-        val bar = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = RoadStyle.INK
-            strokeWidth = 3f
-        }
-        canvas.drawLine(left, y, left + barWidth, y, bar)
-        canvas.drawLine(left, y - 4f, left, y + 4f, bar)
-        canvas.drawLine(left + barWidth, y - 4f, left + barWidth, y + 4f, bar)
-
         val label = if (scaleMeters >= 1_000) "${(scaleMeters / 1_000).toInt()} km" else "${scaleMeters.toInt()} m"
-        canvas.drawText(
-            label,
-            left,
-            y - 6f,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = RoadStyle.INK
-                textSize = labelSize
-                typeface = Typeface.DEFAULT_BOLD
-            },
-        )
+        val texte = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = labelSize
+            typeface = Typeface.DEFAULT_BOLD
+        }
+
+        // Règle et étiquette sont cernées de la couleur du fond avant d'être encrées : la
+        // carte passe sous elles, et sur un bois sombre comme sur un champ clair une encre
+        // unique disparaît d'un côté ou de l'autre. Le cerne coûte deux traits et rend
+        // l'échelle lisible partout, ce qui est la moindre des choses pour une échelle.
+        listOf(
+            Triple(RoadStyle.BACKGROUND, 5f, 3f),
+            Triple(RoadStyle.INK, 3f, 0f),
+        ).forEach { (encre, epaisseur, halo) ->
+            val bar = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = encre
+                strokeWidth = epaisseur
+                strokeCap = Paint.Cap.SQUARE
+            }
+            canvas.drawLine(left, y, left + barWidth, y, bar)
+            canvas.drawLine(left, y - tick, left, y + tick, bar)
+            canvas.drawLine(left + barWidth, y - tick, left + barWidth, y + tick, bar)
+
+            texte.color = encre
+            texte.style = if (halo > 0f) Paint.Style.STROKE else Paint.Style.FILL
+            texte.strokeWidth = halo
+            canvas.drawText(label, left, y - tick - 3f, texte)
+        }
     }
 
     private fun drawMessage(canvas: Canvas, area: RectF, message: String?, palette: Palette) {

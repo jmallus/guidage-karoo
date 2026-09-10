@@ -12,7 +12,7 @@
     <string name="field_poi_description">Distance to the next point of interest on the route.</string>
 
     <string name="field_dashboard_name">Dashboard</string>
-    <string name="field_dashboard_description">Full-screen field: route minimap oriented track-up, speed, power, heart rate, cadence, grade, distance remaining and arrival time. Speed, power and heart rate take their zone colour. Tap the field to change the scale.</string>
+    <string name="field_dashboard_description">Full-screen field: route minimap oriented track-up, speed, power, heart rate, cadence, drivetrain, distance remaining, and across the whole bottom the profile of what is coming. Speed, power and heart rate take their zone colour. Tap the field to change the scale.</string>
 
     <!-- Dashboard cell labels, set in capitals -->
     <string name="dashboard_label_speed">SPEED 3S</string>
@@ -30,7 +30,6 @@
     <string name="basemap_empty">No ways here</string>
     <string name="dashboard_label_remaining">TO GO</string>
     <string name="dashboard_label_arrival">ARRIVAL</string>
-    <string name="dashboard_zoom_whole_route">Route</string>
     <string name="dashboard_climb_title">Climb %1$d/%2$d — %3$s at %4$s</string>
     <string name="settings_guidance_map">Minimap instead of profile (dashboard)</string>
 

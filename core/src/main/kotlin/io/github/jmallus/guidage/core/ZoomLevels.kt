@@ -4,33 +4,44 @@ package io.github.jmallus.guidage.core
  * Niveaux de zoom parcourus par appui sur le champ, comme sur la carte native du Karoo.
  */
 
-/** Portée du profil altimétrique en portrait. */
-enum class GraphZoom(val lookaheadMeters: Double?) {
-    /** Le parcours entier, du départ à l'arrivée. */
-    WHOLE_ROUTE(null),
-    AHEAD_2KM(2_000.0),
+/**
+ * Portée du bandeau de profil, parcourue par appui sur son bas.
+ *
+ * Quatre crans, tous à échelle régulière : cinq kilomètres pour la côte qui vient, dix pour
+ * l'heure qui vient, vingt pour la demi-journée, cinquante pour la journée. Le parcours
+ * entier n'en est plus un — c'est ce que montre le champ « Profil à venir », à l'échelle
+ * comprimée qui est faite pour ça, et un bandeau qui l'affichait aussi écrasait les côtes
+ * contre le fond de la fenêtre sans qu'on s'en rende compte.
+ */
+enum class GraphZoom(val lookaheadMeters: Double) {
+    AHEAD_5KM(5_000.0),
+    AHEAD_10KM(10_000.0),
     AHEAD_20KM(20_000.0),
     AHEAD_50KM(50_000.0),
-    AHEAD_100KM(100_000.0),
     ;
 
     fun next(): GraphZoom = entries[(ordinal + 1) % entries.size]
 
     companion object {
-        fun fromOrdinal(ordinal: Int): GraphZoom = entries.getOrElse(ordinal) { AHEAD_20KM }
+        /** Ce que montre le bandeau tant qu'on n'y a pas touché. */
+        val DEFAULT = AHEAD_10KM
+
+        fun fromOrdinal(ordinal: Int): GraphZoom = entries.getOrElse(ordinal) { DEFAULT }
     }
 }
 
 /**
  * Distance visible devant le coureur sur la minicarte, parcourue par appui sur le champ.
  *
- * Trois crans seulement, relevés en roulant : trois cents mètres pour le carrefour qui
- * vient, cinq cents pour la sortie du village, un kilomètre pour savoir où l'on va. Au-delà,
- * la carte native du Karoo fait mieux, et en deçà on ne voit plus assez loin pour anticiper.
+ * Quatre crans, relevés en roulant : cent cinquante mètres pour la place où l'on hésite,
+ * trois cents pour le carrefour qui vient, cinq cents pour la sortie du village, un kilomètre
+ * pour savoir où l'on va. Au-delà, la carte native du Karoo fait mieux.
  *
- * Le cran le plus court était à deux cents mètres. À trente à l'heure ils passent en vingt-quatre
- * secondes : le temps de lire la carte, ce qu'on y avait vu était derrière. Trois cents en
- * donnent trente-six, et le carrefour a le temps d'arriver.
+ * Le cran le plus court a longtemps été à deux cents mètres, puis à trois cents : à trente à
+ * l'heure, deux cents passent en vingt-quatre secondes, et le temps de lire la carte ce qu'on
+ * y avait vu était derrière. Cent cinquante est revenu par le bas pour une autre raison — non
+ * pour anticiper mais pour se situer, là où les rues se ressemblent et où l'on veut voir
+ * laquelle on prend. On n'y roule pas vite, et la seconde perdue à lire n'est pas la même.
  *
  * À chaque cran sa longueur de chevrons. Ils ne courent pas sur tout ce qui reste : sur un
  * parcours qui repasse par son départ, la branche du retour est là, à quelques mètres, et en
@@ -39,6 +50,7 @@ enum class GraphZoom(val lookaheadMeters: Double?) {
  * à la fois.
  */
 enum class MapZoom(val rangeMeters: Double, val chevronMeters: Double) {
+    CLOSE(150.0, 250.0),
     NEAR(300.0, 450.0),
     MIDDLE(500.0, 800.0),
     FAR(1_000.0, 1_300.0),
@@ -47,7 +59,15 @@ enum class MapZoom(val rangeMeters: Double, val chevronMeters: Double) {
     fun next(): MapZoom = entries[(ordinal + 1) % entries.size]
 
     companion object {
-        fun fromOrdinal(ordinal: Int): MapZoom = entries.getOrElse(ordinal) { NEAR }
+        /**
+         * Le cran d'usine : trois cents mètres, et non le plus court.
+         *
+         * Cent cinquante sert à se situer dans une agglomération, pas à rouler : le proposer
+         * d'emblée obligerait à trois appuis pour retrouver la portée du reste du temps.
+         */
+        val DEFAULT = NEAR
+
+        fun fromOrdinal(ordinal: Int): MapZoom = entries.getOrElse(ordinal) { DEFAULT }
     }
 }
 

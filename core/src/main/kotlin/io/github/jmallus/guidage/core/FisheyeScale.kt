@@ -32,13 +32,23 @@ class FisheyeScale(
     val span: Double,
     /** Distance sous laquelle l'échelle reste à peu près proportionnelle (m). */
     val fine: Double = FINE_METERS,
+    /**
+     * Faux pour une échelle régulière, où un mètre vaut un mètre d'un bout à l'autre.
+     *
+     * La compression répond à « qu'est-ce qui reste » et suppose qu'on montre tout ce qui
+     * reste. Sur une fenêtre courte — les deux prochains kilomètres — elle n'a plus lieu
+     * d'être : il n'y a plus de lointain à faire tenir, et elle écraserait le fond de la
+     * fenêtre sans rien gagner. Les deux questions ne se posent pas au même moment et ne
+     * veulent pas la même échelle.
+     */
+    val compressed: Boolean = true,
 ) {
 
     private val denominator: Double =
         if (span > 0.0 && fine > 0.0) ln1p(span / fine) else 0.0
 
     /** Faux quand il n'y a rien à projeter — parcours fini, ou profil absent. */
-    val usable: Boolean get() = denominator > 0.0
+    val usable: Boolean get() = if (compressed) denominator > 0.0 else span > 0.0
 
     /**
      * Taux de compression entre le premier mètre et le dernier.
@@ -47,18 +57,22 @@ class FisheyeScale(
      * la largeur d'un mètre près de l'arrivée. Sert surtout à s'assurer que le chiffre reste
      * dicible : la valeur elle-même n'entre dans aucun calcul.
      */
-    val compression: Double get() = if (usable) (fine + span) / fine else 1.0
+    val compression: Double get() = if (usable && compressed) (fine + span) / fine else 1.0
 
     /** Part de la largeur, de 0 au coureur à 1 à l'arrivée. */
     fun fractionAt(distanceAhead: Double): Double {
         if (!usable) return 0.0
-        return ln1p(distanceAhead.coerceIn(0.0, span) / fine) / denominator
+        val borne = distanceAhead.coerceIn(0.0, span)
+        if (!compressed) return borne / span
+        return ln1p(borne / fine) / denominator
     }
 
     /** L'inverse : quelle distance tombe à cette part de la largeur. */
     fun distanceAt(fraction: Double): Double {
         if (!usable) return 0.0
-        return (fine * expm1(fraction.coerceIn(0.0, 1.0) * denominator)).coerceIn(0.0, span)
+        val part = fraction.coerceIn(0.0, 1.0)
+        if (!compressed) return part * span
+        return (fine * expm1(part * denominator)).coerceIn(0.0, span)
     }
 
     /**

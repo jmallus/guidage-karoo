@@ -12,7 +12,7 @@
     <string name="field_poi_description">Distance jusqu\'au prochain point d\'intérêt de l\'itinéraire.</string>
 
     <string name="field_dashboard_name">Tableau de bord</string>
-    <string name="field_dashboard_description">Champ plein écran : minicarte du parcours orientée sens de la marche, vitesse, puissance, fréquence cardiaque, cadence, pente, distance restante et heure d\'arrivée. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Appuyer sur le champ change l\'échelle.</string>
+    <string name="field_dashboard_description">Champ plein écran : minicarte du parcours orientée sens de la marche, vitesse, puissance, fréquence cardiaque, cadence, transmission, distance restante, et sur tout le bas le profil de ce qui arrive. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Appuyer sur le champ change l\'échelle.</string>
 
     <!-- Libellés des cases du tableau de bord, en capitales -->
     <string name="dashboard_label_speed">VITESSE 3S</string>
@@ -30,7 +30,6 @@
     <string name="basemap_empty">Aucune voie ici</string>
     <string name="dashboard_label_remaining">REST.</string>
     <string name="dashboard_label_arrival">ARRIVÉE</string>
-    <string name="dashboard_zoom_whole_route">Parcours</string>
     <string name="dashboard_climb_title">Côte %1$d/%2$d — %3$s à %4$s</string>
     <string name="settings_guidance_map">Minicarte plutôt que profil (tableau de bord)</string>
 

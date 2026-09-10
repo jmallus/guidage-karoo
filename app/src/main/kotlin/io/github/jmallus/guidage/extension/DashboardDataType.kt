@@ -1,20 +1,27 @@
 package io.github.jmallus.guidage.extension
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
+import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
 import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.map.RoadSegment
@@ -93,8 +100,22 @@ class DashboardDataType(
                 .collect { model ->
                     val (width, height) = FieldSize.of(config)
                     val bitmap = DashboardRenderer.render(context, width, height, model)
+                    // Le champ est dessiné d'un seul tenant puis coupé en deux : le dessin ne
+                    // sait rien de ce découpage, et rien ne peut donc se décaler entre les
+                    // deux moitiés. La frontière est celle que le rendu a lui-même employée.
+                    val coupure = DashboardRenderer
+                        .bandTop(width, height, model.profileBand != null)
+                        .toInt()
+                        .coerceIn(1, height - 1)
+                    val densite = context.resources.displayMetrics.density
                     val composed = glance.compose(context, DpSize.Unspecified) {
-                        Dashboard(bitmap, clickable = !config.preview)
+                        Dashboard(
+                            haut = Bitmap.createBitmap(bitmap, 0, 0, width, coupure),
+                            bas = Bitmap.createBitmap(bitmap, 0, coupure, width, height - coupure),
+                            hautDp = (coupure / densite).dp,
+                            basDp = ((height - coupure) / densite).dp,
+                            clickable = !config.preview,
+                        )
                     }
                     emitter.updateView(composed.remoteViews)
                 }
@@ -119,18 +140,37 @@ class DashboardDataType(
         }
     }
 
+    /**
+     * Le champ, en deux images empilées, chacune avec sa commande.
+     *
+     * Une seule image ne pouvait porter qu'une commande, et Glance ne dit pas où le doigt
+     * s'est posé : c'est le découpage qui fait office de coordonnée. Le haut change la portée
+     * de la zone de guidage, le bas celle du bandeau de profil.
+     *
+     * Les hauteurs sont données en points explicites plutôt que laissées à des poids : Glance
+     * partage à parts égales, et les deux moitiés n'en sont pas. Le cadrage est **FillBounds**
+     * et non Fit — chaque image occupe exactement la hauteur qu'on lui donne, sans marge
+     * blanche entre les deux ; l'arrondi au point près est le seul écart possible, et il est
+     * sous le pixel.
+     */
     @Composable
-    private fun Dashboard(bitmap: android.graphics.Bitmap, clickable: Boolean) {
-        var modifier = GlanceModifier.fillMaxSize()
-        if (clickable) {
-            modifier = modifier.clickable(onClick = actionRunCallback<ChangeGuidanceZoomAction>())
+    private fun Dashboard(haut: Bitmap, bas: Bitmap, hautDp: Dp, basDp: Dp, clickable: Boolean) {
+        Column(modifier = GlanceModifier.fillMaxSize()) {
+            Moitie(haut, hautDp, if (clickable) actionRunCallback<ChangeGuidanceZoomAction>() else null)
+            Moitie(bas, basDp, if (clickable) actionRunCallback<ChangeProfileZoomAction>() else null)
         }
+    }
+
+    @Composable
+    private fun Moitie(bitmap: Bitmap, hauteur: Dp, onClick: Action?) {
+        var modifier = GlanceModifier.fillMaxWidth().height(hauteur)
+        if (onClick != null) modifier = modifier.clickable(onClick = onClick)
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             Image(
                 provider = ImageProvider(bitmap),
                 contentDescription = null,
                 modifier = GlanceModifier.fillMaxSize(),
-                contentScale = ContentScale.Fit,
+                contentScale = ContentScale.FillBounds,
             )
         }
     }

@@ -84,9 +84,12 @@ sealed interface GuidanceZone {
 /**
  * Le champ plein écran.
  *
- * Cinq rangs : le bandeau de l'effort instantané en haut, puis la carte à droite sur deux
- * hauteurs avec la transmission et le cœur à sa gauche, les distances et la pente en
- * dessous, et la bande du soir tout en bas.
+ * Trois bandes, comptées en rangs : l'effort instantané en tient un, la zone de guidage deux
+ * et demi — carte ou graphe à droite, transmission puis cœur et restant à sa gauche — et le
+ * profil de ce qui arrive prend ce qui reste, sur toute la largeur du bas.
+ *
+ * Seuls les deux rangs de chiffres ont une hauteur fixe. Le guidage prend l'entre-deux, si
+ * bien que déplacer la frontière du profil fait descendre la carte sans toucher à un chiffre.
  */
 data class DashboardModel(
     val guidance: GuidanceZone,
@@ -107,22 +110,17 @@ data class DashboardModel(
      */
     val remainingTile: Tile? = null,
     /**
-     * Dernier rang : le champ « Avant la nuit » réduit à une bande, sur toute la largeur.
+     * Le bas de l'écran, sur toute la largeur : le profil de ce qui arrive.
      *
-     * Il a remplacé la case de l'heure d'arrivée : l'heure y est toujours, sur la frise, mais
-     * rapprochée de ce à quoi on la compare de tête en fin de journée — le coucher. Sans
-     * position ni coucher, la bande le dit ; elle ne cède le rang à rien d'autre, pour que la
-     * mise en page ne bouge pas en cours de route.
-     */
-    val night: NightFieldModel,
-    /**
-     * Bandeau du bas : le champ « Profil à venir », tel quel.
+     * Il occupe deux rangs, celui du bandeau et celui que tenait la bande « Avant la nuit ».
+     * Cette bande portait l'heure d'arrivée, et une sortie réelle a tranché : à cette hauteur
+     * l'heure ne se lisait pas. Elle a désormais sa propre case de bilan, où elle voyage avec
+     * le coucher et le verdict, en grand — et les cent points qu'elle occupait ici reviennent
+     * au seul endroit de l'écran qui en manquait vraiment.
      *
-     * Il portait les deux kilomètres qui entourent le coureur, à échelle régulière. Ce
-     * cadrage-là répondait à « qu'est-ce que je monte », jamais à « qu'est-ce qui reste » —
-     * et la première question a déjà sa réponse ailleurs sur l'écran, dans la pente et la
-     * distance au sommet. Le bandeau montre donc maintenant tout le parcours restant, sur
-     * l'échelle comprimée au loin du champ homonyme, dont il exécute le rendu même.
+     * Le bandeau exécute le rendu du champ « Profil à venir » lui-même : le redessiner ici en
+     * aurait fait une seconde écriture. Il lui passe en revanche une portée, là où le champ
+     * montre tout ce qui reste — les deux ne répondent pas à la même question.
      */
     val profileBand: ProfileFieldModel? = null,
     val palette: Palette,
@@ -133,14 +131,19 @@ object DashboardRenderer {
     /** Largeur de la colonne de gauche. */
     private const val TILE_COLUMN_FRACTION = 0.5f
 
-    /** Hauteur d'un rang de la grille, en part de la hauteur utile ; le reste va au pied. */
-    private const val ROW_HEIGHT_FRACTION = 0.2455f
-
-    /** Nombre de rangs de grille avant le pied : l'effort, puis les deux du guidage. */
-    private const val GRID_ROWS = 3
-
-    /** Nombre de hauteurs de rang occupées par le guidage. */
-    private const val GUIDANCE_ROWS = 2
+    /**
+     * Hauteur d'un rang de chiffres, en part de la hauteur utile.
+     *
+     * Deux rangs seulement la portent désormais : le bandeau du haut et celui du cœur. Le
+     * guidage prend tout ce qui reste entre les deux, et grandit donc quand le profil rend de
+     * la hauteur — c'est ce qui permet de déplacer la frontière entre carte et profil sans
+     * toucher à un seul chiffre.
+     *
+     * La valeur est celle qu'avait le rang quand il valait 0,2455 de la hauteur diminuée du
+     * bandeau : elle est réexprimée sur la hauteur entière pour que les cases gardent, au
+     * pixel près, la taille qu'elles avaient — elles étaient jugées bonnes en roulant.
+     */
+    private const val ROW_HEIGHT_FRACTION = 0.1895f
 
     /** Nombre de cases du bandeau du haut. */
     private const val TOP_TILES = 3
@@ -156,14 +159,36 @@ object DashboardRenderer {
     private const val SUFFIX_RATIO = 0.52f
 
     /**
-     * Hauteur du bandeau de profil.
+     * Rangs occupés au-dessus du profil : l'effort, puis le guidage.
      *
-     * Près d'un quart, contre un sixième tant qu'un rang de nombres s'intercalait au-dessus du
-     * pied. La moitié de ce rang lui est revenue, et c'est ce qui lui permet de porter les
-     * chiffres de son axe à une taille qui se lise en roulant : à cent trois points il fallait
-     * les écrire à sept dixièmes de millimètre, ou les abandonner.
+     * Toute la mise en page se lit ici, dans l'unité où elle se pense — le rang. L'effort en
+     * tient un, le guidage deux et demi, le profil ce qui reste, un peu moins de deux.
+     *
+     * Le guidage en tenait deux, et le profil autant, depuis que la bande du soir lui avait
+     * laissé son rang. Une sortie a tranché : la carte manquait de hauteur et le profil en
+     * avait de trop. Elle en gagne **un demi**, et la transmission le gagne avec elle pour que
+     * les deux colonnes restent alignées — un rang entier, essayé d'abord, faisait une carte
+     * en tour et un bandeau où les étiquettes de côte se marchaient dessus.
      */
-    private const val PROFILE_BAND_FRACTION = 0.224f
+    private const val ROWS_ABOVE_BAND = 3.5f
+
+    private fun padding(width: Int, height: Int): Float =
+        (min(width, height) * 0.015f).coerceIn(2f, 6f)
+
+    /**
+     * Où commence le bandeau de profil, en pixels depuis le haut du champ.
+     *
+     * Rendue publique parce que l'appui sur le champ en dépend : le tableau de bord est
+     * découpé à cette hauteur en deux images, celle du haut changeant la portée de la carte
+     * et celle du bas celle du profil. La frontière doit être **la même** que celle du
+     * dessin, sinon le doigt agirait sur ce qu'il ne désigne pas — et il n'y a qu'un moyen
+     * d'en être sûr, c'est que les deux la lisent au même endroit.
+     */
+    fun bandTop(width: Int, height: Int, hasBand: Boolean): Float {
+        if (!hasBand) return height.toFloat()
+        val padding = padding(width, height)
+        return padding + ROWS_ABOVE_BAND * (height - 2 * padding) * ROW_HEIGHT_FRACTION
+    }
 
     fun render(
         context: Context,
@@ -175,23 +200,21 @@ object DashboardRenderer {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        val padding = (min(width, height) * 0.015f).coerceIn(2f, 6f)
+        val padding = padding(width, height)
         val columnSplit = width * TILE_COLUMN_FRACTION
         val right = width - padding
 
         // Le bandeau mange le bas de l'écran ; tout le reste se serre au-dessus. Il est là
         // dès qu'on navigue, de sorte que la mise en page ne bouge plus en cours de route.
-        val bandHeight = if (model.profileBand == null) 0f else height * PROFILE_BAND_FRACTION
-        val contentHeight = height - bandHeight
-        val usableHeight = contentHeight - 2 * padding
-        val rowHeight = usableHeight * ROW_HEIGHT_FRACTION
-        fun row(index: Int) = padding + index * rowHeight
-        // Le pied commence où finit la grille : le rang « distance parcourue et pente » qui
-        // s'intercalait ici a été supprimé, et sa hauteur partagée entre la bande du soir et
-        // le bandeau de profil — les deux seuls endroits de l'écran qui manquaient de place
-        // pour écrire lisiblement.
-        val footerTop = row(GRID_ROWS)
-        val footerBottom = contentHeight - padding
+        val bandTop = bandTop(width, height, model.profileBand != null)
+
+        // Deux rangs de chiffres à hauteur fixe — l'effort en haut, le cœur juste au-dessus du
+        // profil — et le guidage qui prend tout l'entre-deux. Écrire la mise en page dans ce
+        // sens-là, plutôt qu'en rangs égaux comptés depuis le haut, est ce qui permet de
+        // déplacer la frontière carte/profil sans qu'aucun chiffre ne change de corps.
+        val rowHeight = (height - 2 * padding) * ROW_HEIGHT_FRACTION
+        val topBottom = padding + rowHeight
+        val heartTop = bandTop - rowHeight
 
         // Rang du haut : l'effort instantané, trois cases côte à côte. Il a sa propre taille
         // de chiffres, plus petite : ces cases sont deux fois plus étroites que les autres,
@@ -204,9 +227,9 @@ object DashboardRenderer {
             bounds = topTiles.indices.map { index ->
                 RectF(
                     padding + index * topWidth,
-                    row(0),
+                    padding,
                     padding + (index + 1) * topWidth,
-                    row(1),
+                    topBottom,
                 )
             },
             tiles = topTiles,
@@ -233,9 +256,9 @@ object DashboardRenderer {
                 bounds = colonneTiles.indices.map { index ->
                     RectF(
                         padding + index * cellWidth,
-                        row(2),
+                        heartTop,
                         padding + (index + 1) * cellWidth,
-                        row(3),
+                        bandTop,
                     )
                 },
                 tiles = colonneTiles,
@@ -245,8 +268,9 @@ object DashboardRenderer {
             )
         }
 
-        // Colonne droite : le guidage sur deux hauteurs de rang.
-        val guidanceArea = RectF(columnSplit, row(1), right, row(1 + GUIDANCE_ROWS))
+        // Colonne droite : le guidage, de sous le bandeau du haut jusqu'au profil. C'est lui
+        // qui absorbe la hauteur rendue par le profil — la carte descend.
+        val guidanceArea = RectF(columnSplit, topBottom, right, bandTop)
         when (val guidance = model.guidance) {
             is GuidanceZone.Map -> MapRenderer.draw(canvas, guidanceArea, guidance.model, model.palette)
             is GuidanceZone.Profile -> drawRouteGraph(canvas, guidanceArea, guidance.model, model.palette)
@@ -257,7 +281,7 @@ object DashboardRenderer {
             drawDrivetrain(
                 context = context,
                 canvas = canvas,
-                bounds = RectF(padding, row(1), columnSplit, row(2)),
+                bounds = RectF(padding, topBottom, columnSplit, heartTop),
                 model = drivetrain,
                 palette = model.palette,
                 valueSize = valueSize,
@@ -270,21 +294,13 @@ object DashboardRenderer {
             )
         }
 
-        // Ligne du bas : la bande « Avant la nuit », sur toute la largeur.
-        NightRenderer.drawBand(
-            canvas,
-            RectF(padding, footerTop, right, footerBottom),
-            model.night,
-            model.palette,
-            encreMinimaleMm,
-        )
-
-        // Tout en bas : le parcours restant, sur toute la largeur, par le rendu du champ
-        // « Profil à venir » lui-même. Le redessiner ici en aurait fait une seconde écriture.
+        // Tout le bas : le profil, sur toute la largeur et sur deux rangs — le sien et celui
+        // qu'occupait la bande du soir. Il commence donc où finit la grille des chiffres, et
+        // non au pied de l'écran.
         model.profileBand?.let { band ->
             ProfileRenderer.draw(
                 canvas = canvas,
-                area = RectF(padding, contentHeight, width - padding, height.toFloat()),
+                area = RectF(padding, bandTop, width - padding, height - padding),
                 model = band,
                 palette = model.palette,
                 encreMinimaleMm = encreMinimaleMm,
@@ -506,9 +522,7 @@ object DashboardRenderer {
         labelSize: Float,
     ) {
         val labelPaint = paint(labelSize, palette.textSecondary, LABEL_TYPEFACE)
-        val valuePaint = paint(valueSize, 0, VALUE_TYPEFACE)
         val labelHeight = labelPaint.descent() - labelPaint.ascent()
-        val valueHeight = valuePaint.descent() - valuePaint.ascent()
         val top = labelTop(bounds, labelHeight)
         val right = bounds.right - EDGE_INSET
 
@@ -523,35 +537,48 @@ object DashboardRenderer {
             labelSize = labelSize,
         )
 
-        // Le schéma occupe la même bande que les chiffres des autres cases, et s'arrête
-        // franchement au-dessus du bord : la case du dessous porte un aplat de couleur qui
-        // commence net, et ce qui se pose à un cheveu de lui paraît lui appartenir.
-        val schematicTop = valueTop(bounds, top, labelHeight, valueHeight)
-        val schematicBottom = (schematicTop + valueHeight).coerceAtMost(bounds.bottom - EDGE_INSET)
+        // Le schéma prend toute la hauteur sous le titre, et non la seule bande d'un chiffre.
+        //
+        // Il occupait cette bande-là du temps où la case en faisait la hauteur. La case a
+        // doublé quand la carte est descendue, et le peigne s'y est retrouvé à flotter au
+        // milieu d'un vide, de la taille qu'il avait dans une case deux fois plus courte. Un
+        // schéma n'a pas de corps de texte à respecter : il prend la place qu'on lui donne.
+        //
+        // Il s'arrête franchement au-dessus du bord : la case du dessous porte un aplat de
+        // couleur qui commence net, et ce qui se pose à un cheveu de lui paraît lui appartenir.
+        val schematicTop = top + labelHeight
+        val schematicBottom = bounds.bottom - EDGE_INSET
         val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicBottom)
         if (area.width() <= 0 || area.height() <= 0) return
 
-        val teethPaint = paint(valueSize * TEETH_RATIO, palette.textPrimary, VALUE_TYPEFACE)
+        val teethSize = valueSize * TEETH_RATIO
+        val teethPaint = paint(teethSize, palette.textPrimary, VALUE_TYPEFACE)
+        val teeth = teethLabel(model)
 
         // Les barres montent depuis le bas de cette bande et occupent toute sa largeur : elles
         // passent donc sous le titre et son icône, que rien ne décale plus sur le côté. Il
         // faut leur réserver du blanc en haut, sans quoi la plus haute vient le toucher.
         //
-        // Elles descendent jusqu'au bas de la bande depuis que « 34×21 » n'est plus écrit
-        // dessous. Les dentures étaient une donnée de catalogue : on ne change pas de braquet
-        // parce qu'on a lu 21, on en change parce qu'on voit qu'il reste deux pignons. Le
-        // peigne le dit déjà, et il le dit mieux avec la hauteur qu'elles occupaient.
-        val combBottom = area.bottom
+        // Elles rendent le pied de la bande aux dentures. Celles-ci avaient été retirées quand
+        // la case ne faisait qu'un rang : elles y coûtaient un bon huitième de la hauteur, et
+        // le peigne, seul dessin de la case, s'en trouvait écrasé. La case en fait un et demi
+        // depuis que la carte est descendue — la place est là, et le renseignement revient
+        // sans que le schéma y perde ce qui le rendait lisible.
+        val combBottom = area.bottom - if (teeth == null) 0f else teethSize * TEETH_LEADING
         val combTop = (area.top + labelHeight * COMB_TOP_MARGIN).coerceAtMost(combBottom)
 
         val front = comb(model.front, model.frontCount)
         val rear = comb(model.rear, model.rearCount)
         if (front == null && rear == null) {
+            // Le « -- » a son propre corps : il ne remplace pas les dentures mais le peigne
+            // entier, et grossir avec elles en aurait fait un tiret de la taille d'un chiffre
+            // de case dans une case par ailleurs vide.
+            val videPaint = paint(valueSize * PLACEHOLDER_RATIO, palette.textPrimary, VALUE_TYPEFACE)
             canvas.drawText(
                 PLACEHOLDER,
-                right - teethPaint.measureText(PLACEHOLDER),
-                area.top + area.height() / 2f - (teethPaint.descent() + teethPaint.ascent()) / 2f,
-                teethPaint,
+                right - videPaint.measureText(PLACEHOLDER),
+                area.top + area.height() / 2f - (videPaint.descent() + videPaint.ascent()) / 2f,
+                videPaint,
             )
             return
         }
@@ -575,6 +602,29 @@ object DashboardRenderer {
             drawComb(canvas, RectF(rearLeft, combTop, area.right, combBottom), it, barWidth, ascending = false, palette = palette)
         }
 
+        // Les dentures au pied du peigne, calées à droite comme un chiffre de case.
+        teeth?.let {
+            canvas.drawText(it, right - teethPaint.measureText(it), area.bottom - teethPaint.descent(), teethPaint)
+        }
+    }
+
+    /**
+     * « 50×17 » quand les deux dentures sont connues, l'une des deux sinon, rien du tout à
+     * défaut.
+     *
+     * C'est un renseignement d'appoint : la position dans la cassette se lit sur le peigne, et
+     * l'on ne change pas de braquet parce qu'on a lu 21. Mais savoir sur quel plateau l'on est
+     * a son usage au pied d'une bosse, et le nombre le dit sans qu'il faille compter les barres.
+     */
+    private fun teethLabel(model: DrivetrainModel): String? {
+        val front = model.frontTeeth?.takeIf { it > 0 }
+        val rear = model.rearTeeth?.takeIf { it > 0 }
+        return when {
+            front != null && rear != null -> "$front×$rear"
+            rear != null -> "$rear"
+            front != null -> "$front"
+            else -> null
+        }
     }
 
     /**
@@ -684,14 +734,24 @@ object DashboardRenderer {
     private const val BAR_MIN_HEIGHT = 0.35f
 
     /**
-     * Taille du « -- » qui remplace le peigne quand le groupe ne rapporte rien.
+     * Taille des dentures, « 50×17 », en part du chiffre d'une case.
      *
-     * Elle servait aussi aux dentures, « 34×21 », écrites sous les barres et retirées depuis :
-     * la position dans la cassette se lit sur le peigne, et le nombre de dents est un
-     * renseignement de catalogue qu'on ne consulte pas en roulant. Il prenait à lui seul un
-     * bon huitième de la hauteur de la case.
+     * Elles ont été retirées un temps, quand la case ne faisait qu'un rang : elles y coûtaient
+     * un bon huitième de la hauteur, et le peigne, seul dessin de la case, s'en trouvait
+     * écrasé. La case en fait un et demi depuis que la carte est descendue, et la place est
+     * revenue avec — assez pour les écrire au double du corps qu'elles avaient alors, et
+     * qu'elles se lisent d'un coup d'œil et non en cherchant.
+     *
+     * Ce qu'elles prennent, les barres le rendent : le peigne s'arrête à leur hauteur, si
+     * bien que ce réglage-ci suffit à arbitrer entre les deux.
      */
-    private const val TEETH_RATIO = 0.28f
+    private const val TEETH_RATIO = 0.56f
+
+    /** Taille du « -- » qui remplace le peigne entier quand le groupe ne rapporte rien. */
+    private const val PLACEHOLDER_RATIO = 0.28f
+
+    /** Hauteur réservée aux dentures sous le peigne, en part de leur corps. */
+    private const val TEETH_LEADING = 1.35f
 
     /**
      * Blanc réservé au-dessus des barres, en part de la hauteur du libellé.

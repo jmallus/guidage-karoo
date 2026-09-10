@@ -5,6 +5,7 @@ import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.ArrivalEstimate
 import io.github.jmallus.guidage.core.ClimbStatus
 import io.github.jmallus.guidage.core.Format
+import io.github.jmallus.guidage.core.GraphZoom
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.Pacing
@@ -43,6 +44,17 @@ object FieldModels {
         snapshot: GuidanceSnapshot,
         settings: GuidageSettings,
         preview: Boolean,
+        /**
+         * La portée demandée, ou null pour tout ce qui reste à l'échelle comprimée.
+         *
+         * Les deux appelants ne posent pas la même question. Le champ « Profil à venir »
+         * demande ce qui reste de la journée, et la compression est faite pour ça. Le bandeau
+         * du tableau de bord, lui, est regardé pour savoir ce qui **arrive** : sur cent
+         * kilomètres restants, la compression y écrase la rampe des trois cents mètres qui
+         * vient contre le fond de l'écran, et le relevé d'une sortie réelle a montré qu'on
+         * n'y voyait plus rien monter.
+         */
+        zoom: GraphZoom? = null,
     ): ProfileFieldModel {
         val state = substituted(snapshot, preview)
         val route = state.route
@@ -55,6 +67,7 @@ object FieldModels {
                 units = snapshot.units,
             )
         }
+        val portee = zoom?.lookaheadMeters
 
         // La position est arrondie pour éviter de redessiner à chaque mètre parcouru.
         val quantized = (along / POSITION_STEP_METERS).toInt() * POSITION_STEP_METERS
@@ -64,7 +77,11 @@ object FieldModels {
         // mètres occupent près d'un dixième de la largeur : de quoi détacher la marque, et
         // montrer la pente dont on sort.
         val depart = (quantized - RECUL_METERS).coerceAtLeast(0.0)
-        val window = Guidance.profileToFinish(route, depart)
+        val window = if (portee == null) {
+            Guidance.profileToFinish(route, depart)
+        } else {
+            Guidance.profileWindow(route, quantized, portee, lookbehind = RECUL_METERS)
+        }
         val units = snapshot.units
         // Le dénivelé et la distance se comptent depuis le coureur, jamais depuis le bord de
         // la fenêtre : celle-ci commence en arrière de lui, et les compter de là ajouterait au
@@ -81,6 +98,7 @@ object FieldModels {
             positionDistance = quantized,
             emptyMessage = context.getString(R.string.field_no_route),
             colorByGrade = settings.colorByGrade,
+            compressed = portee == null,
             units = units,
         )
     }
