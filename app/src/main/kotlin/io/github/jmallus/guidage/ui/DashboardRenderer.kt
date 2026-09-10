@@ -947,8 +947,15 @@ object DashboardRenderer {
     /** Part de la hauteur donnée au profil, choisie sur planches. */
     private const val HUD_BAND_FRACTION = 0.25f
 
-    /** Part de la colonne donnée à la transmission ; les quatre blocs se partagent le reste. */
-    private const val HUD_DRIVETRAIN_FRACTION = 0.21f
+    /**
+     * Part de la colonne donnée à la transmission ; les quatre blocs se partagent le reste.
+     *
+     * Un cinquième ne suffisait pas : les dentures, écrites au double du corps depuis qu'on
+     * les a rendues, réservent quarante points sous le peigne, et il ne lui en restait treize
+     * — une rangée de points. Un bon quart lui rend une hauteur où l'on distingue un pignon
+     * du suivant, et coûte quatre points de corps aux quatre chiffres du dessus.
+     */
+    private const val HUD_DRIVETRAIN_FRACTION = 0.26f
 
     /** Corps du libellé et du chiffre, en part de la hauteur d'un bloc. */
     private const val HUD_LABEL_FRACTION = 0.19f

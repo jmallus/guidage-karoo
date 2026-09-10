@@ -132,7 +132,12 @@ object MapRenderer {
                 (model.chevronRangeMeters * metersToPixels).toFloat()
             },
         )
+        // Les points d'intérêt ne sortent pas de la zone à découvert : une pastille posée
+        // sous un voile, entre un chiffre et l'axe du profil, n'annonce plus rien — elle gêne.
+        val pois = canvas.save()
+        canvas.clipRect(focus)
         drawPois(canvas, area, model, projection, palette)
+        canvas.restoreToCount(pois)
         drawScaleBar(canvas, focus, model.rangeMeters, metersToPixels, palette)
         drawCompass(canvas, focus, heading)
 
