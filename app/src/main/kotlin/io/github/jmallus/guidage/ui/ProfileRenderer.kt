@@ -340,8 +340,9 @@ object ProfileRenderer {
             // se mesure sur eux, et non sur les libellés à décimale de l'échelle comprimée,
             // sans quoi l'axe sautait de 2 en 5 pour rien.
             val ecart = (tickSize * ABSOLUTE_TICK_LABEL_WIDTHS / usable).coerceIn(MIN_GAP, MAX_GAP)
+            // Sans unité : les kilomètres du parcours se reconnaissent, comme sur le profil
+            // natif, et « 14 km » sortait du cadre là où « 14 » y tient.
             absoluteTicks(model, left, usable, if (labelled) ecart else MIN_GAP, unitMeters)
-                .let { ticks -> ticks.mapIndexed { index, (x, caption) -> x to caption + unitSuffix(index, ticks.lastIndex, unit) } }
         }
         if (graduations.isEmpty()) return
 
