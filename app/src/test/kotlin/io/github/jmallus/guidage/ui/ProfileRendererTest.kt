@@ -93,7 +93,11 @@ class ProfileRendererTest {
     fun `le col lointain reste le point haut de la bande`() {
         val image = image()
         val sommets = crete(image)
-        val plusHaut = sommets.withIndex().filter { it.value < image.height }.minByOrNull { it.value }
+        // Le trait de position se tient au bord gauche, du même jaune que la crête, et monte
+        // jusqu'en haut de la bande : il ferait un faux sommet. On cherche au-delà de lui.
+        val plusHaut = sommets.withIndex()
+            .filter { it.index > image.width / 10 && it.value < image.height }
+            .minByOrNull { it.value }
         assertTrue("aucune silhouette dessinée", plusHaut != null)
 
         val attendu = FisheyeScale(40_000.0).fractionAt(30_000.0) * image.width
