@@ -352,7 +352,11 @@ object ProfileRenderer {
                 (left + (tick.fraction * usable).toFloat()) to Format.axisValue(tick.value) + suffixe
             }
         } else {
-            absoluteTicks(model, left, usable, gap, unitMeters)
+            // Les kilomètres du parcours tiennent en deux ou trois chiffres : l'écart exigé
+            // se mesure sur eux, et non sur les libellés à décimale de l'échelle comprimée,
+            // sans quoi l'axe sautait de 2 en 5 pour rien.
+            val ecart = (tickSize * ABSOLUTE_TICK_LABEL_WIDTHS / usable).coerceIn(MIN_GAP, MAX_GAP)
+            absoluteTicks(model, left, usable, if (labelled) ecart else MIN_GAP, unitMeters)
         }
         if (graduations.isEmpty()) return
 
@@ -516,7 +520,9 @@ object ProfileRenderer {
         var precedent = Float.NEGATIVE_INFINITY
 
         model.pois
-            .filter { it.distanceAlongRoute >= window.start && it.distanceAlongRoute <= window.end }
+            // Devant le coureur seulement : la fenêtre commence derrière lui, et un point
+            // déjà passé n'est plus un jalon, c'est un souvenir.
+            .filter { it.distanceAlongRoute >= (model.positionDistance ?: window.start) && it.distanceAlongRoute <= window.end }
             .sortedBy { it.distanceAlongRoute }
             .forEach { poi ->
                 val fraction = scale.fractionAt(poi.distanceAlongRoute - window.start)
@@ -709,6 +715,9 @@ object ProfileRenderer {
 
     /** Largeur réservée à une étiquette de graduation, en corps. */
     private const val TICK_LABEL_WIDTHS = 3.4f
+
+    /** La même réserve pour les kilomètres du parcours, plus courts. */
+    private const val ABSOLUTE_TICK_LABEL_WIDTHS = 2.2f
 
     private const val MIN_GAP = 0.08f
     private const val MAX_GAP = 0.34f
