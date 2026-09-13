@@ -10,7 +10,7 @@ import io.github.jmallus.guidage.core.Zones
  *
  * Le Karoo bascule entre thème clair et sombre ; un texte presque noir devient invisible
  * sur fond noir. Les teintes de texte et de trait sont donc choisies d'après le mode
- * courant, seules les couleurs de pente restant identiques dans les deux cas.
+ * courant, seules les couleurs de zone restant identiques dans les deux cas.
  */
 data class Palette(
     val textPrimary: Int,

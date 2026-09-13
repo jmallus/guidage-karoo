@@ -101,7 +101,7 @@ data class DashboardModel(
      *
      * Il occupait un rang à lui, avec la distance parcourue et la pente instantanée. Ce rang
      * a disparu : la distance parcourue redit ce que le Karoo enregistre, la pente se lit à la
-     * couleur du profil sous la position du coureur, et les quatre-vingts points ainsi rendus
+     * silhouette du profil sous la position du coureur, et les quatre-vingts points ainsi rendus
      * étaient la seule réserve de place de l'écran. Le restant, lui, se regarde tout le temps :
      * il vient à côté du cœur.
      */
@@ -240,7 +240,7 @@ object DashboardRenderer {
         // Les deux partagent un rang que le cœur occupait seul. C'est ce que la suppression du
         // rang « distance parcourue · restant · pente » a rendu nécessaire — et possible : la
         // distance parcourue et la pente instantanée disaient ce que le Karoo enregistre de
-        // son côté et ce que la couleur du profil montre déjà, quand la distance restante est
+        // son côté et ce que la silhouette du profil montre déjà, quand la distance restante est
         // le nombre qu'on regarde le plus.
         val colonneTiles = listOfNotNull(model.heartRateTile, model.remainingTile)
         val valueSize = if (colonneTiles.isEmpty()) {

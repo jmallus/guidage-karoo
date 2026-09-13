@@ -298,7 +298,7 @@ object DashboardModels {
      *
      * Elle vient d'un rang de trois — distance parcourue, restant, pente — supprimé après
      * essai sur le vélo : ses voisines redisaient ce que le Karoo enregistre et ce que la
-     * couleur du profil montre, et leur hauteur manquait cruellement aux deux champs du bas,
+     * silhouette du profil montre, et leur hauteur manquait cruellement aux deux champs du bas,
      * qui écrivaient trop petit pour être lus.
      *
      * Le libellé porte « REST. » et non plus « RESTANT KM ». L'unité y coûtait trois lettres
