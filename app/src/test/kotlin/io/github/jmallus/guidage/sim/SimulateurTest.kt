@@ -272,6 +272,14 @@ class SimulateurTest {
             pixelsDe(decroche).count { it == FieldPalette.REJOIN } > 100,
         )
         ecrire(decroche, File(dossier, "hors-itineraire.png"))
+
+        // Le drapeau d'arrivée, quand la fin du parcours entre dans la vue.
+        simulateur.horsItineraire = false
+        simulateur.portee = MapZoom.NEAR
+        val approche = instantA(simulateur.sortie, PreviewData.route.totalDistance - APPROCHE_ARRIVEE_METRES)
+        val arrivee = simulateur.image(approche.secondes)
+        assertTrue("le ruban ne se voit pas à l'approche de l'arrivée", rubanVisible(arrivee))
+        ecrire(arrivee, File(dossier, "carte-arrivee.png"))
     }
 
     /**
@@ -608,6 +616,9 @@ class SimulateurTest {
          * kilométrique sur le parking.
          */
         const val PART_CAPTURE_FIN = 0.98
+
+        /** Ce qu'il reste à faire sur la capture d'arrivée : le drapeau tient dans la vue à 300 m. */
+        const val APPROCHE_ARRIVEE_METRES = 180.0
 
         /**
          * Le fond que l'appareil pose derrière un champ.

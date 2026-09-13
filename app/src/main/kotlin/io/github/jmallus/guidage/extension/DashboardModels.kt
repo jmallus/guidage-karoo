@@ -149,6 +149,7 @@ object DashboardModels {
             roads = roads,
             roadsMessage = if (roads.isEmpty() && !preview) roadSource.notice(context, position) else null,
             path = route?.path.orEmpty(),
+            distanceAlongRoute = state.distanceAlongRoute,
             rejoinPath = route?.rejoinPath.orEmpty(),
             trailPaths = trailPaths(route, state.distanceAlongRoute, roads, zoom),
             position = position,

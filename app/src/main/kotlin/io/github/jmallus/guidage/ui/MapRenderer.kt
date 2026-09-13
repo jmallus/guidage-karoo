@@ -25,6 +25,13 @@ data class MapPoi(val position: GeoPoint, val label: String)
 data class MapModel(
     /** Tracé de l'itinéraire. */
     val path: List<GeoPoint> = emptyList(),
+    /**
+     * Où l'on en est du tracé, en mètres depuis son départ, tel que l'appareil l'annonce.
+     *
+     * Pas pour y accrocher le coureur — elle se décale — mais pour départager deux passages
+     * sur une même route, voir [Geo.anchorOnPath].
+     */
+    val distanceAlongRoute: Double? = null,
     /** Chemin de rejointe calculé par le Karoo, vide tant qu'on est sur l'itinéraire. */
     val rejoinPath: List<GeoPoint> = emptyList(),
     /**
@@ -97,6 +104,13 @@ object MapRenderer {
 
         canvas.drawRect(area, Paint().apply { color = RoadStyle.BACKGROUND })
         val screenPath = model.path.map { projection.toScreen(it) }
+        // Marque, jalons et coupure des deux bleus partent tous de l'aplomb du coureur sur le
+        // tracé. Il se cherche sur la position, qui ne ment pas, et non sur la distance
+        // parcourue annoncée par l'appareil, qui se décale ; celle-ci n'intervient que pour
+        // départager deux passages sur une même route — au retour d'une boucle, l'aplomb le
+        // plus proche est aussi celui du départ, et il renvoyait le coureur d'où il venait.
+        val here = Geo.anchorOnPath(model.path, origin, model.distanceAlongRoute, ANCHOR_TOLERANCE_METERS)
+            ?.let { Anchor(it.index, projection.toScreen(it.point)) }
         if (model.roads.isEmpty()) {
             // Un fond vide se confond avec un fond qui n'existe pas : le dire coûte une
             // ligne et évite de chercher une panne là où il n'y en a pas.
@@ -114,14 +128,19 @@ object MapRenderer {
             trailScreen = model.trailPaths.map { portion -> portion.map { projection.toScreen(it) } },
             area = area,
             width = routeWidth(model.rangeMeters),
-            riderX = riderX,
-            riderY = riderY,
+            here = here,
             chevronLimit = if (model.offRoute) {
                 Float.POSITIVE_INFINITY
             } else {
                 (model.chevronRangeMeters * metersToPixels).toFloat()
             },
         )
+        // Le drapeau passe sous la flèche : à l'arrivée, c'est encore le coureur qu'on cherche
+        // des yeux, et le damier se reconnaît même à moitié couvert.
+        drawFinish(canvas, area, screenPath)
+        // La flèche n'est pas rognée par le ruban : elle est plus large que lui et se pose
+        // par-dessus, comme sur la carte native du Karoo.
+        drawRider(canvas, riderX, riderY, area.height())
         drawPois(canvas, area, model, projection, palette)
         drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
         drawCompass(canvas, area, heading)
@@ -385,11 +404,10 @@ object MapRenderer {
         trailScreen: List<List<PlanePoint>>,
         area: RectF,
         width: Float,
-        riderX: Float,
-        riderY: Float,
+        here: Anchor?,
         chevronLimit: Float,
     ) {
-        if (screenPath.size < 2) return
+        if (screenPath.size < 2 || here == null) return
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = width
@@ -397,9 +415,6 @@ object MapRenderer {
             strokeJoin = Paint.Join.ROUND
         }
 
-        // Marque, jalons et coupure des deux bleus partent tous du point du tracé le plus
-        // proche du coureur.
-        val here = anchor(screenPath, riderX, riderY)
         val ahead = buildList {
             add(here.point)
             addAll(screenPath.subList(here.index, screenPath.size))
@@ -472,11 +487,105 @@ object MapRenderer {
         canvas.clipPath(ribbon)
         drawChevrons(canvas, area, suivi, width, portee)
         canvas.restoreToCount(clip)
-
-        // La flèche, elle, n'est pas rognée par le ruban : elle est plus large que lui et se
-        // pose par-dessus, comme sur la carte native du Karoo.
-        drawRider(canvas, riderX, riderY, area.height())
     }
+
+    /**
+     * Le drapeau d'arrivée, planté au dernier point du tracé.
+     *
+     * Le ruban s'arrêtait, et rien ne disait que c'était là la fin : un bout de tracé se lit
+     * aussi bien comme le bord de ce qui est chargé que comme l'arrivée. Un damier ne se lit
+     * pas autrement. Sur une boucle il marque aussi le départ, ce qui est exact.
+     *
+     * La hampe est plantée sur le point, le damier flotte à sa droite. Un cerne de la couleur
+     * du fond détache l'ensemble du ruban bleu sur lequel il tombe forcément — l'arrivée est
+     * sur l'itinéraire — comme d'une voie sombre.
+     */
+    private fun drawFinish(canvas: Canvas, area: RectF, screenPath: List<PlanePoint>) {
+        val end = screenPath.lastOrNull() ?: return
+        val x = end.x.toFloat()
+        val y = end.y.toFloat()
+        val unit = (area.height() * POI_RADIUS_FRACTION).coerceIn(16f, 28f)
+        val hauteur = unit * FLAG_POLE
+        val largeur = unit * FLAG_WIDTH
+        val damier = unit * FLAG_HEIGHT
+        if (x < area.left - largeur || x > area.right + largeur ||
+            y < area.top - hauteur || y > area.bottom + hauteur
+        ) {
+            return
+        }
+
+        val haut = y - hauteur
+        val cerne = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = RoadStyle.BACKGROUND
+            style = Paint.Style.STROKE
+            strokeWidth = unit * FLAG_HALO
+            strokeJoin = Paint.Join.ROUND
+            strokeCap = Paint.Cap.ROUND
+        }
+        canvas.drawLine(x, y, x, haut, cerne)
+        canvas.drawRect(x, haut, x + largeur, haut + damier, cerne)
+
+        val encre = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = RoadStyle.INK
+            strokeWidth = unit * FLAG_POLE_WIDTH
+            strokeCap = Paint.Cap.ROUND
+        }
+        canvas.drawLine(x, y, x, haut, encre)
+        canvas.drawCircle(x, y, unit * FLAG_FOOT, encre)
+
+        // Le damier : quatre cases sur trois, le noir dans le coin de la hampe.
+        val caseLargeur = largeur / FLAG_COLUMNS
+        val caseHauteur = damier / FLAG_ROWS
+        val noir = Paint().apply { color = CHEVRON_COLOR }
+        val blanc = Paint().apply { color = PIN_COLOR }
+        for (rang in 0 until FLAG_ROWS) {
+            for (colonne in 0 until FLAG_COLUMNS) {
+                canvas.drawRect(
+                    x + colonne * caseLargeur,
+                    haut + rang * caseHauteur,
+                    x + (colonne + 1) * caseLargeur,
+                    haut + (rang + 1) * caseHauteur,
+                    if ((rang + colonne) % 2 == 0) noir else blanc,
+                )
+            }
+        }
+        canvas.drawRect(
+            x,
+            haut,
+            x + largeur,
+            haut + damier,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = RoadStyle.INK
+                style = Paint.Style.STROKE
+                strokeWidth = unit * FLAG_OUTLINE
+            },
+        )
+    }
+
+    /**
+     * Le drapeau, en parts du rayon de la pastille de point d'intérêt : hauteur de la hampe,
+     * largeur et hauteur du damier, épaisseur de la hampe, rayon de son pied, cerne et
+     * contour. Le damier a le format d'un vrai drapeau, et ses cases restent carrées.
+     */
+    private const val FLAG_POLE = 2.6f
+    private const val FLAG_WIDTH = 1.8f
+    private const val FLAG_HEIGHT = 1.35f
+    private const val FLAG_POLE_WIDTH = 0.16f
+    private const val FLAG_FOOT = 0.26f
+    private const val FLAG_HALO = 0.5f
+    private const val FLAG_OUTLINE = 0.1f
+    private const val FLAG_COLUMNS = 4
+    private const val FLAG_ROWS = 3
+
+    /**
+     * Ce qu'il faut à un second passage pour concurrencer le plus proche (m).
+     *
+     * Une même route empruntée deux fois donne deux aplombs à quelques mètres l'un de
+     * l'autre — l'écart des deux traces GPS du parcours, pas plus. La rue parallèle, elle,
+     * est à cinquante mètres ou davantage : elle ne doit pas entrer dans le départage, sans
+     * quoi une abscisse décalée y déplacerait le coureur.
+     */
+    private const val ANCHOR_TOLERANCE_METERS = 25.0
 
     /**
      * Doubles chevrons noirs semés le long de ce qui reste à faire.
@@ -669,49 +778,16 @@ object MapRenderer {
         }
     }
 
-    /** Où le coureur se tient sur le tracé : le point, et le sommet qui le suit. */
-    private class Anchor(val index: Int, val point: PlanePoint)
-
     /**
-     * Point du tracé le plus proche du coureur, cherché à l'écran.
+     * Où le coureur se tient sur le tracé, à l'écran : le point, et le sommet qui le suit.
      *
-     * On ne se fie pas à la distance parcourue rapportée par l'appareil : elle se décale, et
-     * le tracé se couperait alors au mauvais endroit. La position à l'écran, elle, ne ment pas.
-     *
-     * La projection se fait sur le **segment** et non sur le sommet le plus proche. C'est
-     * toute la différence entre un tracé qui avance avec le coureur et un tracé qui l'attend :
-     * accroché à un sommet, le point de coupure — donc le début du fondu — restait planté
-     * là pendant qu'on roulait vers lui, puis sautait d'un coup au sommet suivant dès qu'on
-     * passait à mi-chemin. Un tracé de route ayant un sommet tous les cinquante à cent mètres,
-     * cela faisait un bond de cette longueur, suivi d'une remontée : « le tracé saute devant
-     * moi et je le rattrape ». Projeté sur le segment, le point glisse continûment et les
-     * fondu commence toujours à l'aplomb du coureur.
+     * L'aplomb vient de [Geo.anchorOnPath], projeté sur le **segment** et non arrondi au
+     * sommet le plus proche. C'est toute la différence entre un tracé qui avance avec le
+     * coureur et un tracé qui l'attend : accroché à un sommet, le point de coupure restait
+     * planté là pendant qu'on roulait vers lui, puis sautait d'un coup au sommet suivant dès
+     * qu'on passait à mi-chemin — « le tracé saute devant moi et je le rattrape ».
      */
-    private fun anchor(points: List<PlanePoint>, x: Float, y: Float): Anchor {
-        var best = Anchor(1, points.first())
-        var bestDistance = Float.MAX_VALUE
-        for (index in 1 until points.size) {
-            val projected = projectOnSegment(points[index - 1], points[index], x, y)
-            val dx = projected.x.toFloat() - x
-            val dy = projected.y.toFloat() - y
-            val distance = dx * dx + dy * dy
-            if (distance < bestDistance) {
-                bestDistance = distance
-                best = Anchor(index, projected)
-            }
-        }
-        return best
-    }
-
-    /** Projection orthogonale d'un point sur un segment, bornée à ses deux extrémités. */
-    private fun projectOnSegment(from: PlanePoint, to: PlanePoint, x: Float, y: Float): PlanePoint {
-        val dx = to.x - from.x
-        val dy = to.y - from.y
-        val squared = dx * dx + dy * dy
-        if (squared <= 0.0) return from
-        val t = (((x - from.x) * dx + (y - from.y) * dy) / squared).coerceIn(0.0, 1.0)
-        return PlanePoint(from.x + dx * t, from.y + dy * t)
-    }
+    private class Anchor(val index: Int, val point: PlanePoint)
 
     /**
      * Épaisseur du tracé, décroissante avec la portée affichée.
