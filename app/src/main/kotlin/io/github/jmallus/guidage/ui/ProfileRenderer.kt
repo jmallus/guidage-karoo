@@ -39,9 +39,13 @@ data class ProfileFieldModel(
      * déjà parcouru qu'on voit alors n'est pas perdu — c'est la pente dont on sort.
      */
     val positionDistance: Double? = null,
+    /**
+     * Ce que le coureur a au compteur, écrit dans une étiquette au-dessus de sa marque —
+     * « 27,1 », dans l'unité que l'axe porte déjà. Null pour ne pas l'écrire.
+     */
+    val positionLabel: String? = null,
     /** Message affiché quand il n'y a rien à montrer. */
     val emptyMessage: String? = null,
-    val colorByGrade: Boolean = true,
     /**
      * Vrai pour l'échelle comprimée au loin, faux pour une échelle régulière.
      *
@@ -139,29 +143,81 @@ object ProfileRenderer {
             ?.coerceIn(left, right)
             ?: left
 
-        drawProfile(canvas, model, scale, left, top, right, bottom, palette)
-        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette, positionX)
+        // L'étiquette de position tient dans l'en-tête ; sans en-tête, elle ne s'écrit pas.
+        val etiquette = model.positionLabel?.takeIf { entetes }
+
+        drawProfile(canvas, model, scale, left, top, right, bottom, positionX, palette)
+        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
-        drawPositionMarker(canvas, positionX, top, bottom, palette)
+        drawPositionMarker(canvas, positionX, top, bottom)
         if (entetes) drawLabels(canvas, model, left, right, top, labelSize, palette)
+        if (etiquette != null) drawPositionLabel(canvas, etiquette, positionX, left, right, top, labelSize, palette)
     }
 
     /**
-     * La silhouette, colonne de pixels par colonne de pixels.
+     * L'étiquette de position : une boîte claire aux coins ronds, posée sur l'en-tête à
+     * l'aplomb de la marque, et le nombre en sombre dedans — le dessin du profil natif.
      *
-     * Et non segment par segment comme autrefois : sous une échelle comprimée, cent segments
-     * du relevé tombent dans la même colonne, et les dessiner l'un après l'autre revient à
-     * empiler cent rectangles d'un pixel de large dont seul le dernier se voit — le profil
-     * lointain se criblait de trous et prenait la couleur du dernier segment tiré. En
-     * partant des colonnes, chacune est peinte une fois, de la pente qu'elle couvre vraiment.
+     * Elle est retenue dans le cadre quand la marque approche d'un bord ; le trait, lui,
+     * reste à l'aplomb, et c'est la boîte qui glisse.
+     */
+    private fun drawPositionLabel(
+        canvas: Canvas,
+        label: String,
+        positionX: Float,
+        left: Float,
+        right: Float,
+        top: Float,
+        labelSize: Float,
+        palette: Palette,
+    ) {
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = POSITION_LABEL_INK
+            textSize = labelSize * POSITION_LABEL_RATIO
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val demi = positionLabelHalfWidth(label, labelSize)
+        val centre = positionX.coerceIn(left + demi, right - demi)
+        val hauteur = labelSize
+        val boite = RectF(centre - demi, top - hauteur, centre + demi, top)
+        val rayon = hauteur * POSITION_LABEL_CORNER
+        canvas.drawRoundRect(
+            boite,
+            rayon,
+            rayon,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = palette.textPrimary
+            },
+        )
+        canvas.drawText(label, centre, boite.centerY() - (text.descent() + text.ascent()) / 2f, text)
+    }
+
+    /** Demi-largeur de l'étiquette de position, le blanc autour du nombre compris. */
+    private fun positionLabelHalfWidth(label: String, labelSize: Float): Float {
+        val text = Paint().apply {
+            textSize = labelSize * POSITION_LABEL_RATIO
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        return text.measureText(label) / 2f + labelSize * POSITION_LABEL_PADDING
+    }
+
+    /**
+     * La silhouette, à la manière du profil natif du Karoo : devant le coureur, un aplat du
+     * jaune de l'itinéraire, voilé, sous une crête du même jaune, franc ; derrière lui, la
+     * crête seule, en blanc, sans aplat.
      *
-     * Le trait blanc qui soulignait la crête est parti. Sur un aplat, il ne faisait que
-     * redire le bord de la couleur, en l'appuyant : la silhouette entière prenait le poids
-     * d'un contour, et l'on ne voyait plus la masse mais son ourlet. Sans lui, les teintes
-     * de pente se lisent pour elles-mêmes et les côtes ressortent de la masse grise.
-     * Trois autres dessins ont été mis en regard avant d'en arriver là — remplissage sous les
-     * seules montées, et crête nue à réglette de pente, à la manière de Barberfish.
+     * Elle a porté les couleurs de pente du Karoo, colonne par colonne, et les a perdues sur
+     * demande après une sortie : sur la bande, elles faisaient une mosaïque là où l'on cherche
+     * une forme. La pente se lit à la silhouette, et la pente moyenne d'une côte s'écrit
+     * au-dessus d'elle — c'est ce chiffre-là qu'on regarde, pas une teinte à décoder.
+     *
+     * La crête reste calculée colonne de pixels par colonne, et non segment par segment :
+     * sous une échelle comprimée, cent segments du relevé tombent dans la même colonne, et
+     * c'est le point le plus haut qu'elle couvre qui fait sa hauteur — un sommet ne peut pas
+     * disparaître entre deux colonnes.
      */
     private fun drawProfile(
         canvas: Canvas,
@@ -171,47 +227,65 @@ object ProfileRenderer {
         top: Float,
         right: Float,
         bottom: Float,
+        positionX: Float,
         palette: Palette,
     ) {
         val window = model.window
         val points = window.points
         val elevationSpan = window.elevationSpan.takeIf { it > 0 } ?: return
-        // Les colonnes sont calées sur les pixels de l'image, et non sur les bords fractionnaires
-        // de la zone de dessin : un rectangle posé à cinq virgule six déborde sur deux pixels,
-        // dont aucun ne reçoit sa couleur pure. Là où deux colonnes voisines n'ont pas la même
-        // teinte — c'est-à-dire à chaque changement de zone de pente — le pixel de la frontière
-        // devient un mélange qui n'appartient à aucune des deux.
         val first = ceil(left).toInt()
         val columns = (floor(right).toInt() - first).coerceAtLeast(1)
 
         fun y(elevation: Double) =
             bottom - ((elevation - window.minElevation) / elevationSpan * (bottom - top)).toFloat()
 
-        // Sans antialiasing : ces rectangles sont alignés sur la grille des pixels, et l'adoucir
-        // ne ferait que rendre floues des frontières franches. La crête, elle, est une courbe et
-        // reste adoucie.
-        val fill = Paint().apply { style = Paint.Style.FILL }
-
+        val xs = FloatArray(columns) { first + it + 0.5f }
+        val ys = FloatArray(columns)
         for (column in 0 until columns) {
             val from = window.start + scale.distanceAt(column.toDouble() / columns)
             val to = window.start + scale.distanceAt((column + 1).toDouble() / columns)
-            val crest = crest(points, from, to)
-            val span = to - from
-            val grade = if (span > 0.0) {
-                (interpolate(points, to) - interpolate(points, from)) / span * 100.0
-            } else {
-                0.0
-            }
-
-            fill.color = if (model.colorByGrade) FieldPalette.gradeColor(grade) else FieldPalette.NEUTRAL
-            val x = (first + column).toFloat()
-            // Au moins un pixel de haut, toujours. Sur un plat au bas de l'échelle, le relief
-            // d'une colonne vaut une fraction de pixel : sans plancher, le rectangle n'est pas
-            // tracé du tout et la silhouette se troue — précisément là où le terrain est le
-            // plus régulier, c'est-à-dire là où un trou ressemble le moins à un accident.
-            val crestY = min(y(crest), bottom - 1f)
-            canvas.drawRect(x, crestY, x + 1f, bottom, fill)
+            // Au moins un pixel de relief, toujours : sur un plat au bas de l'échelle, la
+            // silhouette se trouerait précisément là où le terrain est le plus régulier.
+            ys[column] = min(y(crest(points, from, to)), bottom - 1f)
         }
+
+        // La coupure entre le fait et le restant est à l'aplomb du coureur, pas au bord de la
+        // colonne qui le porte : la marque de position s'y pose, et l'aplat doit partir d'elle.
+        val split = (positionX - first).toInt().coerceIn(0, columns - 1)
+        val devant = Path().apply {
+            moveTo(positionX, ys[split])
+            for (column in split until columns) lineTo(xs[column], ys[column])
+        }
+        val aplat = Path(devant).apply {
+            lineTo(xs[columns - 1], bottom)
+            lineTo(positionX, bottom)
+            close()
+        }
+        canvas.drawPath(
+            aplat,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = FILL
+            },
+        )
+        canvas.drawPath(devant, crestPaint(CREST, CREST_WIDTH))
+
+        if (split > 0) {
+            val derriere = Path().apply {
+                moveTo(xs[0], ys[0])
+                for (column in 1..split) lineTo(xs[column], ys[column])
+                lineTo(positionX, ys[split])
+            }
+            canvas.drawPath(derriere, crestPaint(palette.textPrimary, BEHIND_WIDTH))
+        }
+    }
+
+    private fun crestPaint(color: Int, width: Float) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = width
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        this.color = color
     }
 
     /**
@@ -240,32 +314,77 @@ object ProfileRenderer {
         } else {
             MIN_GAP
         }
-        val ticks = scale.ticks(
-            minimumGap = gap.toDouble(),
-            unit = Format.longDistanceUnitMeters(model.units),
-        )
-        if (ticks.isEmpty()) return
-
-        val rule = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.textSecondary
-            strokeWidth = 2f
-        }
+        val unitMeters = Format.longDistanceUnitMeters(model.units)
+        val unit = Format.longDistanceUnit(model.units)
         // Graisse moyenne : à corps égal, des chiffres maigres en bleu pâle par-dessus une
         // silhouette colorée se lisent nettement moins bien qu'en medium, pour le même
         // encombrement. C'est la fonte que le Karoo emploie lui-même pour ses libellés.
         val text = Lisibilite.pinceau(tickSize, palette.textSecondary).apply {
             textAlign = Paint.Align.CENTER
         }
-        val unit = Format.longDistanceUnit(model.units)
+        val baseline = bottom + TICK_LENGTH + tickSize
 
-        ticks.forEachIndexed { index, tick ->
-            val x = left + (tick.fraction * usable).toFloat()
+        // Sous l'échelle comprimée, les graduations comptent depuis le coureur et leur
+        // espacement inégal est ce qui trahit la compression. À échelle régulière, elles
+        // portent le compteur du parcours — « 26, 28, 30 » — comme sur le profil natif : la
+        // marque de position s'y lit alors comme un point sur cette règle, et la portée n'a
+        // plus à s'écrire, elle se lit sur les kilomètres.
+        val graduations: List<Pair<Float, String>> = if (model.compressed) {
+            val ticks = scale.ticks(minimumGap = gap.toDouble(), unit = unitMeters)
+            ticks.mapIndexed { index, tick ->
+                (left + (tick.fraction * usable).toFloat()) to Format.axisValue(tick.value) + unitSuffix(index, ticks.lastIndex, unit)
+            }
+        } else {
+            // Les kilomètres du parcours tiennent en deux ou trois chiffres : l'écart exigé
+            // se mesure sur eux, et non sur les libellés à décimale de l'échelle comprimée,
+            // sans quoi l'axe sautait de 2 en 5 pour rien.
+            val ecart = (tickSize * ABSOLUTE_TICK_LABEL_WIDTHS / usable).coerceIn(MIN_GAP, MAX_GAP)
+            // Sans unité : les kilomètres du parcours se reconnaissent, comme sur le profil
+            // natif, et « 14 km » sortait du cadre là où « 14 » y tient.
+            absoluteTicks(model, left, usable, if (labelled) ecart else MIN_GAP, unitMeters)
+        }
+        if (graduations.isEmpty()) return
+
+        val rule = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = palette.textSecondary
+            strokeWidth = 2f
+        }
+        graduations.forEach { (x, caption) ->
             canvas.drawLine(x, bottom, x, bottom + TICK_LENGTH, rule)
-            if (!labelled) return@forEachIndexed
-            // L'unité une seule fois, sur le dernier repère : la répéter à chaque graduation
-            // remplirait l'axe du mot le moins informatif qu'il porte.
-            val caption = Format.axisValue(tick.value) + if (index == ticks.lastIndex) " $unit" else ""
-            canvas.drawText(caption, x, bottom + TICK_LENGTH + tickSize, text)
+            if (!labelled) return@forEach
+            // Un chiffre qui sortirait du cadre à droite ne s'écrit pas ; son trait reste.
+            if (x + text.measureText(caption) / 2f > right) return@forEach
+            canvas.drawText(caption, x, baseline, text)
+        }
+    }
+
+    /**
+     * L'unité une seule fois, sur le dernier repère : la répéter à chaque graduation
+     * remplirait l'axe du mot le moins informatif qu'il porte.
+     */
+    private fun unitSuffix(index: Int, last: Int, unit: String): String =
+        if (index == last) " $unit" else ""
+
+    /**
+     * Les graduations d'une fenêtre à échelle régulière : les multiples ronds de l'unité
+     * — tous les 1, 2 ou 5 kilomètres selon la place — comptés depuis le départ du parcours.
+     */
+    private fun absoluteTicks(
+        model: ProfileFieldModel,
+        left: Float,
+        usable: Float,
+        gap: Float,
+        unitMeters: Double,
+    ): List<Pair<Float, String>> {
+        val window = model.window
+        val span = window.distanceSpan.takeIf { it > 0.0 } ?: return emptyList()
+        val step = ABSOLUTE_LADDER.firstOrNull { it * unitMeters / span >= gap } ?: return emptyList()
+        val pas = step * unitMeters
+        val premier = ceil(window.start / pas).toLong()
+        val dernier = floor(window.end / pas).toLong()
+        return (premier..dernier).map { k ->
+            val x = left + ((k * pas - window.start) / span * usable).toFloat()
+            x to Format.axisValue(k * step)
         }
     }
 
@@ -279,7 +398,6 @@ object ProfileRenderer {
         bottom: Float,
         labelSize: Float,
         palette: Palette,
-        positionX: Float,
     ) {
         val window = model.window
         fun x(distance: Double) =
@@ -306,23 +424,19 @@ object ProfileRenderer {
                 val endX = x(min(climb.endDistance, window.end))
                 if (endX - startX < 6f) return@forEachIndexed
 
-                overlay.color = FieldPalette.translucent(FieldPalette.gradeColor(climb.grade), 40)
+                // Un voile clair, sans teinte de pente : il dit l'étendue de la côte, et
+                // c'est le chiffre au-dessus qui dit sa pente.
+                overlay.color = FieldPalette.translucent(palette.textPrimary, CLIMB_OVERLAY_ALPHA)
                 canvas.drawRect(startX, top, endX, bottom, overlay)
 
                 val etiquette = "${climb.grade.toInt()}%"
                 val demi = text.measureText(etiquette) / 2f
-                // Le trait de position ne doit jamais barrer un chiffre : quand il tomberait
-                // dedans, l'étiquette s'écarte du côté où il reste de la place. C'est presque
-                // toujours vers la droite — le trait se tient dans le premier dixième — mais
-                // un coureur au tout début de sa côte pousserait l'étiquette hors du cadre.
-                val ecart = demi + labelSize * ECART_TRAIT
-                val vise = (startX + endX) / 2
-                val decale = when {
-                    kotlin.math.abs(vise - positionX) >= ecart -> vise
-                    positionX + ecart + demi <= right -> positionX + ecart
-                    else -> positionX - ecart
-                }
-                val centre = decale.coerceIn(left + demi, right - demi)
+                // Toujours au centre de la côte, et il défile avec elle. Il s'est écarté un
+                // temps du trait de position pour ne pas passer dessous, mais l'écart le
+                // faisait sauter sur la fin de la côte, où il annonçait une rampe qui n'arrive
+                // pas. Il passe donc sous l'étiquette de position, qui le couvre le temps du
+                // passage : c'est ce qui a été demandé.
+                val centre = ((startX + endX) / 2).coerceIn(left + demi, right - demi)
                 // Deux chiffres qui se chevauchent n'en font qu'un illisible : le second cède.
                 if ((rang < COTES_ETIQUETEES || endX - startX > labelSize * 2.4f) &&
                     centre - demi > precedentDroite
@@ -391,7 +505,9 @@ object ProfileRenderer {
         var precedent = Float.NEGATIVE_INFINITY
 
         model.pois
-            .filter { it.distanceAlongRoute >= window.start && it.distanceAlongRoute <= window.end }
+            // Devant le coureur seulement : la fenêtre commence derrière lui, et un point
+            // déjà passé n'est plus un jalon, c'est un souvenir.
+            .filter { it.distanceAlongRoute >= (model.positionDistance ?: window.start) && it.distanceAlongRoute <= window.end }
             .sortedBy { it.distanceAlongRoute }
             .forEach { poi ->
                 val fraction = scale.fractionAt(poi.distanceAlongRoute - window.start)
@@ -409,27 +525,15 @@ object ProfileRenderer {
             }
     }
 
-    private fun drawPositionMarker(canvas: Canvas, x: Float, top: Float, bottom: Float, palette: Palette) {
-        val marker = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.position
-            strokeWidth = 3f
-            style = Paint.Style.STROKE
-        }
-        canvas.drawLine(x, top, x, bottom, marker)
-
-        val triangle = Path().apply {
-            moveTo(x, bottom)
-            lineTo(x - 5f, bottom + 5f)
-            lineTo(x + 5f, bottom + 5f)
-            close()
-        }
-        canvas.drawPath(
-            triangle,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = palette.position
-                style = Paint.Style.FILL
-            },
-        )
+    /**
+     * Le trait de position : vertical, du jaune de la crête, sur toute la hauteur.
+     *
+     * Il a été bleu, avec un triangle sous l'axe. Le Karoo le fait jaune et nu, et c'est la
+     * silhouette qui change de teinte à son passage — blanc derrière, jaune devant — qui le
+     * rend lisible, non sa propre couleur.
+     */
+    private fun drawPositionMarker(canvas: Canvas, x: Float, top: Float, bottom: Float) {
+        canvas.drawLine(x, top, x, bottom, crestPaint(CREST, MARKER_WIDTH))
     }
 
     private fun drawLabels(
@@ -527,12 +631,39 @@ object ProfileRenderer {
      */
     private const val POI_TIP_RATIO = 1.2f
 
+    /**
+     * Le jaune de l'itinéraire du Karoo, franc sur la crête et le trait de position, voilé
+     * sous la crête. Le voile laisse le fond de l'écran assombrir l'aplat, comme sur le
+     * profil natif où il tire vers l'ocre.
+     */
+    internal const val CREST = KarooColors.LEMON_YELLOW
+    internal const val FILL = 0xA6F2D600.toInt()
+    private const val CREST_WIDTH = 3f
+
+    /** Le trait de position, un peu plus épais que la crête qu'il croise. */
+    private const val MARKER_WIDTH = 4f
+
+    /** La crête de ce qui est fait, en blanc et un peu plus fine : elle n'est plus l'enjeu. */
+    private const val BEHIND_WIDTH = 2.5f
+
+    /** Opacité du voile qui marque l'étendue d'une côte. */
+    private const val CLIMB_OVERLAY_ALPHA = 36
+
+    /**
+     * L'étiquette de position : l'encre sombre du nombre, son corps en part de celui des
+     * libellés, le blanc de part et d'autre et l'arrondi des coins, en part de la hauteur.
+     */
+    private const val POSITION_LABEL_INK = 0xFF11181C.toInt()
+    private const val POSITION_LABEL_RATIO = 0.9f
+    private const val POSITION_LABEL_PADDING = 0.3f
+    private const val POSITION_LABEL_CORNER = 0.25f
+
+    /** Les pas possibles des graduations à échelle régulière, dans l'unité du coureur. */
+    private val ABSOLUTE_LADDER = listOf(0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0)
+
     /** Longueur du trait d'une graduation sous l'axe. */
     /** Nombre de côtes portant leur pente moyenne quelle que soit leur largeur à l'écran. */
     private const val COTES_ETIQUETEES = 3
-
-    /** Blanc gardé entre le trait de position et une étiquette de pente, en corps de celle-ci. */
-    private const val ECART_TRAIT = 0.45f
 
     private const val TICK_LENGTH = 4f
 
@@ -566,6 +697,9 @@ object ProfileRenderer {
 
     /** Largeur réservée à une étiquette de graduation, en corps. */
     private const val TICK_LABEL_WIDTHS = 3.4f
+
+    /** La même réserve pour les kilomètres du parcours, plus courts. */
+    private const val ABSOLUTE_TICK_LABEL_WIDTHS = 2.2f
 
     private const val MIN_GAP = 0.08f
     private const val MAX_GAP = 0.34f

@@ -2,6 +2,7 @@ package io.github.jmallus.guidage.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GeoTest {
@@ -149,6 +150,70 @@ class GeoTest {
 
     /** Le tracé nord fait cent dix mètres et demi par sommet ; dix segments en tout. */
     private val pasNord = 110.54
+
+    /**
+     * Un aller-retour : le tracé nord, puis le même à rebours. Chaque point de la route est
+     * sur deux passages, à l'aller et au retour, séparés d'autant de tracé qu'il y a entre eux.
+     */
+    private val allerRetour = traceNord + traceNord.reversed().drop(1)
+
+    @Test
+    fun `sur une route empruntee deux fois, l'abscisse attendue departage les deux passages`() {
+        val surLaRoute = GeoPoint(origin.lat + 0.003, origin.lng)
+
+        // Au retour, à dix-sept pas du départ : c'est le second passage qui est retenu,
+        // et le sommet qui suit est dans la seconde moitié du tracé.
+        val retour = Geo.anchorOnPath(allerRetour, surLaRoute, expectedAlong = 17 * pasNord, tolerance = 25.0)!!
+        assertEquals(17 * pasNord, retour.distanceAlongPath, 0.5)
+        assertTrue(retour.index > traceNord.size)
+        assertEquals(0.0, retour.deviation, 0.5)
+
+        // À l'aller, le premier.
+        val aller = Geo.anchorOnPath(allerRetour, surLaRoute, expectedAlong = 3 * pasNord, tolerance = 25.0)!!
+        assertEquals(3 * pasNord, aller.distanceAlongPath, 0.5)
+
+        // L'attente n'a pas besoin d'être juste, seulement plus proche d'un passage que de
+        // l'autre : l'appareil se décale de quelques dizaines de mètres, pas de kilomètres.
+        val approximatif = Geo.anchorOnPath(allerRetour, surLaRoute, expectedAlong = 14 * pasNord, tolerance = 25.0)!!
+        assertEquals(17 * pasNord, approximatif.distanceAlongPath, 0.5)
+    }
+
+    @Test
+    fun `sans abscisse attendue, c'est le premier passage qui l'emporte`() {
+        val surLaRoute = GeoPoint(origin.lat + 0.003, origin.lng)
+        val premier = Geo.anchorOnPath(allerRetour, surLaRoute, expectedAlong = null, tolerance = 25.0)!!
+        assertEquals(3 * pasNord, premier.distanceAlongPath, 0.5)
+    }
+
+    @Test
+    fun `l'abscisse attendue ne l'emporte que sur un concurrent aussi proche`() {
+        // Le retour passe soixante mètres à l'est de l'aller : une rue parallèle.
+        val retourDecale = traceNord.reversed().map { Geo.advance(it, 90.0, 60.0) }
+        val parallele = traceNord + retourDecale
+        val surLAller = GeoPoint(origin.lat + 0.003, origin.lng)
+
+        // Attendu au retour, mais le retour est à soixante mètres et la tolérance à
+        // vingt-cinq : on reste sur la route où l'on est.
+        val serre = Geo.anchorOnPath(parallele, surLAller, expectedAlong = 17 * pasNord, tolerance = 25.0)!!
+        assertEquals(3 * pasNord, serre.distanceAlongPath, 0.5)
+        assertEquals(0.0, serre.deviation, 0.5)
+
+        // À tolérance large, l'attente reprend la main.
+        val large = Geo.anchorOnPath(parallele, surLAller, expectedAlong = 17 * pasNord, tolerance = 100.0)!!
+        assertEquals(60.0, large.deviation, 1.0)
+        assertTrue(large.index > traceNord.size)
+    }
+
+    @Test
+    fun `l'aplomb tombe sur le segment, entre deux sommets`() {
+        val ecarte = Geo.advance(GeoPoint(origin.lat + 0.0025, origin.lng), 90.0, 20.0)
+        val aplomb = Geo.anchorOnPath(traceNord, ecarte, expectedAlong = null, tolerance = 0.0)!!
+        assertEquals(3, aplomb.index)
+        assertEquals(2.5 * pasNord, aplomb.distanceAlongPath, 0.5)
+        assertEquals(20.0, aplomb.deviation, 0.5)
+        assertEquals(0.0, Geo.distance(aplomb.point, GeoPoint(origin.lat + 0.0025, origin.lng)), 0.5)
+        assertNull(Geo.anchorOnPath(listOf(origin), origin, null, 0.0))
+    }
 
     @Test
     fun `une portion du trace se coupe entre deux sommets`() {

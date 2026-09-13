@@ -1,6 +1,7 @@
 package io.github.jmallus.guidage.ui
 
 import android.graphics.Bitmap
+import android.graphics.Color
 import io.github.jmallus.guidage.core.ElevationProfile
 import io.github.jmallus.guidage.core.FisheyeScale
 import io.github.jmallus.guidage.core.Guidance
@@ -66,40 +67,37 @@ class ProfileRendererTest {
     )
 
     /**
-     * Les teintes que le remplissage peut prendre : celles des zones de pente, plus le neutre.
+     * Les teintes de la silhouette : l'aplat voilé et la crête franche, au jaune du Karoo.
      *
      * Les relever sert à ne lire que la silhouette. Un test qui prendrait tout pixel non
      * transparent lirait aussi les libellés du haut et les graduations du bas — et le premier
      * écrit du texte plus haut que le col ne montera jamais, de sorte qu'un contrôle sur le
      * point culminant passerait en désignant une lettre.
-     */
-    private val teintesDeRelief: Set<Int> =
-        ((-25..25).map { FieldPalette.gradeColor(it.toDouble()) } + FieldPalette.NEUTRAL).toSet()
-
-    /**
-     * La silhouette, c'est le remplissage **et** le trait qui la souligne.
      *
-     * Le trait fait deux pixels et le remplissage descend parfois à un seul — sur un fond de
-     * vallée, sous un col qui tient toute l'échelle des altitudes. Le trait recouvre alors le
-     * remplissage entièrement : la colonne est bien dessinée, mais elle ne porte plus aucune
-     * teinte de pente. Ne chercher que les teintes reviendrait à l'appeler vide.
+     * Elles se reconnaissent à leur teinte, non à leur valeur exacte : l'aplat est voilé, et un
+     * pixel translucide posé sur un fond vide ne rend pas ses composantes au pixel près une
+     * fois relu ; la crête est adoucie, et sur une pente son cœur même est un mélange. Rien
+     * d'autre sur la bande n'est jaune — les libellés sont bleus ou blancs, les jalons magenta.
      */
-    private val teintesDeSilhouette: Set<Int> get() = teintesDeRelief + palette.outline
+    private fun estJaune(pixel: Int): Boolean =
+        Color.alpha(pixel) > 0x40 && Color.red(pixel) > 0xB0 && Color.green(pixel) > 0x90 && Color.blue(pixel) < 0x60
 
     /** Hauteur du sommet de la silhouette dans chaque colonne, ou la hauteur si elle est vide. */
-    private fun crete(image: Bitmap): List<Int> {
-        val teintes = teintesDeSilhouette
-        return (0 until image.width).map { x ->
-            (0 until image.height).firstOrNull { y -> image.getPixel(x, y) in teintes } ?: image.height
+    private fun crete(image: Bitmap): List<Int> =
+        (0 until image.width).map { x ->
+            (0 until image.height).firstOrNull { y -> estJaune(image.getPixel(x, y)) } ?: image.height
         }
-    }
 
     /** La promesse : le col de la fin n'est pas avalé par la compression. */
     @Test
     fun `le col lointain reste le point haut de la bande`() {
         val image = image()
         val sommets = crete(image)
-        val plusHaut = sommets.withIndex().filter { it.value < image.height }.minByOrNull { it.value }
+        // Le trait de position se tient au bord gauche, du même jaune que la crête, et monte
+        // jusqu'en haut de la bande : il ferait un faux sommet. On cherche au-delà de lui.
+        val plusHaut = sommets.withIndex()
+            .filter { it.index > image.width / 10 && it.value < image.height }
+            .minByOrNull { it.value }
         assertTrue("aucune silhouette dessinée", plusHaut != null)
 
         val attendu = FisheyeScale(40_000.0).fractionAt(30_000.0) * image.width
@@ -110,43 +108,24 @@ class ProfileRendererTest {
     }
 
     /**
-     * Chaque colonne prend la couleur de la pente qu'elle couvre, et non celle d'une autre.
-     *
-     * C'est le défaut qu'a eu le rendu par segments : là où l'échelle comprime, cent segments
-     * du relevé tombaient dans la même colonne et se repeignaient l'un l'autre, le lointain
-     * finissant tout entier de la teinte du dernier segment tiré. Un profil d'une seule
-     * couleur compile parfaitement.
+     * La silhouette est d'un seul jaune, celui de l'itinéraire du Karoo : aucune teinte de
+     * pente ne s'y glisse plus.
      */
     @Test
-    fun `la bande porte plusieurs teintes de pente`() {
-        val teintes = teintesDeRemplissage(image())
-        assertTrue("le profil n'a que ${teintes.size} teinte(s)", teintes.size >= 3)
-    }
-
-    /** Et quand le coureur refuse la coloration, une seule teinte : celle du neutre. */
-    @Test
-    fun `sans coloration par la pente la bande est d'une seule teinte`() {
-        val image = ProfileRenderer.render(
-            320,
-            140,
-            ProfileFieldModel(
-                window = Guidance.profileToFinish(route, 0.0),
-                colorByGrade = false,
-            ),
-            palette,
-        )
-        val teintes = teintesDeRemplissage(image)
-        assertTrue("teintes trouvées : $teintes", teintes == setOf(FieldPalette.NEUTRAL))
-    }
-
-    /** Les teintes de relief effectivement posées dans l'image. */
-    private fun teintesDeRemplissage(image: Bitmap): Set<Int> = buildSet {
-        for (x in 0 until image.width) {
-            for (y in 0 until image.height) {
-                val pixel = image.getPixel(x, y)
-                if (pixel in teintesDeRelief) add(pixel)
+    fun `la bande ne porte aucune teinte de pente`() {
+        val image = image()
+        val pentes = (-25..25).map { FieldPalette.gradeColor(it.toDouble()) }.filterNot(::estJaune).toSet()
+        val intruses = buildSet {
+            for (x in 0 until image.width) {
+                for (y in 0 until image.height) {
+                    val pixel = image.getPixel(x, y)
+                    if (pixel in pentes) add(pixel)
+                }
             }
         }
+        assertTrue("teintes de pente trouvées : $intruses", intruses.isEmpty())
+        val jaune = crete(image).count { it < image.height }
+        assertTrue("la silhouette jaune manque : $jaune colonnes", jaune > image.width / 2)
     }
 
     /**

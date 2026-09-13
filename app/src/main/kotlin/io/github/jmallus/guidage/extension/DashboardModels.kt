@@ -149,6 +149,7 @@ object DashboardModels {
             roads = roads,
             roadsMessage = if (roads.isEmpty() && !preview) roadSource.notice(context, position) else null,
             path = route?.path.orEmpty(),
+            distanceAlongRoute = state.distanceAlongRoute,
             rejoinPath = route?.rejoinPath.orEmpty(),
             trailPaths = trailPaths(route, state.distanceAlongRoute, roads, zoom),
             position = position,
@@ -214,7 +215,6 @@ object DashboardModels {
                 window = ProfileWindow(emptyList(), 0.0, 0.0, 0.0, 0.0),
                 position = 0.0,
                 emptyMessage = context.getString(R.string.field_no_route),
-                colorByGrade = settings.colorByGrade,
             )
         }
 
@@ -226,7 +226,6 @@ object DashboardModels {
             climbs = route.climbs,
             pois = route.pois.map { GraphPoi(it.distanceAlongRoute, PoiLabels.label(context, it)) },
             zoomLabel = zoomLabel(settings),
-            colorByGrade = settings.colorByGrade,
         )
     }
 
@@ -301,7 +300,7 @@ object DashboardModels {
      *
      * Elle vient d'un rang de trois — distance parcourue, restant, pente — supprimé après
      * essai sur le vélo : ses voisines redisaient ce que le Karoo enregistre et ce que la
-     * couleur du profil montre, et leur hauteur manquait cruellement aux deux champs du bas,
+     * silhouette du profil montre, et leur hauteur manquait cruellement aux deux champs du bas,
      * qui écrivaient trop petit pour être lus.
      *
      * Le libellé porte « REST. » et non plus « RESTANT KM ». L'unité y coûtait trois lettres

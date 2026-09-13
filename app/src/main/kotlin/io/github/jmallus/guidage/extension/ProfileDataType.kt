@@ -21,8 +21,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
- * Champ graphique « Profil à venir » : tout ce qui reste de l'itinéraire, coloré selon la
- * pente, avec les côtes surlignées.
+ * Champ graphique « Profil à venir » : tout ce qui reste de l'itinéraire, au jaune du
+ * Karoo, avec les côtes surlignées et leur pente moyenne.
  *
  * Tout ce qui reste, et non une portée choisie : l'échelle horizontale est comprimée au loin
  * (voir `FisheyeScale`), de sorte que la rampe dans trois cents mètres et le col de la

@@ -11,6 +11,18 @@ data class GeoPoint(val lat: Double, val lng: Double)
 /** Un point projeté dans le repère de l'écran : x vers la droite, y vers le haut, en mètres. */
 data class PlanePoint(val x: Double, val y: Double)
 
+/** Où un point se tient sur un tracé, voir [Geo.anchorOnPath]. */
+data class PathAnchor(
+    /** Le sommet du tracé qui suit le point : le segment d'accroche va de `index - 1` à `index`. */
+    val index: Int,
+    /** L'aplomb du point sur le tracé. */
+    val point: GeoPoint,
+    /** Distance de cet aplomb depuis le départ du tracé (m). */
+    val distanceAlongPath: Double,
+    /** Écart entre le point et son aplomb (m). */
+    val deviation: Double,
+)
+
 /**
  * Projection locale des positions autour du coureur, et rotation « cap en haut ».
  *
@@ -98,13 +110,65 @@ object Geo {
         path: List<GeoPoint>,
         point: GeoPoint,
         maxDeviation: Double,
-    ): Double? {
+    ): Double? = anchorOnPath(path, point, expectedAlong = null, tolerance = 0.0)
+        ?.takeIf { it.deviation <= maxDeviation }
+        ?.distanceAlongPath
+
+    /**
+     * Où [point] se tient sur [path] : son aplomb sur le tracé, le sommet qui le suit, la
+     * distance depuis le départ et l'écart.
+     *
+     * C'est le point du tracé le plus proche — à une réserve près, qui est toute la raison
+     * de [expectedAlong]. Un parcours peut emprunter deux fois la même route : une boucle qui
+     * revient par où elle est partie, un aller-retour au bout d'une impasse. Le point le plus
+     * proche y est deux fois le même, à des kilomètres d'écart en abscisse, et prendre le
+     * premier venu revient à placer le coureur au **départ** quand il arrive. Le sens du
+     * tracé s'inverse alors sous lui : ce qui reste à faire devient tout le parcours, et les
+     * jalons le renvoient d'où il vient. Une sortie réelle l'a montré, au dernier carrefour.
+     *
+     * L'appareil, lui, sait où l'on en est — il annonce la distance restante. Elle se décale
+     * de quelques dizaines de mètres et ne peut pas servir d'aplomb ; mais pour départager
+     * deux passages à des kilomètres l'un de l'autre, elle est sans appel. Parmi les segments
+     * qui se tiennent à moins de [tolerance] du meilleur, on retient donc celui dont
+     * l'abscisse est la plus proche de [expectedAlong]. Sans attente, ou sans concurrent
+     * dans la tolérance, c'est simplement le plus proche.
+     *
+     * Rend null quand le tracé n'a pas de segment.
+     */
+    fun anchorOnPath(
+        path: List<GeoPoint>,
+        point: GeoPoint,
+        expectedAlong: Double?,
+        tolerance: Double,
+    ): PathAnchor? {
         if (path.size < 2) return null
 
-        var parcouru = 0.0
-        var meilleureDistance = 0.0
-        var meilleurEcart = Double.MAX_VALUE
+        // Premier passage : le plus proche, sans réserve.
+        var meilleur: PathAnchor? = null
+        eachProjection(path, point) { candidat ->
+            if (meilleur == null || candidat.deviation < meilleur!!.deviation) meilleur = candidat
+        }
+        val proche = meilleur ?: return null
+        if (expectedAlong == null) return proche
 
+        // Second passage : parmi ceux qui font aussi bien à la tolérance près, le plus
+        // conforme à l'abscisse attendue. Le tracé se relit en entier, ce qui coûte moins que
+        // de garder tous les candidats du premier passage pour ne les trier qu'une fois.
+        var retenu = proche
+        val seuil = proche.deviation + tolerance
+        eachProjection(path, point) { candidat ->
+            if (candidat.deviation <= seuil &&
+                abs(candidat.distanceAlongPath - expectedAlong) < abs(retenu.distanceAlongPath - expectedAlong)
+            ) {
+                retenu = candidat
+            }
+        }
+        return retenu
+    }
+
+    /** La projection de [point] sur chaque segment de [path], dans l'ordre du tracé. */
+    private inline fun eachProjection(path: List<GeoPoint>, point: GeoPoint, visit: (PathAnchor) -> Unit) {
+        var parcouru = 0.0
         for (i in 1 until path.size) {
             val debut = path[i - 1]
             val fin = path[i]
@@ -120,14 +184,9 @@ object Geo {
             val t = ((versPoint.x * versFin.x + versPoint.y * versFin.y) / (longueur * longueur))
                 .coerceIn(0.0, 1.0)
             val ecart = hypot(versPoint.x - t * versFin.x, versPoint.y - t * versFin.y)
-            if (ecart < meilleurEcart) {
-                meilleurEcart = ecart
-                meilleureDistance = parcouru + t * longueur
-            }
+            visit(PathAnchor(i, interpolate(debut, fin, t), parcouru + t * longueur, ecart))
             parcouru += longueur
         }
-
-        return meilleureDistance.takeIf { meilleurEcart <= maxDeviation }
     }
 
     /**

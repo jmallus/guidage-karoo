@@ -40,12 +40,15 @@ object Format {
     }
 
     /** Distance toujours exprimée dans la grande unité : « 2,4 km », « 1.5 mi ». */
-    fun longDistance(meters: Double, units: Units, locale: Locale = Locale.getDefault()): String {
-        return when (units) {
-            Units.METRIC -> String.format(locale, "%.1f km", meters / 1000)
-            Units.IMPERIAL -> String.format(locale, "%.1f mi", meters / METERS_PER_MILE)
-        }
-    }
+    fun longDistance(meters: Double, units: Units, locale: Locale = Locale.getDefault()): String =
+        "${longDistanceValue(meters, units, locale)} ${longDistanceUnit(units)}"
+
+    /**
+     * Le nombre seul de [longDistance] : « 27,1 », pour une marque posée sur un axe qui
+     * porte déjà l'unité.
+     */
+    fun longDistanceValue(meters: Double, units: Units, locale: Locale = Locale.getDefault()): String =
+        String.format(locale, "%.1f", meters / longDistanceUnitMeters(units))
 
     /** L'unité de [longDistance], à écrire une seule fois pour tout un axe. */
     fun longDistanceUnit(units: Units): String = when (units) {

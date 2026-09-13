@@ -24,7 +24,7 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 | Champ | Type | Contenu |
 | --- | --- | --- |
 | **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. |
-| **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Rempli en couleur selon la pente, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
+| **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Silhouette au jaune du Karoo, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
 | **Suivant la sortie** | graphique | Un champ dont la moitié basse change avec ce que fait la sortie — montée, descente, ravitaillement, roulage — la moitié haute restant fixe. |
@@ -107,8 +107,9 @@ Les champs de bande, qui se posent sur un rang d'une page ordinaire :
   </tr>
 </table>
 
-Et le tableau de bord à ses trois portées de carte, puis avec le profil à la place de la
-carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge :
+Et le tableau de bord à trois de ses portées de carte, puis avec le profil à la place de
+la carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge — et à l'approche
+de l'arrivée, marquée d'un damier :
 
 <table>
   <tr>
@@ -117,6 +118,7 @@ carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge :
     <td align="center"><img src="docs/captures/carte-1000m.png" width="150" alt="Portée 1 km"><br>1 km</td>
     <td align="center"><img src="docs/captures/profil.png" width="150" alt="Profil au lieu de la carte"><br>Profil</td>
     <td align="center"><img src="docs/captures/hors-itineraire.png" width="150" alt="Hors itinéraire"><br>Hors itinéraire</td>
+    <td align="center"><img src="docs/captures/carte-arrivee.png" width="150" alt="Approche de l'arrivée"><br>Arrivée</td>
   </tr>
 </table>
 
@@ -226,8 +228,7 @@ dans son état d'usine, ce qui revient à ne pas l'avoir écrit.
 
 **Tableau de bord**
 
-- minicarte plutôt que profil dans la moitié haute ;
-- coloration du profil selon la pente.
+- minicarte plutôt que profil dans la moitié haute.
 
 **Ravitaillement**
 

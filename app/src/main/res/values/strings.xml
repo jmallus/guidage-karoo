@@ -5,7 +5,7 @@
 
     <!-- Champs de données -->
     <string name="field_profile_name">Profil à venir</string>
-    <string name="field_profile_description">Profil altimétrique de la portion d\'itinéraire devant vous, coloré selon la pente.</string>
+    <string name="field_profile_description">Profil altimétrique de la portion d\'itinéraire devant vous, au jaune du Karoo, côtes annotées de leur pente moyenne.</string>
     <string name="field_climb_name">Prochaine côte</string>
     <string name="field_climb_description">Distance jusqu\'à la prochaine côte, ou jusqu\'au sommet de celle en cours, avec pente et dénivelé.</string>
     <string name="field_poi_name">Prochain point d\'intérêt</string>
@@ -76,7 +76,6 @@
     <string name="status_next_poi">Prochain point : %1$s dans %2$s</string>
 
     <string name="settings_title">Réglages</string>
-    <string name="settings_color_by_grade">Colorer le profil selon la pente</string>
     <string name="settings_poi_alerts">Annoncer les points d\'intérêt</string>
     <string name="settings_poi_distance">Annonce avant le point : %1$s</string>
 
@@ -84,7 +83,6 @@
     <string name="settings_section_resupply">Ravitaillement</string>
     <string name="settings_section_alerts">Annonces</string>
     <string name="settings_guidance_map_hint">Champ « Tableau de bord »</string>
-    <string name="settings_color_by_grade_hint">Champs « Profil à venir » et « Tableau de bord »</string>
     <string name="settings_water_only">Ne compter que les points d\'eau</string>
     <string name="settings_water_only_hint">Champs « Réserve », « Autonomie », « Suivant la sortie » et les annonces. Décoché, comptent aussi commerces, stations-service, cafés et haltes.</string>
     <string name="settings_poi_alerts_hint">Annonce vocale et bandeau, en enregistrement seulement</string>
