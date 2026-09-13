@@ -145,10 +145,9 @@ object ProfileRenderer {
 
         // L'étiquette de position tient dans l'en-tête ; sans en-tête, elle ne s'écrit pas.
         val etiquette = model.positionLabel?.takeIf { entetes }
-        val demiEtiquette = etiquette?.let { positionLabelHalfWidth(it, labelSize) } ?: 0f
 
         drawProfile(canvas, model, scale, left, top, right, bottom, positionX, palette)
-        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette, positionX, demiEtiquette)
+        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         drawPositionMarker(canvas, positionX, top, bottom)
@@ -399,8 +398,6 @@ object ProfileRenderer {
         bottom: Float,
         labelSize: Float,
         palette: Palette,
-        positionX: Float,
-        demiEtiquette: Float,
     ) {
         val window = model.window
         fun x(distance: Double) =
@@ -434,18 +431,12 @@ object ProfileRenderer {
 
                 val etiquette = "${climb.grade.toInt()}%"
                 val demi = text.measureText(etiquette) / 2f
-                // Le trait de position ne doit jamais barrer un chiffre, ni l'étiquette de
-                // position le couvrir : quand il tomberait dedans, l'étiquette de pente
-                // s'écarte du côté où il reste de la place. C'est presque toujours vers la
-                // droite, mais un coureur au tout début de sa côte la pousserait hors du cadre.
-                val ecart = demi + max(labelSize * ECART_TRAIT, demiEtiquette + labelSize * 0.3f)
-                val vise = (startX + endX) / 2
-                val decale = when {
-                    kotlin.math.abs(vise - positionX) >= ecart -> vise
-                    positionX + ecart + demi <= right -> positionX + ecart
-                    else -> positionX - ecart
-                }
-                val centre = decale.coerceIn(left + demi, right - demi)
+                // Toujours au centre de la côte, et il défile avec elle. Il s'est écarté un
+                // temps du trait de position pour ne pas passer dessous, mais l'écart le
+                // faisait sauter sur la fin de la côte, où il annonçait une rampe qui n'arrive
+                // pas. Il passe donc sous l'étiquette de position, qui le couvre le temps du
+                // passage : c'est ce qui a été demandé.
+                val centre = ((startX + endX) / 2).coerceIn(left + demi, right - demi)
                 // Deux chiffres qui se chevauchent n'en font qu'un illisible : le second cède.
                 if ((rang < COTES_ETIQUETEES || endX - startX > labelSize * 2.4f) &&
                     centre - demi > precedentDroite
@@ -673,9 +664,6 @@ object ProfileRenderer {
     /** Longueur du trait d'une graduation sous l'axe. */
     /** Nombre de côtes portant leur pente moyenne quelle que soit leur largeur à l'écran. */
     private const val COTES_ETIQUETEES = 3
-
-    /** Blanc gardé entre le trait de position et une étiquette de pente, en corps de celle-ci. */
-    private const val ECART_TRAIT = 0.45f
 
     private const val TICK_LENGTH = 4f
 
