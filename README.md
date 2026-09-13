@@ -107,8 +107,9 @@ Les champs de bande, qui se posent sur un rang d'une page ordinaire :
   </tr>
 </table>
 
-Et le tableau de bord à ses trois portées de carte, puis avec le profil à la place de la
-carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge :
+Et le tableau de bord à trois de ses portées de carte, puis avec le profil à la place de
+la carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge — et à l'approche
+de l'arrivée, marquée d'un damier :
 
 <table>
   <tr>
@@ -117,6 +118,7 @@ carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge :
     <td align="center"><img src="docs/captures/carte-1000m.png" width="150" alt="Portée 1 km"><br>1 km</td>
     <td align="center"><img src="docs/captures/profil.png" width="150" alt="Profil au lieu de la carte"><br>Profil</td>
     <td align="center"><img src="docs/captures/hors-itineraire.png" width="150" alt="Hors itinéraire"><br>Hors itinéraire</td>
+    <td align="center"><img src="docs/captures/carte-arrivee.png" width="150" alt="Approche de l'arrivée"><br>Arrivée</td>
   </tr>
 </table>
 
