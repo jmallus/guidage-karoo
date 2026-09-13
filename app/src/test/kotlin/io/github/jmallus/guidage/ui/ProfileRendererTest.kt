@@ -1,6 +1,7 @@
 package io.github.jmallus.guidage.ui
 
 import android.graphics.Bitmap
+import android.graphics.Color
 import io.github.jmallus.guidage.core.ElevationProfile
 import io.github.jmallus.guidage.core.FisheyeScale
 import io.github.jmallus.guidage.core.Guidance
@@ -73,19 +74,19 @@ class ProfileRendererTest {
      * écrit du texte plus haut que le col ne montera jamais, de sorte qu'un contrôle sur le
      * point culminant passerait en désignant une lettre.
      *
-     * La crête fait trois pixels et l'aplat descend parfois à un seul — sur un fond de vallée,
-     * sous un col qui tient toute l'échelle des altitudes. La crête recouvre alors l'aplat
-     * entièrement : ne chercher que lui reviendrait à appeler la colonne vide.
+     * Elles se reconnaissent à leur teinte, non à leur valeur exacte : l'aplat est voilé, et un
+     * pixel translucide posé sur un fond vide ne rend pas ses composantes au pixel près une
+     * fois relu ; la crête est adoucie, et sur une pente son cœur même est un mélange. Rien
+     * d'autre sur la bande n'est jaune — les libellés sont bleus ou blancs, les jalons magenta.
      */
-    private val teintesDeSilhouette: Set<Int> = setOf(ProfileRenderer.FILL, ProfileRenderer.CREST)
+    private fun estJaune(pixel: Int): Boolean =
+        Color.alpha(pixel) > 0x40 && Color.red(pixel) > 0xB0 && Color.green(pixel) > 0x90 && Color.blue(pixel) < 0x60
 
     /** Hauteur du sommet de la silhouette dans chaque colonne, ou la hauteur si elle est vide. */
-    private fun crete(image: Bitmap): List<Int> {
-        val teintes = teintesDeSilhouette
-        return (0 until image.width).map { x ->
-            (0 until image.height).firstOrNull { y -> image.getPixel(x, y) in teintes } ?: image.height
+    private fun crete(image: Bitmap): List<Int> =
+        (0 until image.width).map { x ->
+            (0 until image.height).firstOrNull { y -> estJaune(image.getPixel(x, y)) } ?: image.height
         }
-    }
 
     /** La promesse : le col de la fin n'est pas avalé par la compression. */
     @Test
@@ -109,7 +110,7 @@ class ProfileRendererTest {
     @Test
     fun `la bande ne porte aucune teinte de pente`() {
         val image = image()
-        val pentes = (-25..25).map { FieldPalette.gradeColor(it.toDouble()) }.toSet() - teintesDeSilhouette
+        val pentes = (-25..25).map { FieldPalette.gradeColor(it.toDouble()) }.filterNot(::estJaune).toSet()
         val intruses = buildSet {
             for (x in 0 until image.width) {
                 for (y in 0 until image.height) {
