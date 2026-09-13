@@ -39,6 +39,17 @@ data class ProfileFieldModel(
      * déjà parcouru qu'on voit alors n'est pas perdu — c'est la pente dont on sort.
      */
     val positionDistance: Double? = null,
+    /**
+     * Ce que le coureur a au compteur, écrit dans une étiquette au-dessus de sa marque —
+     * « 27,1 », dans l'unité que l'axe porte déjà. Null pour ne pas l'écrire.
+     */
+    val positionLabel: String? = null,
+    /**
+     * Vrai pour écrire la portée au bout de l'axe, sur la ligne des graduations, et non en
+     * en-tête à droite : c'est le dessin du profil natif, où le haut de la bande ne porte que
+     * l'étiquette de position.
+     */
+    val rangeLabelOnAxis: Boolean = false,
     /** Message affiché quand il n'y a rien à montrer. */
     val emptyMessage: String? = null,
     /**
@@ -138,12 +149,66 @@ object ProfileRenderer {
             ?.coerceIn(left, right)
             ?: left
 
+        // L'étiquette de position tient dans l'en-tête ; sans en-tête, elle ne s'écrit pas.
+        val etiquette = model.positionLabel?.takeIf { entetes }
+        val demiEtiquette = etiquette?.let { positionLabelHalfWidth(it, labelSize) } ?: 0f
+
         drawProfile(canvas, model, scale, left, top, right, bottom, positionX, palette)
-        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette, positionX)
+        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette, positionX, demiEtiquette)
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         drawPositionMarker(canvas, positionX, top, bottom)
         if (entetes) drawLabels(canvas, model, left, right, top, labelSize, palette)
+        if (etiquette != null) drawPositionLabel(canvas, etiquette, positionX, left, right, top, labelSize, palette)
+    }
+
+    /**
+     * L'étiquette de position : une boîte claire aux coins ronds, posée sur l'en-tête à
+     * l'aplomb de la marque, et le nombre en sombre dedans — le dessin du profil natif.
+     *
+     * Elle est retenue dans le cadre quand la marque approche d'un bord ; le trait, lui,
+     * reste à l'aplomb, et c'est la boîte qui glisse.
+     */
+    private fun drawPositionLabel(
+        canvas: Canvas,
+        label: String,
+        positionX: Float,
+        left: Float,
+        right: Float,
+        top: Float,
+        labelSize: Float,
+        palette: Palette,
+    ) {
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = POSITION_LABEL_INK
+            textSize = labelSize * POSITION_LABEL_RATIO
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val demi = positionLabelHalfWidth(label, labelSize)
+        val centre = positionX.coerceIn(left + demi, right - demi)
+        val hauteur = labelSize
+        val boite = RectF(centre - demi, top - hauteur, centre + demi, top)
+        val rayon = hauteur * POSITION_LABEL_CORNER
+        canvas.drawRoundRect(
+            boite,
+            rayon,
+            rayon,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = palette.textPrimary
+            },
+        )
+        canvas.drawText(label, centre, boite.centerY() - (text.descent() + text.ascent()) / 2f, text)
+    }
+
+    /** Demi-largeur de l'étiquette de position, le blanc autour du nombre compris. */
+    private fun positionLabelHalfWidth(label: String, labelSize: Float): Float {
+        val text = Paint().apply {
+            textSize = labelSize * POSITION_LABEL_RATIO
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        return text.measureText(label) / 2f + labelSize * POSITION_LABEL_PADDING
     }
 
     /**
@@ -256,32 +321,73 @@ object ProfileRenderer {
         } else {
             MIN_GAP
         }
-        val ticks = scale.ticks(
-            minimumGap = gap.toDouble(),
-            unit = Format.longDistanceUnitMeters(model.units),
-        )
-        if (ticks.isEmpty()) return
-
-        val rule = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.textSecondary
-            strokeWidth = 2f
-        }
+        val unitMeters = Format.longDistanceUnitMeters(model.units)
+        val unit = Format.longDistanceUnit(model.units)
         // Graisse moyenne : à corps égal, des chiffres maigres en bleu pâle par-dessus une
         // silhouette colorée se lisent nettement moins bien qu'en medium, pour le même
         // encombrement. C'est la fonte que le Karoo emploie lui-même pour ses libellés.
         val text = Lisibilite.pinceau(tickSize, palette.textSecondary).apply {
             textAlign = Paint.Align.CENTER
         }
-        val unit = Format.longDistanceUnit(model.units)
+        val baseline = bottom + TICK_LENGTH + tickSize
 
-        ticks.forEachIndexed { index, tick ->
-            val x = left + (tick.fraction * usable).toFloat()
+        // La portée au bout de l'axe, quand elle y est demandée : elle porte alors l'unité
+        // pour tout l'axe, et les graduations qui tomberaient sous elle s'effacent.
+        var limite = right
+        val portee = model.rangeLabel?.takeIf { model.rangeLabelOnAxis && labelled }
+        if (portee != null) {
+            val largeur = text.measureText(portee)
+            canvas.drawText(portee, right - largeur / 2f, baseline, text)
+            limite = right - largeur - tickSize * 0.6f
+        }
+
+        // Sous l'échelle comprimée, les graduations comptent depuis le coureur et leur
+        // espacement inégal est ce qui trahit la compression. À échelle régulière, elles
+        // portent le compteur du parcours — « 26, 28, 30 » — comme sur le profil natif : la
+        // marque de position s'y lit alors comme un point sur cette règle.
+        val graduations: List<Pair<Float, String>> = if (model.compressed) {
+            val ticks = scale.ticks(minimumGap = gap.toDouble(), unit = unitMeters)
+            ticks.mapIndexed { index, tick ->
+                val suffixe = if (index == ticks.lastIndex && portee == null) " $unit" else ""
+                (left + (tick.fraction * usable).toFloat()) to Format.axisValue(tick.value) + suffixe
+            }
+        } else {
+            absoluteTicks(model, left, usable, gap, unitMeters)
+        }
+        if (graduations.isEmpty()) return
+
+        val rule = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = palette.textSecondary
+            strokeWidth = 2f
+        }
+        graduations.forEach { (x, caption) ->
             canvas.drawLine(x, bottom, x, bottom + TICK_LENGTH, rule)
-            if (!labelled) return@forEachIndexed
-            // L'unité une seule fois, sur le dernier repère : la répéter à chaque graduation
-            // remplirait l'axe du mot le moins informatif qu'il porte.
-            val caption = Format.axisValue(tick.value) + if (index == ticks.lastIndex) " $unit" else ""
-            canvas.drawText(caption, x, bottom + TICK_LENGTH + tickSize, text)
+            if (!labelled) return@forEach
+            if (x + text.measureText(caption) / 2f > limite) return@forEach
+            canvas.drawText(caption, x, baseline, text)
+        }
+    }
+
+    /**
+     * Les graduations d'une fenêtre à échelle régulière : les multiples ronds de l'unité
+     * — tous les 1, 2 ou 5 kilomètres selon la place — comptés depuis le départ du parcours.
+     */
+    private fun absoluteTicks(
+        model: ProfileFieldModel,
+        left: Float,
+        usable: Float,
+        gap: Float,
+        unitMeters: Double,
+    ): List<Pair<Float, String>> {
+        val window = model.window
+        val span = window.distanceSpan.takeIf { it > 0.0 } ?: return emptyList()
+        val step = ABSOLUTE_LADDER.firstOrNull { it * unitMeters / span >= gap } ?: return emptyList()
+        val pas = step * unitMeters
+        val premier = ceil(window.start / pas).toLong()
+        val dernier = floor(window.end / pas).toLong()
+        return (premier..dernier).map { k ->
+            val x = left + ((k * pas - window.start) / span * usable).toFloat()
+            x to Format.axisValue(k * step)
         }
     }
 
@@ -296,6 +402,7 @@ object ProfileRenderer {
         labelSize: Float,
         palette: Palette,
         positionX: Float,
+        demiEtiquette: Float,
     ) {
         val window = model.window
         fun x(distance: Double) =
@@ -329,11 +436,11 @@ object ProfileRenderer {
 
                 val etiquette = "${climb.grade.toInt()}%"
                 val demi = text.measureText(etiquette) / 2f
-                // Le trait de position ne doit jamais barrer un chiffre : quand il tomberait
-                // dedans, l'étiquette s'écarte du côté où il reste de la place. C'est presque
-                // toujours vers la droite — le trait se tient dans le premier dixième — mais
-                // un coureur au tout début de sa côte pousserait l'étiquette hors du cadre.
-                val ecart = demi + labelSize * ECART_TRAIT
+                // Le trait de position ne doit jamais barrer un chiffre, ni l'étiquette de
+                // position le couvrir : quand il tomberait dedans, l'étiquette de pente
+                // s'écarte du côté où il reste de la place. C'est presque toujours vers la
+                // droite, mais un coureur au tout début de sa côte la pousserait hors du cadre.
+                val ecart = demi + max(labelSize * ECART_TRAIT, demiEtiquette + labelSize * 0.3f)
                 val vise = (startX + endX) / 2
                 val decale = when {
                     kotlin.math.abs(vise - positionX) >= ecart -> vise
@@ -435,7 +542,7 @@ object ProfileRenderer {
      * rend lisible, non sa propre couleur.
      */
     private fun drawPositionMarker(canvas: Canvas, x: Float, top: Float, bottom: Float) {
-        canvas.drawLine(x, top, x, bottom, crestPaint(CREST, CREST_WIDTH))
+        canvas.drawLine(x, top, x, bottom, crestPaint(CREST, MARKER_WIDTH))
     }
 
     private fun drawLabels(
@@ -456,7 +563,7 @@ object ProfileRenderer {
             paint.textAlign = Paint.Align.LEFT
             canvas.drawText(it, left, baseline - labelSize * 0.2f, paint)
         }
-        model.rangeLabel?.let {
+        model.rangeLabel?.takeIf { !model.rangeLabelOnAxis }?.let {
             paint.textAlign = Paint.Align.RIGHT
             canvas.drawText(it, right, baseline - labelSize * 0.2f, paint)
         }
@@ -542,11 +649,26 @@ object ProfileRenderer {
     internal const val FILL = 0xA6F2D600.toInt()
     private const val CREST_WIDTH = 3f
 
+    /** Le trait de position, un peu plus épais que la crête qu'il croise. */
+    private const val MARKER_WIDTH = 4f
+
     /** La crête de ce qui est fait, en blanc et un peu plus fine : elle n'est plus l'enjeu. */
     private const val BEHIND_WIDTH = 2.5f
 
     /** Opacité du voile qui marque l'étendue d'une côte. */
     private const val CLIMB_OVERLAY_ALPHA = 36
+
+    /**
+     * L'étiquette de position : l'encre sombre du nombre, son corps en part de celui des
+     * libellés, le blanc de part et d'autre et l'arrondi des coins, en part de la hauteur.
+     */
+    private const val POSITION_LABEL_INK = 0xFF11181C.toInt()
+    private const val POSITION_LABEL_RATIO = 0.9f
+    private const val POSITION_LABEL_PADDING = 0.3f
+    private const val POSITION_LABEL_CORNER = 0.25f
+
+    /** Les pas possibles des graduations à échelle régulière, dans l'unité du coureur. */
+    private val ABSOLUTE_LADDER = listOf(0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0)
 
     /** Longueur du trait d'une graduation sous l'axe. */
     /** Nombre de côtes portant leur pente moyenne quelle que soit leur largeur à l'écran. */

@@ -632,14 +632,14 @@ object DashboardRenderer {
         if (area.width() <= 0f) return
         val pitch = area.width() / count
 
-        // Le dessin du Karoo : toutes les barres pleines, les rapports libres dans le bleu
-        // pâle des libellés, le rapport engagé en blanc. Les barres ont été creuses un temps
-        // — contour seul, plein à un seul endroit — et c'est sur capture de l'écran natif
-        // qu'on est revenu aux barres pleines : la teinte sourde des libres suffit à faire
-        // ressortir la blanche, sans que le peigne se lise comme un bloc.
+        // Le dessin du Karoo : toutes les barres pleines, les rapports libres en gris, le
+        // rapport engagé en blanc. Les barres ont été creuses un temps — contour seul, plein
+        // à un seul endroit — et c'est sur capture de l'écran natif qu'on est revenu aux
+        // barres pleines. Les libres ont d'abord pris le bleu pâle des libellés, trop proche
+        // du blanc pour que l'engagé tranche : un gris plus sombre le laisse seul en lumière.
         val libre = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
-            color = palette.textSecondary
+            color = BAR_IDLE_COLOR
         }
         // Le rapport engagé est blanc, non du vert vif que le système réserve à la donnée
         // vive : c'est un chiffre qu'on lit, pas un voyant.
@@ -677,6 +677,9 @@ object DashboardRenderer {
 
     /** Hauteur de la plus petite barre, en part de la plus grande. */
     private const val BAR_MIN_HEIGHT = 0.35f
+
+    /** Le gris des rapports libres : assez sombre pour que le blanc de l'engagé tranche. */
+    private const val BAR_IDLE_COLOR = 0xFF6B747C.toInt()
 
     /** Taille du « -- » qui remplace le peigne entier quand le groupe ne rapporte rien. */
     private const val PLACEHOLDER_RATIO = 0.28f

@@ -75,11 +75,15 @@ object FieldModels {
         // sous les roues ou si elle était coupée. Sous l'échelle comprimée, ces cent vingt
         // mètres occupent près d'un dixième de la largeur : de quoi détacher la marque, et
         // montrer la pente dont on sort.
+        //
+        // À portée fixée, le recul est une part de la portée — un cinquième — et non plus
+        // ces cent vingt mètres : le bandeau montre alors ce qu'on vient de monter, en blanc,
+        // et la marque se tient franchement dans la bande, comme sur le profil natif.
         val depart = (quantized - RECUL_METERS).coerceAtLeast(0.0)
         val window = if (portee == null) {
             Guidance.profileToFinish(route, depart)
         } else {
-            Guidance.profileWindow(route, quantized, portee, lookbehind = RECUL_METERS)
+            Guidance.profileWindow(route, quantized, portee, lookbehind = portee * RECUL_FRACTION)
         }
         val units = snapshot.units
         // Le dénivelé et la distance se comptent depuis le coureur, jamais depuis le bord de
@@ -88,13 +92,20 @@ object FieldModels {
         val ascent = route.profile?.ascentBetween(quantized, window.end)
         val restant = (window.end - quantized).takeIf { it > 0.0 }
 
+        // Le bandeau à portée fixée suit le profil natif : pas de dénivelé en en-tête, le
+        // compteur au-dessus de la marque, la portée au bout de l'axe. Le champ « Profil à
+        // venir » garde ses deux en-têtes — il répond à « qu'est-ce qui reste », et le
+        // dénivelé restant en fait partie.
+        val bandeau = portee != null
         return ProfileFieldModel(
             window = window,
             climbs = route.climbs,
             pois = route.pois,
-            ascentLabel = ascent?.let { "+${Format.elevation(it, units)}" },
+            ascentLabel = if (bandeau) null else ascent?.let { "+${Format.elevation(it, units)}" },
             rangeLabel = restant?.let { Format.longDistance(it, units) },
             positionDistance = quantized,
+            positionLabel = if (bandeau) Format.longDistanceValue(quantized, units) else null,
+            rangeLabelOnAxis = bandeau,
             emptyMessage = context.getString(R.string.field_no_route),
             compressed = portee == null,
             units = units,
@@ -284,6 +295,9 @@ object FieldModels {
 
     private const val POSITION_STEP_METERS = 10.0
 
-    /** De combien la fenêtre du profil commence avant le coureur (m). */
+    /** De combien la fenêtre du profil commence avant le coureur (m), sous l'échelle comprimée. */
     private const val RECUL_METERS = 120.0
+
+    /** Le même recul à portée fixée, en part de la portée. */
+    private const val RECUL_FRACTION = 0.2
 }
