@@ -215,7 +215,6 @@ object DashboardModels {
                 window = ProfileWindow(emptyList(), 0.0, 0.0, 0.0, 0.0),
                 position = 0.0,
                 emptyMessage = context.getString(R.string.field_no_route),
-                colorByGrade = settings.colorByGrade,
             )
         }
 
@@ -227,7 +226,6 @@ object DashboardModels {
             climbs = route.climbs,
             pois = route.pois.map { GraphPoi(it.distanceAlongRoute, PoiLabels.label(context, it)) },
             zoomLabel = zoomLabel(settings),
-            colorByGrade = settings.colorByGrade,
         )
     }
 
@@ -290,10 +288,8 @@ object DashboardModels {
         label = context.getString(R.string.dashboard_label_gears),
         front = rideData.drivetrain.front,
         frontCount = rideData.drivetrain.frontCount,
-        frontTeeth = rideData.drivetrain.frontTeeth,
         rear = rideData.drivetrain.rear,
         rearCount = rideData.drivetrain.rearCount,
-        rearTeeth = rideData.drivetrain.rearTeeth,
         icon = R.drawable.ic_gears,
     )
 

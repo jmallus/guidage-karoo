@@ -41,7 +41,6 @@ data class ProfileFieldModel(
     val positionDistance: Double? = null,
     /** Message affiché quand il n'y a rien à montrer. */
     val emptyMessage: String? = null,
-    val colorByGrade: Boolean = true,
     /**
      * Vrai pour l'échelle comprimée au loin, faux pour une échelle régulière.
      *
@@ -139,29 +138,28 @@ object ProfileRenderer {
             ?.coerceIn(left, right)
             ?: left
 
-        drawProfile(canvas, model, scale, left, top, right, bottom, palette)
+        drawProfile(canvas, model, scale, left, top, right, bottom, positionX, palette)
         drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette, positionX)
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
-        drawPositionMarker(canvas, positionX, top, bottom, palette)
+        drawPositionMarker(canvas, positionX, top, bottom)
         if (entetes) drawLabels(canvas, model, left, right, top, labelSize, palette)
     }
 
     /**
-     * La silhouette, colonne de pixels par colonne de pixels.
+     * La silhouette, à la manière du profil natif du Karoo : devant le coureur, un aplat du
+     * jaune de l'itinéraire, voilé, sous une crête du même jaune, franc ; derrière lui, la
+     * crête seule, en blanc, sans aplat.
      *
-     * Et non segment par segment comme autrefois : sous une échelle comprimée, cent segments
-     * du relevé tombent dans la même colonne, et les dessiner l'un après l'autre revient à
-     * empiler cent rectangles d'un pixel de large dont seul le dernier se voit — le profil
-     * lointain se criblait de trous et prenait la couleur du dernier segment tiré. En
-     * partant des colonnes, chacune est peinte une fois, de la pente qu'elle couvre vraiment.
+     * Elle a porté les couleurs de pente du Karoo, colonne par colonne, et les a perdues sur
+     * demande après une sortie : sur la bande, elles faisaient une mosaïque là où l'on cherche
+     * une forme. La pente se lit à la silhouette, et la pente moyenne d'une côte s'écrit
+     * au-dessus d'elle — c'est ce chiffre-là qu'on regarde, pas une teinte à décoder.
      *
-     * Le trait blanc qui soulignait la crête est parti. Sur un aplat, il ne faisait que
-     * redire le bord de la couleur, en l'appuyant : la silhouette entière prenait le poids
-     * d'un contour, et l'on ne voyait plus la masse mais son ourlet. Sans lui, les teintes
-     * de pente se lisent pour elles-mêmes et les côtes ressortent de la masse grise.
-     * Trois autres dessins ont été mis en regard avant d'en arriver là — remplissage sous les
-     * seules montées, et crête nue à réglette de pente, à la manière de Barberfish.
+     * La crête reste calculée colonne de pixels par colonne, et non segment par segment :
+     * sous une échelle comprimée, cent segments du relevé tombent dans la même colonne, et
+     * c'est le point le plus haut qu'elle couvre qui fait sa hauteur — un sommet ne peut pas
+     * disparaître entre deux colonnes.
      */
     private fun drawProfile(
         canvas: Canvas,
@@ -171,47 +169,65 @@ object ProfileRenderer {
         top: Float,
         right: Float,
         bottom: Float,
+        positionX: Float,
         palette: Palette,
     ) {
         val window = model.window
         val points = window.points
         val elevationSpan = window.elevationSpan.takeIf { it > 0 } ?: return
-        // Les colonnes sont calées sur les pixels de l'image, et non sur les bords fractionnaires
-        // de la zone de dessin : un rectangle posé à cinq virgule six déborde sur deux pixels,
-        // dont aucun ne reçoit sa couleur pure. Là où deux colonnes voisines n'ont pas la même
-        // teinte — c'est-à-dire à chaque changement de zone de pente — le pixel de la frontière
-        // devient un mélange qui n'appartient à aucune des deux.
         val first = ceil(left).toInt()
         val columns = (floor(right).toInt() - first).coerceAtLeast(1)
 
         fun y(elevation: Double) =
             bottom - ((elevation - window.minElevation) / elevationSpan * (bottom - top)).toFloat()
 
-        // Sans antialiasing : ces rectangles sont alignés sur la grille des pixels, et l'adoucir
-        // ne ferait que rendre floues des frontières franches. La crête, elle, est une courbe et
-        // reste adoucie.
-        val fill = Paint().apply { style = Paint.Style.FILL }
-
+        val xs = FloatArray(columns) { first + it + 0.5f }
+        val ys = FloatArray(columns)
         for (column in 0 until columns) {
             val from = window.start + scale.distanceAt(column.toDouble() / columns)
             val to = window.start + scale.distanceAt((column + 1).toDouble() / columns)
-            val crest = crest(points, from, to)
-            val span = to - from
-            val grade = if (span > 0.0) {
-                (interpolate(points, to) - interpolate(points, from)) / span * 100.0
-            } else {
-                0.0
-            }
-
-            fill.color = if (model.colorByGrade) FieldPalette.gradeColor(grade) else FieldPalette.NEUTRAL
-            val x = (first + column).toFloat()
-            // Au moins un pixel de haut, toujours. Sur un plat au bas de l'échelle, le relief
-            // d'une colonne vaut une fraction de pixel : sans plancher, le rectangle n'est pas
-            // tracé du tout et la silhouette se troue — précisément là où le terrain est le
-            // plus régulier, c'est-à-dire là où un trou ressemble le moins à un accident.
-            val crestY = min(y(crest), bottom - 1f)
-            canvas.drawRect(x, crestY, x + 1f, bottom, fill)
+            // Au moins un pixel de relief, toujours : sur un plat au bas de l'échelle, la
+            // silhouette se trouerait précisément là où le terrain est le plus régulier.
+            ys[column] = min(y(crest(points, from, to)), bottom - 1f)
         }
+
+        // La coupure entre le fait et le restant est à l'aplomb du coureur, pas au bord de la
+        // colonne qui le porte : la marque de position s'y pose, et l'aplat doit partir d'elle.
+        val split = (positionX - first).toInt().coerceIn(0, columns - 1)
+        val devant = Path().apply {
+            moveTo(positionX, ys[split])
+            for (column in split until columns) lineTo(xs[column], ys[column])
+        }
+        val aplat = Path(devant).apply {
+            lineTo(xs[columns - 1], bottom)
+            lineTo(positionX, bottom)
+            close()
+        }
+        canvas.drawPath(
+            aplat,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = FILL
+            },
+        )
+        canvas.drawPath(devant, crestPaint(CREST, CREST_WIDTH))
+
+        if (split > 0) {
+            val derriere = Path().apply {
+                moveTo(xs[0], ys[0])
+                for (column in 1..split) lineTo(xs[column], ys[column])
+                lineTo(positionX, ys[split])
+            }
+            canvas.drawPath(derriere, crestPaint(palette.textPrimary, BEHIND_WIDTH))
+        }
+    }
+
+    private fun crestPaint(color: Int, width: Float) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = width
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        this.color = color
     }
 
     /**
@@ -306,7 +322,9 @@ object ProfileRenderer {
                 val endX = x(min(climb.endDistance, window.end))
                 if (endX - startX < 6f) return@forEachIndexed
 
-                overlay.color = FieldPalette.translucent(FieldPalette.gradeColor(climb.grade), 40)
+                // Un voile clair, sans teinte de pente : il dit l'étendue de la côte, et
+                // c'est le chiffre au-dessus qui dit sa pente.
+                overlay.color = FieldPalette.translucent(palette.textPrimary, CLIMB_OVERLAY_ALPHA)
                 canvas.drawRect(startX, top, endX, bottom, overlay)
 
                 val etiquette = "${climb.grade.toInt()}%"
@@ -409,27 +427,15 @@ object ProfileRenderer {
             }
     }
 
-    private fun drawPositionMarker(canvas: Canvas, x: Float, top: Float, bottom: Float, palette: Palette) {
-        val marker = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.position
-            strokeWidth = 3f
-            style = Paint.Style.STROKE
-        }
-        canvas.drawLine(x, top, x, bottom, marker)
-
-        val triangle = Path().apply {
-            moveTo(x, bottom)
-            lineTo(x - 5f, bottom + 5f)
-            lineTo(x + 5f, bottom + 5f)
-            close()
-        }
-        canvas.drawPath(
-            triangle,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = palette.position
-                style = Paint.Style.FILL
-            },
-        )
+    /**
+     * Le trait de position : vertical, du jaune de la crête, sur toute la hauteur.
+     *
+     * Il a été bleu, avec un triangle sous l'axe. Le Karoo le fait jaune et nu, et c'est la
+     * silhouette qui change de teinte à son passage — blanc derrière, jaune devant — qui le
+     * rend lisible, non sa propre couleur.
+     */
+    private fun drawPositionMarker(canvas: Canvas, x: Float, top: Float, bottom: Float) {
+        canvas.drawLine(x, top, x, bottom, crestPaint(CREST, CREST_WIDTH))
     }
 
     private fun drawLabels(
@@ -526,6 +532,21 @@ object ProfileRenderer {
      * de sa surface et paraîtrait avoir rapetissé, alors qu'on vient de le grossir.
      */
     private const val POI_TIP_RATIO = 1.2f
+
+    /**
+     * Le jaune de l'itinéraire du Karoo, franc sur la crête et le trait de position, voilé
+     * sous la crête. Le voile laisse le fond de l'écran assombrir l'aplat, comme sur le
+     * profil natif où il tire vers l'ocre.
+     */
+    internal const val CREST = KarooColors.LEMON_YELLOW
+    internal const val FILL = 0xA6F2D600.toInt()
+    private const val CREST_WIDTH = 3f
+
+    /** La crête de ce qui est fait, en blanc et un peu plus fine : elle n'est plus l'enjeu. */
+    private const val BEHIND_WIDTH = 2.5f
+
+    /** Opacité du voile qui marque l'étendue d'une côte. */
+    private const val CLIMB_OVERLAY_ALPHA = 36
 
     /** Longueur du trait d'une graduation sous l'axe. */
     /** Nombre de côtes portant leur pente moyenne quelle que soit leur largeur à l'écran. */

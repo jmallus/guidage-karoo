@@ -63,7 +63,6 @@ object FieldModels {
             return ProfileFieldModel(
                 window = ProfileWindow(emptyList(), 0.0, 0.0, 0.0, 0.0),
                 emptyMessage = context.getString(R.string.field_no_route),
-                colorByGrade = settings.colorByGrade,
                 units = snapshot.units,
             )
         }
@@ -97,7 +96,6 @@ object FieldModels {
             rangeLabel = restant?.let { Format.longDistance(it, units) },
             positionDistance = quantized,
             emptyMessage = context.getString(R.string.field_no_route),
-            colorByGrade = settings.colorByGrade,
             compressed = portee == null,
             units = units,
         )

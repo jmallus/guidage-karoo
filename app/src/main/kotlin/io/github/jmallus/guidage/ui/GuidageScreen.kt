@@ -292,13 +292,6 @@ private fun SettingsCard(
                 },
             )
 
-            SwitchRow(
-                label = stringResource(R.string.settings_color_by_grade),
-                hint = stringResource(R.string.settings_color_by_grade_hint),
-                checked = settings.colorByGrade,
-                onCheckedChange = { onChange(settings.copy(colorByGrade = it)) },
-            )
-
             SectionTitle(R.string.settings_section_resupply)
 
             SwitchRow(

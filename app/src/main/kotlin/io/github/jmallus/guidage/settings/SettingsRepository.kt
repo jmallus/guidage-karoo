@@ -14,8 +14,6 @@ import kotlinx.coroutines.flow.conflate
 
 /** Réglages de l'extension, modifiables depuis l'application. */
 data class GuidageSettings(
-    /** Colorer le profil selon la pente. */
-    val colorByGrade: Boolean = true,
     val alerts: AlertSettings = AlertSettings(),
     /** Ce que le tableau de bord montre en haut : carte ou profil. */
     val guidanceZone: GuidanceZoneType = GuidanceZoneType.MAP,
@@ -63,7 +61,6 @@ class SettingsRepository(context: Context) {
     fun read(): GuidageSettings {
         val defaults = GuidageSettings()
         return GuidageSettings(
-            colorByGrade = prefs.getBoolean(KEY_COLOR_BY_GRADE, defaults.colorByGrade),
             guidanceZone = GuidanceZoneType.fromName(prefs.getString(KEY_GUIDANCE_ZONE, null)),
             graphZoom = GraphZoom.fromOrdinal(prefs.getInt(KEY_GRAPH_ZOOM, defaults.graphZoom.ordinal)),
             mapZoom = MapZoom.fromOrdinal(prefs.getInt(KEY_MAP_ZOOM, defaults.mapZoom.ordinal)),
@@ -83,7 +80,6 @@ class SettingsRepository(context: Context) {
 
     fun write(settings: GuidageSettings) {
         prefs.edit()
-            .putBoolean(KEY_COLOR_BY_GRADE, settings.colorByGrade)
             .putString(KEY_GUIDANCE_ZONE, settings.guidanceZone.name)
             .putInt(KEY_GRAPH_ZOOM, settings.graphZoom.ordinal)
             .putInt(KEY_MAP_ZOOM, settings.mapZoom.ordinal)
@@ -97,16 +93,16 @@ class SettingsRepository(context: Context) {
 
     private companion object {
         const val PREFS_NAME = "guidage-settings"
-        const val KEY_COLOR_BY_GRADE = "color_by_grade"
         const val KEY_GUIDANCE_ZONE = "guidance_zone"
         const val KEY_GRAPH_ZOOM = "graph_zoom"
         const val KEY_MAP_ZOOM = "map_zoom"
         const val KEY_RESUPPLY_WATER_ONLY = "resupply_water_only"
         // Les clés « climb_alerts », « climb_alert_distance », « summit_alerts » et
         // « summit_alert_distance » ont disparu avec les annonces de côte, « lookahead_meters »
-        // avec la portée réglable du profil. Celles déjà écrites sur un appareil y restent,
-        // inertes : les relire pour les effacer coûterait une migration là où quelques octets
-        // oubliés ne gênent personne.
+        // avec la portée réglable du profil, « color_by_grade » avec la coloration du profil
+        // par la pente. Celles déjà écrites sur un appareil y restent, inertes : les relire
+        // pour les effacer coûterait une migration là où quelques octets oubliés ne gênent
+        // personne.
         const val KEY_POI_ENABLED = "poi_alerts"
         const val KEY_POI_DISTANCE = "poi_alert_distance"
         const val KEY_WPRIME_CP = "wprime_critical_power"

@@ -29,7 +29,6 @@ data class RouteGraphModel(
     val pois: List<GraphPoi> = emptyList(),
     val zoomLabel: String? = null,
     val emptyMessage: String? = null,
-    val colorByGrade: Boolean = true,
 )
 
 /**
@@ -67,10 +66,8 @@ data class DrivetrainModel(
     val label: String,
     val front: Int? = null,
     val frontCount: Int? = null,
-    val frontTeeth: Int? = null,
     val rear: Int? = null,
     val rearCount: Int? = null,
-    val rearTeeth: Int? = null,
     @DrawableRes val icon: Int? = null,
 )
 
@@ -551,28 +548,21 @@ object DashboardRenderer {
         val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicBottom)
         if (area.width() <= 0 || area.height() <= 0) return
 
-        val teethSize = valueSize * TEETH_RATIO
-        val teethPaint = paint(teethSize, palette.textPrimary, VALUE_TYPEFACE)
-        val teeth = teethLabel(model)
-
         // Les barres montent depuis le bas de cette bande et occupent toute sa largeur : elles
         // passent donc sous le titre et son icône, que rien ne décale plus sur le côté. Il
         // faut leur réserver du blanc en haut, sans quoi la plus haute vient le toucher.
         //
-        // Elles rendent le pied de la bande aux dentures. Celles-ci avaient été retirées quand
-        // la case ne faisait qu'un rang : elles y coûtaient un bon huitième de la hauteur, et
-        // le peigne, seul dessin de la case, s'en trouvait écrasé. La case en fait un et demi
-        // depuis que la carte est descendue — la place est là, et le renseignement revient
-        // sans que le schéma y perde ce qui le rendait lisible.
-        val combBottom = area.bottom - if (teeth == null) 0f else teethSize * TEETH_LEADING
+        // Les dentures, « 50×17 », ont été écrites au pied du peigne, puis retirées sur
+        // demande après une sortie, pour lui rendre toute la hauteur : c'est le dessin du
+        // Karoo lui-même, et il n'en porte pas.
+        val combBottom = area.bottom
         val combTop = (area.top + labelHeight * COMB_TOP_MARGIN).coerceAtMost(combBottom)
 
         val front = comb(model.front, model.frontCount)
         val rear = comb(model.rear, model.rearCount)
         if (front == null && rear == null) {
-            // Le « -- » a son propre corps : il ne remplace pas les dentures mais le peigne
-            // entier, et grossir avec elles en aurait fait un tiret de la taille d'un chiffre
-            // de case dans une case par ailleurs vide.
+            // Le « -- » a son propre corps : il remplace le peigne entier, et un tiret de la
+            // taille d'un chiffre de case dans une case par ailleurs vide serait trop.
             val videPaint = paint(valueSize * PLACEHOLDER_RATIO, palette.textPrimary, VALUE_TYPEFACE)
             canvas.drawText(
                 PLACEHOLDER,
@@ -600,30 +590,6 @@ object DashboardRenderer {
         }
         rear?.let {
             drawComb(canvas, RectF(rearLeft, combTop, area.right, combBottom), it, barWidth, ascending = false, palette = palette)
-        }
-
-        // Les dentures au pied du peigne, calées à droite comme un chiffre de case.
-        teeth?.let {
-            canvas.drawText(it, right - teethPaint.measureText(it), area.bottom - teethPaint.descent(), teethPaint)
-        }
-    }
-
-    /**
-     * « 50×17 » quand les deux dentures sont connues, l'une des deux sinon, rien du tout à
-     * défaut.
-     *
-     * C'est un renseignement d'appoint : la position dans la cassette se lit sur le peigne, et
-     * l'on ne change pas de braquet parce qu'on a lu 21. Mais savoir sur quel plateau l'on est
-     * a son usage au pied d'une bosse, et le nombre le dit sans qu'il faille compter les barres.
-     */
-    private fun teethLabel(model: DrivetrainModel): String? {
-        val front = model.frontTeeth?.takeIf { it > 0 }
-        val rear = model.rearTeeth?.takeIf { it > 0 }
-        return when {
-            front != null && rear != null -> "$front×$rear"
-            rear != null -> "$rear"
-            front != null -> "$front"
-            else -> null
         }
     }
 
@@ -666,22 +632,17 @@ object DashboardRenderer {
         if (area.width() <= 0f) return
         val pitch = area.width() / count
 
-        // Rapports libres : creux, contour blanc sur le fond de l'écran. Rapport engagé :
-        // plein. C'est le dessin retenu après essai sur le vélo — les barres grises pleines
-        // l'avaient emporté sur planche, mais en roulant le peigne devenait un bloc où le
-        // rapport tenu ne ressortait plus assez. Le vide entre les contours donne au plein
-        // tout son contraste.
-        val stroke = (barWidth * BAR_STROKE_FRACTION).coerceIn(1f, 3f)
+        // Le dessin du Karoo : toutes les barres pleines, les rapports libres dans le bleu
+        // pâle des libellés, le rapport engagé en blanc. Les barres ont été creuses un temps
+        // — contour seul, plein à un seul endroit — et c'est sur capture de l'écran natif
+        // qu'on est revenu aux barres pleines : la teinte sourde des libres suffit à faire
+        // ressortir la blanche, sans que le peigne se lise comme un bloc.
         val libre = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = stroke
-            color = palette.textPrimary
+            style = Paint.Style.FILL
+            color = palette.textSecondary
         }
         // Le rapport engagé est blanc, non du vert vif que le système réserve à la donnée
-        // vive. C'est un écart assumé : creux partout, plein à un seul endroit porte déjà
-        // toute la distinction, et la couleur n'y ajoutait qu'un signal de plus, là où
-        // l'écran en compte déjà sept avec les aplats de zone. Le blanc est celui des
-        // valeurs : le rapport engagé est un chiffre qu'on lit, pas un voyant.
+        // vive : c'est un chiffre qu'on lit, pas un voyant.
         val engaged = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
             color = palette.textPrimary
@@ -695,20 +656,7 @@ object DashboardRenderer {
             val bar = RectF(left, area.bottom - height, left + barWidth, area.bottom)
             // Bouts arrondis : à cette taille, des angles vifs font des barres sales.
             val radius = barWidth / 2f
-
-            if (index == current) {
-                canvas.drawRoundRect(bar, radius, radius, engaged)
-            } else {
-                // Le contour se trace sur la ligne médiane : rentrer d'une demi-épaisseur,
-                // sans quoi les barres se touchent et débordent du bas de la bande.
-                val demi = stroke / 2f
-                canvas.drawRoundRect(
-                    RectF(bar.left + demi, bar.top + demi, bar.right - demi, bar.bottom - demi),
-                    radius,
-                    radius,
-                    libre,
-                )
-            }
+            canvas.drawRoundRect(bar, radius, radius, if (index == current) engaged else libre)
         }
     }
 
@@ -727,31 +675,11 @@ object DashboardRenderer {
      */
     private const val BAR_WIDTH_FRACTION = 0.52f
 
-    /** Épaisseur du contour d'une barre libre, en part de sa largeur. */
-    private const val BAR_STROKE_FRACTION = 0.26f
-
     /** Hauteur de la plus petite barre, en part de la plus grande. */
     private const val BAR_MIN_HEIGHT = 0.35f
 
-    /**
-     * Taille des dentures, « 50×17 », en part du chiffre d'une case.
-     *
-     * Elles ont été retirées un temps, quand la case ne faisait qu'un rang : elles y coûtaient
-     * un bon huitième de la hauteur, et le peigne, seul dessin de la case, s'en trouvait
-     * écrasé. La case en fait un et demi depuis que la carte est descendue, et la place est
-     * revenue avec — assez pour les écrire au double du corps qu'elles avaient alors, et
-     * qu'elles se lisent d'un coup d'œil et non en cherchant.
-     *
-     * Ce qu'elles prennent, les barres le rendent : le peigne s'arrête à leur hauteur, si
-     * bien que ce réglage-ci suffit à arbitrer entre les deux.
-     */
-    private const val TEETH_RATIO = 0.56f
-
     /** Taille du « -- » qui remplace le peigne entier quand le groupe ne rapporte rien. */
     private const val PLACEHOLDER_RATIO = 0.28f
-
-    /** Hauteur réservée aux dentures sous le peigne, en part de leur corps. */
-    private const val TEETH_LEADING = 1.35f
 
     /**
      * Blanc réservé au-dessus des barres, en part de la hauteur du libellé.
@@ -894,15 +822,17 @@ object DashboardRenderer {
         fun x(elevation: Double) =
             area.left + ((elevation - window.minElevation) / elevationSpan * area.width()).toFloat()
 
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        // Le même jaune voilé que la bande du bas : un seul profil, une seule teinte.
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = ProfileRenderer.FILL
+        }
         val points = window.points
         for (index in 1 until points.size) {
             val previous = points[index - 1]
             val current = points[index]
             val length = current.distance - previous.distance
             if (length <= 0) continue
-            val grade = (current.elevation - previous.elevation) / length * 100.0
-            fill.color = if (model.colorByGrade) FieldPalette.gradeColor(grade) else FieldPalette.NEUTRAL
             canvas.drawPath(
                 Path().apply {
                     moveTo(area.left, axis.y(previous.distance))

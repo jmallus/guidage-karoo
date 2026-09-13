@@ -24,7 +24,7 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 | Champ | Type | Contenu |
 | --- | --- | --- |
 | **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. |
-| **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Rempli en couleur selon la pente, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
+| **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Silhouette au jaune du Karoo, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
 | **Suivant la sortie** | graphique | Un champ dont la moitié basse change avec ce que fait la sortie — montée, descente, ravitaillement, roulage — la moitié haute restant fixe. |
@@ -226,8 +226,7 @@ dans son état d'usine, ce qui revient à ne pas l'avoir écrit.
 
 **Tableau de bord**
 
-- minicarte plutôt que profil dans la moitié haute ;
-- coloration du profil selon la pente.
+- minicarte plutôt que profil dans la moitié haute.
 
 **Ravitaillement**
 
