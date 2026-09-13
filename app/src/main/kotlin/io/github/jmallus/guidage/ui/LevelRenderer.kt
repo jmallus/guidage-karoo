@@ -97,7 +97,11 @@ object LevelRenderer {
         val libelleVisible = hauteurLibelle < height * 0.34f
         if (libelleVisible) {
             fit(libellePaint, model.label, right - left)
-            canvas.drawText(model.label, left, area.top + padding - libellePaint.ascent(), libellePaint)
+            // Centré, quand le chiffre en dessous est calé à gauche : le titre nomme la case,
+            // il n'est pas une ligne du bloc de chiffres, et six titres centrés font une
+            // page qui se lit comme celles du Karoo.
+            val centre = left + (right - left - libellePaint.measureText(model.label)) / 2f
+            canvas.drawText(model.label, centre, area.top + padding - libellePaint.ascent(), libellePaint)
         }
 
         // Ce que le bas occupe, retiré avant de dimensionner le chiffre : le calculer après

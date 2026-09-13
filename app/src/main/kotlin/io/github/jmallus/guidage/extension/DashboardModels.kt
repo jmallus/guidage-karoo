@@ -288,8 +288,10 @@ object DashboardModels {
         label = context.getString(R.string.dashboard_label_gears),
         front = rideData.drivetrain.front,
         frontCount = rideData.drivetrain.frontCount,
+        frontTeeth = rideData.drivetrain.frontTeeth,
         rear = rideData.drivetrain.rear,
         rearCount = rideData.drivetrain.rearCount,
+        rearTeeth = rideData.drivetrain.rearTeeth,
         icon = R.drawable.ic_gears,
     )
 

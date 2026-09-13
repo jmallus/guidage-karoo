@@ -44,12 +44,6 @@ data class ProfileFieldModel(
      * « 27,1 », dans l'unité que l'axe porte déjà. Null pour ne pas l'écrire.
      */
     val positionLabel: String? = null,
-    /**
-     * Vrai pour écrire la portée au bout de l'axe, sur la ligne des graduations, et non en
-     * en-tête à droite : c'est le dessin du profil natif, où le haut de la bande ne porte que
-     * l'étiquette de position.
-     */
-    val rangeLabelOnAxis: Boolean = false,
     /** Message affiché quand il n'y a rien à montrer. */
     val emptyMessage: String? = null,
     /**
@@ -331,25 +325,15 @@ object ProfileRenderer {
         }
         val baseline = bottom + TICK_LENGTH + tickSize
 
-        // La portée au bout de l'axe, quand elle y est demandée : elle porte alors l'unité
-        // pour tout l'axe, et les graduations qui tomberaient sous elle s'effacent.
-        var limite = right
-        val portee = model.rangeLabel?.takeIf { model.rangeLabelOnAxis && labelled }
-        if (portee != null) {
-            val largeur = text.measureText(portee)
-            canvas.drawText(portee, right - largeur / 2f, baseline, text)
-            limite = right - largeur - tickSize * 0.6f
-        }
-
         // Sous l'échelle comprimée, les graduations comptent depuis le coureur et leur
         // espacement inégal est ce qui trahit la compression. À échelle régulière, elles
         // portent le compteur du parcours — « 26, 28, 30 » — comme sur le profil natif : la
-        // marque de position s'y lit alors comme un point sur cette règle.
+        // marque de position s'y lit alors comme un point sur cette règle, et la portée n'a
+        // plus à s'écrire, elle se lit sur les kilomètres.
         val graduations: List<Pair<Float, String>> = if (model.compressed) {
             val ticks = scale.ticks(minimumGap = gap.toDouble(), unit = unitMeters)
             ticks.mapIndexed { index, tick ->
-                val suffixe = if (index == ticks.lastIndex && portee == null) " $unit" else ""
-                (left + (tick.fraction * usable).toFloat()) to Format.axisValue(tick.value) + suffixe
+                (left + (tick.fraction * usable).toFloat()) to Format.axisValue(tick.value) + unitSuffix(index, ticks.lastIndex, unit)
             }
         } else {
             // Les kilomètres du parcours tiennent en deux ou trois chiffres : l'écart exigé
@@ -357,6 +341,7 @@ object ProfileRenderer {
             // sans quoi l'axe sautait de 2 en 5 pour rien.
             val ecart = (tickSize * ABSOLUTE_TICK_LABEL_WIDTHS / usable).coerceIn(MIN_GAP, MAX_GAP)
             absoluteTicks(model, left, usable, if (labelled) ecart else MIN_GAP, unitMeters)
+                .let { ticks -> ticks.mapIndexed { index, (x, caption) -> x to caption + unitSuffix(index, ticks.lastIndex, unit) } }
         }
         if (graduations.isEmpty()) return
 
@@ -367,10 +352,18 @@ object ProfileRenderer {
         graduations.forEach { (x, caption) ->
             canvas.drawLine(x, bottom, x, bottom + TICK_LENGTH, rule)
             if (!labelled) return@forEach
-            if (x + text.measureText(caption) / 2f > limite) return@forEach
+            // Un chiffre qui sortirait du cadre à droite ne s'écrit pas ; son trait reste.
+            if (x + text.measureText(caption) / 2f > right) return@forEach
             canvas.drawText(caption, x, baseline, text)
         }
     }
+
+    /**
+     * L'unité une seule fois, sur le dernier repère : la répéter à chaque graduation
+     * remplirait l'axe du mot le moins informatif qu'il porte.
+     */
+    private fun unitSuffix(index: Int, last: Int, unit: String): String =
+        if (index == last) " $unit" else ""
 
     /**
      * Les graduations d'une fenêtre à échelle régulière : les multiples ronds de l'unité
@@ -569,7 +562,7 @@ object ProfileRenderer {
             paint.textAlign = Paint.Align.LEFT
             canvas.drawText(it, left, baseline - labelSize * 0.2f, paint)
         }
-        model.rangeLabel?.takeIf { !model.rangeLabelOnAxis }?.let {
+        model.rangeLabel?.let {
             paint.textAlign = Paint.Align.RIGHT
             canvas.drawText(it, right, baseline - labelSize * 0.2f, paint)
         }

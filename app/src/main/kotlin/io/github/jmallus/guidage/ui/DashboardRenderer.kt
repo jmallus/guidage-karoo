@@ -66,8 +66,10 @@ data class DrivetrainModel(
     val label: String,
     val front: Int? = null,
     val frontCount: Int? = null,
+    val frontTeeth: Int? = null,
     val rear: Int? = null,
     val rearCount: Int? = null,
+    val rearTeeth: Int? = null,
     @DrawableRes val icon: Int? = null,
 )
 
@@ -548,14 +550,19 @@ object DashboardRenderer {
         val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicBottom)
         if (area.width() <= 0 || area.height() <= 0) return
 
+        val teethSize = valueSize * TEETH_RATIO
+        val teethPaint = paint(teethSize, palette.textPrimary, VALUE_TYPEFACE)
+        val teeth = teethLabel(model)
+
         // Les barres montent depuis le bas de cette bande et occupent toute sa largeur : elles
         // passent donc sous le titre et son icône, que rien ne décale plus sur le côté. Il
         // faut leur réserver du blanc en haut, sans quoi la plus haute vient le toucher.
         //
-        // Les dentures, « 50×17 », ont été écrites au pied du peigne, puis retirées sur
-        // demande après une sortie, pour lui rendre toute la hauteur : c'est le dessin du
-        // Karoo lui-même, et il n'en porte pas.
-        val combBottom = area.bottom
+        // Elles laissent le pied de la bande aux dentures. Le peigne du Karoo n'en porte pas,
+        // et elles ont failli partir avec son dessin ; elles restent sur demande — savoir sur
+        // quel plateau on est a son usage au pied d'une bosse, et le nombre le dit sans
+        // qu'il faille compter les barres.
+        val combBottom = area.bottom - if (teeth == null) 0f else teethSize * TEETH_LEADING
         val combTop = (area.top + labelHeight * COMB_TOP_MARGIN).coerceAtMost(combBottom)
 
         val front = comb(model.front, model.frontCount)
@@ -590,6 +597,26 @@ object DashboardRenderer {
         }
         rear?.let {
             drawComb(canvas, RectF(rearLeft, combTop, area.right, combBottom), it, barWidth, ascending = false, palette = palette)
+        }
+
+        // Les dentures au pied du peigne, calées à droite comme un chiffre de case.
+        teeth?.let {
+            canvas.drawText(it, right - teethPaint.measureText(it), area.bottom - teethPaint.descent(), teethPaint)
+        }
+    }
+
+    /**
+     * « 50×17 » quand les deux dentures sont connues, l'une des deux sinon, rien du tout à
+     * défaut.
+     */
+    private fun teethLabel(model: DrivetrainModel): String? {
+        val front = model.frontTeeth?.takeIf { it > 0 }
+        val rear = model.rearTeeth?.takeIf { it > 0 }
+        return when {
+            front != null && rear != null -> "$front×$rear"
+            rear != null -> "$rear"
+            front != null -> "$front"
+            else -> null
         }
     }
 
@@ -680,6 +707,17 @@ object DashboardRenderer {
 
     /** Le gris des rapports libres : assez sombre pour que le blanc de l'engagé tranche. */
     private const val BAR_IDLE_COLOR = 0xFF6B747C.toInt()
+
+    /**
+     * Taille des dentures, « 50×17 », en part du chiffre d'une case.
+     *
+     * Ce qu'elles prennent, les barres le rendent : le peigne s'arrête à leur hauteur, si
+     * bien que ce réglage-ci suffit à arbitrer entre les deux.
+     */
+    private const val TEETH_RATIO = 0.56f
+
+    /** Hauteur réservée aux dentures sous le peigne, en part de leur corps. */
+    private const val TEETH_LEADING = 1.35f
 
     /** Taille du « -- » qui remplace le peigne entier quand le groupe ne rapporte rien. */
     private const val PLACEHOLDER_RATIO = 0.28f

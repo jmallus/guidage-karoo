@@ -92,20 +92,19 @@ object FieldModels {
         val ascent = route.profile?.ascentBetween(quantized, window.end)
         val restant = (window.end - quantized).takeIf { it > 0.0 }
 
-        // Le bandeau à portée fixée suit le profil natif : pas de dénivelé en en-tête, le
-        // compteur au-dessus de la marque, la portée au bout de l'axe. Le champ « Profil à
-        // venir » garde ses deux en-têtes — il répond à « qu'est-ce qui reste », et le
-        // dénivelé restant en fait partie.
+        // Le bandeau à portée fixée suit le profil natif : ni dénivelé ni portée en en-tête,
+        // le compteur au-dessus de la marque, et les kilomètres du parcours sur l'axe, qui
+        // disent la portée à eux seuls. Le champ « Profil à venir » garde ses deux en-têtes —
+        // il répond à « qu'est-ce qui reste », et le dénivelé restant en fait partie.
         val bandeau = portee != null
         return ProfileFieldModel(
             window = window,
             climbs = route.climbs,
             pois = route.pois,
             ascentLabel = if (bandeau) null else ascent?.let { "+${Format.elevation(it, units)}" },
-            rangeLabel = restant?.let { Format.longDistance(it, units) },
+            rangeLabel = if (bandeau) null else restant?.let { Format.longDistance(it, units) },
             positionDistance = quantized,
             positionLabel = if (bandeau) Format.longDistanceValue(quantized, units) else null,
-            rangeLabelOnAxis = bandeau,
             emptyMessage = context.getString(R.string.field_no_route),
             compressed = portee == null,
             units = units,
