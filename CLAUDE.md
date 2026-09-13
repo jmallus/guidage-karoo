@@ -28,6 +28,22 @@ d'équivalent pour une branche sans PR.
 
 Après fusion, supprimer la branche.
 
+## La copie locale suit GitHub
+
+**Toujours remettre la copie de travail au niveau de GitHub avant d'y toucher**, et de nouveau
+après chaque passage du CI : le workflow `captures` commite sur la branche en cours, et une
+poussée depuis une copie restée en arrière diverge de ce que GitHub porte — c'est ainsi qu'un
+commit a été perdu une fois, écrasé par un `reset` sur la branche distante qu'il n'avait
+jamais atteinte.
+
+```bash
+git fetch --prune origin
+git reset --hard origin/<branche>
+```
+
+Après une fusion, la copie passe sur `main` de la même façon, et la branche locale fusionnée
+se supprime avec la distante.
+
 ## Ce qui se vérifie ici, et ce qui ne s'y vérifie pas
 
 `:core` et `:tools` se compilent et se testent dans le conteneur, sans Gradle, avec le
