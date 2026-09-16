@@ -149,8 +149,15 @@ class DriftTracker {
         /** Au-delà de cet écart entre deux mesures, le pas est écarté (s). */
         const val MAX_STEP_SECONDS = 10.0
 
-        /** Temps d'effort en deçà duquel la dérive ne veut rien dire (s) : une heure. */
-        const val MIN_SECONDS = 3_600.0
+        /**
+         * Temps d'effort en deçà duquel la dérive ne veut rien dire (s) : une demi-heure.
+         *
+         * C'était une heure, et sur une sortie d'une heure et quart entrecoupée de haltes,
+         * le temps d'effort — puissance et cœur tous deux présents — n'y arrivait pas : la
+         * case disait encore « moins d'une heure » à l'arrivée. Une demi-heure d'effort
+         * suffit à séparer un début d'une fin ; le chiffre est plus tôt, et plus bruité.
+         */
+        const val MIN_SECONDS = 1_800.0
     }
 }
 

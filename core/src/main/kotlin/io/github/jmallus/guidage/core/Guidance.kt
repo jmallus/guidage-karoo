@@ -15,6 +15,28 @@ object Guidance {
      * Côte en cours si le coureur y est, sinon la prochaine côte de l'itinéraire.
      * Retourne null si l'itinéraire n'a plus de côte devant.
      */
+    /**
+     * Les côtes de [route] dont le profil montre la montée.
+     *
+     * Une sortie a montré des côtes annoncées à trois pour cent posées sur du plat, avec leur
+     * voile et leur chiffre, là où la silhouette ne montait pas — et pas de trace de leur
+     * ascension sur le terrain non plus. D'où qu'elles viennent, une côte que le profil
+     * dessiné ne porte pas n'a rien à faire sur lui : on ne garde que celles sous lesquelles
+     * la silhouette gagne au moins la moitié du dénivelé annoncé. Sans profil, ou sans
+     * dénivelé annoncé, il n'y a rien à confronter et tout est gardé.
+     */
+    fun climbsOnProfile(route: Route): List<RouteClimb> {
+        val profile = route.profile ?: return route.climbs
+        return route.climbs.filter { climb ->
+            climb.totalElevation <= 0.0 ||
+                profile.ascentBetween(climb.startDistance, climb.endDistance) >=
+                climb.totalElevation * PROFILE_ASCENT_SHARE
+        }
+    }
+
+    /** Part du dénivelé annoncé que le profil doit montrer pour qu'une côte soit crue. */
+    const val PROFILE_ASCENT_SHARE = 0.5
+
     fun climbStatus(route: Route, distanceAlongRoute: Double): ClimbStatus? {
         if (route.climbs.isEmpty()) return null
         val climbs = route.climbs.sortedBy { it.startDistance }
@@ -151,6 +173,14 @@ object Guidance {
         return ProfileWindow(points, start, end, padded.first, padded.second)
     }
 
-    /** Amplitude verticale minimale affichée (m), pour un rendu lisible sur du plat. */
-    const val MIN_ELEVATION_SPAN = 20.0
+    /**
+     * Amplitude verticale minimale affichée (m).
+     *
+     * L'échelle des altitudes s'étire sur ce que la fenêtre contient : sur du plat, une bosse
+     * de six mètres remplissait toute la hauteur de la bande et se lisait comme une montée —
+     * une sortie l'a dit. Quatre-vingts mètres au moins : la bosse retombe à un dixième de la
+     * hauteur, une vraie côte de quarante mètres en tient la moitié, et en montagne
+     * l'amplitude réelle dépasse ce plancher et rien ne change.
+     */
+    const val MIN_ELEVATION_SPAN = 80.0
 }

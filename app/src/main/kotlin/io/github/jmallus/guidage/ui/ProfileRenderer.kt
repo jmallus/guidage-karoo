@@ -417,8 +417,12 @@ object ProfileRenderer {
         // les côtes assez larges le portent : à dix kilomètres, un pourcentage n'est plus une
         // information mais un encombrement.
         var precedentDroite = Float.NEGATIVE_INFINITY
+        // Une côte passée ne se marque plus : son chiffre annonçait ce qui arrivait, et
+        // derrière le coureur il ne dirait plus que ce qui est fait — la crête blanche le
+        // montre déjà. Celle qu'on est en train de monter garde le sien, jusqu'au sommet.
+        val devant = model.positionDistance ?: window.start
         model.climbs
-            .filter { it.endDistance > window.start && it.startDistance < window.end }
+            .filter { it.endDistance > devant && it.startDistance < window.end }
             .forEachIndexed { rang, climb ->
                 val startX = x(max(climb.startDistance, window.start))
                 val endX = x(min(climb.endDistance, window.end))

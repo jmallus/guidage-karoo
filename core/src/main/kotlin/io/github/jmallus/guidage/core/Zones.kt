@@ -78,11 +78,22 @@ object Zones {
 
     /** Couleur de fond pour une puissance, ou null faute de zones configurées. */
     fun powerColor(watts: Double, zones: List<ZoneRange>): Int? =
-        POWER_COLORS.getOrNull(zoneOf(watts, zones) - 1)
+        colorOfZone(POWER_COLORS, zoneOf(watts, zones))
 
     /** Couleur de fond pour une fréquence cardiaque, ou null faute de zones configurées. */
     fun heartRateColor(bpm: Double, zones: List<ZoneRange>): Int? =
-        HEART_RATE_COLORS.getOrNull(zoneOf(bpm, zones) - 1)
+        colorOfZone(HEART_RATE_COLORS, zoneOf(bpm, zones))
+
+    /**
+     * La couleur d'une zone, la dernière de la palette au-delà d'elle.
+     *
+     * L'appareil laisse régler plus de zones que la palette n'a de teintes — sept zones de
+     * cœur sur une palette de cinq — et la case du cœur restait sans fond dès la sixième,
+     * précisément là où l'effort compte. Au-delà de la palette, c'est sa couleur la plus
+     * haute qui vaut : un cœur qui dépasse la dernière borne connue est dans le rouge.
+     */
+    private fun colorOfZone(palette: List<Int>, zone: Int): Int? =
+        if (zone <= 0) null else palette[minOf(zone, palette.size) - 1]
 
     /**
      * Couleur de fond pour la vitesse, comparée à la moyenne de la sortie.

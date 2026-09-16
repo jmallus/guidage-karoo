@@ -182,9 +182,13 @@ object DashboardRenderer {
      * et celle du bas celle du profil. La frontière doit être **la même** que celle du
      * dessin, sinon le doigt agirait sur ce qu'il ne désigne pas — et il n'y a qu'un moyen
      * d'en être sûr, c'est que les deux la lisent au même endroit.
+     *
+     * La frontière ne dépend plus de la présence d'un profil. Elle en dépendait, et pendant
+     * la seconde d'un reroutage où le profil manque, le bandeau disparaissait et tout le
+     * reste s'étirait sur l'écran, puis revenait. Une mise en page qui bouge est pire qu'un
+     * bandeau vide : le bandeau garde sa place, et dit ce qu'il n'a pas.
      */
-    fun bandTop(width: Int, height: Int, hasBand: Boolean): Float {
-        if (!hasBand) return height.toFloat()
+    fun bandTop(width: Int, height: Int): Float {
         val padding = padding(width, height)
         return padding + ROWS_ABOVE_BAND * (height - 2 * padding) * ROW_HEIGHT_FRACTION
     }
@@ -203,9 +207,9 @@ object DashboardRenderer {
         val columnSplit = width * TILE_COLUMN_FRACTION
         val right = width - padding
 
-        // Le bandeau mange le bas de l'écran ; tout le reste se serre au-dessus. Il est là
-        // dès qu'on navigue, de sorte que la mise en page ne bouge plus en cours de route.
-        val bandTop = bandTop(width, height, model.profileBand != null)
+        // Le bandeau mange le bas de l'écran ; tout le reste se serre au-dessus, que le
+        // profil soit là ou non : la mise en page ne bouge jamais.
+        val bandTop = bandTop(width, height)
 
         // Deux rangs de chiffres à hauteur fixe — l'effort en haut, le cœur juste au-dessus du
         // profil — et le guidage qui prend tout l'entre-deux. Écrire la mise en page dans ce

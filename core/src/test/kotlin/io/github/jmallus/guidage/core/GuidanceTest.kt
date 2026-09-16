@@ -37,6 +37,20 @@ class GuidanceTest {
     )
 
     @Test
+    fun `une cote que le profil ne porte pas n'est pas retenue`() {
+        // Une côte fantôme posée sur le plat de 6 à 8 km, à côté des deux vraies.
+        val fantome = RouteClimb(startDistance = 6_500.0, length = 1_000.0, grade = 3.0, totalElevation = 30.0)
+        val avecFantome = route.copy(climbs = route.climbs + fantome)
+
+        assertEquals(route.climbs, Guidance.climbsOnProfile(avecFantome))
+        // Sans profil, rien ne permet de douter : tout est gardé.
+        assertEquals(avecFantome.climbs, Guidance.climbsOnProfile(avecFantome.copy(profile = null)))
+        // Sans dénivelé annoncé non plus.
+        val muette = fantome.copy(totalElevation = 0.0)
+        assertTrue(muette in Guidance.climbsOnProfile(route.copy(climbs = listOf(muette))))
+    }
+
+    @Test
     fun `next climb before starting it`() {
         val status = Guidance.climbStatus(route, 500.0)!!
 

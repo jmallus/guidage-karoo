@@ -4,11 +4,13 @@ import io.github.jmallus.guidage.core.ClimbHistory
 import io.github.jmallus.guidage.core.ElevationProfile
 import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
+import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.Polyline
 import io.github.jmallus.guidage.core.Route
 import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
+import io.github.jmallus.guidage.core.SteadyHeading
 import io.github.jmallus.guidage.core.Units
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
@@ -84,6 +86,33 @@ class GuidanceProvider(
      */
     private val climbHistory = ClimbHistory()
 
+    /** Le cap qui oriente la carte, tenu tant qu'on n'avance pas : voir [SteadyHeading]. */
+    private val steadyHeading = SteadyHeading()
+
+    /**
+     * Le dernier état de navigation complet, et son instant.
+     *
+     * Pendant un reroutage, l'itinéraire ou la distance restante manquent le temps d'une
+     * seconde : l'état n'est plus « en navigation », le profil et la carte se vident, puis
+     * tout revient. Ce clignotement ne dit rien au coureur. L'état complet précédent est
+     * donc tenu quelques secondes, le temps que le nouvel itinéraire arrive ; passé ce
+     * délai, l'absence est vraie — la navigation s'est arrêtée — et elle s'affiche.
+     */
+    private var lastNavigating: GuidanceState? = null
+    private var lastNavigatingMillis = 0L
+
+    private fun steadied(state: GuidanceState, nowMillis: Long): GuidanceState {
+        if (state.navigating) {
+            lastNavigating = state
+            lastNavigatingMillis = nowMillis
+            return state
+        }
+        val previous = lastNavigating ?: return state
+        if (nowMillis - lastNavigatingMillis > NAVIGATION_GRACE_MS) return state
+        // La pente instantanée, elle, est toujours fraîche : elle ne vient pas de l'itinéraire.
+        return previous.copy(currentGrade = state.currentGrade)
+    }
+
     val snapshot: StateFlow<GuidanceSnapshot> = build()
         .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GuidanceSnapshot())
 
@@ -104,9 +133,10 @@ class GuidanceProvider(
             .onStart { emit(Units.METRIC) }
         val location = karooSystem.consumerFlow<OnLocationChanged>()
             .map<OnLocationChanged, RiderLocation?> {
+                val position = GeoPoint(it.lat, it.lng)
                 RiderLocation(
-                    position = GeoPoint(it.lat, it.lng),
-                    heading = it.orientation,
+                    position = position,
+                    heading = steadyHeading.observe(position, it.orientation),
                     receivedAtMillis = System.currentTimeMillis(),
                 )
             }
@@ -120,7 +150,10 @@ class GuidanceProvider(
             location,
         ) { nav, distanceRemaining, currentGrade, unitSystem, riderLocation ->
             GuidanceSnapshot(
-                state = buildState(nav, distanceRemaining, currentGrade, climbHistory),
+                state = steadied(
+                    buildState(nav, distanceRemaining, currentGrade, climbHistory),
+                    System.currentTimeMillis(),
+                ),
                 units = unitSystem,
                 location = riderLocation,
             )
@@ -130,6 +163,9 @@ class GuidanceProvider(
     companion object {
         private const val STOP_TIMEOUT_MS = 5_000L
 
+        /** Combien de temps un état de navigation complet survit à son absence (ms). */
+        private const val NAVIGATION_GRACE_MS = 5_000L
+
         fun buildState(
             navigation: NavigationState,
             distanceRemaining: Double?,
@@ -137,7 +173,10 @@ class GuidanceProvider(
             climbHistory: ClimbHistory? = null,
         ): GuidanceState {
             val reported = navigation.toRoute() ?: return GuidanceState.IDLE
-            val route = climbHistory?.remember(reported) ?: reported
+            // Les côtes retenues sont confrontées au profil : celles qu'il ne porte pas ne
+            // sont pas dessinées, et ne comptent pas non plus dans la numérotation.
+            val route = (climbHistory?.remember(reported) ?: reported)
+                .let { it.copy(climbs = Guidance.climbsOnProfile(it)) }
             val along = distanceAlongRoute(route.totalDistance, distanceRemaining)
             return GuidanceState(
                 route = route,

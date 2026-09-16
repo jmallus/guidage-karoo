@@ -37,6 +37,16 @@ class ZonesTest {
     }
 
     @Test
+    fun `au-dela de la palette, la zone prend sa derniere couleur`() {
+        // Sept zones de cœur réglées sur l'appareil, pour une palette de cinq teintes.
+        val sept = (1..7).map { ZoneRange((it - 1) * 20, it * 20) }
+        assertEquals(Zones.HEART_RATE_COLORS[5 - 1], Zones.heartRateColor(115.0, sept))
+        assertEquals(Zones.HEART_RATE_COLORS.last(), Zones.heartRateColor(135.0, sept))
+        assertEquals(Zones.HEART_RATE_COLORS.last(), Zones.heartRateColor(500.0, sept))
+        assertEquals(Zones.POWER_COLORS.last(), Zones.powerColor(500.0, (1..9).map { ZoneRange(0, it * 50) }))
+    }
+
+    @Test
     fun `without configured zones there is no zone and no color`() {
         assertEquals(0, Zones.zoneOf(200.0, emptyList()))
         assertNull(Zones.powerColor(200.0, emptyList()))

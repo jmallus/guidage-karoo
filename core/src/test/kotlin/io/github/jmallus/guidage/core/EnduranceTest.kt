@@ -52,10 +52,11 @@ class EnduranceTest {
         assertEquals(0.0, deuxMoities(210.0, 145.0, 210.0, 145.0).drift()!!.ratio, 1e-9)
     }
 
-    /** Sous une heure, l'échauffement seul produirait un chiffre spectaculaire et faux. */
+    /** Sous une demi-heure, l'échauffement seul produirait un chiffre spectaculaire et faux. */
     @Test
-    fun `sous une heure d'effort la derive se tait`() {
-        assertNull(deuxMoities(200.0, 140.0, 200.0, 150.0, secondes = 2_400L).drift())
+    fun `sous une demi-heure d'effort la derive se tait`() {
+        assertNull(deuxMoities(200.0, 140.0, 200.0, 150.0, secondes = 1_200L).drift())
+        assertTrue(deuxMoities(200.0, 140.0, 200.0, 150.0, secondes = 2_400L).drift() != null)
     }
 
     /**
