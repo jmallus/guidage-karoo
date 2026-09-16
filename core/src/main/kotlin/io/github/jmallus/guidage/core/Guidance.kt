@@ -173,6 +173,14 @@ object Guidance {
         return ProfileWindow(points, start, end, padded.first, padded.second)
     }
 
-    /** Amplitude verticale minimale affichée (m), pour un rendu lisible sur du plat. */
-    const val MIN_ELEVATION_SPAN = 20.0
+    /**
+     * Amplitude verticale minimale affichée (m).
+     *
+     * L'échelle des altitudes s'étire sur ce que la fenêtre contient : sur du plat, une bosse
+     * de six mètres remplissait toute la hauteur de la bande et se lisait comme une montée —
+     * une sortie l'a dit. Quatre-vingts mètres au moins : la bosse retombe à un dixième de la
+     * hauteur, une vraie côte de quarante mètres en tient la moitié, et en montagne
+     * l'amplitude réelle dépasse ce plancher et rien ne change.
+     */
+    const val MIN_ELEVATION_SPAN = 80.0
 }

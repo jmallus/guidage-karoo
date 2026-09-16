@@ -119,9 +119,11 @@ object DashboardModels {
         snapshot: GuidanceSnapshot,
         settings: GuidageSettings,
         preview: Boolean,
-    ): ProfileFieldModel? =
+    ): ProfileFieldModel =
+        // Jamais nul : sans profil, le bandeau garde sa place et porte son message, au lieu
+        // de rendre sa hauteur au reste de l'écran le temps d'un reroutage.
         FieldModels.profile(context, snapshot, settings, preview, zoom = settings.graphZoom)
-            .takeIf { !it.window.isEmpty }
+
     private fun mapModel(
         context: Context,
         snapshot: GuidanceSnapshot,
