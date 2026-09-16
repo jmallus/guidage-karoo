@@ -4,11 +4,13 @@ import io.github.jmallus.guidage.core.ClimbHistory
 import io.github.jmallus.guidage.core.ElevationProfile
 import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
+import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.Polyline
 import io.github.jmallus.guidage.core.Route
 import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
+import io.github.jmallus.guidage.core.SteadyHeading
 import io.github.jmallus.guidage.core.Units
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
@@ -84,6 +86,9 @@ class GuidanceProvider(
      */
     private val climbHistory = ClimbHistory()
 
+    /** Le cap qui oriente la carte, tenu tant qu'on n'avance pas : voir [SteadyHeading]. */
+    private val steadyHeading = SteadyHeading()
+
     val snapshot: StateFlow<GuidanceSnapshot> = build()
         .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GuidanceSnapshot())
 
@@ -104,9 +109,10 @@ class GuidanceProvider(
             .onStart { emit(Units.METRIC) }
         val location = karooSystem.consumerFlow<OnLocationChanged>()
             .map<OnLocationChanged, RiderLocation?> {
+                val position = GeoPoint(it.lat, it.lng)
                 RiderLocation(
-                    position = GeoPoint(it.lat, it.lng),
-                    heading = it.orientation,
+                    position = position,
+                    heading = steadyHeading.observe(position, it.orientation),
                     receivedAtMillis = System.currentTimeMillis(),
                 )
             }
@@ -137,7 +143,10 @@ class GuidanceProvider(
             climbHistory: ClimbHistory? = null,
         ): GuidanceState {
             val reported = navigation.toRoute() ?: return GuidanceState.IDLE
-            val route = climbHistory?.remember(reported) ?: reported
+            // Les côtes retenues sont confrontées au profil : celles qu'il ne porte pas ne
+            // sont pas dessinées, et ne comptent pas non plus dans la numérotation.
+            val route = (climbHistory?.remember(reported) ?: reported)
+                .let { it.copy(climbs = Guidance.climbsOnProfile(it)) }
             val along = distanceAlongRoute(route.totalDistance, distanceRemaining)
             return GuidanceState(
                 route = route,

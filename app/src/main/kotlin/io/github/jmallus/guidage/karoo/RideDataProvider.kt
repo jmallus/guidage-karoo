@@ -195,8 +195,10 @@ class RideDataProvider(
                 wPrimeBalance = wPrime.balance,
                 wPrimeCapacity = wPrime.size,
                 criticalPower = (reglages.criticalPower ?: profile.ftp)?.toDouble(),
-                totalSeconds = summary[9],
-                movingSeconds = summary[10],
+                // L'appareil publie ces deux temps en millisecondes, sans le dire : une
+                // sortie d'une heure neuf s'est lue « 1148 h 20 » sur la case.
+                totalSeconds = summary[9]?.let { it / 1_000.0 },
+                movingSeconds = summary[10]?.let { it / 1_000.0 },
                 drift = drift.drift(),
                 batteryPercent = battery.percent,
                 batteryPerHour = battery.perHour,
@@ -204,7 +206,12 @@ class RideDataProvider(
         )
     }
         .distinctUntilChanged()
-        .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), RideData())
+        // Chaud dès le premier champ affiché, et jusqu'à la fin du service : les cumuls
+        // tenus ici — temps par zone, réserve, dérive, décharge — se mesurent sur la sortie
+        // entière. Partagé « tant qu'abonné », le flux s'éteignait dès qu'aucune page de
+        // l'extension n'était à l'écran, et une page native consultée un quart d'heure
+        // faisait un quart d'heure de moins à chaque cumul, sans que rien ne le dise.
+        .stateIn(scope, SharingStarted.Lazily, RideData())
 
     private fun metrics(): Flow<Array<Double?>> = combine(
         listOf(
@@ -356,8 +363,6 @@ class RideDataProvider(
         karooSystem.streamFieldFlow(dataTypeId, fieldId).onStart { emit(null) }
 
     private companion object {
-        const val STOP_TIMEOUT_MS = 5_000L
-
         /** Recul du compteur au-delà duquel on tient la sortie pour nouvelle (m). */
         const val NEW_RIDE_DROP_METERS = 100.0
 
