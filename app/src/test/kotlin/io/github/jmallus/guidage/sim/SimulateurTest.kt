@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
+import io.github.jmallus.guidage.core.Zones
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.KarooColors
@@ -280,6 +281,33 @@ class SimulateurTest {
         val arrivee = simulateur.image(approche.secondes)
         assertTrue("le ruban ne se voit pas à l'approche de l'arrivée", rubanVisible(arrivee))
         ecrire(arrivee, File(dossier, "carte-arrivee.png"))
+
+        // Le bandeau se cadre sur la côte qu'on monte, en couleurs de pente, et revient à sa
+        // portée une fois le sommet passé. Le col de la sortie fictive est pris à mi-pente,
+        // puis un kilomètre après son sommet.
+        val col = PreviewData.route.climbs.maxBy { it.totalElevation }
+        val dansLeCol = simulateur.image(instantA(simulateur.sortie, col.startDistance + col.length / 2).secondes)
+        assertTrue(
+            "le bandeau ne montre pas les couleurs de pente dans le col",
+            pixelsDeCouleurDePente(dansLeCol) > 500,
+        )
+        ecrire(dansLeCol, File(dossier, "carte-cote.png"))
+
+        val apresLeCol = simulateur.image(instantA(simulateur.sortie, col.endDistance + 1_000.0).secondes)
+        assertEquals(
+            "le bandeau garde les couleurs de pente après le sommet",
+            0,
+            pixelsDeCouleurDePente(apresLeCol),
+        )
+    }
+
+    /** Les pixels du bandeau bas peints d'une couleur de pente ; le haut porte les zones de puissance. */
+    private fun pixelsDeCouleurDePente(image: Bitmap): Int {
+        val couleurs = Zones.POWER_COLORS.toSet()
+        val bandeau = image.height * 4 / 5
+        val pixels = IntArray(image.width * (image.height - bandeau))
+        image.getPixels(pixels, 0, image.width, 0, bandeau, image.width, image.height - bandeau)
+        return pixels.count { it in couleurs }
     }
 
     /**

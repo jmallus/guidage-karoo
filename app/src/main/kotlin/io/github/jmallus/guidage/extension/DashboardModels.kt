@@ -109,7 +109,9 @@ object DashboardModels {
      * C'est logique — la compression est faite pour répondre à « qu'est-ce qui reste », et le
      * bandeau est regardé pour savoir « qu'est-ce qui arrive ».
      *
-     * Il porte donc la portée réglée, à échelle régulière. Le champ « Profil à venir », lui,
+     * Il porte donc la portée réglée, à échelle régulière — sauf dans une côte, où il se cadre
+     * sur elle du pied au sommet, en couleurs de pente, et revient à la portée au sommet. La
+     * mise en page ne bouge pas : c'est le contenu du bandeau qui change, pas sa place. Le champ « Profil à venir », lui,
      * garde tout le restant comprimé : les deux ne divergent pas par négligence, ils
      * répondent chacun à sa question, et c'est le même modèle et le même rendu qui servent
      * les deux.

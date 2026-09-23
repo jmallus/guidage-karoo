@@ -23,7 +23,7 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 
 | Champ | Type | Contenu |
 | --- | --- | --- |
-| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. |
+| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. **Dans une côte**, le profil du bas se cadre sur elle du pied au sommet, en couleurs de pente, comme le ClimbPro du Karoo, puis revient à sa portée une fois le sommet passé. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Silhouette au jaune du Karoo, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
 
@@ -86,8 +86,8 @@ Le profil à venir, champ de bande qui se pose sur un rang d'une page ordinaire 
 <img src="docs/captures/champ-profil.png" width="300" alt="Profil à venir">
 
 Et le tableau de bord à trois de ses portées de carte, puis avec le profil à la place de
-la carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge — et à l'approche
-de l'arrivée, marquée d'un damier :
+la carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge —, à l'approche
+de l'arrivée, marquée d'un damier, et à mi-pente d'un col, le profil cadré sur la côte :
 
 <table>
   <tr>
@@ -97,6 +97,7 @@ de l'arrivée, marquée d'un damier :
     <td align="center"><img src="docs/captures/profil.png" width="150" alt="Profil au lieu de la carte"><br>Profil</td>
     <td align="center"><img src="docs/captures/hors-itineraire.png" width="150" alt="Hors itinéraire"><br>Hors itinéraire</td>
     <td align="center"><img src="docs/captures/carte-arrivee.png" width="150" alt="Approche de l'arrivée"><br>Arrivée</td>
+    <td align="center"><img src="docs/captures/carte-cote.png" width="150" alt="Profil cadré sur la côte en cours, en couleurs de pente"><br>Dans une côte</td>
   </tr>
 </table>
 
