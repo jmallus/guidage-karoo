@@ -86,6 +86,20 @@ class SurfacesTest {
     }
 
     @Test
+    fun `un chemin revetu vaut une route`() {
+        val segments = listOf(way(0.0, 2_000.0, RoadKind.TRACK, RoadSurface.PAVED))
+
+        assertEquals(SurfaceClass.ROAD, Surfaces.ahead(path(), segments, 0.0, 2_000.0).single().surface)
+    }
+
+    @Test
+    fun `une voie verte en gravier vaut un chemin`() {
+        val segments = listOf(way(0.0, 2_000.0, RoadKind.CYCLEWAY, RoadSurface.UNPAVED))
+
+        assertEquals(SurfaceClass.TRAIL, Surfaces.ahead(path(), segments, 0.0, 2_000.0).single().surface)
+    }
+
+    @Test
     fun `la voie verte garde son nom`() {
         val segments = listOf(way(0.0, 2_000.0, RoadKind.CYCLEWAY))
 

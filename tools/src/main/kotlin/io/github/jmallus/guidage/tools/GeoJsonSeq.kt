@@ -114,7 +114,7 @@ object GeoJsonSeq {
     private fun JsonObject.tag(name: String): String? = this[name]?.jsonPrimitive?.content
 
     private fun surfaceOf(properties: JsonObject): RoadSurface =
-        RoadSurface.fromSurfaceTag(properties.tag("surface"))
+        RoadSurface.fromTags(properties.tag("surface"), properties.tag("tracktype"))
 
     /** Coordonnées en micro-degrés, points confondus écartés. */
     private fun points(coordinates: JsonArray): Pair<IntArray, IntArray>? {

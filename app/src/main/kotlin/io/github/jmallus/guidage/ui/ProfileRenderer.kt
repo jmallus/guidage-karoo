@@ -57,6 +57,14 @@ data class ProfileFieldModel(
     val compressed: Boolean = true,
     /** Unités du coureur, pour graduer l'axe rondement. */
     val units: Units = Units.METRIC,
+    /**
+     * La côte sur laquelle la fenêtre s'est cadrée, du pied au sommet, ou null.
+     *
+     * Le bandeau du tableau de bord bascule dessus tant qu'on la monte, comme le ClimbPro du
+     * Karoo : la silhouette prend alors les couleurs de pente, tronçon par tronçon, parce que
+     * c'est la question du moment — où est le passage dur, et combien en reste-t-il.
+     */
+    val climbZoom: RouteClimb? = null,
 )
 
 /**
@@ -147,7 +155,11 @@ object ProfileRenderer {
         val etiquette = model.positionLabel?.takeIf { entetes }
 
         drawProfile(canvas, model, scale, left, top, right, bottom, positionX, palette)
-        drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
+        // Cadré sur une côte, le voile qui en marque l'étendue couvrirait toute la bande, et sa
+        // pente moyenne est déjà écrite dans l'en-tête.
+        if (model.climbZoom == null) {
+            drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
+        }
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         drawPositionMarker(canvas, positionX, top, bottom)
@@ -256,19 +268,26 @@ object ProfileRenderer {
             moveTo(positionX, ys[split])
             for (column in split until columns) lineTo(xs[column], ys[column])
         }
-        val aplat = Path(devant).apply {
-            lineTo(xs[columns - 1], bottom)
-            lineTo(positionX, bottom)
-            close()
+        val cote = model.climbZoom
+        if (cote != null) {
+            drawGradeFill(canvas, window, cote, scale, xs, ys, first, left, right, bottom, positionX, palette)
+            // Sur les couleurs de pente, le jaune de la crête se perdrait dans le tronçon jaune.
+            canvas.drawPath(devant, crestPaint(palette.textPrimary, CREST_WIDTH))
+        } else {
+            val aplat = Path(devant).apply {
+                lineTo(xs[columns - 1], bottom)
+                lineTo(positionX, bottom)
+                close()
+            }
+            canvas.drawPath(
+                aplat,
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.FILL
+                    color = FILL
+                },
+            )
+            canvas.drawPath(devant, crestPaint(CREST, CREST_WIDTH))
         }
-        canvas.drawPath(
-            aplat,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                color = FILL
-            },
-        )
-        canvas.drawPath(devant, crestPaint(CREST, CREST_WIDTH))
 
         if (split > 0) {
             val derriere = Path().apply {
@@ -277,6 +296,69 @@ object ProfileRenderer {
                 lineTo(positionX, ys[split])
             }
             canvas.drawPath(derriere, crestPaint(palette.textPrimary, BEHIND_WIDTH))
+        }
+    }
+
+    /**
+     * L'aplat d'une côte en couleurs de pente, à la manière du ClimbPro du Karoo.
+     *
+     * La côte est découpée en tronçons égaux d'au moins [GRADE_SEGMENT_METERS], chacun peint à
+     * la couleur de sa pente propre. Des tronçons et non des colonnes : la mosaïque colonne par
+     * colonne est ce qui avait fait retirer les couleurs du bandeau ordinaire, alors qu'une
+     * poignée de marches se lit d'un coup d'œil — le passage à 9 % dans quatre cents mètres.
+     *
+     * Ce qui est monté passe au gris, comme sur l'appareil : sa pente n'est plus une question.
+     */
+    private fun drawGradeFill(
+        canvas: Canvas,
+        window: ProfileWindow,
+        climb: RouteClimb,
+        scale: FisheyeScale,
+        xs: FloatArray,
+        ys: FloatArray,
+        first: Int,
+        left: Float,
+        right: Float,
+        bottom: Float,
+        positionX: Float,
+        palette: Palette,
+    ) {
+        val points = window.points
+        val troncons = ceil(climb.length / GRADE_SEGMENT_METERS).toInt().coerceIn(1, MAX_GRADE_SEGMENTS)
+        val pas = climb.length / troncons
+        fun x(distance: Double) =
+            (left + scale.fractionAt(distance - window.start) * (right - left)).toFloat().coerceIn(left, right)
+        fun crestAt(x: Float) = ys[(x - first).toInt().coerceIn(0, ys.size - 1)]
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        val fait = FieldPalette.translucent(palette.textPrimary, CLIMB_DONE_ALPHA)
+        for (rang in 0 until troncons) {
+            val debut = climb.startDistance + rang * pas
+            val fin = debut + pas
+            val pente = (interpolate(points, fin) - interpolate(points, debut)) / pas * 100.0
+            val xa = x(debut)
+            val xb = x(fin)
+            if (xb <= xa) continue
+            val troncon = Path().apply {
+                moveTo(xa, bottom)
+                lineTo(xa, crestAt(xa))
+                for (column in xs.indices) if (xs[column] > xa && xs[column] < xb) lineTo(xs[column], ys[column])
+                lineTo(xb, crestAt(xb))
+                lineTo(xb, bottom)
+                close()
+            }
+            // Le tronçon sous les roues est coupé à l'aplomb du coureur : gris derrière,
+            // couleur devant.
+            canvas.save()
+            canvas.clipRect(left, 0f, positionX, bottom)
+            paint.color = fait
+            canvas.drawPath(troncon, paint)
+            canvas.restore()
+            canvas.save()
+            canvas.clipRect(positionX, 0f, right, bottom)
+            paint.color = FieldPalette.gradeColor(pente)
+            canvas.drawPath(troncon, paint)
+            canvas.restore()
         }
     }
 
@@ -652,6 +734,20 @@ object ProfileRenderer {
 
     /** Opacité du voile qui marque l'étendue d'une côte. */
     private const val CLIMB_OVERLAY_ALPHA = 36
+
+    /**
+     * Longueur minimale d'un tronçon de pente, sous le zoom de côte (m).
+     *
+     * En deçà, le relevé d'altitude fait danser les couleurs sur des pentes que les jambes ne
+     * sentent pas.
+     */
+    private const val GRADE_SEGMENT_METERS = 250.0
+
+    /** Au-delà, un col se découpe en tronçons plus longs plutôt qu'en mosaïque. */
+    private const val MAX_GRADE_SEGMENTS = 16
+
+    /** Opacité du gris posé sur la part de la côte déjà montée. */
+    private const val CLIMB_DONE_ALPHA = 70
 
     /**
      * L'étiquette de position : l'encre sombre du nombre, son corps en part de celui des

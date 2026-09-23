@@ -147,6 +147,21 @@ enum class RoadSurface(val code: Int) {
             in UNPAVED_TAGS -> UNPAVED
             else -> UNKNOWN
         }
+
+        /**
+         * Le revêtement d'une voie, à défaut de `surface` d'après `tracktype`.
+         *
+         * Le gros des chemins agricoles d'OSM ne porte pas `surface`, mais beaucoup portent
+         * `tracktype`, qui dit la même chose en cinq crans : `grade1` est un chemin revêtu, les
+         * quatre autres ne le sont pas. Sans lui, un chemin goudronné se rayait comme un chemin
+         * de terre, faute de mieux que son type pour en décider.
+         */
+        fun fromTags(surface: String?, tracktype: String?): RoadSurface =
+            fromSurfaceTag(surface).takeIf { it != UNKNOWN } ?: when (tracktype) {
+                "grade1" -> PAVED
+                "grade2", "grade3", "grade4", "grade5" -> UNPAVED
+                else -> UNKNOWN
+            }
     }
 }
 

@@ -72,13 +72,40 @@ object FieldModels {
         // À portée fixée, le recul est une part de la portée — un cinquième — et non plus
         // ces cent vingt mètres : le bandeau montre alors ce qu'on vient de monter, en blanc,
         // et la marque se tient franchement dans la bande, comme sur le profil natif.
+        val units = snapshot.units
+
+        // Le bandeau se cadre sur la côte qu'on monte, du pied au sommet, et revient à sa
+        // portée une fois le sommet passé — le ClimbPro du Karoo. Le champ « Profil à venir »
+        // n'en fait rien : il répond à « qu'est-ce qui reste », et une côte n'en est qu'une part.
+        if (portee != null) {
+            val status = Guidance.climbStatus(route, quantized)?.takeIf { it.onClimb }
+            if (status != null) {
+                val cote = status.climb
+                return ProfileFieldModel(
+                    window = Guidance.profileWindow(route, cote.startDistance, cote.length),
+                    climbs = route.climbs,
+                    pois = route.pois,
+                    ascentLabel = context.getString(
+                        R.string.status_climb_current,
+                        Format.distance(status.distanceToTop, units),
+                        Format.elevation(status.elevationToTop, units),
+                    ),
+                    rangeLabel = Format.grade(cote.grade),
+                    positionDistance = quantized,
+                    emptyMessage = context.getString(R.string.field_no_route),
+                    compressed = false,
+                    units = units,
+                    climbZoom = cote,
+                )
+            }
+        }
+
         val depart = (quantized - RECUL_METERS).coerceAtLeast(0.0)
         val window = if (portee == null) {
             Guidance.profileToFinish(route, depart)
         } else {
             Guidance.profileWindow(route, quantized, portee, lookbehind = portee * RECUL_FRACTION)
         }
-        val units = snapshot.units
         // Le dénivelé et la distance se comptent depuis le coureur, jamais depuis le bord de
         // la fenêtre : celle-ci commence en arrière de lui, et les compter de là ajouterait au
         // « restant » ce qui est déjà fait.

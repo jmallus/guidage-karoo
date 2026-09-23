@@ -18,6 +18,17 @@ class GeoJsonSeqTest {
         """{"type":"Feature","properties":$properties,"geometry":{"type":"LineString","coordinates":$coordinates}}"""
 
     @Test
+    fun `un chemin sans surface prend son revetement de tracktype`() {
+        val segment = GeoJsonSeq.toSegment(
+            feature(
+                """{"highway":"track","tracktype":"grade1"}""",
+                """[[0.840000,49.110000],[0.841000,49.111000]]""",
+            ),
+        )
+        assertEquals(RoadSurface.PAVED, segment!!.surface)
+    }
+
+    @Test
     fun `a track becomes a segment with its surface`() {
         val segment = GeoJsonSeq.toSegment(
             feature(
