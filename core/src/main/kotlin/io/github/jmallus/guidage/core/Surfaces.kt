@@ -27,11 +27,20 @@ enum class SurfaceClass {
     ;
 
     companion object {
+        /**
+         * Le revêtement décide, et le type de voie ne sert qu'à défaut.
+         *
+         * L'ordre inverse rayait un chemin agricole goudronné comme un chemin de terre et
+         * laissait unie une voie verte en gravier : c'est ce qu'on roule qui compte, pas le
+         * nom de la voie. Le type ne reprend la main que lorsque la carte ne dit rien du
+         * revêtement — un sentier sans étiquette est bien plus souvent en terre qu'en enrobé.
+         */
         fun of(kind: RoadKind?, surface: RoadSurface): SurfaceClass = when {
-            kind == null -> UNKNOWN
-            kind == RoadKind.CYCLEWAY -> CYCLEWAY
-            kind.isTrail -> TRAIL
+            kind == null || kind.isArea -> UNKNOWN
             surface == RoadSurface.UNPAVED -> TRAIL
+            kind == RoadKind.CYCLEWAY -> CYCLEWAY
+            surface == RoadSurface.PAVED -> ROAD
+            kind.isTrail -> TRAIL
             else -> ROAD
         }
     }

@@ -299,6 +299,16 @@ class RoadKindTest {
     }
 
     @Test
+    fun `tracktype supplee surface quand elle manque`() {
+        assertEquals(RoadSurface.PAVED, RoadSurface.fromTags(null, "grade1"))
+        assertEquals(RoadSurface.UNPAVED, RoadSurface.fromTags(null, "grade3"))
+        assertEquals(RoadSurface.UNKNOWN, RoadSurface.fromTags(null, null))
+        // surface l'emporte : elle dit le revêtement, tracktype seulement la fermeté.
+        assertEquals(RoadSurface.UNPAVED, RoadSurface.fromTags("gravel", "grade1"))
+        assertEquals(RoadSurface.PAVED, RoadSurface.fromTags("asphalt", "grade4"))
+    }
+
+    @Test
     fun `every code survives the header packing`() {
         for (kind in RoadKind.entries) {
             for (surface in RoadSurface.entries) {

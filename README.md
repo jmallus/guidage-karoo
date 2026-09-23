@@ -273,4 +273,7 @@ Le reste des emprunts — couleurs de zones, contraste APCA, icônes — est dé
 - La mise à jour depuis le Karoo suppose une Release publiée (un tag `vX.Y.Z`) : les
   constructions intermédiaires, publiées sous la Release préliminaire `latest`, restent
   invisibles pour l'appareil. C'est voulu.
-- Les rayures de chemin de la minicarte demandent le fond de carte embarqué.
+- Les rayures bleu et blanc du tracé sur la minicarte marquent ce qui n'est **pas revêtu**.
+  Elles demandent le fond de carte embarqué et ne valent que ce qu'OpenStreetMap dit de la
+  voie : son tag `surface`, à défaut `tracktype`, et à défaut seulement son type — un sentier
+  sans étiquette est rayé, une route sans étiquette ne l'est pas.
