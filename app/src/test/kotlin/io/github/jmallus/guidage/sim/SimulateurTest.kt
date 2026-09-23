@@ -283,15 +283,15 @@ class SimulateurTest {
     }
 
     /**
-     * Les deux champs annexes, que la fenêtre montre à côté du tableau de bord.
+     * Le profil à venir, que la fenêtre montre à côté du tableau de bord.
      *
-     * Ils passent par les mêmes constructions de modèle et les mêmes rendus que l'appareil :
-     * ce qu'on vérifie ici, c'est qu'ils dessinent réellement quelque chose à chaque moment de
+     * Il passe par les mêmes constructions de modèle et les mêmes rendus que l'appareil :
+     * ce qu'on vérifie ici, c'est qu'il dessine réellement quelque chose à chaque moment de
      * la sortie. Un champ vide ne lève aucune exception et se compile parfaitement — et il
      * n'échouerait qu'à l'écran, où personne ne le regarderait avant une sortie.
      */
     @Test
-    fun `les champs annexes se dessinent tout au long de la sortie`() {
+    fun `le profil se dessine tout au long de la sortie`() {
         val simulateur = Simulateur(context)
         val dossier = File("build/simulateur").apply { mkdirs() }
 
@@ -305,33 +305,8 @@ class SimulateurTest {
                 couleursDistinctes(profil) > 6,
             )
 
-            val cote = simulateur.imageCote(secondes)
-            assertEquals(Simulateur.LARGEUR_ANNEXE, cote.width)
-            assertEquals(Simulateur.HAUTEUR_COTE, cote.height)
-            assertTrue(
-                "la côte ne montre presque rien à ${(part * 100).toInt()} %",
-                couleursDistinctes(cote) > 3,
-            )
-
-            // Les autres pleines pages. Le contrôle est le même — elles dessinent — mais
-            // volontairement lâche sur le nombre de teintes : un champ de texte en porte
-            // moins qu'un profil, et le seuil doit tenir aux quatre moments de la sortie.
-            val autres = mapOf(
-                "champ-contexte" to simulateur.imageContexte(secondes),
-                "champ-reserve" to simulateur.imageReserve(secondes),
-                "champ-autonomie" to simulateur.imageAutonomie(secondes),
-            )
-            autres.forEach { (nom, image) ->
-                assertTrue(
-                    "$nom ne montre presque rien à ${(part * 100).toInt()} %",
-                    couleursDistinctes(image) > 2,
-                )
-            }
-
             if (part == PART_CAPTURE) {
                 ecrire(profil, File(dossier, "champ-profil.png"))
-                ecrire(cote, File(dossier, "champ-cote.png"))
-                autres.forEach { (nom, image) -> ecrire(image, File(dossier, "$nom.png")) }
             }
         }
     }
@@ -474,11 +449,7 @@ class SimulateurTest {
     private fun champs(simulateur: Simulateur, secondes: Double): List<Champ> = listOf(
         // Les pleines pages d'abord, chacune tenant sa colonne ; les champs de bande ensuite.
         champ("Tableau de bord", simulateur.image(secondes)),
-        champ("Autonomie", simulateur.imageAutonomie(secondes)),
-        champ("Réserve", simulateur.imageReserve(secondes)),
         champ("Profil à venir", simulateur.imageProfil(secondes)),
-        champ("Suivant la sortie", simulateur.imageContexte(secondes)),
-        champ("Prochaine côte", simulateur.imageCote(secondes)),
         champ("Bilan", pageDeBilan(simulateur, secondes)),
     )
 

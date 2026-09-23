@@ -146,18 +146,13 @@ La fenêtre se pilote au clavier :
 | `+` `-` | ajuster l'échelle par pas de 5 %, la règle en témoin |
 | `échap` | quitter |
 
-**Les dix champs graphiques à la fois.** Les pleines pages d'abord — tableau de bord,
-autonomie, avant la nuit, réserve, virages, revêtement — puis les champs de bande — profil à
-venir, suivant la sortie, prochaine côte, budget d'effort —, en colonnes, tous alimentés par
-le même instant de la sortie et tracés **au même facteur**. C'est la seule disposition qui
+**Tous les champs graphiques à la fois.** Le tableau de bord, le profil à venir et la page
+des dix cases de bilan, en colonnes, tous alimentés par le même instant de la sortie et tracés
+**au même facteur**. C'est la seule disposition qui
 permette de juger des tailles de texte d'un champ à l'autre : les mettre chacun à sa taille
 confortable donnerait
 des chiffres qui paraissent comparables sans l'être. Le champ « Prochain point d'intérêt »
 n'y figure pas — il est numérique, et c'est le Karoo qui le dessine.
-
-L'horloge du champ « Suivant la sortie » est celle de la sortie jouée, non celle de la
-machine : sa bascule attend qu'un état se confirme, et à seize fois la vitesse réelle une
-hystérésis de trois secondes en durerait moins d'une demie.
 
 **Ce qu'il montre est le code de l'appareil.** Ce n'est pas une seconde écriture de
 l'affichage : le simulateur assemble l'état d'une sortie, puis appelle les constructeurs de
