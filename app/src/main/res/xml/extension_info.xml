@@ -25,34 +25,6 @@
         icon="@drawable/ic_profile" />
 
     <DataType
-        typeId="cote"
-        displayName="@string/field_climb_name"
-        description="@string/field_climb_description"
-        graphical="true"
-        icon="@drawable/ic_climb" />
-
-    <DataType
-        typeId="contexte"
-        displayName="@string/field_context_name"
-        description="@string/field_context_description"
-        graphical="true"
-        icon="@drawable/ic_guidage" />
-
-    <DataType
-        typeId="reserve"
-        displayName="@string/field_resupply_name"
-        description="@string/field_resupply_description"
-        graphical="true"
-        icon="@drawable/ic_poi" />
-
-    <DataType
-        typeId="autonomie"
-        displayName="@string/field_autonomy_name"
-        description="@string/field_autonomy_description"
-        graphical="true"
-        icon="@drawable/ic_poi" />
-
-    <DataType
         typeId="poi"
         displayName="@string/field_poi_name"
         description="@string/field_poi_description"

@@ -6,8 +6,6 @@
     <!-- Data fields -->
     <string name="field_profile_name">Route profile ahead</string>
     <string name="field_profile_description">Elevation profile of the route ahead, in Karoo yellow, climbs annotated with their average gradient.</string>
-    <string name="field_climb_name">Next climb</string>
-    <string name="field_climb_description">Distance to the next climb, or to the summit of the current one, with gradient and elevation.</string>
     <string name="field_poi_name">Next point of interest</string>
     <string name="field_poi_description">Distance to the next point of interest on the route.</string>
 
@@ -19,9 +17,7 @@
     <string name="dashboard_label_power">POWER 3S</string>
     <string name="dashboard_label_heart_rate">HR</string>
     <string name="dashboard_label_cadence">CADENCE</string>
-    <string name="dashboard_label_grade">GRADE</string>
     <string name="dashboard_label_gears">DRIVETRAIN</string>
-    <string name="dashboard_label_distance">DISTANCE</string>
 
     <!-- Notices drawn on the minimap when the basemap gives nothing -->
     <string name="basemap_missing">No basemap installed</string>
@@ -29,15 +25,12 @@
     <string name="basemap_out_of_area">Outside the mapped region</string>
     <string name="basemap_empty">No ways here</string>
     <string name="dashboard_label_remaining">TO GO</string>
-    <string name="dashboard_label_arrival">ARRIVAL</string>
     <string name="dashboard_climb_title">Climb %1$d/%2$d — %3$s at %4$s</string>
     <string name="settings_guidance_map">Minimap instead of profile (dashboard)</string>
 
     <string name="field_no_route">No route</string>
     <string name="field_waiting_for_position">Waiting for position…</string>
     <string name="field_no_climb_ahead">No climb ahead</string>
-    <string name="field_climb_in_progress">Climbing</string>
-    <string name="field_climb_number">Climb %1$d/%2$d</string>
 
     <!-- Alerts -->
     <string name="alert_climb_title">Climb in %1$s</string>
@@ -84,7 +77,7 @@
     <string name="settings_section_alerts">Alerts</string>
     <string name="settings_guidance_map_hint">“Dashboard” field</string>
     <string name="settings_water_only">Count water points only</string>
-    <string name="settings_water_only_hint">“Reserve”, “Autonomy”, “Follows the ride” fields and the alerts. Unchecked, stores, gas stations, cafés and rest stops count too.</string>
+    <string name="settings_water_only_hint">Resupply alerts. Unchecked, stores, gas stations, cafés and rest stops count too.</string>
     <string name="settings_poi_alerts_hint">Spoken alert and banner, while recording only</string>
     <string name="app_version">Version %1$s</string>
     <string name="about_basemap">Basemap: data © OpenStreetMap contributors, licensed ODbL. Extracts from Geofabrik.</string>
@@ -93,15 +86,7 @@
     <string name="field_report_ride">%1$s, while riding: %2$s</string>
     <string name="field_report_editor">%1$s, while editing: %2$s</string>
     <string name="field_report_line">%1$d × %2$d px · grid %3$d × %4$d of 60 · text %5$d sp</string>
-    <string name="field_effort_label">STILL TO PAY</string>
     <string name="field_effort_waiting">Learning your pace</string>
-    <string name="field_effort_share">%1$d%% OF THE EFFORT · %2$d%% OF THE DISTANCE</string>
-    <string name="field_effort_share_only">%1$d%% OF THE EFFORT</string>
-    <string name="field_effort_climb">Climb %1$d — %2$s</string>
-    <string name="field_effort_kilojoules">%1$d kJ</string>
-    <string name="unit_kilojoule">kJ</string>
-    <string name="field_autonomy_name">Autonomy</string>
-    <string name="field_autonomy_description">The two reserves that run out, on one page: water above, sugar below. Which resupply point is the last one before there is nothing, and what the rest of the route still costs in kilojoules, split by climb. You only stop once, and seeing both together is what tells you whether to stop at this point or hold out for the next. Needs a full page; its lower half also needs a power meter.</string>
     <string name="field_night_title">HOME BEFORE DARK?</string>
     <string name="field_night_yes">YES</string>
     <string name="field_night_tight">TIGHT</string>
@@ -124,24 +109,6 @@
     <string name="field_night_south">S</string>
     <string name="field_night_east">E</string>
     <string name="field_night_west">W</string>
-    <string name="field_bends_hairpin">HAIRPIN</string>
-    <string name="field_bends_tight">TIGHT</string>
-    <string name="field_context_name">Follows the ride</string>
-    <string name="field_context_description">A field whose lower half changes with what the ride is doing: climbing, what is left to the summit and the shape of it; descending, the bends; near a resupply point, its distance; the rest of the time, speed and what remains. The upper half never moves, and a rail of dots says which state you are in.</string>
-    <string name="field_context_to_summit">TO SUMMIT</string>
-    <string name="field_context_since_last">SINCE LAST</string>
-    <string name="field_context_remaining">REMAINING</string>
-    <string name="field_resupply_name">Reserve</string>
-    <string name="field_resupply_description">Which resupply point is the last one before there is nothing. Not “where is the next water” — the other field says that — but the announcement turned around: the line carries the whole route, passed points in grey, the last useful one ringed in yellow, and to its right a red segment carrying nothing. That emptiness is what you look at. Needs a full page.</string>
-    <string name="field_resupply_last_before">LAST RESUPPLY BEFORE</string>
-    <string name="field_resupply_since">SINCE LAST</string>
-    <string name="field_resupply_next">NEXT</string>
-    <string name="field_resupply_last_useful">LAST USEFUL</string>
-    <string name="field_resupply_dry">NOTHING</string>
-    <string name="field_resupply_nothing_ahead">NOTHING LEFT TO THE FINISH</string>
-    <string name="field_resupply_no_poi">No point on the route</string>
-    <string name="field_resupply_none_usable">%1$d points, none to resupply at</string>
-    <string name="field_resupply_no_water">%1$d points, no water</string>
 
     <string name="unit_bpm"> bpm</string>
     <string name="unit_watt"> W</string>

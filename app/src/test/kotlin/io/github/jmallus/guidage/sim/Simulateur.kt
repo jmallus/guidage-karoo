@@ -17,29 +17,20 @@ import io.github.jmallus.guidage.core.Sun
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.Bilan
-import io.github.jmallus.guidage.extension.ContextModels
 import io.github.jmallus.guidage.extension.DashboardModels
-import io.github.jmallus.guidage.extension.EffortModels
 import io.github.jmallus.guidage.extension.FieldModels
 import io.github.jmallus.guidage.extension.LevelModels
-import io.github.jmallus.guidage.extension.ResupplyTypes
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.settings.GuidageSettings
-import io.github.jmallus.guidage.ui.AutonomyFieldModel
-import io.github.jmallus.guidage.ui.AutonomyRenderer
-import io.github.jmallus.guidage.ui.ClimbRenderer
 import io.github.jmallus.guidage.ui.DashboardModel
-import io.github.jmallus.guidage.ui.ContextRenderer
 import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.LevelRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
-import io.github.jmallus.guidage.ui.ResupplyRenderer
-import io.hammerhead.karooext.models.ViewConfig
 
 /**
  * Le tableau de bord de l'extension, joué sur une sortie simulée.
@@ -208,24 +199,11 @@ class Simulateur(
         FieldPalette.of(context),
     )
 
-    /** Le champ « Prochaine côte ». */
-    fun imageCote(
-        secondes: Double,
-        largeur: Int = LARGEUR_ANNEXE,
-        hauteur: Int = HAUTEUR_COTE,
-    ): Bitmap = ClimbRenderer.render(
-        largeur,
-        hauteur,
-        FieldModels.climb(context, instantane(secondes), preview = false),
-        ViewConfig.Alignment.RIGHT,
-        FieldPalette.of(context),
-    )
-
     /**
      * La côte en cours, telle que le Karoo la rapporterait.
      *
-     * Le champ « Suivant la sortie » bascule dessus : sans elle il ne passerait jamais en
-     * montée, et la moitié de ce qu'il sait faire resterait invisible au banc d'essai.
+     * Le bandeau de côte du tableau de bord s'y adosse : sans elle il ne passerait jamais en
+     * montée au banc d'essai.
      */
     private fun montee(distance: Double): ClimbProgress {
         val status = Guidance.climbStatus(PreviewData.route, distance) ?: return ClimbProgress.NONE
@@ -289,85 +267,6 @@ class Simulateur(
             elevationRemaining = profil?.let { it.ascentBetween(distance, it.totalDistance) } ?: 0.0,
         )
     }
-
-    /*
-     * Les quatre champs venus des vues proposées. Ils passent par les mêmes constructions de
-     * modèle que l'appareil — extraites dans `*Models` — et par les mêmes rendus.
-     */
-
-    private val contexte = ContextModels { instantSimule }
-
-    /**
-     * L'instant de la sortie fictive, vu comme une horloge.
-     *
-     * Le champ « Suivant la sortie » ne bascule pas d'un coup : il attend qu'un état se
-     * confirme, et compte pour cela le temps écoulé entre deux images. Lui donner l'heure de
-     * la machine ferait basculer le champ à la vitesse du banc d'essai, non à celle de la
-     * sortie qu'il joue — à huit fois la vitesse réelle, une hystérésis de trois secondes en
-     * durerait moins d'une demie.
-     */
-    private var instantSimule: Long = departMillis
-
-    private fun horlogeA(secondes: Double) {
-        instantSimule = departMillis + (secondes * 1_000).toLong()
-    }
-
-    /** Le champ « Suivant la sortie ». */
-    fun imageContexte(
-        secondes: Double,
-        largeur: Int = LARGEUR,
-        hauteur: Int = HAUTEUR_PROFIL,
-    ): Bitmap {
-        horlogeA(secondes)
-        return ContextRenderer.render(
-            largeur,
-            hauteur,
-            contexte.build(context, instantane(secondes), releve(secondes), preview = false),
-            FieldPalette.of(context),
-        )
-    }
-
-    /** Le champ « Réserve », en pleine page. */
-    fun imageReserve(
-        secondes: Double,
-        largeur: Int = LARGEUR,
-        hauteur: Int = HAUTEUR,
-    ): Bitmap = ResupplyRenderer.render(
-        largeur,
-        hauteur,
-        FieldModels.resupply(context, instantane(secondes), preview = false, ResupplyTypes.ALL),
-        FieldPalette.of(context),
-    )
-
-    /**
-     * Le champ « Autonomie » : la réserve et le budget d'effort sur une seule page.
-     *
-     * Il passe par les mêmes constructions de modèle que les deux champs qu'il réunit — c'est
-     * tout l'intérêt de les avoir extraites — et par le rendu qui les compose.
-     */
-    fun imageAutonomie(
-        secondes: Double,
-        largeur: Int = LARGEUR,
-        hauteur: Int = HAUTEUR,
-    ): Bitmap = AutonomyRenderer.render(
-        largeur,
-        hauteur,
-        AutonomyFieldModel(
-            resupply = FieldModels.resupply(
-                context,
-                instantane(secondes),
-                preview = false,
-                ResupplyTypes.ALL,
-            ),
-            effort = EffortModels.build(
-                context,
-                instantane(secondes).state,
-                releve(secondes),
-                preview = false,
-            ),
-        ),
-        FieldPalette.of(context),
-    )
 
     /**
      * Une case de bilan, à la taille qu'elle a sur une page qui en porte dix.
@@ -477,27 +376,18 @@ class Simulateur(
         private const val HAUTEUR_CHAMP = 642
 
         /**
-         * Les tailles des champs annexes, déduites de la grille et non relevées.
+         * La hauteur du profil à venir, déduite de la grille et non relevée.
          *
          * Le Karoo découpe l'écran sur une grille de soixante : un champ pleine largeur sur un
-         * quart de hauteur vaut 60 × 15, une demi-largeur 30 × 15. Ces valeurs s'en déduisent
-         * de la seule mesure qu'on ait — les 478 × 642 du plein écran — et ce sont donc des
-         * approximations, à la différence de celle-là.
+         * quart de hauteur vaut 60 × 15. La valeur s'en déduit de la seule mesure qu'on ait —
+         * les 478 × 642 du plein écran — et c'est donc une approximation, à la différence de
+         * celle-là.
          *
-         * Les relever ne coûte rien maintenant : poser ces deux champs sur une page, l'ouvrir,
-         * et lire la carte « Place allouée au champ » de l'application, qui note désormais
-         * chaque champ graphique séparément.
+         * La relever ne coûte rien : poser le champ sur une page, l'ouvrir, et lire la carte
+         * « Place allouée au champ » de l'application, qui note chaque champ graphique
+         * séparément.
          */
-        const val LARGEUR_ANNEXE = LARGEUR / 2
-
-        /** Un champ pleine largeur sur un quart de hauteur : 60 × 15 sur la grille. */
         val HAUTEUR_PROFIL: Int = HAUTEUR / 4
-
-        /** Un champ demi-largeur sur un quart de hauteur : 30 × 15. */
-        val HAUTEUR_COTE: Int = HAUTEUR / 4
-
-        /** La hauteur des autres champs annexes, sur le même quart de grille. */
-        val HAUTEUR_ANNEXE: Int = HAUTEUR / 4
 
         /** Une case de bilan sur une page qui en porte dix : 30 × 12 sur la grille. */
         val LARGEUR_BILAN: Int = LARGEUR / 2

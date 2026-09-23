@@ -146,7 +146,7 @@ jobs:
           )\`.
 
           Extension de guidage d'itinéraire pour Hammerhead Karoo — profil à venir,
-          prochaine côte, prochain point d'intérêt et annonces in-ride.
+          prochain point d'intérêt et annonces in-ride.
 
           **Installation sur le Karoo 3**, depuis le téléphone : ouvrir cette page dans le
           navigateur du téléphone, appuyer longuement sur le lien \`guidage-karoo.apk\`
@@ -199,7 +199,7 @@ jobs:
             [ -n "${changements:-}" ] || changements="Première version publiée."
 
             # Les captures du simulateur illustrent la fiche sur l'appareil. Trois, nommées
-            # une à une : le tableau de bord, l'autonomie, le bilan de sortie. Prendre tous
+            # une à une : le tableau de bord, le profil à venir, le bilan de sortie. Prendre tous
             # les champs faisait une planche-contact où le premier coup d'œil ne retenait
             # rien — ces trois-là disent ce que l'extension apporte, et le tableau de bord
             # d'abord, puisque c'est par lui qu'on commence.
@@ -213,7 +213,7 @@ jobs:
             # publiée. Une capture manquante est sautée plutôt que de produire un lien mort.
             captures=$(
               for f in docs/captures/carte-300m.png \
-                       docs/captures/champ-autonomie.png \
+                       docs/captures/champ-profil.png \
                        docs/captures/champ-bilan-fin.png; do
                 [ -e "$f" ] || continue
                 echo "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/${f}"
@@ -230,7 +230,7 @@ jobs:
               --arg version "$version" \
               --argjson code "$(( 1 + GITHUB_RUN_NUMBER ))" \
               --arg dev "jmallus" \
-              --arg desc "Guidage d'itinéraire hors ligne pour Karoo : tableau de bord plein écran, profil à venir à échelle comprimée, prochaine côte, réserve d'eau et budget d'effort, et dix cases de bilan de sortie. Fond de carte embarqué, aucun accès réseau." \
+              --arg desc "Guidage d'itinéraire hors ligne pour Karoo : tableau de bord plein écran, profil à venir à échelle comprimée, annonces de ravitaillement et dix cases de bilan de sortie. Fond de carte embarqué, aucun accès réseau." \
               --arg notes "$changements" \
               '{label: $label, packageName: $paquet, latestApkUrl: $apk,
                 latestVersion: $version, latestVersionCode: $code,

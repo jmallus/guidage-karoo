@@ -1,9 +1,9 @@
 # Champs de données et guidage - Hammerhead Karoo
 
 Extension **Karoo 3** qui enrichit le **guidage d'itinéraire** : elle lit
-l'itinéraire chargé dans le Karoo et en tire **sept champs de données** — un tableau de bord
-plein écran avec minicarte sur fond de carte embarqué, le profil à venir, la prochaine côte,
-l'espacement des ravitaillements, le coût du reste en kilojoules — et des annonces à l'écran.
+l'itinéraire chargé dans le Karoo et en tire **trois champs de données** — un tableau de bord
+plein écran avec minicarte sur fond de carte embarqué, le profil à venir, la distance au
+prochain point d'intérêt —, dix cases de bilan et des annonces à l'écran.
 
 Tout est calculé **sur l'appareil**, à partir des données que Karoo OS fournit déjà :
 aucune connexion réseau, aucun compte, rien à synchroniser.
@@ -25,17 +25,12 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 | --- | --- | --- |
 | **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Silhouette au jaune du Karoo, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
-| **Prochaine côte** | graphique | Avant la côte : distance jusqu'à son pied, longueur, pente moyenne, dénivelé. Dans la côte : distance et dénivelé restants jusqu'au sommet, avec barre de progression. Disponible aussi comme valeur numérique (distance) pour d'autres usages. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
-| **Suivant la sortie** | graphique | Un champ dont la moitié basse change avec ce que fait la sortie — montée, descente, ravitaillement, roulage — la moitié haute restant fixe. |
-| **Réserve** | graphique, **pleine page** | Après quel point de ravitaillement il n'y a plus rien. La ligne porte l'itinéraire entier : points passés en gris, prochain en blanc, dernier utile cerclé de jaune, et à sa droite un segment rouge qui ne porte rien. |
-| **Autonomie** | graphique, **pleine page** | Les deux réserves qui s'épuisent sur une seule page : la réserve d'eau en haut, le budget d'effort en bas. On ne s'arrête qu'une fois, et c'est en voyant les deux ensemble qu'on décide de s'arrêter à ce point-ci ou de tenir jusqu'au suivant. Demande en outre un capteur de puissance pour sa moitié basse. |
 
 S'y ajoutent **dix cases de bilan**, décrites plus bas : elles tiennent dans une case
-ordinaire, là où les précédentes demandent une bande ou une page entière.
+ordinaire, là où les précédents demandent une bande ou une page entière.
 
-Tous s'adaptent à la **taille** que le profil de page leur alloue ; « Prochaine côte » suit en
-outre l'**alignement** configuré. Les seize champs graphiques affichent un aperçu réaliste dans
+Tous s'adaptent à la **taille** que le profil de page leur alloue. Les douze champs graphiques affichent un aperçu réaliste dans
 l'écran d'édition des pages — « Prochain point d'intérêt » n'en a pas besoin, c'est le Karoo
 qui le dessine.
 
@@ -86,26 +81,9 @@ lieu, la charge n'a pas assez descendu pour qu'on lui connaisse une pente.
 
 ### À quoi ils ressemblent
 
-Les deux pleines pages, au même instant de la sortie simulée :
+Le profil à venir, champ de bande qui se pose sur un rang d'une page ordinaire :
 
-<table>
-  <tr>
-    <td align="center"><img src="docs/captures/champ-autonomie.png" width="180" alt="Autonomie"><br><b>Autonomie</b></td>
-    <td align="center"><img src="docs/captures/champ-reserve.png" width="180" alt="Réserve"><br><b>Réserve</b></td>
-  </tr>
-</table>
-
-Les champs de bande, qui se posent sur un rang d'une page ordinaire :
-
-<table>
-  <tr>
-    <td align="center"><img src="docs/captures/champ-profil.png" width="300" alt="Profil à venir"><br><b>Profil à venir</b></td>
-    <td align="center"><img src="docs/captures/champ-contexte.png" width="300" alt="Suivant la sortie"><br><b>Suivant la sortie</b></td>
-  </tr>
-  <tr>
-    <td align="center" colspan="2"><img src="docs/captures/champ-cote.png" width="300" alt="Prochaine côte"><br><b>Prochaine côte</b></td>
-  </tr>
-</table>
+<img src="docs/captures/champ-profil.png" width="300" alt="Profil à venir">
 
 Et le tableau de bord à trois de ses portées de carte, puis avec le profil à la place de
 la carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge — et à l'approche
@@ -121,18 +99,6 @@ de l'arrivée, marquée d'un damier :
     <td align="center"><img src="docs/captures/carte-arrivee.png" width="150" alt="Approche de l'arrivée"><br>Arrivée</td>
   </tr>
 </table>
-
-**Quatre d'entre eux publient aussi une valeur numérique**, réutilisable dans n'importe quel
-champ ou enregistrée dans le fichier de la sortie : la distance au pied ou au sommet
-(« Prochaine côte »), au prochain point (« Prochain point d'intérêt ») ; la longueur de la
-prochaine traversée sans ravitaillement (« Réserve ») ; et les kilojoules restants
-(« Autonomie »).
-
-Deux champs sont marqués **pleine page**. Ils fonctionnent posés sur un demi-rang, mais ne
-portent pas une valeur : une répartition — l'espacement des ravitaillements, les deux réserves
-qui s'épuisent. Réduits à une bande, il ne leur reste que leurs deux chiffres, c'est-à-dire ce
-que les champs numériques disent déjà. Leur mise en page change au-delà d'un rapport
-hauteur/largeur d'un dixième au-dessus du carré.
 
 ### Les deux échelles du profil
 
@@ -206,8 +172,7 @@ Comptent comme ravitaillement l'eau, les postes de ravitaillement, les épicerie
 commerces, les stations-service, la restauration, les bars, les cafés et les haltes. Le
 contrôle de cyclosportive n'en est pas : il oblige à s'arrêter, mais rien ne dit qu'on y
 trouve à boire. Le [réglage](#réglages) « ne compter que les points d'eau » réduit la liste
-à l'eau seule, pour qui roule en autonomie complète — et il vaut aussi pour les champs, une
-voix qui nommerait un point que l'écran ne montre pas étant pire que pas de voix.
+à l'eau seule, pour qui roule en autonomie complète.
 
 Les côtes n'en déclenchent pas. Une annonce au pied et une avant le sommet couvriraient
 l'écran au moment précis où l'on regarde le bandeau de profil pour savoir ce qui reste à
@@ -233,9 +198,7 @@ dans son état d'usine, ce qui revient à ne pas l'avoir écrit.
 **Ravitaillement**
 
 - ne compter que les points d'eau. Décoché — c'est le défaut — commerces, stations-service,
-  cafés et haltes comptent aussi. Le choix vaut pour « Réserve », « Autonomie », « Suivant la
-  sortie » **et les annonces** : une voix qui nommerait un dernier ravitaillement que l'écran
-  ne montre pas serait pire que pas de voix.
+  cafés et haltes comptent aussi. Le choix vaut pour les annonces de ravitaillement.
 
 **Réserve anaérobie**
 
@@ -309,6 +272,4 @@ Le reste des emprunts — couleurs de zones, contraste APCA, icônes — est dé
 - La mise à jour depuis le Karoo suppose une Release publiée (un tag `vX.Y.Z`) : les
   constructions intermédiaires, publiées sous la Release préliminaire `latest`, restent
   invisibles pour l'appareil. C'est voulu.
-- La moitié basse d'« Autonomie » demande un **capteur de puissance** et quelques minutes de
-  roulage. Sans eux, rien n'est annoncé — ce qui vaut mieux qu'un chiffre inventé. Les rayures
-  de chemin de la minicarte demandent de leur côté le fond de carte embarqué.
+- Les rayures de chemin de la minicarte demandent le fond de carte embarqué.

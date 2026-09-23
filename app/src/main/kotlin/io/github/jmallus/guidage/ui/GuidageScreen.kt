@@ -27,15 +27,11 @@ import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.WPrimeSettings
-import io.github.jmallus.guidage.extension.AutonomyDataType
 import io.github.jmallus.guidage.extension.Bilan
-import io.github.jmallus.guidage.extension.ClimbDataType
-import io.github.jmallus.guidage.extension.ContextDataType
 import io.github.jmallus.guidage.extension.DashboardDataType
 import io.github.jmallus.guidage.extension.FieldReport
 import io.github.jmallus.guidage.extension.PoiDataType
 import io.github.jmallus.guidage.extension.ProfileDataType
-import io.github.jmallus.guidage.extension.ResupplyDataType
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
 import java.util.Locale
@@ -224,17 +220,13 @@ private fun FieldReportCard(reports: List<FieldReport>) {
  * distinguer quel champ a été posé — en affirmant chaque fois le même, faux six fois sur neuf.
  *
  * Le `when` est donc exhaustif sur les identifiants connus et le dernier cas rend
- * l'identifiant brut plutôt qu'un nom : un champ ajouté et oublié ici s'affichera « autonomie »,
+ * l'identifiant brut plutôt qu'un nom : un champ ajouté et oublié ici s'affichera « bilan-derive »,
  * ce qui est laid mais vrai, au lieu de se déguiser en un autre.
  */
 @Composable
 private fun fieldName(typeId: String): String = when (typeId) {
     DashboardDataType.TYPE_ID -> stringResource(R.string.field_dashboard_name)
     ProfileDataType.TYPE_ID -> stringResource(R.string.field_profile_name)
-    ClimbDataType.TYPE_ID -> stringResource(R.string.field_climb_name)
-    ContextDataType.TYPE_ID -> stringResource(R.string.field_context_name)
-    ResupplyDataType.TYPE_ID -> stringResource(R.string.field_resupply_name)
-    AutonomyDataType.TYPE_ID -> stringResource(R.string.field_autonomy_name)
     PoiDataType.TYPE_ID -> stringResource(R.string.field_poi_name)
     Bilan.COEUR.typeId -> stringResource(R.string.field_level_heart_name)
     Bilan.PUISSANCE.typeId -> stringResource(R.string.field_level_power_name)
