@@ -1,5 +1,6 @@
 package io.github.jmallus.guidage.ui
 
+import io.github.jmallus.guidage.core.AerobicDrift
 import io.github.jmallus.guidage.core.Drivetrain
 import io.github.jmallus.guidage.core.ElevationProfile
 import io.github.jmallus.guidage.core.GeoPoint
@@ -382,6 +383,12 @@ object PreviewData {
         wPrimeBalance = 13_800.0,
         wPrimeCapacity = 21_000.0,
         criticalPower = 250.0,
+        // Le temps en selle est celui des zones ; un quart d'heure d'arrêts s'y ajoute.
+        movingSeconds = 8_880.0,
+        totalSeconds = 9_840.0,
+        drift = AerobicDrift(ratio = 0.042, seconds = 7_200.0),
+        batteryPercent = 64.0,
+        batteryPerHour = 9.0,
     )
 
     /**

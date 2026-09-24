@@ -92,7 +92,7 @@ sans dépendance Android : elle se teste sans SDK Android, sans appareil et **sa
 
 ```bash
 ./gradlew :core:test :tools:test     # 288 tests, aucun prérequis
-./gradlew :app:testDebugUnitTest     # 34 tests de plus, sous Robolectric ; demande le jeton
+./gradlew :app:testDebugUnitTest     # 35 tests de plus, sous Robolectric ; demande le jeton
 ```
 
 Les tests d'`:app` rendent les champs entiers et vérifient qu'à chaque portée la trace se
