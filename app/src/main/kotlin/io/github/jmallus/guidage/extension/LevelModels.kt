@@ -6,7 +6,6 @@ import io.github.jmallus.guidage.core.ArrivalEstimate
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.Nightfall
-import io.github.jmallus.guidage.core.RideLevel
 import io.github.jmallus.guidage.core.Sun
 import io.github.jmallus.guidage.core.Zones
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
@@ -116,9 +115,12 @@ object LevelModels {
         preview: Boolean,
         nowMillis: Long = System.currentTimeMillis(),
     ): LevelFieldModel {
-        // Hors sortie, la case montre le bilan d'une sortie fictive : sinon le sélecteur de
-        // champs n'afficherait que « -- », et l'on choisirait la case sans l'avoir vue.
-        val data = if (preview && rideData.level == RideLevel.UNKNOWN) PreviewData.levelRide else rideData
+        // En aperçu, la case montre toujours le bilan d'une sortie fictive, comme le tableau de
+        // bord : sinon le sélecteur de champs afficherait « pas de cardiofréquencemètre », et
+        // l'on choisirait la case sans l'avoir vue. Attendre un bilan vide pour substituer ne
+        // marchait qu'au simulateur : sur l'appareil, le relevé porte toujours la FTP, la
+        // charge et les compteurs de zones, et n'est donc jamais vide.
+        val data = if (preview) PreviewData.levelRide else rideData
         return when (bilan) {
             Bilan.COEUR -> coeur(context, data)
             Bilan.PUISSANCE -> puissance(context, data)
