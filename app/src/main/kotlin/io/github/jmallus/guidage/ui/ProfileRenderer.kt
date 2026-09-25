@@ -135,7 +135,10 @@ object ProfileRenderer {
 
         // Les libellés du haut disparaissent avec la même règle que les chiffres de l'axe.
         val entetes = height >= labelSize * ENTETE_HEIGHTS
-        val top = area.top + padding + if (entetes) labelSize else 0f
+        // L'étiquette de position est plus grosse que les libellés : l'en-tête s'élargit d'autant
+        // quand elle s'y pose, sans quoi elle déborderait du champ par le haut.
+        val enTete = if (model.positionLabel != null) labelSize * POSITION_LABEL_SCALE else labelSize
+        val top = area.top + padding + if (entetes) enTete else 0f
         val bottom = area.bottom - padding - axis
         val left = area.left + padding
         val right = area.right - padding
@@ -164,7 +167,9 @@ object ProfileRenderer {
         drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         drawPositionMarker(canvas, positionX, top, bottom)
         if (entetes) drawLabels(canvas, model, left, right, top, labelSize, palette)
-        if (etiquette != null) drawPositionLabel(canvas, etiquette, positionX, left, right, top, labelSize, palette)
+        if (etiquette != null) {
+            drawPositionLabel(canvas, etiquette, positionX, left, right, top, labelSize * POSITION_LABEL_SCALE, palette)
+        }
     }
 
     /**
@@ -757,6 +762,14 @@ object ProfileRenderer {
     private const val POSITION_LABEL_RATIO = 0.9f
     private const val POSITION_LABEL_PADDING = 0.3f
     private const val POSITION_LABEL_CORNER = 0.25f
+
+    /**
+     * L'étiquette de position, un cinquième plus grosse que les libellés du profil.
+     *
+     * C'est le compteur du coureur, le chiffre qu'il cherche en regardant le bandeau ; à la
+     * taille des libellés, il fallait s'y reprendre à deux fois après une sortie.
+     */
+    private const val POSITION_LABEL_SCALE = 1.2f
 
     /** Les pas possibles des graduations à échelle régulière, dans l'unité du coureur. */
     private val ABSOLUTE_LADDER = listOf(0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0)
