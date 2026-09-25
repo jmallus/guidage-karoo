@@ -7,8 +7,10 @@ import io.github.jmallus.guidage.core.FisheyeScale
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.Route
+import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
 import kotlin.math.abs
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -89,6 +91,20 @@ class ProfileRendererTest {
         }
 
     /** La promesse : le col de la fin n'est pas avalé par la compression. */
+    @Test
+    fun `une cote courte se decoupe par cent metres et un col plus largement`() {
+        val profil = listOf(ProfilePoint(0.0, 100.0), ProfilePoint(10_000.0, 700.0))
+        val courte = ProfileRenderer.troncons(RouteClimb(1_000.0, 1_500.0, 6.0, 90.0), profil)
+        assertEquals(15, courte.size)
+        assertEquals(100.0, courte.first().fin - courte.first().debut, 1e-6)
+        assertEquals(6.0, courte.first().pente, 1e-6)
+
+        val col = ProfileRenderer.troncons(RouteClimb(1_000.0, 6_500.0, 6.0, 390.0), profil)
+        assertTrue("trop de tronçons pour un col : ${col.size}", col.size <= 16)
+        assertEquals(500.0, col.first().fin - col.first().debut, 1e-6)
+        assertEquals(7_500.0, col.last().fin, 1e-6)
+    }
+
     @Test
     fun `le col lointain reste le point haut de la bande`() {
         val image = image()

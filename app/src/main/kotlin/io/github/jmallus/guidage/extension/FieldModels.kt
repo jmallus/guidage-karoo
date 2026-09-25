@@ -85,11 +85,9 @@ object FieldModels {
                     window = Guidance.profileWindow(route, cote.startDistance, cote.length),
                     climbs = route.climbs,
                     pois = route.pois,
-                    ascentLabel = context.getString(
-                        R.string.status_climb_current,
-                        Format.distance(status.distanceToTop, units),
-                        Format.elevation(status.elevationToTop, units),
-                    ),
+                    // Sans « Sommet dans » : les deux nombres se comprennent sur le bandeau d'une
+                    // côte, et la place rendue les laisse grossir.
+                    ascentLabel = "${Format.distance(status.distanceToTop, units)} · +${Format.elevation(status.elevationToTop, units)}",
                     rangeLabel = Format.grade(cote.grade),
                     positionDistance = quantized,
                     emptyMessage = context.getString(R.string.field_no_route),
