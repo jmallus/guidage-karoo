@@ -9,6 +9,7 @@ import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.Route
 import io.github.jmallus.guidage.core.RoutePoi
 import kotlin.math.abs
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -89,6 +90,23 @@ class ProfileRendererTest {
         }
 
     /** La promesse : le col de la fin n'est pas avalé par la compression. */
+    @Test
+    fun `au pas d un demi seuls les entiers s ecrivent`() {
+        // Le relevé d'une sortie : à 1,4 km de l'arrivée, l'axe lisait « 37 38 38 39 39 40 40 ».
+        val graduations = ProfileRenderer.absoluteLabels(36.9, 40.2, 0.5)
+
+        assertEquals(listOf(37.0, 37.5, 38.0, 38.5, 39.0, 39.5, 40.0), graduations.map { it.first })
+        assertEquals(listOf("37", "", "38", "", "39", "", "40"), graduations.map { it.second })
+    }
+
+    @Test
+    fun `une fenetre sans deux entiers ecrit ses demis`() {
+        val graduations = ProfileRenderer.absoluteLabels(39.2, 40.3, 0.5)
+
+        assertEquals(listOf(39.5, 40.0), graduations.map { it.first })
+        assertTrue("les demis doivent porter leur décimale : $graduations", graduations.all { it.second.length >= 3 })
+    }
+
     @Test
     fun `le col lointain reste le point haut de la bande`() {
         val image = image()
