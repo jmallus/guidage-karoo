@@ -23,7 +23,7 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 
 | Champ | Type | Contenu |
 | --- | --- | --- |
-| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. **Dans une côte**, le profil du bas se cadre sur elle du pied au sommet, en couleurs de pente, comme le ClimbPro du Karoo, puis revient à sa portée une fois le sommet passé. |
+| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. **Dans une côte**, le profil du bas passe en mode Climber, comme sur le Karoo : la côte entière du pied au sommet, aux couleurs de pente du Karoo, la part montée hachurée ; dessous, six cases donnent la pente des 600 m qui viennent, tronçon de 100 m par tronçon de 100 m, et une bande jaune pâle montre sur le profil la portion qu'elles détaillent. En tête, en blanc, la distance et le dénivelé jusqu'au sommet et le rang de la côte (« 2/3 »). Il revient à sa portée une fois le sommet passé. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Silhouette au jaune du Karoo, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
 
@@ -37,7 +37,7 @@ qui le dessine.
 ### Le bilan de la sortie
 
 Dix cases qui disent ce que la sortie **vaut depuis le départ**. Elles tiennent chacune dans
-une case ordinaire — une page en porte dix — et c'est là toute leur raison d'être : le Karoo
+une case ordinaire — une page en porte six pour les lire en roulant — et c'est là toute leur raison d'être : le Karoo
 publie déjà la plupart de ces nombres, mais **un par champ**, si bien qu'une moyenne et son
 maximum coûtent deux emplacements et que le coureur fait la soustraction de tête. Ici les deux
 voyagent ensemble, et la case dit en plus ce que leur voisinage veut dire.
@@ -68,14 +68,18 @@ l'extension, faits localement et sans réseau comme tout le reste :
   paie. Aucun compteur ne l'affiche en roulant. Elle se calcule sur le temps d'effort seul et
   se tait sous une heure.
 
-Les dix, posées comme sur une page — au quart de la sortie simulée, puis à son terme. Trois
-d'entre elles n'existent pas encore au quart : la dérive se tait, les haltes n'ont pas eu
-lieu, la charge n'a pas assez descendu pour qu'on lui connaisse une pente.
+Les dix, posées six par page sur deux pages — au quart de la sortie simulée, puis à son
+terme. Trois d'entre elles n'existent pas encore au quart : la dérive se tait, les haltes
+n'ont pas eu lieu, la charge n'a pas assez descendu pour qu'on lui connaisse une pente.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/captures/champ-bilan.png" width="300" alt="Les dix cases de bilan au quart de la sortie"><br><b>Au quart de la sortie</b></td>
-    <td align="center"><img src="docs/captures/champ-bilan-fin.png" width="300" alt="Les dix cases de bilan à l'arrivée"><br><b>À l'arrivée</b></td>
+    <td align="center"><img src="docs/captures/champ-bilan.png" width="240" alt="Première page de bilan au quart de la sortie"><br><b>Page 1, au quart</b></td>
+    <td align="center"><img src="docs/captures/champ-bilan-2.png" width="240" alt="Seconde page de bilan au quart de la sortie"><br><b>Page 2, au quart</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/captures/champ-bilan-fin.png" width="240" alt="Première page de bilan à l'arrivée"><br><b>Page 1, à l'arrivée</b></td>
+    <td align="center"><img src="docs/captures/champ-bilan-fin-2.png" width="240" alt="Seconde page de bilan à l'arrivée"><br><b>Page 2, à l'arrivée</b></td>
   </tr>
 </table>
 

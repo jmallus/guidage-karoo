@@ -1,6 +1,7 @@
 package io.github.jmallus.guidage.extension
 
 import android.content.Context
+import androidx.annotation.DrawableRes
 import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.ArrivalEstimate
 import io.github.jmallus.guidage.core.Format
@@ -38,24 +39,31 @@ enum class Bilan(
      * coureur. Un renommage de la constante ne doit pas déplacer ses champs.
      */
     val typeId: String,
+    /**
+     * L'icône de la case, à côté de son titre et dans le sélecteur de champs du Karoo.
+     *
+     * Une page de six cases se lit par la place de chacune ; l'icône la reconnaît avant
+     * qu'on ait lu le titre, comme celles des cases du tableau de bord.
+     */
+    @DrawableRes val icon: Int,
 ) {
     /** FC moyenne, son maximum, et la couleur de la zone où la moyenne tombe. */
-    COEUR("bilan-coeur"),
+    COEUR("bilan-coeur", R.drawable.ic_heart_rate),
 
     /** Puissance moyenne, normalisée, et le mot qui dit si l'heure fut lisse ou hachée. */
-    PUISSANCE("bilan-puissance"),
+    PUISSANCE("bilan-puissance", R.drawable.ic_power),
 
     /** Heure d'arrivée, heure du coucher, et le verdict en aplat. */
-    ARRIVEE("bilan-arrivee"),
+    ARRIVEE("bilan-arrivee", R.drawable.ic_bilan_arrivee),
 
     /** Dénivelé monté, restant, et la part faite en barre. */
-    DENIVELE("bilan-denivele"),
+    DENIVELE("bilan-denivele", R.drawable.ic_bilan_denivele),
 
     /** Facteur d'intensité, charge, et le mot qui les nomme. */
-    INTENSITE("bilan-intensite"),
+    INTENSITE("bilan-intensite", R.drawable.ic_bilan_intensite),
 
     /** Le temps par zone en barre empilée, et la zone où il s'est le plus passé. */
-    ZONES("bilan-zones"),
+    ZONES("bilan-zones", R.drawable.ic_bilan_zones),
 
     /**
      * Ce qu'il reste de la réserve anaérobie.
@@ -63,7 +71,7 @@ enum class Bilan(
      * La seule des sept qui soit un calcul et non un nombre du Karoo rangé autrement : le
      * modèle de puissance critique, tenu par l'extension au fil de la sortie.
      */
-    RESERVE("bilan-reserve-w"),
+    RESERVE("bilan-reserve-w", R.drawable.ic_bilan_reserve),
 
     /**
      * La dérive aérobie : ce que le même effort coûte au cœur, à la fin par rapport au début.
@@ -71,13 +79,13 @@ enum class Bilan(
      * Calculée elle aussi par l'extension. C'est la seule des huit qui dise où en est le
      * coureur plutôt que ce qu'il a fait.
      */
-    DERIVE("bilan-derive"),
+    DERIVE("bilan-derive", R.drawable.ic_bilan_derive),
 
     /** Le temps passé en selle, et celui qu'on a laissé aux arrêts. */
-    ARRETS("bilan-arrets"),
+    ARRETS("bilan-arrets", R.drawable.ic_bilan_arrets),
 
     /** La charge de l'appareil, et ce qu'il en restera à l'arrivée. */
-    BATTERIE("bilan-batterie"),
+    BATTERIE("bilan-batterie", R.drawable.ic_bilan_batterie),
 }
 
 object LevelModels {
@@ -132,7 +140,7 @@ object LevelModels {
             Bilan.DERIVE -> derive(context, data)
             Bilan.ARRETS -> arrets(context, data)
             Bilan.BATTERIE -> batterie(context, snapshot, data, preview, nowMillis)
-        }
+        }.copy(icon = bilan.icon)
     }
 
     /**

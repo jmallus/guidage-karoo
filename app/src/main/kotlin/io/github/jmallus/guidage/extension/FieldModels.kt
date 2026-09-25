@@ -15,6 +15,7 @@ import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileFieldModel
 
+
 /**
  * Ce qu'affiche le champ « Profil à venir », et l'heure d'arrivée qu'en tirent les autres.
  *
@@ -81,16 +82,26 @@ object FieldModels {
             val status = Guidance.climbStatus(route, quantized)?.takeIf { it.onClimb }
             if (status != null) {
                 val cote = status.climb
+                // Deux échelles. Le profil montre la côte entière, du pied au sommet : c'est sa
+                // forme qu'on regarde. Les cases de pente, dessous, détaillent les 600 m qui
+                // viennent, à leur échelle à elles : à celle de toute la côte, un col de six
+                // kilomètres ne laissait que trois chiffres lisibles. Elles partent du coureur,
+                // au bord gauche, comme sur le Climber : ce qu'on a derrière soi n'y a pas de
+                // place, et aucune marque n'a donc à dire où l'on est.
+                val debut = quantized.coerceIn(cote.startDistance, cote.endDistance)
+                val longueur = CLIMB_WINDOW_METERS
                 return ProfileFieldModel(
                     window = Guidance.profileWindow(route, cote.startDistance, cote.length),
+                    climbDetail = debut..(debut + longueur),
                     climbs = route.climbs,
                     pois = route.pois,
-                    ascentLabel = context.getString(
-                        R.string.status_climb_current,
-                        Format.distance(status.distanceToTop, units),
-                        Format.elevation(status.elevationToTop, units),
-                    ),
-                    rangeLabel = Format.grade(cote.grade),
+                    // Sans « Sommet dans » : les deux nombres se comprennent sur le bandeau d'une
+                    // côte, et la place rendue les laisse grossir.
+                    ascentLabel = "${Format.distance(status.distanceToTop, units)} · +${Format.elevation(status.elevationToTop, units)}",
+                    // Le rang de la côte plutôt que sa pente moyenne : la pente se lit sur les cases
+                    // dessous, tronçon par tronçon, et c'est « combien en reste-t-il » que le
+                    // rang dit — « 2/3 ».
+                    rangeLabel = "${status.number}/${status.totalClimbs}",
                     positionDistance = quantized,
                     emptyMessage = context.getString(R.string.field_no_route),
                     compressed = false,
@@ -165,4 +176,10 @@ object FieldModels {
 
     /** Le même recul à portée fixée, en part de la portée. */
     private const val RECUL_FRACTION = 0.2
+
+    /**
+     * Ce que détaillent les cases de pente sous le zoom de côte : six tronçons de cent mètres
+     * (m), le gros plan du Climber du Karoo.
+     */
+    private const val CLIMB_WINDOW_METERS = 600.0
 }

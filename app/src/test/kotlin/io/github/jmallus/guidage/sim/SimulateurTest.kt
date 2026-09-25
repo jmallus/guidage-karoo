@@ -5,11 +5,11 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
-import io.github.jmallus.guidage.core.Zones
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.KarooColors
 import io.github.jmallus.guidage.ui.PreviewData
+import io.github.jmallus.guidage.ui.ProfileRenderer
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
@@ -303,7 +303,7 @@ class SimulateurTest {
 
     /** Les pixels du bandeau bas peints d'une couleur de pente ; le haut porte les zones de puissance. */
     private fun pixelsDeCouleurDePente(image: Bitmap): Int {
-        val couleurs = Zones.POWER_COLORS.toSet()
+        val couleurs = ProfileRenderer.CLIMB_COLORS.toSet()
         val bandeau = image.height * 4 / 5
         val pixels = IntArray(image.width * (image.height - bandeau))
         image.getPixels(pixels, 0, image.width, 0, bandeau, image.width, image.height - bandeau)
@@ -340,7 +340,7 @@ class SimulateurTest {
     }
 
     /**
-     * Les six cases de bilan, à la taille qu'elles ont sur une page qui en porte dix.
+     * Les cases de bilan, à la taille qu'elles ont sur une page qui en porte six.
      *
      * Elles se contrôlent aux mêmes moments que le reste, et pour la même raison : une case
      * qui n'a rien à dire ne lève aucune exception et se compile parfaitement. Elle ne se
@@ -362,9 +362,7 @@ class SimulateurTest {
                     couleursDistinctes(image) > 2,
                 )
             }
-            if (part == PART_CAPTURE) {
-                ecrire(pageDeBilan(simulateur, secondes), File(dossier, "champ-bilan.png"))
-            }
+            if (part == PART_CAPTURE) ecrirePagesDeBilan(simulateur, secondes, dossier, "champ-bilan")
         }
 
         // Une seconde planche à la fin de la sortie. Trois cases n'existent pas au quart :
@@ -372,22 +370,30 @@ class SimulateurTest {
         // la batterie n'a pas assez descendu pour qu'on lui connaisse une pente. Une planche
         // qui ne montre que leurs messages d'attente ne les juge pas.
         val fin = simulateur.sortie.duree * PART_CAPTURE_FIN
-        ecrire(pageDeBilan(simulateur, fin), File(dossier, "champ-bilan-fin.png"))
+        ecrirePagesDeBilan(simulateur, fin, dossier, "champ-bilan-fin")
+    }
+
+    /** Une image par page : « champ-bilan.png » pour la première, « champ-bilan-2.png »… */
+    private fun ecrirePagesDeBilan(simulateur: Simulateur, secondes: Double, dossier: File, nom: String) {
+        Simulateur.PAGES_BILAN.forEachIndexed { rang, cases ->
+            val suffixe = if (rang == 0) "" else "-${rang + 1}"
+            ecrire(pageDeBilan(simulateur, secondes, cases), File(dossier, "$nom$suffixe.png"))
+        }
     }
 
     /**
-     * Les six cases posées comme sur une page : deux colonnes, trois rangs.
+     * Une page de cases de bilan, posée comme sur le Karoo : deux colonnes, trois rangs.
+     * Une page incomplète garde sa hauteur, ses rangs vides compris.
      *
      * Elles se jugent ensemble et non une par une — c'est tout leur propos, une page où l'on
      * lit le bilan d'un coup d'œil — et six fichiers séparés ne montreraient pas si leurs
      * chiffres s'alignent, si leurs libellés font famille, si un aplat écrase ses voisins.
      * Les traits sont ceux que le Karoo pose lui-même entre les champs d'une page.
      */
-    private fun pageDeBilan(simulateur: Simulateur, secondes: Double): Bitmap {
+    private fun pageDeBilan(simulateur: Simulateur, secondes: Double, cases: List<Bilan>): Bitmap {
         val largeur = Simulateur.LARGEUR_BILAN
         val hauteur = Simulateur.HAUTEUR_BILAN
-        val cases = Bilan.entries
-        val rangs = (cases.size + 1) / 2
+        val rangs = 3
         val page = Bitmap.createBitmap(largeur * 2, hauteur * rangs, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(page)
         cases.forEachIndexed { index, variante ->
@@ -478,7 +484,8 @@ class SimulateurTest {
         // Les pleines pages d'abord, chacune tenant sa colonne ; les champs de bande ensuite.
         champ("Tableau de bord", simulateur.image(secondes)),
         champ("Profil à venir", simulateur.imageProfil(secondes)),
-        champ("Bilan", pageDeBilan(simulateur, secondes)),
+        champ("Bilan 1/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[0])),
+        champ("Bilan 2/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[1])),
     )
 
     private fun champ(nom: String, image: Bitmap) =

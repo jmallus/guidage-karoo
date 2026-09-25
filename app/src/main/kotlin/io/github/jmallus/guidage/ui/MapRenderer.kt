@@ -185,7 +185,7 @@ object MapRenderer {
      * l'échelle le bas.
      */
     private fun drawCompass(canvas: Canvas, area: RectF, heading: Double) {
-        val rayon = (area.height() * COMPASS_RADIUS_FRACTION).coerceIn(27f, 48f)
+        val rayon = (area.height() * COMPASS_RADIUS_FRACTION).coerceIn(22f, 38f)
         val cx = area.right - COMPASS_INSET - rayon
         val cy = area.top + COMPASS_INSET + rayon
 
@@ -245,8 +245,11 @@ object MapRenderer {
      * Elle occupe désormais un bon tiers de la largeur de la carte. C'est beaucoup, et c'est
      * le prix : elle est dessinée en dernier et couvre donc le fond, voire le ruban là où
      * l'itinéraire part vers la droite juste devant le coureur.
+     *
+     * Réduite d'un cinquième après une sortie : à ce prix-là elle mangeait trop de carte, et
+     * un peu moins grande, elle se lit encore d'un coup d'œil.
      */
-    private const val COMPASS_RADIUS_FRACTION = 0.135f
+    private const val COMPASS_RADIUS_FRACTION = 0.108f
     private const val COMPASS_INSET = 6f
 
     /** Longueur d'une demi-aiguille et demi-largeur de sa base, en part du rayon. */

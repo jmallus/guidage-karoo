@@ -7,6 +7,7 @@ import io.github.jmallus.guidage.core.FisheyeScale
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.Route
+import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
@@ -89,7 +90,19 @@ class ProfileRendererTest {
             (0 until image.height).firstOrNull { y -> estJaune(image.getPixel(x, y)) } ?: image.height
         }
 
-    /** La promesse : le col de la fin n'est pas avalé par la compression. */
+    @Test
+    fun `une cote se decoupe par cent metres depuis son pied`() {
+        val profil = listOf(ProfilePoint(0.0, 100.0), ProfilePoint(10_000.0, 700.0))
+        val col = ProfileRenderer.troncons(RouteClimb(1_000.0, 6_530.0, 6.0, 390.0), profil)
+
+        assertEquals(65, col.size)
+        assertEquals(1_100.0, col.first().fin, 1e-6)
+        assertEquals(6.0, col.first().pente, 1e-6)
+        // Les trente mètres de reste rejoignent le dernier tronçon.
+        assertEquals(7_530.0, col.last().fin, 1e-6)
+        assertEquals(130.0, col.last().fin - col.last().debut, 1e-6)
+    }
+
     @Test
     fun `au pas d un demi seuls les entiers s ecrivent`() {
         // Le relevé d'une sortie : à 1,4 km de l'arrivée, l'axe lisait « 37 38 38 39 39 40 40 ».
@@ -107,6 +120,7 @@ class ProfileRendererTest {
         assertTrue("les demis doivent porter leur décimale : $graduations", graduations.all { it.second.length >= 3 })
     }
 
+    /** La promesse : le col de la fin n'est pas avalé par la compression. */
     @Test
     fun `le col lointain reste le point haut de la bande`() {
         val image = image()
