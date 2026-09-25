@@ -174,6 +174,13 @@ object ProfileRenderer {
         // L'étiquette de position tient dans l'en-tête ; sans en-tête, elle ne s'écrit pas.
         val etiquette = model.positionLabel?.takeIf { entetes }
 
+        // La portion que détaillent les cases, en aplat jaune pâle au-dessus de la silhouette :
+        // posé avant elle, il n'en reste visible que le ciel. C'est lui qui relie les deux
+        // échelles — sans lui, rien ne dirait que les six cases ne couvrent qu'un bout de côte.
+        model.climbZoom?.let { cote ->
+            val detail = model.climbDetail ?: (cote.startDistance..cote.endDistance)
+            drawDetailBand(canvas, model.window, detail, scale, left, top, right, bottom)
+        }
         drawProfile(canvas, model, scale, left, top, right, bottom, positionX, palette)
         // Cadré sur une côte, le voile qui en marque l'étendue couvrirait toute la bande, et sa
         // pente moyenne est déjà écrite dans l'en-tête.
@@ -187,8 +194,7 @@ object ProfileRenderer {
             // les kilomètres : la distance au sommet est déjà dans l'en-tête, et c'est la pente
             // du morceau qui vient qu'on cherche — comme sur le ClimbPro du Karoo.
             val detail = model.climbDetail ?: (cote.startDistance..cote.endDistance)
-            drawDetailBracket(canvas, model.window, detail, scale, left, right, bottom)
-            drawGradeRow(canvas, detail, troncons(cote, model.window.points), left, right, bottom, model.positionDistance, tickSize)
+            drawGradeRow(canvas, detail, troncons(cote, model.window.points), left, right, bottom, tickSize)
         } else {
             drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         }
@@ -371,7 +377,19 @@ object ProfileRenderer {
         // gardent les cent mètres de leur fenêtre.
         val pas = PROFILE_GRADE_STEPS.firstOrNull { ceil(climb.length / it) <= MAX_PROFILE_SEGMENTS }
             ?: PROFILE_GRADE_STEPS.last()
-        for ((debut, fin, pente) in troncons(climb, window.points, pas)) {
+        // Les tronçons voisins de même couleur ne font qu'un aplat : peints un à un, ils
+        // laissaient entre eux la couture d'un pixel que l'anticrénelage dessine au bord de
+        // chaque forme, et le profil se lisait rayé de traits verticaux.
+        val aplats = troncons(climb, window.points, pas).fold(mutableListOf<Troncon>()) { acc, t ->
+            val dernier = acc.lastOrNull()
+            if (dernier != null && climbColor(dernier.pente) == climbColor(t.pente)) {
+                acc[acc.lastIndex] = Troncon(dernier.debut, t.fin, t.pente)
+            } else {
+                acc += t
+            }
+            acc
+        }
+        for ((debut, fin, pente) in aplats) {
             val xa = x(debut)
             val xb = x(fin)
             if (xb <= xa) continue
@@ -482,7 +500,6 @@ object ProfileRenderer {
         left: Float,
         right: Float,
         bottom: Float,
-        position: Double?,
         tickSize: Float,
     ) {
         val etendue = (detail.endInclusive - detail.start).takeIf { it > 0.0 } ?: return
@@ -517,52 +534,22 @@ object ProfileRenderer {
             text.color = climbInk(troncon.pente)
             canvas.drawText(chiffre, (xa + xb) / 2f, ligne, text)
         }
-        // Le coureur sur la rangée, à l'échelle de celle-ci : la marque du profil, au-dessus,
-        // n'est pas à l'aplomb, les deux échelles différant.
-        // Un triangle posé sur le bord haut des cases, pointe en bas : un trait les traversait
-        // et coupait le chiffre de la case où l'on roule.
-        position?.takeIf { it in detail }?.let {
-            val xp = x(it)
-            val demi = tickSize * POSITION_TRIANGLE
-            val pointe = Path().apply {
-                moveTo(xp - demi, haut - demi)
-                lineTo(xp + demi, haut - demi)
-                lineTo(xp, haut + demi * 0.6f)
-                close()
-            }
-            canvas.drawPath(pointe, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                color = CREST
-            })
-            canvas.drawPath(pointe, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = 2f
-                color = GRADE_TILE_INK
-            })
-        }
     }
 
-    /**
-     * Sur le profil, la portion que détaillent les cases : un trait au pied de la silhouette,
-     * de la largeur de la fenêtre glissante. C'est lui qui relie les deux échelles — sans lui,
-     * rien ne dirait que les six cases ne couvrent qu'un bout de la côte.
-     */
-    private fun drawDetailBracket(
+    /** La bande jaune pâle de la portion détaillée, du haut du profil à son pied. */
+    private fun drawDetailBand(
         canvas: Canvas,
         window: ProfileWindow,
         detail: ClosedFloatingPointRange<Double>,
         scale: FisheyeScale,
         left: Float,
+        top: Float,
         right: Float,
         bottom: Float,
     ) {
         fun x(distance: Double) =
             (left + scale.fractionAt(distance - window.start) * (right - left)).toFloat().coerceIn(left, right)
-        val y = bottom - DETAIL_BRACKET_WIDTH / 2f
-        canvas.drawLine(x(detail.start), y, x(detail.endInclusive), y, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = DETAIL_BRACKET
-            strokeWidth = DETAIL_BRACKET_WIDTH
-        })
+        canvas.drawRect(x(detail.start), top, x(detail.endInclusive), bottom, Paint().apply { color = DETAIL_BAND })
     }
 
     private fun crestPaint(color: Int, width: Float) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -968,12 +955,12 @@ object ProfileRenderer {
     private val PROFILE_GRADE_STEPS = listOf(100.0, 200.0, 250.0, 500.0, 1_000.0)
     private const val MAX_PROFILE_SEGMENTS = 16
 
-    /** Demi-largeur du triangle de position sur les cases, en corps de graduation. */
-    private const val POSITION_TRIANGLE = 0.4f
+    /**
+     * La bande de la portion détaillée : le jaune de l'itinéraire, pâli et voilé, pour qu'il ne
+     * rivalise pas avec le trait de position, franc.
+     */
+    private const val DETAIL_BAND = 0xD9FFF3A0.toInt()
 
-    /** Le trait qui marque, au pied du profil, la portion détaillée par les cases. */
-    private const val DETAIL_BRACKET = 0xFFFFFFFF.toInt()
-    private const val DETAIL_BRACKET_WIDTH = 5f
 
     /**
      * L'étiquette de position : l'encre sombre du nombre, son corps en part de celui des

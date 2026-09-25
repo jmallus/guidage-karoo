@@ -15,7 +15,6 @@ import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileFieldModel
 
-import kotlin.math.min
 
 /**
  * Ce qu'affiche le champ « Profil à venir », et l'heure d'arrivée qu'en tirent les autres.
@@ -84,18 +83,13 @@ object FieldModels {
             if (status != null) {
                 val cote = status.climb
                 // Deux échelles. Le profil montre la côte entière, du pied au sommet : c'est sa
-                // forme qu'on regarde. Les cases de pente, dessous, détaillent une fenêtre de
-                // 600 m qui glisse avec le coureur : à l'échelle de toute la côte, un col de six
-                // kilomètres ne laissait que trois chiffres lisibles devant lui. La fenêtre garde
-                // un tronçon derrière la marque et s'arrête au sommet ; une côte plus courte
-                // qu'elle est détaillée en entier.
-                val debut = if (cote.length <= CLIMB_WINDOW_METERS) {
-                    cote.startDistance
-                } else {
-                    (quantized - CLIMB_WINDOW_METERS * CLIMB_RECUL_FRACTION)
-                        .coerceIn(cote.startDistance, cote.endDistance - CLIMB_WINDOW_METERS)
-                }
-                val longueur = min(cote.length, CLIMB_WINDOW_METERS)
+                // forme qu'on regarde. Les cases de pente, dessous, détaillent les 600 m qui
+                // viennent, à leur échelle à elles : à celle de toute la côte, un col de six
+                // kilomètres ne laissait que trois chiffres lisibles. Elles partent du coureur,
+                // au bord gauche, comme sur le Climber : ce qu'on a derrière soi n'y a pas de
+                // place, et aucune marque n'a donc à dire où l'on est.
+                val debut = quantized.coerceIn(cote.startDistance, cote.endDistance)
+                val longueur = CLIMB_WINDOW_METERS
                 return ProfileFieldModel(
                     window = Guidance.profileWindow(route, cote.startDistance, cote.length),
                     climbDetail = debut..(debut + longueur),
@@ -184,11 +178,8 @@ object FieldModels {
     private const val RECUL_FRACTION = 0.2
 
     /**
-     * La portée du zoom de côte : six tronçons de cent mètres (m), le gros plan du Climber
-     * du Karoo, où cinq ou six cases de pente tiennent sous le profil.
+     * Ce que détaillent les cases de pente sous le zoom de côte : six tronçons de cent mètres
+     * (m), le gros plan du Climber du Karoo.
      */
     private const val CLIMB_WINDOW_METERS = 600.0
-
-    /** La part de cette fenêtre laissée derrière le coureur : un tronçon. */
-    private const val CLIMB_RECUL_FRACTION = 1.0 / 6.0
 }
