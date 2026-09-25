@@ -281,6 +281,7 @@ class Simulateur(
         largeur: Int = LARGEUR_BILAN,
         hauteur: Int = HAUTEUR_BILAN,
     ): Bitmap = LevelRenderer.render(
+        context,
         largeur,
         hauteur,
         LevelModels.build(

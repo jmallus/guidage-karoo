@@ -80,7 +80,7 @@ class LevelDataType(
                 .distinctUntilChanged()
                 .map { model ->
                     val (width, height) = FieldSize.of(config)
-                    LevelRenderer.render(width, height, model, FieldPalette.of(context))
+                    LevelRenderer.render(context, width, height, model, FieldPalette.of(context))
                 }
                 .collect { bitmap ->
                     val composed = glance.compose(context, DpSize.Unspecified) { BitmapField(bitmap) }
