@@ -67,6 +67,11 @@ data class ProfileFieldModel(
      * c'est la question du moment — où est le passage dur, et combien en reste-t-il.
      */
     val climbZoom: RouteClimb? = null,
+    /**
+     * La portion de la côte que détaillent les cases de pente, depuis le départ (m) : une
+     * fenêtre glissante, à son échelle à elle, plus fine que celle du profil.
+     */
+    val climbDetail: ClosedFloatingPointRange<Double>? = null,
 )
 
 /**
@@ -181,7 +186,9 @@ object ProfileRenderer {
             // Dans une côte, la ligne sous le profil porte la pente de chaque tronçon plutôt que
             // les kilomètres : la distance au sommet est déjà dans l'en-tête, et c'est la pente
             // du morceau qui vient qu'on cherche — comme sur le ClimbPro du Karoo.
-            drawGradeRow(canvas, model.window, troncons(cote, model.window.points), scale, left, right, bottom, tickSize)
+            val detail = model.climbDetail ?: (cote.startDistance..cote.endDistance)
+            drawDetailBracket(canvas, model.window, detail, scale, left, right, bottom)
+            drawGradeRow(canvas, detail, troncons(cote, model.window.points), left, right, bottom, model.positionDistance, tickSize)
         } else {
             drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         }
@@ -358,7 +365,13 @@ object ProfileRenderer {
             style = Paint.Style.STROKE
             strokeWidth = HATCH_WIDTH
         }
-        for ((debut, fin, pente) in troncons(climb, window.points)) {
+        // Le profil montre toute la côte : à cent mètres, un col se peignait en soixante bandes
+        // d'un pixel ou deux, la mosaïque qui avait fait retirer les couleurs du bandeau. Ses
+        // tronçons s'allongent donc avec la côte — seize au plus —, quand les cases, dessous,
+        // gardent les cent mètres de leur fenêtre.
+        val pas = PROFILE_GRADE_STEPS.firstOrNull { ceil(climb.length / it) <= MAX_PROFILE_SEGMENTS }
+            ?: PROFILE_GRADE_STEPS.last()
+        for ((debut, fin, pente) in troncons(climb, window.points, pas)) {
             val xa = x(debut)
             val xb = x(fin)
             if (xb <= xa) continue
@@ -403,9 +416,8 @@ object ProfileRenderer {
      * tronçon ne change pas de pente à mesure qu'on avance. Un reste de moins d'un demi-pas
      * rejoint le dernier tronçon plutôt que de faire un bout de couleur trop étroit.
      */
-    internal fun troncons(climb: RouteClimb, points: List<ProfilePoint>): List<Troncon> {
+    internal fun troncons(climb: RouteClimb, points: List<ProfilePoint>, pas: Double = GRADE_SEGMENT_METERS): List<Troncon> {
         if (climb.length <= 0.0) return emptyList()
-        val pas = GRADE_SEGMENT_METERS
         val bornes = mutableListOf(climb.startDistance)
         var suivante = climb.startDistance + pas
         while (suivante < climb.endDistance - pas / 2) {
@@ -465,16 +477,17 @@ object ProfileRenderer {
      */
     private fun drawGradeRow(
         canvas: Canvas,
-        window: ProfileWindow,
+        detail: ClosedFloatingPointRange<Double>,
         troncons: List<Troncon>,
-        scale: FisheyeScale,
         left: Float,
         right: Float,
         bottom: Float,
+        position: Double?,
         tickSize: Float,
     ) {
+        val etendue = (detail.endInclusive - detail.start).takeIf { it > 0.0 } ?: return
         fun x(distance: Double) =
-            (left + scale.fractionAt(distance - window.start) * (right - left)).toFloat().coerceIn(left, right)
+            (left + (distance - detail.start) / etendue * (right - left)).toFloat().coerceIn(left, right)
         val haut = bottom + GRADE_TILE_GAP
         val bas = bottom + tickSize * GRADE_TILE_HEIGHT
         val fond = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
@@ -485,7 +498,7 @@ object ProfileRenderer {
         }
         // Le corps se règle sur une case entière, pour qu'un « 10,5 » y tienne ; il ne dépasse
         // pas la hauteur de la case, ni ne descend sous le plancher.
-        val largeurCase = (right - left) * (GRADE_SEGMENT_METERS / window.distanceSpan).toFloat()
+        val largeurCase = (right - left) * (GRADE_SEGMENT_METERS / etendue).toFloat()
         val etalon = Lisibilite.pinceau(tickSize, 0).measureText("10,5")
         val corps = (tickSize * largeurCase * GRADE_LABEL_FILL / etalon)
             .coerceIn(Lisibilite.corpsPourCapitale(), (bas - haut) * 0.8f)
@@ -504,6 +517,52 @@ object ProfileRenderer {
             text.color = climbInk(troncon.pente)
             canvas.drawText(chiffre, (xa + xb) / 2f, ligne, text)
         }
+        // Le coureur sur la rangée, à l'échelle de celle-ci : la marque du profil, au-dessus,
+        // n'est pas à l'aplomb, les deux échelles différant.
+        // Un triangle posé sur le bord haut des cases, pointe en bas : un trait les traversait
+        // et coupait le chiffre de la case où l'on roule.
+        position?.takeIf { it in detail }?.let {
+            val xp = x(it)
+            val demi = tickSize * POSITION_TRIANGLE
+            val pointe = Path().apply {
+                moveTo(xp - demi, haut - demi)
+                lineTo(xp + demi, haut - demi)
+                lineTo(xp, haut + demi * 0.6f)
+                close()
+            }
+            canvas.drawPath(pointe, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = CREST
+            })
+            canvas.drawPath(pointe, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 2f
+                color = GRADE_TILE_INK
+            })
+        }
+    }
+
+    /**
+     * Sur le profil, la portion que détaillent les cases : un trait au pied de la silhouette,
+     * de la largeur de la fenêtre glissante. C'est lui qui relie les deux échelles — sans lui,
+     * rien ne dirait que les six cases ne couvrent qu'un bout de la côte.
+     */
+    private fun drawDetailBracket(
+        canvas: Canvas,
+        window: ProfileWindow,
+        detail: ClosedFloatingPointRange<Double>,
+        scale: FisheyeScale,
+        left: Float,
+        right: Float,
+        bottom: Float,
+    ) {
+        fun x(distance: Double) =
+            (left + scale.fractionAt(distance - window.start) * (right - left)).toFloat().coerceIn(left, right)
+        val y = bottom - DETAIL_BRACKET_WIDTH / 2f
+        canvas.drawLine(x(detail.start), y, x(detail.endInclusive), y, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = DETAIL_BRACKET
+            strokeWidth = DETAIL_BRACKET_WIDTH
+        })
     }
 
     private fun crestPaint(color: Int, width: Float) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -902,6 +961,17 @@ object ProfileRenderer {
     private const val GRADE_TILE_GAP = 3f
     private const val GRADE_TILE_BORDER = 2f
     private const val GRADE_TILE_INK = 0xFF06141A.toInt()
+
+    /** Les tronçons du profil de côte entière (m), et leur nombre maximal. */
+    private val PROFILE_GRADE_STEPS = listOf(100.0, 200.0, 250.0, 500.0, 1_000.0)
+    private const val MAX_PROFILE_SEGMENTS = 16
+
+    /** Demi-largeur du triangle de position sur les cases, en corps de graduation. */
+    private const val POSITION_TRIANGLE = 0.4f
+
+    /** Le trait qui marque, au pied du profil, la portion détaillée par les cases. */
+    private const val DETAIL_BRACKET = 0xFFFFFFFF.toInt()
+    private const val DETAIL_BRACKET_WIDTH = 5f
 
     /**
      * L'étiquette de position : l'encre sombre du nombre, son corps en part de celui des
