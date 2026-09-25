@@ -835,7 +835,9 @@ object ProfileRenderer {
         palette: Palette,
     ) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.textSecondary
+            // En blanc dans une côte : distance, dénivelé et rang y sont ce qu'on vient lire,
+            // et non des légendes du profil.
+            color = if (model.climbZoom != null) palette.textPrimary else palette.textSecondary
             textSize = labelSize
             typeface = Typeface.DEFAULT_BOLD
         }

@@ -104,7 +104,10 @@ object FieldModels {
                     // Sans « Sommet dans » : les deux nombres se comprennent sur le bandeau d'une
                     // côte, et la place rendue les laisse grossir.
                     ascentLabel = "${Format.distance(status.distanceToTop, units)} · +${Format.elevation(status.elevationToTop, units)}",
-                    rangeLabel = Format.grade(cote.grade),
+                    // Le rang de la côte plutôt que sa pente moyenne : la pente se lit sur les cases
+                    // dessous, tronçon par tronçon, et c'est « combien en reste-t-il » que le
+                    // rang dit — « 2/3 ».
+                    rangeLabel = "${status.number}/${status.totalClimbs}",
                     positionDistance = quantized,
                     emptyMessage = context.getString(R.string.field_no_route),
                     compressed = false,
