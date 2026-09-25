@@ -15,6 +15,7 @@ import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
 import io.github.jmallus.guidage.core.Units
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -623,7 +624,7 @@ object ProfileRenderer {
         }
         graduations.forEach { (x, caption) ->
             canvas.drawLine(x, bottom, x, bottom + TICK_LENGTH, rule)
-            if (!labelled) return@forEach
+            if (!labelled || caption.isEmpty()) return@forEach
             // Un chiffre qui sortirait du cadre à droite ne s'écrit pas ; son trait reste.
             if (x + text.measureText(caption) / 2f > right) return@forEach
             canvas.drawText(caption, x, baseline, text)
@@ -651,13 +652,29 @@ object ProfileRenderer {
         val window = model.window
         val span = window.distanceSpan.takeIf { it > 0.0 } ?: return emptyList()
         val step = ABSOLUTE_LADDER.firstOrNull { it * unitMeters / span >= gap } ?: return emptyList()
-        val pas = step * unitMeters
-        val premier = ceil(window.start / pas).toLong()
-        val dernier = floor(window.end / pas).toLong()
-        return (premier..dernier).map { k ->
-            val x = left + ((k * pas - window.start) / span * usable).toFloat()
-            x to Format.axisValue(k * step)
+        return absoluteLabels(window.start / unitMeters, window.end / unitMeters, step).map { (valeur, texte) ->
+            left + ((valeur * unitMeters - window.start) / span * usable).toFloat() to texte
         }
+    }
+
+    /**
+     * Les graduations de [start] à [end], comptées dans l'unité du coureur, et leur chiffre.
+     *
+     * Au pas d'un demi, seuls les entiers s'écrivent ; les demis gardent leur trait, comme
+     * sur une règle. Les écrire arrondis à l'unité donnait « 38, 38, 39, 39 » à l'approche
+     * de l'arrivée, là où la fenêtre raccourcit — et les écrire avec leur décimale ne tient
+     * pas dans l'écart prévu pour deux chiffres. Quand la fenêtre est trop courte pour porter
+     * deux entiers, les demis prennent leur décimale : un seul repère ne situe rien.
+     */
+    internal fun absoluteLabels(start: Double, end: Double, step: Double): List<Pair<Double, String>> {
+        val premier = ceil(start / step).toLong()
+        val dernier = floor(end / step).toLong()
+        val valeurs = (premier..dernier).map { it * step }
+        val entier = { v: Double -> abs(v - Math.rint(v)) < 1e-9 }
+        if (step >= 1.0 || valeurs.count(entier) >= 2) {
+            return valeurs.map { v -> v to if (entier(v)) Format.axisValue(v) else "" }
+        }
+        return valeurs.map { v -> v to String.format(Locale.getDefault(), "%.1f", v) }
     }
 
     private fun drawClimbMarkers(
