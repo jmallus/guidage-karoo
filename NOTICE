@@ -12,6 +12,11 @@ Copyright Jan-Pieter Weytjens, distribué sous licence Apache 2.0 :
   - les icônes de champ ic_speed, ic_power, ic_heart_rate, ic_cadence, ic_grade et
     ic_arrival (app/src/main/res/drawable/), reprises telles quelles.
 
+Les couleurs et les seuils de pente du zoom de côte (app/.../ProfileRenderer.kt) sont
+relevés sur la légende que Hammerhead publie pour le Climber du Karoo ; ils ne proviennent
+pas de Barberfish, qui appliquait aux pentes la palette des zones de puissance. Les icônes
+des cases de bilan ic_bilan_* sont dessinées pour ce projet.
+
 L'algorithme APCA lui-même provient de SAPC-APCA (https://github.com/Myndex/SAPC-APCA),
 Copyright Andrew Somers, licence W3C.
 
