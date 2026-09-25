@@ -37,7 +37,7 @@ qui le dessine.
 ### Le bilan de la sortie
 
 Dix cases qui disent ce que la sortie **vaut depuis le départ**. Elles tiennent chacune dans
-une case ordinaire — une page en porte dix — et c'est là toute leur raison d'être : le Karoo
+une case ordinaire — une page en porte six pour les lire en roulant — et c'est là toute leur raison d'être : le Karoo
 publie déjà la plupart de ces nombres, mais **un par champ**, si bien qu'une moyenne et son
 maximum coûtent deux emplacements et que le coureur fait la soustraction de tête. Ici les deux
 voyagent ensemble, et la case dit en plus ce que leur voisinage veut dire.
@@ -68,14 +68,18 @@ l'extension, faits localement et sans réseau comme tout le reste :
   paie. Aucun compteur ne l'affiche en roulant. Elle se calcule sur le temps d'effort seul et
   se tait sous une heure.
 
-Les dix, posées comme sur une page — au quart de la sortie simulée, puis à son terme. Trois
-d'entre elles n'existent pas encore au quart : la dérive se tait, les haltes n'ont pas eu
-lieu, la charge n'a pas assez descendu pour qu'on lui connaisse une pente.
+Les dix, posées six par page sur deux pages — au quart de la sortie simulée, puis à son
+terme. Trois d'entre elles n'existent pas encore au quart : la dérive se tait, les haltes
+n'ont pas eu lieu, la charge n'a pas assez descendu pour qu'on lui connaisse une pente.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/captures/champ-bilan.png" width="300" alt="Les dix cases de bilan au quart de la sortie"><br><b>Au quart de la sortie</b></td>
-    <td align="center"><img src="docs/captures/champ-bilan-fin.png" width="300" alt="Les dix cases de bilan à l'arrivée"><br><b>À l'arrivée</b></td>
+    <td align="center"><img src="docs/captures/champ-bilan.png" width="240" alt="Première page de bilan au quart de la sortie"><br><b>Page 1, au quart</b></td>
+    <td align="center"><img src="docs/captures/champ-bilan-2.png" width="240" alt="Seconde page de bilan au quart de la sortie"><br><b>Page 2, au quart</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/captures/champ-bilan-fin.png" width="240" alt="Première page de bilan à l'arrivée"><br><b>Page 1, à l'arrivée</b></td>
+    <td align="center"><img src="docs/captures/champ-bilan-fin-2.png" width="240" alt="Seconde page de bilan à l'arrivée"><br><b>Page 2, à l'arrivée</b></td>
   </tr>
 </table>
 

@@ -271,9 +271,8 @@ class Simulateur(
     /**
      * Une case de bilan, à la taille qu'elle a sur une page qui en porte dix.
      *
-     * Le Karoo découpe l'écran sur une grille de soixante : dix cases font deux colonnes de
-     * cinq, soit une demi-largeur sur un cinquième de hauteur. C'est la seule taille où ces
-     * cases se jugent — à pleine page elles seraient somptueuses et personne ne les y mettrait.
+     * Le Karoo découpe l'écran sur une grille de soixante : six cases font deux colonnes de
+     * trois, soit une demi-largeur sur un tiers de hauteur — la page du coureur.
      */
     fun imageBilan(
         variante: Bilan,
@@ -390,9 +389,18 @@ class Simulateur(
          */
         val HAUTEUR_PROFIL: Int = HAUTEUR / 4
 
-        /** Une case de bilan sur une page qui en porte dix : 30 × 12 sur la grille. */
+        /**
+         * Une case de bilan sur une page qui en porte six : 30 × 20 sur la grille.
+         *
+         * C'était une page de dix, et les cases y étaient illisibles en roulant ; le coureur
+         * les a passées à six par page, sur deux pages, et c'est à cette taille qu'elles se
+         * jugent désormais.
+         */
         val LARGEUR_BILAN: Int = LARGEUR / 2
-        val HAUTEUR_BILAN: Int = HAUTEUR / 5
+        val HAUTEUR_BILAN: Int = HAUTEUR / 3
+
+        /** Les cases de chaque page de bilan, dans l'ordre où le coureur les a posées. */
+        val PAGES_BILAN: List<List<Bilan>> = Bilan.entries.chunked(6)
 
         /**
          * Le corps que le Karoo emploie lui-même pour un champ numérique de cette taille.
