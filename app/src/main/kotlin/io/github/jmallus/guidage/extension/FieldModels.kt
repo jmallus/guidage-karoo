@@ -15,6 +15,8 @@ import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileFieldModel
 
+import kotlin.math.min
+
 /**
  * Ce qu'affiche le champ « Profil à venir », et l'heure d'arrivée qu'en tirent les autres.
  *
@@ -81,8 +83,21 @@ object FieldModels {
             val status = Guidance.climbStatus(route, quantized)?.takeIf { it.onClimb }
             if (status != null) {
                 val cote = status.climb
+                // Une fenêtre qui glisse sur la côte, et non la côte entière : c'est ce qu'il
+                // faut pour que chaque tronçon de cent mètres ait la place de sa case de pente.
+                // Cadré du pied au sommet, un col de six kilomètres ne laissait que trois
+                // chiffres lisibles devant le coureur. Elle garde un peu de
+                // ce qu'on vient de monter derrière la marque, et s'arrête au sommet ; une côte
+                // plus courte qu'elle se montre en entier.
+                val debut = if (cote.length <= CLIMB_WINDOW_METERS) {
+                    cote.startDistance
+                } else {
+                    (quantized - CLIMB_WINDOW_METERS * CLIMB_RECUL_FRACTION)
+                        .coerceIn(cote.startDistance, cote.endDistance - CLIMB_WINDOW_METERS)
+                }
+                val longueur = min(cote.length, CLIMB_WINDOW_METERS)
                 return ProfileFieldModel(
-                    window = Guidance.profileWindow(route, cote.startDistance, cote.length),
+                    window = Guidance.profileWindow(route, debut, longueur),
                     climbs = route.climbs,
                     pois = route.pois,
                     // Sans « Sommet dans » : les deux nombres se comprennent sur le bandeau d'une
@@ -163,4 +178,13 @@ object FieldModels {
 
     /** Le même recul à portée fixée, en part de la portée. */
     private const val RECUL_FRACTION = 0.2
+
+    /**
+     * La portée du zoom de côte : six tronçons de cent mètres (m), le gros plan du Climber
+     * du Karoo, où cinq ou six cases de pente tiennent sous le profil.
+     */
+    private const val CLIMB_WINDOW_METERS = 600.0
+
+    /** La part de cette fenêtre laissée derrière le coureur : un tronçon. */
+    private const val CLIMB_RECUL_FRACTION = 1.0 / 6.0
 }

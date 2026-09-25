@@ -5,11 +5,11 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
-import io.github.jmallus.guidage.core.Zones
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.KarooColors
 import io.github.jmallus.guidage.ui.PreviewData
+import io.github.jmallus.guidage.ui.ProfileRenderer
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
@@ -303,7 +303,7 @@ class SimulateurTest {
 
     /** Les pixels du bandeau bas peints d'une couleur de pente ; le haut porte les zones de puissance. */
     private fun pixelsDeCouleurDePente(image: Bitmap): Int {
-        val couleurs = Zones.POWER_COLORS.toSet()
+        val couleurs = ProfileRenderer.CLIMB_COLORS.toSet()
         val bandeau = image.height * 4 / 5
         val pixels = IntArray(image.width * (image.height - bandeau))
         image.getPixels(pixels, 0, image.width, 0, bandeau, image.width, image.height - bandeau)

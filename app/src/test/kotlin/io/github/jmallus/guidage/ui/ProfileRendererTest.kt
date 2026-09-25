@@ -92,17 +92,16 @@ class ProfileRendererTest {
 
     /** La promesse : le col de la fin n'est pas avalé par la compression. */
     @Test
-    fun `une cote courte se decoupe par cent metres et un col plus largement`() {
+    fun `une cote se decoupe par cent metres depuis son pied`() {
         val profil = listOf(ProfilePoint(0.0, 100.0), ProfilePoint(10_000.0, 700.0))
-        val courte = ProfileRenderer.troncons(RouteClimb(1_000.0, 1_500.0, 6.0, 90.0), profil)
-        assertEquals(15, courte.size)
-        assertEquals(100.0, courte.first().fin - courte.first().debut, 1e-6)
-        assertEquals(6.0, courte.first().pente, 1e-6)
+        val col = ProfileRenderer.troncons(RouteClimb(1_000.0, 6_530.0, 6.0, 390.0), profil)
 
-        val col = ProfileRenderer.troncons(RouteClimb(1_000.0, 6_500.0, 6.0, 390.0), profil)
-        assertTrue("trop de tronçons pour un col : ${col.size}", col.size <= 16)
-        assertEquals(500.0, col.first().fin - col.first().debut, 1e-6)
-        assertEquals(7_500.0, col.last().fin, 1e-6)
+        assertEquals(65, col.size)
+        assertEquals(1_100.0, col.first().fin, 1e-6)
+        assertEquals(6.0, col.first().pente, 1e-6)
+        // Les trente mètres de reste rejoignent le dernier tronçon.
+        assertEquals(7_530.0, col.last().fin, 1e-6)
+        assertEquals(130.0, col.last().fin - col.last().debut, 1e-6)
     }
 
     @Test

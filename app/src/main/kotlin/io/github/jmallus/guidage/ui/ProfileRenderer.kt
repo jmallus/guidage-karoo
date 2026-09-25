@@ -14,6 +14,7 @@ import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
 import io.github.jmallus.guidage.core.Units
+import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -132,7 +133,13 @@ object ProfileRenderer {
         // la silhouette gardant sa part. Sinon les traits restent seuls : ils disent la
         // compression de l'échelle, qui est l'essentiel, et n'occupent aucune hauteur de texte.
         val labelled = height >= tickSize * LABELLED_AXIS_HEIGHTS
-        val axis = if (labelled) TICK_LENGTH + tickSize * 1.35f else TICK_LENGTH
+        // Dans une côte, la ligne sous le profil porte des cases de pente, plus hautes que les
+        // chiffres de l'axe.
+        val axis = when {
+            model.climbZoom != null -> tickSize * GRADE_TILE_HEIGHT
+            labelled -> TICK_LENGTH + tickSize * 1.35f
+            else -> TICK_LENGTH
+        }
 
         // Les libellés du haut disparaissent avec la même règle que les chiffres de l'axe.
         val entetes = height >= labelSize * ENTETE_HEIGHTS
@@ -174,7 +181,7 @@ object ProfileRenderer {
             // Dans une côte, la ligne sous le profil porte la pente de chaque tronçon plutôt que
             // les kilomètres : la distance au sommet est déjà dans l'en-tête, et c'est la pente
             // du morceau qui vient qu'on cherche — comme sur le ClimbPro du Karoo.
-            drawGradeRow(canvas, model.window, troncons(cote, model.window.points), scale, left, right, bottom, positionX, tickSize, labelled, palette)
+            drawGradeRow(canvas, model.window, troncons(cote, model.window.points), scale, left, right, bottom, tickSize)
         } else {
             drawAxis(canvas, model, scale, left, right, bottom, tickSize, labelled, palette)
         }
@@ -291,9 +298,8 @@ object ProfileRenderer {
         }
         val cote = model.climbZoom
         if (cote != null) {
-            drawGradeFill(canvas, window, cote, scale, xs, ys, first, left, right, bottom, positionX, palette)
-            // Sur les couleurs de pente, le jaune de la crête se perdrait dans le tronçon jaune.
-            canvas.drawPath(devant, crestPaint(palette.textPrimary, CREST_WIDTH))
+            // Pas de crête : le Climber du Karoo n'en trace pas, la limite des aplats la dessine.
+            drawGradeFill(canvas, window, cote, scale, xs, ys, first, left, right, bottom, positionX)
         } else {
             val aplat = Path(devant).apply {
                 lineTo(xs[columns - 1], bottom)
@@ -342,14 +348,16 @@ object ProfileRenderer {
         right: Float,
         bottom: Float,
         positionX: Float,
-        palette: Palette,
     ) {
         fun x(distance: Double) =
             (left + scale.fractionAt(distance - window.start) * (right - left)).toFloat().coerceIn(left, right)
         fun crestAt(x: Float) = ys[(x - first).toInt().coerceIn(0, ys.size - 1)]
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-        val fait = FieldPalette.translucent(palette.textPrimary, CLIMB_DONE_ALPHA)
+        val hachure = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = HATCH_WIDTH
+        }
         for ((debut, fin, pente) in troncons(climb, window.points)) {
             val xa = x(debut)
             val xb = x(fin)
@@ -362,18 +370,22 @@ object ProfileRenderer {
                 lineTo(xb, bottom)
                 close()
             }
-            // Le tronçon sous les roues est coupé à l'aplomb du coureur : gris derrière,
-            // couleur devant.
+            // Le tronçon sous les roues est coupé à l'aplomb du coureur : hachuré derrière, de
+            // la couleur de sa pente, comme sur le Climber ; plein devant.
+            val couleur = climbColor(pente)
             canvas.save()
+            canvas.clipPath(troncon)
             canvas.clipRect(left, 0f, positionX, bottom)
-            paint.color = fait
-            canvas.drawPath(troncon, paint)
+            hachure.color = couleur
+            var trait = xa - (bottom - crestAt(xa))
+            while (trait < xb) {
+                canvas.drawLine(trait, bottom, trait + (bottom - 0f), 0f, hachure)
+                trait += HATCH_STEP
+            }
             canvas.restore()
             canvas.save()
             canvas.clipRect(positionX, 0f, right, bottom)
-            // La couleur suit le chiffre écrit dessous, arrondi comme lui : 7,6 % s'écrit « 8 »,
-            // et un « 8 » sous un tronçon jaune se lirait comme une erreur.
-            paint.color = FieldPalette.gradeColor(pente.roundToInt().toDouble())
+            paint.color = couleur
             canvas.drawPath(troncon, paint)
             canvas.restore()
         }
@@ -383,18 +395,17 @@ object ProfileRenderer {
     internal data class Troncon(val debut: Double, val fin: Double, val pente: Double)
 
     /**
-     * La côte découpée en tronçons d'une longueur ronde, comptés depuis son pied.
+     * La côte découpée en tronçons de cent mètres, comptés depuis son pied.
      *
-     * Cent mètres quand la côte est assez courte pour que chaque pourcentage tienne sous son
-     * tronçon, puis 200, 250, 500 m ou le kilomètre : au-delà de [MAX_GRADE_SEGMENTS], les
-     * chiffres se chevaucheraient et les couleurs redeviendraient la mosaïque qui les avait
-     * fait retirer du bandeau ordinaire. Un reste de moins d'un demi-pas rejoint le dernier
-     * tronçon plutôt que de faire un bout de couleur trop étroit pour se lire.
+     * Toujours cent mètres, quelle que soit la côte : c'est la fenêtre du zoom qui s'ajuste
+     * — elle n'en montre que seize à la fois —, et un « 9 » se lit ainsi toujours « 9 % sur les
+     * cent mètres qui viennent ». Les bornes partent du pied et non du coureur, pour qu'un
+     * tronçon ne change pas de pente à mesure qu'on avance. Un reste de moins d'un demi-pas
+     * rejoint le dernier tronçon plutôt que de faire un bout de couleur trop étroit.
      */
     internal fun troncons(climb: RouteClimb, points: List<ProfilePoint>): List<Troncon> {
         if (climb.length <= 0.0) return emptyList()
-        val pas = GRADE_STEPS_METERS.firstOrNull { ceil(climb.length / it) <= MAX_GRADE_SEGMENTS }
-            ?: (climb.length / MAX_GRADE_SEGMENTS)
+        val pas = GRADE_SEGMENT_METERS
         val bornes = mutableListOf(climb.startDistance)
         var suivante = climb.startDistance + pas
         while (suivante < climb.endDistance - pas / 2) {
@@ -408,11 +419,49 @@ object ProfileRenderer {
     }
 
     /**
-     * La pente de chaque tronçon à venir, écrite sous lui à la place des kilomètres.
+     * Les couleurs de pente du Climber du Karoo, de la plus douce à la plus raide, et les
+     * seuils qui les séparent (%).
      *
-     * Ce qui est monté n'a plus de chiffre : sa pente n'est plus une question, et le gris de
-     * la silhouette le dit déjà. Un chiffre qui ne tient pas dans son tronçon ne s'écrit pas ;
-     * le trait qui sépare les tronçons, lui, reste.
+     * Relevées sur la légende que Hammerhead publie pour son Climber — les seuils y sont écrits,
+     * les teintes lues sur l'image, hors reflet. Ce ne sont pas les couleurs des zones de
+     * puissance, que Barberfish appliquait aux pentes : le Karoo a une palette à lui, plus
+     * sourde, où 5 % est un jaune olive et non un vert menthe.
+     */
+    internal val CLIMB_COLORS = listOf(
+        0xFF74BE96.toInt(), // moins de 2 % — vert menthe
+        0xFF489A78.toInt(), // 2 à 4,9 % — vert
+        0xFFCCC344.toInt(), // 5 à 7,9 % — jaune olive
+        0xFFC9876A.toInt(), // 8 à 10,9 % — saumon
+        0xFFC95A33.toInt(), // 11 à 13,9 % — orange
+        0xFFA8302A.toInt(), // 14 à 19,9 % — rouge
+        0xFFA0339A.toInt(), // 20 % et plus — violet
+    )
+    private val CLIMB_THRESHOLDS = listOf(2.0, 5.0, 8.0, 11.0, 14.0, 20.0)
+
+    /** Le rang de la première couleur, l'orange, sur laquelle la pente s'écrit en blanc. */
+    private const val CLIMB_WHITE_INK_FROM = 4
+
+    /** La couleur d'un tronçon de côte, à une décimale près comme le chiffre de sa case. */
+    internal fun climbColor(grade: Double): Int {
+        val arrondi = Math.round(grade * 10.0) / 10.0
+        return CLIMB_COLORS[CLIMB_THRESHOLDS.count { arrondi >= it }]
+    }
+
+    /**
+     * L'encre d'une case de pente : noire jusqu'au saumon, blanche à partir de l'orange, comme
+     * sur la légende du Karoo. Pas de mesure de contraste ici : elle donnait du blanc sur le
+     * vert, que le Karoo écrit en noir, et c'est à lui que la case doit ressembler.
+     */
+    private fun climbInk(grade: Double): Int =
+        if (CLIMB_COLORS.indexOf(climbColor(grade)) >= CLIMB_WHITE_INK_FROM) 0xFFFFFFFF.toInt() else GRADE_TILE_INK
+
+    /**
+     * Les cases de pente sous le profil, une par tronçon, à la manière du Climber du Karoo :
+     * l'aplat de la couleur du tronçon, bordé de noir, et la pente à une décimale en noir.
+     *
+     * Toutes les cases visibles sont posées, même celle qu'on a derrière soi, coupée au bord :
+     * c'est la rangée entière qui fait règle. Un chiffre qui ne tient pas dans sa case — une
+     * case tronquée au bord — ne s'écrit pas.
      */
     private fun drawGradeRow(
         canvas: Canvas,
@@ -422,29 +471,38 @@ object ProfileRenderer {
         left: Float,
         right: Float,
         bottom: Float,
-        positionX: Float,
         tickSize: Float,
-        labelled: Boolean,
-        palette: Palette,
     ) {
         fun x(distance: Double) =
             (left + scale.fractionAt(distance - window.start) * (right - left)).toFloat().coerceIn(left, right)
-        val rule = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = palette.textSecondary
-            strokeWidth = 2f
+        val haut = bottom + GRADE_TILE_GAP
+        val bas = bottom + tickSize * GRADE_TILE_HEIGHT
+        val fond = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        val bord = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = GRADE_TILE_BORDER
+            color = GRADE_TILE_INK
         }
-        val text = Lisibilite.pinceau(tickSize, palette.textPrimary).apply { textAlign = Paint.Align.CENTER }
-        val baseline = bottom + TICK_LENGTH + tickSize
-        troncons.forEachIndexed { rang, troncon ->
+        // Le corps se règle sur une case entière, pour qu'un « 10,5 » y tienne ; il ne dépasse
+        // pas la hauteur de la case, ni ne descend sous le plancher.
+        val largeurCase = (right - left) * (GRADE_SEGMENT_METERS / window.distanceSpan).toFloat()
+        val etalon = Lisibilite.pinceau(tickSize, 0).measureText("10,5")
+        val corps = (tickSize * largeurCase * GRADE_LABEL_FILL / etalon)
+            .coerceIn(Lisibilite.corpsPourCapitale(), (bas - haut) * 0.8f)
+        val text = Lisibilite.pinceau(corps, GRADE_TILE_INK).apply { textAlign = Paint.Align.CENTER }
+        val ligne = (haut + bas) / 2f - (text.descent() + text.ascent()) / 2f
+        troncons.forEach { troncon ->
             val xa = x(troncon.debut)
             val xb = x(troncon.fin)
-            if (rang > 0) canvas.drawLine(xa, bottom, xa, bottom + TICK_LENGTH, rule)
-            if (!labelled || xb <= positionX) return@forEachIndexed
-            // Sous le tronçon qu'on monte, le chiffre se centre sur ce qu'il en reste.
-            val debut = max(xa, positionX)
-            val chiffre = troncon.pente.roundToInt().toString()
-            if (text.measureText(chiffre) + tickSize * GRADE_LABEL_MARGIN > xb - debut) return@forEachIndexed
-            canvas.drawText(chiffre, (debut + xb) / 2f, baseline, text)
+            if (xb - xa < 1f) return@forEach
+            val case = RectF(xa, haut, xb, bas)
+            fond.color = climbColor(troncon.pente)
+            canvas.drawRect(case, fond)
+            canvas.drawRect(case, bord)
+            val chiffre = String.format(Locale.getDefault(), "%.1f", troncon.pente)
+            if (text.measureText(chiffre) + corps * GRADE_LABEL_MARGIN > xb - xa) return@forEach
+            text.color = climbInk(troncon.pente)
+            canvas.drawText(chiffre, (xa + xb) / 2f, ligne, text)
         }
     }
 
@@ -822,19 +880,28 @@ object ProfileRenderer {
     private const val CLIMB_OVERLAY_ALPHA = 36
 
     /**
-     * Les longueurs de tronçon permises sous le zoom de côte (m), de la plus fine à la plus
-     * large : des nombres ronds, pour qu'un « 9 » se lise « 9 % sur cent mètres ».
+     * La longueur d'un tronçon de pente sous le zoom de côte (m), celle du ClimbPro du Karoo.
      */
-    private val GRADE_STEPS_METERS = listOf(100.0, 200.0, 250.0, 500.0, 1_000.0)
-
-    /** Au-delà, un col se découpe en tronçons plus longs plutôt qu'en mosaïque. */
-    private const val MAX_GRADE_SEGMENTS = 16
+    private const val GRADE_SEGMENT_METERS = 100.0
 
     /** Blanc exigé de part et d'autre d'un pourcentage sous son tronçon, en corps. */
-    private const val GRADE_LABEL_MARGIN = 0.4f
+    private const val GRADE_LABEL_MARGIN = 0.1f
 
-    /** Opacité du gris posé sur la part de la côte déjà montée. */
-    private const val CLIMB_DONE_ALPHA = 70
+    /** La part de la largeur d'un tronçon qu'un « 10 » peut occuper. */
+    private const val GRADE_LABEL_FILL = 0.88f
+
+    /** Les hachures de la part montée : épaisseur du trait et pas entre deux traits (px). */
+    private const val HATCH_WIDTH = 3f
+    private const val HATCH_STEP = 9f
+
+    /**
+     * Les cases de pente : hauteur en corps de graduation, blanc au-dessus, bordure, encre —
+     * celle du Climber, un noir bleuté.
+     */
+    private const val GRADE_TILE_HEIGHT = 1.9f
+    private const val GRADE_TILE_GAP = 3f
+    private const val GRADE_TILE_BORDER = 2f
+    private const val GRADE_TILE_INK = 0xFF06141A.toInt()
 
     /**
      * L'étiquette de position : l'encre sombre du nombre, son corps en part de celui des
