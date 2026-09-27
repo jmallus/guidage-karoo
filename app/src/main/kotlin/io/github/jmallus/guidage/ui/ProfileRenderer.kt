@@ -73,6 +73,11 @@ data class ProfileFieldModel(
      * fenêtre glissante, à son échelle à elle, plus fine que celle du profil.
      */
     val climbDetail: ClosedFloatingPointRange<Double>? = null,
+    /**
+     * L'écart entre le compteur du coureur et sa distance le long de l'itinéraire (m) :
+     * les kilomètres de l'axe à échelle régulière sont ceux du compteur, détours compris.
+     */
+    val decalageCompteur: Double = 0.0,
 )
 
 /**
@@ -660,8 +665,9 @@ object ProfileRenderer {
         val window = model.window
         val span = window.distanceSpan.takeIf { it > 0.0 } ?: return emptyList()
         val step = ABSOLUTE_LADDER.firstOrNull { it * unitMeters / span >= gap } ?: return emptyList()
-        return absoluteLabels(window.start / unitMeters, window.end / unitMeters, step).map { (valeur, texte) ->
-            left + ((valeur * unitMeters - window.start) / span * usable).toFloat() to texte
+        val decalage = model.decalageCompteur
+        return absoluteLabels((window.start + decalage) / unitMeters, (window.end + decalage) / unitMeters, step).map { (valeur, texte) ->
+            left + ((valeur * unitMeters - decalage - window.start) / span * usable).toFloat() to texte
         }
     }
 

@@ -101,7 +101,7 @@ object DashboardModels {
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
             remainingTile = remainingTile(context, rideData, units),
-            profileBand = profileBand(context, snapshot, settings, preview),
+            profileBand = profileBand(context, snapshot, settings, preview, rideData.distance),
             palette = FieldPalette.of(context),
         )
     }
@@ -132,10 +132,11 @@ object DashboardModels {
         snapshot: GuidanceSnapshot,
         settings: GuidageSettings,
         preview: Boolean,
+        compteur: Double?,
     ): ProfileFieldModel =
         // Jamais nul : sans profil, le bandeau garde sa place et porte son message, au lieu
         // de rendre sa hauteur au reste de l'écran le temps d'un reroutage.
-        FieldModels.profile(context, snapshot, settings, preview, zoom = settings.graphZoom)
+        FieldModels.profile(context, snapshot, settings, preview, zoom = settings.graphZoom, compteur = compteur)
 
     private fun mapModel(
         context: Context,

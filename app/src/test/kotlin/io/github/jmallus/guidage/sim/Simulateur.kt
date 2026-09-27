@@ -231,7 +231,7 @@ class Simulateur(
             heartRate = instant.cardiaque,
             cadence = instant.cadence,
             grade = instant.pente,
-            distance = instant.distance,
+            distance = instant.distance + detourMetres,
             distanceRemaining = instant.distanceRestante,
             distanceToNextTurn = distanceAuVirage,
             arrivalTime = arrivee(instant, maintenant),
@@ -318,6 +318,12 @@ class Simulateur(
      */
     var distanceAuVirage: Double? = null
     private val virage = ZoomVirage()
+
+    /**
+     * Ce que le coureur a roulé hors de l'itinéraire (m) : son compteur avance d'autant sur
+     * la distance le long de la trace, comme après un détour.
+     */
+    var detourMetres: Double = 0.0
 
     fun image(
         secondes: Double,
