@@ -8,13 +8,14 @@ import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.GuidanceZoneType
-import io.github.jmallus.guidage.core.MapZoom
+import io.github.jmallus.guidage.core.PorteeCarte
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.Route
 import io.github.jmallus.guidage.core.SurfaceClass
 import io.github.jmallus.guidage.core.Surfaces
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.Zones
+import io.github.jmallus.guidage.core.ZoomVirage
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
@@ -71,6 +72,11 @@ object DashboardModels {
         preview: Boolean,
         roadSource: RoadSource,
         nowMillis: Long = System.currentTimeMillis(),
+        /**
+         * Le gros plan des virages, qui se souvient d'un virage à peine passé. Il doit vivre
+         * aussi longtemps que le champ : un neuf à chaque image oublierait le virage aussitôt.
+         */
+        virage: ZoomVirage? = null,
     ): DashboardModel {
         val state = if (preview) {
             GuidanceState(PreviewData.route, PreviewData.DISTANCE_ALONG_ROUTE, null, null)
@@ -82,7 +88,12 @@ object DashboardModels {
         return DashboardModel(
             guidance = when (settings.guidanceZone) {
                 GuidanceZoneType.MAP -> GuidanceZone.Map(
-                    mapModel(context, snapshot, state, preview, rideData, settings.mapZoom, roadSource, nowMillis),
+                    mapModel(
+                        context, snapshot, state, preview, rideData,
+                        virage?.portee(settings.mapZoom, rideData.distanceToNextTurn, rideData.distance)
+                            ?: PorteeCarte.of(settings.mapZoom),
+                        roadSource, nowMillis,
+                    ),
                 )
                 GuidanceZoneType.PROFILE -> GuidanceZone.Profile(profileModel(context, state, settings))
             },
@@ -90,7 +101,7 @@ object DashboardModels {
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
             remainingTile = remainingTile(context, rideData, units),
-            profileBand = profileBand(context, snapshot, settings, preview),
+            profileBand = profileBand(context, snapshot, settings, preview, rideData.distance),
             palette = FieldPalette.of(context),
         )
     }
@@ -121,10 +132,11 @@ object DashboardModels {
         snapshot: GuidanceSnapshot,
         settings: GuidageSettings,
         preview: Boolean,
+        compteur: Double?,
     ): ProfileFieldModel =
         // Jamais nul : sans profil, le bandeau garde sa place et porte son message, au lieu
         // de rendre sa hauteur au reste de l'écran le temps d'un reroutage.
-        FieldModels.profile(context, snapshot, settings, preview, zoom = settings.graphZoom)
+        FieldModels.profile(context, snapshot, settings, preview, zoom = settings.graphZoom, compteur = compteur)
 
     private fun mapModel(
         context: Context,
@@ -132,7 +144,7 @@ object DashboardModels {
         state: GuidanceState,
         preview: Boolean,
         rideData: RideData,
-        zoom: MapZoom,
+        portee: PorteeCarte,
         roadSource: RoadSource,
         nowMillis: Long,
     ): MapModel {
@@ -147,7 +159,7 @@ object DashboardModels {
         val roads = if (preview) {
             PreviewData.roads
         } else {
-            roadSource.roads(position, zoom.rangeMeters * ROADS_RADIUS_FACTOR)
+            roadSource.roads(position, portee.rangeMeters * ROADS_RADIUS_FACTOR)
         }
         return MapModel(
             roads = roads,
@@ -155,14 +167,14 @@ object DashboardModels {
             path = route?.path.orEmpty(),
             distanceAlongRoute = state.distanceAlongRoute,
             rejoinPath = route?.rejoinPath.orEmpty(),
-            trailPaths = trailPaths(route, state.distanceAlongRoute, roads, zoom),
+            trailPaths = trailPaths(route, surTrace(route, position, state.distanceAlongRoute), roads, portee.rangeMeters),
             position = position,
             heading = location?.heading,
             pois = route?.pois.orEmpty().mapNotNull { poi ->
                 poi.position?.let { MapPoi(it, PoiLabels.label(context, poi)) }
             },
-            rangeMeters = zoom.rangeMeters,
-            chevronRangeMeters = zoom.chevronMeters,
+            rangeMeters = portee.rangeMeters,
+            chevronRangeMeters = portee.chevronMeters,
             offRoute = rideData.onRoute == false,
             emptyMessage = context.getString(
                 if (route == null) R.string.field_no_route else R.string.field_waiting_for_position,
@@ -184,17 +196,32 @@ object DashboardModels {
      * passage. Sur une carte à trois cents mètres de portée, ce seuil effacerait la moitié
      * de ce qu'on regarde.
      */
+    /**
+     * Où se tient le coureur sur le tracé géométrique, en mètres depuis son départ.
+     *
+     * La distance le long de l'itinéraire que publie le Karoo n'est pas celle du tracé décodé :
+     * sa longueur diffère un peu de celle annoncée, et l'écart grandit au fil de la sortie. La
+     * reporter telle quelle sur le tracé posait les rayures de chemin des centaines de mètres
+     * devant le coureur, et hors de la zone de fond de carte chargée autour de lui : elles
+     * apparaissaient et disparaissaient. On l'accroche donc sur le tracé, comme la carte le fait
+     * pour sa marque ; la distance du Karoo ne sert qu'à départager deux passages sur une boucle.
+     */
+    private fun surTrace(route: Route?, position: GeoPoint?, along: Double?): Double? {
+        if (route == null || position == null || route.path.size < 2) return along
+        return Geo.anchorOnPath(route.path, position, along, TRAIL_ANCHOR_TOLERANCE_METERS)?.distanceAlongPath ?: along
+    }
+
     private fun trailPaths(
         route: Route?,
         along: Double?,
         roads: List<RoadSegment>,
-        zoom: MapZoom,
+        rangeMeters: Double,
     ): List<List<GeoPoint>> {
         if (route == null || along == null || roads.isEmpty() || route.path.size < 2) return emptyList()
         // Un peu en arrière du coureur : il est dans le bas de la vue, mais le cadre tourne
         // avec son cap et découvre derrière lui à chaque virage.
-        val debut = (along - zoom.rangeMeters * TRAIL_BEHIND_FRACTION).coerceAtLeast(0.0)
-        val portee = zoom.rangeMeters * (1.0 + TRAIL_BEHIND_FRACTION)
+        val debut = (along - rangeMeters * TRAIL_BEHIND_FRACTION).coerceAtLeast(0.0)
+        val portee = rangeMeters * (1.0 + TRAIL_BEHIND_FRACTION)
         return Surfaces.ahead(
             path = route.path,
             segments = roads,
@@ -357,6 +384,9 @@ object DashboardModels {
 
     /** Part de la portée regardée en arrière du coureur pour les rayures de chemin. */
     private const val TRAIL_BEHIND_FRACTION = 0.5
+
+    /** Écart en deçà duquel deux passages du tracé se départagent par la distance du Karoo (m). */
+    private const val TRAIL_ANCHOR_TOLERANCE_METERS = 25.0
 
     /** Longueur en deçà de laquelle une portion de chemin est absorbée par sa voisine (m). */
     private const val TRAIL_MIN_RUN_METERS = 60.0

@@ -15,6 +15,7 @@ import io.github.jmallus.guidage.core.Pacing
 import io.github.jmallus.guidage.core.RideLevel
 import io.github.jmallus.guidage.core.Sun
 import io.github.jmallus.guidage.core.Units
+import io.github.jmallus.guidage.core.ZoomVirage
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.DashboardModels
@@ -157,7 +158,7 @@ class Simulateur(
         val maintenant = departMillis + (secondes * 1_000).toLong()
         val etat = GuidanceState(
             route = PreviewData.route.copy(rejoinPath = rejointe(instant)),
-            distanceAlongRoute = instant.distance,
+            distanceAlongRoute = instant.distance + ecartTrace,
             distanceRemaining = instant.distanceRestante,
             currentGrade = instant.pente,
         )
@@ -230,8 +231,9 @@ class Simulateur(
             heartRate = instant.cardiaque,
             cadence = instant.cadence,
             grade = instant.pente,
-            distance = instant.distance,
+            distance = instant.distance + detourMetres,
             distanceRemaining = instant.distanceRestante,
+            distanceToNextTurn = distanceAuVirage,
             arrivalTime = arrivee(instant, maintenant),
             drivetrain = instant.transmission,
             onRoute = !horsItineraire,
@@ -304,8 +306,31 @@ class Simulateur(
             preview = false,
             roadSource = source,
             nowMillis = maintenant,
+            virage = virage,
         )
     }
+
+    /**
+     * La distance au prochain virage, telle que le Karoo la publierait (m), ou null.
+     *
+     * La sortie fictive n'a pas de consignes de navigation : on la pose à la main pour voir
+     * le gros plan des virages, que la carte prend à cent cinquante mètres d'une bifurcation.
+     */
+    var distanceAuVirage: Double? = null
+    private val virage = ZoomVirage()
+
+    /**
+     * Ce que le coureur a roulé hors de l'itinéraire (m) : son compteur avance d'autant sur
+     * la distance le long de la trace, comme après un détour.
+     */
+    var detourMetres: Double = 0.0
+
+    /**
+     * L'écart entre la distance le long de l'itinéraire annoncée par le Karoo et celle du tracé
+     * géométrique (m). Sur l'appareil, les deux divergent au fil de la sortie — le tracé décodé
+     * n'a pas tout à fait la longueur annoncée — ; la sortie fictive, elle, les a égales.
+     */
+    var ecartTrace: Double = 0.0
 
     fun image(
         secondes: Double,

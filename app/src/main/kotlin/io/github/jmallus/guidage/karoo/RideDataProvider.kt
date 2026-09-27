@@ -61,6 +61,8 @@ data class RideData(
     /** Distance parcourue depuis le départ (m). */
     val distance: Double? = null,
     val distanceRemaining: Double? = null,
+    /** Distance au prochain virage annoncé par le Karoo (m), en navigation seulement. */
+    val distanceToNextTurn: Double? = null,
     val arrivalTime: Double? = null,
     /** Rapport engagé, quand le groupe le rapporte. */
     val drivetrain: Drivetrain = Drivetrain.UNKNOWN,
@@ -176,6 +178,7 @@ class RideDataProvider(
             climb = climb,
             onRoute = values[9]?.let { it > 0.5 },
             energyOutput = values[10],
+            distanceToNextTurn = values[11],
             powerZones = profile.powerZones,
             heartRateZones = profile.heartRateZones,
             pace = paceLearner.pace,
@@ -227,6 +230,7 @@ class RideDataProvider(
             value(DataType.Type.TIME_OF_ARRIVAL),
             field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.ON_ROUTE),
             value(DataType.Type.ENERGY_OUTPUT),
+            field(DataType.Type.DISTANCE_TO_NEXT_TURN, DataType.Field.DISTANCE_TO_NEXT_TURN),
         ),
     ) { it }
 

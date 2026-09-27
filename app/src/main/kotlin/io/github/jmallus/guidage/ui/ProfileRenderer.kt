@@ -5,12 +5,15 @@ import android.graphics.Canvas
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.graphics.Typeface
 import io.github.jmallus.guidage.core.FisheyeScale
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.ProfileWindow
+import io.github.jmallus.guidage.core.Rejointe
 import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
 import io.github.jmallus.guidage.core.Units
@@ -73,6 +76,18 @@ data class ProfileFieldModel(
      * fenêtre glissante, à son échelle à elle, plus fine que celle du profil.
      */
     val climbDetail: ClosedFloatingPointRange<Double>? = null,
+    /**
+     * L'écart entre le compteur du coureur et sa distance le long de l'itinéraire (m) :
+     * les kilomètres de l'axe à échelle régulière sont ceux du compteur, détours compris.
+     */
+    val decalageCompteur: Double = 0.0,
+    /**
+     * La portion de trace contournée par un reroutage, et la longueur du détour qui la
+     * remplace. Son relief est celui d'une route qu'on ne roule pas : elle est masquée.
+     */
+    val rejointe: Rejointe? = null,
+    /** « rejointe · 1,2 km », écrit au-dessus de la portion masquée. */
+    val rejointeLabel: String? = null,
 )
 
 /**
@@ -189,6 +204,7 @@ object ProfileRenderer {
             drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
         }
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
+        if (model.climbZoom == null) model.rejointe?.let { drawRejointe(canvas, model, it, scale, left, top, right, bottom, labelSize) }
         val cote = model.climbZoom
         if (cote != null) {
             // Dans une côte, la ligne sous le profil porte la pente de chaque tronçon plutôt que
@@ -504,8 +520,8 @@ object ProfileRenderer {
         tickSize: Float,
     ) {
         val etendue = (detail.endInclusive - detail.start).takeIf { it > 0.0 } ?: return
-        fun x(distance: Double) =
-            (left + (distance - detail.start) / etendue * (right - left)).toFloat().coerceIn(left, right)
+        // Sans butée : une case qui sort à gauche garde sa vraie position, et son chiffre avec.
+        fun x(distance: Double) = (left + (distance - detail.start) / etendue * (right - left)).toFloat()
         val haut = bottom + GRADE_TILE_GAP
         val bas = bottom + tickSize * GRADE_TILE_HEIGHT
         val fond = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
@@ -522,19 +538,27 @@ object ProfileRenderer {
             .coerceIn(Lisibilite.corpsPourCapitale(), (bas - haut) * 0.8f)
         val text = Lisibilite.pinceau(corps, GRADE_TILE_INK).apply { textAlign = Paint.Align.CENTER }
         val ligne = (haut + bas) / 2f - (text.descent() + text.ascent()) / 2f
+        // La rangée est coupée aux bords du bandeau, et chaque case y est posée à sa vraie place,
+        // chiffre compris : celle qui sort à gauche glisse hors de l'écran avec sa pente, au lieu
+        // de la perdre d'un coup dès qu'elle n'était plus entière — c'était le cas quand le
+        // chiffre se centrait sur la part visible et disparaissait faute de place.
+        canvas.save()
+        canvas.clipRect(left, haut - GRADE_TILE_BORDER, right, bas + GRADE_TILE_BORDER)
         troncons.forEach { troncon ->
             val xa = x(troncon.debut)
             val xb = x(troncon.fin)
-            if (xb - xa < 1f) return@forEach
+            if (xb <= left || xa >= right || xb - xa < 1f) return@forEach
             val case = RectF(xa, haut, xb, bas)
             fond.color = climbColor(troncon.pente)
             canvas.drawRect(case, fond)
             canvas.drawRect(case, bord)
             val chiffre = String.format(Locale.getDefault(), "%.1f", troncon.pente)
+            // Le test se fait sur la case entière, non sur sa part visible.
             if (text.measureText(chiffre) + corps * GRADE_LABEL_MARGIN > xb - xa) return@forEach
             text.color = climbInk(troncon.pente)
             canvas.drawText(chiffre, (xa + xb) / 2f, ligne, text)
         }
+        canvas.restore()
     }
 
     /** La bande jaune pâle de la portion détaillée, du haut du profil à son pied. */
@@ -551,6 +575,46 @@ object ProfileRenderer {
         fun x(distance: Double) =
             (left + scale.fractionAt(distance - window.start) * (right - left)).toFloat().coerceIn(left, right)
         canvas.drawRect(x(detail.start), top, x(detail.endInclusive), bottom, Paint().apply { color = DETAIL_BAND })
+    }
+
+    /**
+     * Le détour d'un reroutage : la portion de trace contournée est effacée — son relief est
+     * celui d'une route qu'on ne roule pas —, et remplacée par un trait rouge en pointillés, à
+     * plat, à l'altitude où la trace reprend. Le Karoo donne le tracé du chemin rouge et non
+     * son relief : le dessiner plat dit « inconnu », là où recopier la trace mentait.
+     */
+    private fun drawRejointe(
+        canvas: Canvas,
+        model: ProfileFieldModel,
+        rejointe: Rejointe,
+        scale: FisheyeScale,
+        left: Float,
+        top: Float,
+        right: Float,
+        bottom: Float,
+        labelSize: Float,
+    ) {
+        val window = model.window
+        val span = window.elevationSpan.takeIf { it > 0 } ?: return
+        fun x(d: Double) = (left + scale.fractionAt(d - window.start) * (right - left)).toFloat().coerceIn(left, right)
+        val xa = x(max(rejointe.debut, window.start))
+        val xb = x(min(rejointe.fin, window.end))
+        if (xb - xa < 2f) return
+        val reprise = interpolate(window.points, rejointe.fin)
+        val y = (bottom - ((reprise - window.minElevation) / span * (bottom - top)).toFloat()).coerceIn(top, bottom - 1f)
+
+        canvas.drawRect(xa, top - CREST_WIDTH, xb, bottom + 1f, Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) })
+        canvas.drawLine(xa, y, xb, y, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = FieldPalette.REJOIN
+            strokeWidth = CREST_WIDTH
+            style = Paint.Style.STROKE
+            pathEffect = DashPathEffect(floatArrayOf(10f, 7f), 0f)
+        })
+        val texte = model.rejointeLabel ?: return
+        val pinceau = Lisibilite.pinceau(max(labelSize * 0.8f, Lisibilite.corpsPourCapitale()), FieldPalette.REJOIN)
+            .apply { textAlign = Paint.Align.CENTER }
+        if (pinceau.measureText(texte) > xb - xa) return
+        canvas.drawText(texte, (xa + xb) / 2f, y - labelSize * 0.5f, pinceau)
     }
 
     private fun crestPaint(color: Int, width: Float) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -652,8 +716,9 @@ object ProfileRenderer {
         val window = model.window
         val span = window.distanceSpan.takeIf { it > 0.0 } ?: return emptyList()
         val step = ABSOLUTE_LADDER.firstOrNull { it * unitMeters / span >= gap } ?: return emptyList()
-        return absoluteLabels(window.start / unitMeters, window.end / unitMeters, step).map { (valeur, texte) ->
-            left + ((valeur * unitMeters - window.start) / span * usable).toFloat() to texte
+        val decalage = model.decalageCompteur
+        return absoluteLabels((window.start + decalage) / unitMeters, (window.end + decalage) / unitMeters, step).map { (valeur, texte) ->
+            left + ((valeur * unitMeters - decalage - window.start) / span * usable).toFloat() to texte
         }
     }
 
@@ -973,10 +1038,11 @@ object ProfileRenderer {
     private const val MAX_PROFILE_SEGMENTS = 16
 
     /**
-     * La bande de la portion détaillée : le jaune de l'itinéraire, pâli et voilé, pour qu'il ne
-     * rivalise pas avec le trait de position, franc.
+     * La bande de la portion détaillée : un gris clair voilé. Elle a été jaune pâle, et se
+     * confondait en roulant avec le trait de position et le jaune de pente : un repère
+     * d'échelle ne doit pas porter une couleur qui a déjà un sens sur le bandeau.
      */
-    private const val DETAIL_BAND = 0xD9FFF3A0.toInt()
+    private const val DETAIL_BAND = 0x59D8DCE0
 
 
     /**

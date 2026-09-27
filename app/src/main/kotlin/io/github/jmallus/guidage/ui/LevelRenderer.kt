@@ -202,16 +202,48 @@ object LevelRenderer {
      */
     private fun disposerCoteACote(model: LevelFieldModel, largeur: Float, place: Float, plancher: Float): CoteACote {
         var corps = place * VALUE_FRACTION
-        var mesure = CoteACote(corps, corps * REFERENCE_RATIO, null)
+        var mesure = mesurerCoteACote(model, corps, REFERENCE_RATIO, plancher)
         repeat(4) {
-            val reference = max(corps * REFERENCE_RATIO, plancher)
-            val libelle = model.referenceLabel?.let { max(reference * REFERENCE_LABEL_RATIO, plancher) }
-            mesure = CoteACote(corps, reference, libelle)
+            mesure = mesurerCoteACote(model, corps, REFERENCE_RATIO, plancher)
             val bloc = largeurCoteACote(model, mesure)
-            if (bloc <= largeur || bloc <= 0f) return mesure
+            if (bloc <= largeur || bloc <= 0f) return agrandirReference(model, mesure, largeur, place, plancher)
             corps *= largeur / bloc
         }
         return mesure
+    }
+
+    private fun mesurerCoteACote(model: LevelFieldModel, corps: Float, ratio: Float, plancher: Float): CoteACote {
+        val reference = max(corps * ratio, plancher)
+        val libelle = model.referenceLabel?.let { max(reference * REFERENCE_LABEL_RATIO, plancher) }
+        return CoteACote(corps, reference, libelle)
+    }
+
+    /**
+     * La référence grandit dans la place qui reste, jusqu'à près des trois quarts du chiffre.
+     *
+     * Elle était tenue à un peu plus de deux cinquièmes du grand chiffre, et donc au plancher
+     * sur les cases basses d'une vraie page — « COUCHER 19:27 », « À L'ARRIVÉE 52 % » à peine
+     * lisibles en roulant, alors qu'une case pleine largeur laissait vide la moitié de sa
+     * largeur. Le grand chiffre, lui, garde sa taille : c'est la place restante qu'elle prend.
+     */
+    private fun agrandirReference(
+        model: LevelFieldModel,
+        base: CoteACote,
+        largeur: Float,
+        place: Float,
+        plancher: Float,
+    ): CoteACote {
+        if (model.referenceValue == null) return base
+        var ratio = REFERENCE_MAX_RATIO
+        while (ratio > REFERENCE_RATIO) {
+            val m = mesurerCoteACote(model, base.corpsValeur, ratio, plancher)
+            // Le libellé se pose au-dessus de la valeur : les deux doivent tenir sous le titre.
+            val hauteur = m.corpsReference * 1.05f + (m.corpsReferenceLibelle ?: 0f) * CAPITALE_CHIFFRES
+            // Un blanc reste sous le titre : collé à lui, le libellé se lisait comme sa suite.
+            if (largeurCoteACote(model, m) <= largeur && hauteur <= place * REFERENCE_MAX_HEIGHT) return m
+            ratio -= 0.02f
+        }
+        return base
     }
 
     private fun largeurCoteACote(model: LevelFieldModel, m: CoteACote): Float {
@@ -377,17 +409,17 @@ object LevelRenderer {
     /** Le titre et la ligne du bas plafonnent à 1,3 mm de capitale : ils nomment, ils ne se lisent pas de loin. */
     private val CORPS_TITRE_MAX = Lisibilite.corpsPourCapitale(1.3f)
 
-    /** La référence empilée plafonne à 2 mm : c'est une glose, elle ne doit pas rivaliser avec le chiffre. */
-    private val CORPS_REFERENCE_MAX = Lisibilite.corpsPourCapitale(2.0f)
+    /** La référence empilée plafonne à 2,8 mm : assez pour se lire en roulant, pas assez pour rivaliser avec le chiffre. */
+    private val CORPS_REFERENCE_MAX = Lisibilite.corpsPourCapitale(2.8f)
 
     /** Le libellé de la référence côte à côte, en part de son corps. */
-    private const val REFERENCE_LABEL_RATIO = 0.62f
+    private const val REFERENCE_LABEL_RATIO = 0.72f
 
     /**
      * L'empilé : part de la hauteur donnée à la ligne de référence, libellé de celle-ci en part
      * de son corps, hauteur de ligne en corps, et part du reste donnée au grand chiffre.
      */
-    private const val STACKED_REFERENCE_FRACTION = 0.2f
+    private const val STACKED_REFERENCE_FRACTION = 0.28f
     private const val STACKED_LABEL_RATIO = 0.8f
     private const val STACKED_LINE_RATIO = 1.35f
     private const val STACKED_VALUE_FRACTION = 0.95f
@@ -410,7 +442,13 @@ object LevelRenderer {
 
     /** Tailles de l'unité et de la référence, en part de celle du grand chiffre. */
     private const val UNIT_RATIO = 0.46f
-    private const val REFERENCE_RATIO = 0.44f
+    private const val REFERENCE_RATIO = 0.5f
+
+    /** Ce que la référence peut atteindre, en part du grand chiffre, quand la place le permet. */
+    private const val REFERENCE_MAX_RATIO = 0.72f
+
+    /** La part de la hauteur du bloc que la référence et son libellé peuvent occuper. */
+    private const val REFERENCE_MAX_HEIGHT = 0.74f
 
     /** Blanc entre le grand chiffre et sa référence, en part du corps du premier. */
     private const val GAP_RATIO = 0.34f

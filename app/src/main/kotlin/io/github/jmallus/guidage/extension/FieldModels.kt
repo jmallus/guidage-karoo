@@ -49,6 +49,15 @@ object FieldModels {
          * n'y voyait plus rien monter.
          */
         zoom: GraphZoom? = null,
+        /**
+         * La distance au compteur du coureur (m), quand elle est connue.
+         *
+         * L'axe et l'étiquette du bandeau comptaient la distance le long de l'itinéraire, qui
+         * ignore les détours : relevé sur une sortie de 117 km pour 113 prévus, l'axe finissait
+         * à 113. Le coureur lit pourtant ces kilomètres contre son compteur ; ils sont donc
+         * décalés de l'écart entre les deux.
+         */
+        compteur: Double? = null,
     ): ProfileFieldModel {
         val state = substituted(snapshot, preview)
         val route = state.route
@@ -64,6 +73,11 @@ object FieldModels {
 
         // La position est arrondie pour éviter de redessiner à chaque mètre parcouru.
         val quantized = (along / POSITION_STEP_METERS).toInt() * POSITION_STEP_METERS
+        // Arrondi de même, pour ne pas redessiner à chaque mètre de dérive entre les deux.
+        val decalage = compteur
+            ?.let { ((it - along) / POSITION_STEP_METERS).toInt() * POSITION_STEP_METERS }
+            ?.takeIf { !preview }
+            ?: 0.0
         // La fenêtre commence un peu avant le coureur : sa marque était collée au bord gauche,
         // où elle se confondait avec le cadre — on ne savait plus si la silhouette commençait
         // sous les roues ou si elle était coupée. Sous l'échelle comprimée, ces cent vingt
@@ -111,6 +125,10 @@ object FieldModels {
             }
         }
 
+        // Hors trace, la portion contournée par le chemin rouge ne se roule pas : le rendu la
+        // masque. Le simulateur et l'appareil la tirent du même chemin de rejointe.
+        val rejointe = Guidance.rejointe(route, quantized)
+
         val depart = (quantized - RECUL_METERS).coerceAtLeast(0.0)
         val window = if (portee == null) {
             Guidance.profileToFinish(route, depart)
@@ -135,7 +153,10 @@ object FieldModels {
             ascentLabel = if (bandeau) null else ascent?.let { "+${Format.elevation(it, units)}" },
             rangeLabel = if (bandeau) null else restant?.let { Format.longDistance(it, units) },
             positionDistance = quantized,
-            positionLabel = if (bandeau) Format.longDistanceValue(quantized, units) else null,
+            positionLabel = if (bandeau) Format.longDistanceValue(quantized + decalage, units) else null,
+            decalageCompteur = if (bandeau) decalage else 0.0,
+            rejointe = rejointe,
+            rejointeLabel = rejointe?.let { "rejointe · ${Format.distance(it.longueur, units)}" },
             emptyMessage = context.getString(R.string.field_no_route),
             compressed = portee == null,
             units = units,
