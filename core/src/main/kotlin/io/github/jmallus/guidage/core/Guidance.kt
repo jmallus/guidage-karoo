@@ -6,6 +6,12 @@ package io.github.jmallus.guidage.core
  * Toutes les fonctions sont pures : elles ne dépendent que de l'itinéraire et de la
  * distance parcourue le long de celui-ci.
  */
+/**
+ * Un reroutage vu depuis la trace : la portion contournée, de [debut] à [fin] (m depuis le
+ * départ de l'itinéraire), et la [longueur] du chemin rouge qui la remplace (m).
+ */
+data class Rejointe(val debut: Double, val fin: Double, val longueur: Double)
+
 object Guidance {
 
     /** Tolérance (m) pour considérer qu'on est encore dans la côte à son sommet. */
@@ -183,4 +189,30 @@ object Guidance {
      * l'amplitude réelle dépasse ce plancher et rien ne change.
      */
     const val MIN_ELEVATION_SPAN = 80.0
+
+    /**
+     * La portion de l'itinéraire que le chemin de rejointe contourne : du coureur jusqu'au
+     * point où le chemin rouge retrouve la trace (m depuis le départ), ou null hors reroutage.
+     *
+     * Le Karoo donne le tracé de la rejointe et non son relief. Sur le profil, la portion
+     * contournée montrait donc le relief de la trace d'origine, qu'on ne roule pas : c'est elle
+     * qu'il faut masquer. La fin se cherche près de la position plus la longueur du détour —
+     * sur une boucle, le point le plus proche peut être un autre passage.
+     */
+    fun rejointe(route: Route, along: Double): Rejointe? {
+        val chemin = route.rejoinPath
+        if (chemin.size < 2 || route.path.size < 2) return null
+        val longueur = chemin.zipWithNext { a, b -> Geo.distance(a, b) }.sum()
+        val retour = Geo.anchorOnPath(route.path, chemin.last(), expectedAlong = along + longueur, tolerance = REJOINTE_TOLERANCE)
+            ?: return null
+        if (retour.deviation > REJOINTE_ECART_MAX) return null
+        val fin = retour.distanceAlongPath.coerceAtMost(route.totalDistance)
+        return if (fin > along) Rejointe(along, fin, longueur) else null
+    }
+
+    /** Écart admis entre la fin du chemin de rejointe et la trace (m). */
+    private const val REJOINTE_ECART_MAX = 60.0
+
+    /** Tolérance entre deux passages candidats, pour départager par la distance attendue (m). */
+    private const val REJOINTE_TOLERANCE = 30.0
 }

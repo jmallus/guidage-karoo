@@ -190,4 +190,21 @@ class GuidanceTest {
         assertEquals(9_000.0, window.start, 1e-6)
         assertEquals(10_000.0, window.end, 1e-6)
     }
+
+    @Test
+    fun `la rejointe va du coureur au point ou le chemin rouge retrouve la trace`() {
+        // Une trace plein nord de 5 km ; le chemin de rejointe part du coureur à 1 km,
+        // s'écarte à l'est et revient sur la trace à 2 km.
+        val nord = { m: Double -> GeoPoint(45.0 + m / 111_195.0, 5.0) }
+        val trace = (0..50).map { nord(it * 100.0) }
+        val route = Route(name = "", totalDistance = 5_000.0, profile = null, climbs = emptyList(), pois = emptyList(), path = trace,
+            rejoinPath = listOf(nord(1_000.0), GeoPoint(45.0 + 1_500.0 / 111_195.0, 5.004), nord(2_000.0)))
+        val r = Guidance.rejointe(route, 1_000.0)!!
+        assertEquals(1_000.0, r.debut, 1e-6)
+        // À vingt mètres près : le montage convertit les mètres en degrés plus grossièrement que Geo.
+        assertEquals(2_000.0, r.fin, 20.0)
+        assertTrue("le détour est plus long que la portion contournée : ${r.longueur}", r.longueur > 1_000.0)
+
+        assertNull(Guidance.rejointe(route.copy(rejoinPath = emptyList()), 1_000.0))
+    }
 }

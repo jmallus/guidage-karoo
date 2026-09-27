@@ -5,12 +5,15 @@ import android.graphics.Canvas
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.graphics.Typeface
 import io.github.jmallus.guidage.core.FisheyeScale
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.ProfilePoint
 import io.github.jmallus.guidage.core.ProfileWindow
+import io.github.jmallus.guidage.core.Rejointe
 import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
 import io.github.jmallus.guidage.core.Units
@@ -78,6 +81,13 @@ data class ProfileFieldModel(
      * les kilomètres de l'axe à échelle régulière sont ceux du compteur, détours compris.
      */
     val decalageCompteur: Double = 0.0,
+    /**
+     * La portion de trace contournée par un reroutage, et la longueur du détour qui la
+     * remplace. Son relief est celui d'une route qu'on ne roule pas : elle est masquée.
+     */
+    val rejointe: Rejointe? = null,
+    /** « rejointe · 1,2 km », écrit au-dessus de la portion masquée. */
+    val rejointeLabel: String? = null,
 )
 
 /**
@@ -194,6 +204,7 @@ object ProfileRenderer {
             drawClimbMarkers(canvas, model, scale, left, top, right, bottom, labelSize, palette)
         }
         drawPoiMarkers(canvas, model, scale, left, top, right, bottom)
+        if (model.climbZoom == null) model.rejointe?.let { drawRejointe(canvas, model, it, scale, left, top, right, bottom, labelSize) }
         val cote = model.climbZoom
         if (cote != null) {
             // Dans une côte, la ligne sous le profil porte la pente de chaque tronçon plutôt que
@@ -564,6 +575,46 @@ object ProfileRenderer {
         fun x(distance: Double) =
             (left + scale.fractionAt(distance - window.start) * (right - left)).toFloat().coerceIn(left, right)
         canvas.drawRect(x(detail.start), top, x(detail.endInclusive), bottom, Paint().apply { color = DETAIL_BAND })
+    }
+
+    /**
+     * Le détour d'un reroutage : la portion de trace contournée est effacée — son relief est
+     * celui d'une route qu'on ne roule pas —, et remplacée par un trait rouge en pointillés, à
+     * plat, à l'altitude où la trace reprend. Le Karoo donne le tracé du chemin rouge et non
+     * son relief : le dessiner plat dit « inconnu », là où recopier la trace mentait.
+     */
+    private fun drawRejointe(
+        canvas: Canvas,
+        model: ProfileFieldModel,
+        rejointe: Rejointe,
+        scale: FisheyeScale,
+        left: Float,
+        top: Float,
+        right: Float,
+        bottom: Float,
+        labelSize: Float,
+    ) {
+        val window = model.window
+        val span = window.elevationSpan.takeIf { it > 0 } ?: return
+        fun x(d: Double) = (left + scale.fractionAt(d - window.start) * (right - left)).toFloat().coerceIn(left, right)
+        val xa = x(max(rejointe.debut, window.start))
+        val xb = x(min(rejointe.fin, window.end))
+        if (xb - xa < 2f) return
+        val reprise = interpolate(window.points, rejointe.fin)
+        val y = (bottom - ((reprise - window.minElevation) / span * (bottom - top)).toFloat()).coerceIn(top, bottom - 1f)
+
+        canvas.drawRect(xa, top - CREST_WIDTH, xb, bottom + 1f, Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) })
+        canvas.drawLine(xa, y, xb, y, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = FieldPalette.REJOIN
+            strokeWidth = CREST_WIDTH
+            style = Paint.Style.STROKE
+            pathEffect = DashPathEffect(floatArrayOf(10f, 7f), 0f)
+        })
+        val texte = model.rejointeLabel ?: return
+        val pinceau = Lisibilite.pinceau(max(labelSize * 0.8f, Lisibilite.corpsPourCapitale()), FieldPalette.REJOIN)
+            .apply { textAlign = Paint.Align.CENTER }
+        if (pinceau.measureText(texte) > xb - xa) return
+        canvas.drawText(texte, (xa + xb) / 2f, y - labelSize * 0.5f, pinceau)
     }
 
     private fun crestPaint(color: Int, width: Float) = Paint(Paint.ANTI_ALIAS_FLAG).apply {

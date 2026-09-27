@@ -125,6 +125,10 @@ object FieldModels {
             }
         }
 
+        // Hors trace, la portion contournée par le chemin rouge ne se roule pas : le rendu la
+        // masque. Le simulateur et l'appareil la tirent du même chemin de rejointe.
+        val rejointe = Guidance.rejointe(route, quantized)
+
         val depart = (quantized - RECUL_METERS).coerceAtLeast(0.0)
         val window = if (portee == null) {
             Guidance.profileToFinish(route, depart)
@@ -151,6 +155,8 @@ object FieldModels {
             positionDistance = quantized,
             positionLabel = if (bandeau) Format.longDistanceValue(quantized + decalage, units) else null,
             decalageCompteur = if (bandeau) decalage else 0.0,
+            rejointe = rejointe,
+            rejointeLabel = rejointe?.let { "rejointe · ${Format.distance(it.longueur, units)}" },
             emptyMessage = context.getString(R.string.field_no_route),
             compressed = portee == null,
             units = units,
