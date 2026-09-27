@@ -504,8 +504,8 @@ object ProfileRenderer {
         tickSize: Float,
     ) {
         val etendue = (detail.endInclusive - detail.start).takeIf { it > 0.0 } ?: return
-        fun x(distance: Double) =
-            (left + (distance - detail.start) / etendue * (right - left)).toFloat().coerceIn(left, right)
+        // Sans butée : une case qui sort à gauche garde sa vraie position, et son chiffre avec.
+        fun x(distance: Double) = (left + (distance - detail.start) / etendue * (right - left)).toFloat()
         val haut = bottom + GRADE_TILE_GAP
         val bas = bottom + tickSize * GRADE_TILE_HEIGHT
         val fond = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
@@ -522,19 +522,27 @@ object ProfileRenderer {
             .coerceIn(Lisibilite.corpsPourCapitale(), (bas - haut) * 0.8f)
         val text = Lisibilite.pinceau(corps, GRADE_TILE_INK).apply { textAlign = Paint.Align.CENTER }
         val ligne = (haut + bas) / 2f - (text.descent() + text.ascent()) / 2f
+        // La rangée est coupée aux bords du bandeau, et chaque case y est posée à sa vraie place,
+        // chiffre compris : celle qui sort à gauche glisse hors de l'écran avec sa pente, au lieu
+        // de la perdre d'un coup dès qu'elle n'était plus entière — c'était le cas quand le
+        // chiffre se centrait sur la part visible et disparaissait faute de place.
+        canvas.save()
+        canvas.clipRect(left, haut - GRADE_TILE_BORDER, right, bas + GRADE_TILE_BORDER)
         troncons.forEach { troncon ->
             val xa = x(troncon.debut)
             val xb = x(troncon.fin)
-            if (xb - xa < 1f) return@forEach
+            if (xb <= left || xa >= right || xb - xa < 1f) return@forEach
             val case = RectF(xa, haut, xb, bas)
             fond.color = climbColor(troncon.pente)
             canvas.drawRect(case, fond)
             canvas.drawRect(case, bord)
             val chiffre = String.format(Locale.getDefault(), "%.1f", troncon.pente)
+            // Le test se fait sur la case entière, non sur sa part visible.
             if (text.measureText(chiffre) + corps * GRADE_LABEL_MARGIN > xb - xa) return@forEach
             text.color = climbInk(troncon.pente)
             canvas.drawText(chiffre, (xa + xb) / 2f, ligne, text)
         }
+        canvas.restore()
     }
 
     /** La bande jaune pâle de la portion détaillée, du haut du profil à son pied. */
@@ -973,10 +981,11 @@ object ProfileRenderer {
     private const val MAX_PROFILE_SEGMENTS = 16
 
     /**
-     * La bande de la portion détaillée : le jaune de l'itinéraire, pâli et voilé, pour qu'il ne
-     * rivalise pas avec le trait de position, franc.
+     * La bande de la portion détaillée : un gris clair voilé. Elle a été jaune pâle, et se
+     * confondait en roulant avec le trait de position et le jaune de pente : un repère
+     * d'échelle ne doit pas porter une couleur qui a déjà un sens sur le bandeau.
      */
-    private const val DETAIL_BAND = 0xD9FFF3A0.toInt()
+    private const val DETAIL_BAND = 0x59D8DCE0
 
 
     /**
