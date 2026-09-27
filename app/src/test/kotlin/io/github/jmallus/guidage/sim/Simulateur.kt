@@ -158,7 +158,7 @@ class Simulateur(
         val maintenant = departMillis + (secondes * 1_000).toLong()
         val etat = GuidanceState(
             route = PreviewData.route.copy(rejoinPath = rejointe(instant)),
-            distanceAlongRoute = instant.distance,
+            distanceAlongRoute = instant.distance + ecartTrace,
             distanceRemaining = instant.distanceRestante,
             currentGrade = instant.pente,
         )
@@ -324,6 +324,13 @@ class Simulateur(
      * la distance le long de la trace, comme après un détour.
      */
     var detourMetres: Double = 0.0
+
+    /**
+     * L'écart entre la distance le long de l'itinéraire annoncée par le Karoo et celle du tracé
+     * géométrique (m). Sur l'appareil, les deux divergent au fil de la sortie — le tracé décodé
+     * n'a pas tout à fait la longueur annoncée — ; la sortie fictive, elle, les a égales.
+     */
+    var ecartTrace: Double = 0.0
 
     fun image(
         secondes: Double,

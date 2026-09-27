@@ -167,7 +167,7 @@ object DashboardModels {
             path = route?.path.orEmpty(),
             distanceAlongRoute = state.distanceAlongRoute,
             rejoinPath = route?.rejoinPath.orEmpty(),
-            trailPaths = trailPaths(route, state.distanceAlongRoute, roads, portee.rangeMeters),
+            trailPaths = trailPaths(route, surTrace(route, position, state.distanceAlongRoute), roads, portee.rangeMeters),
             position = position,
             heading = location?.heading,
             pois = route?.pois.orEmpty().mapNotNull { poi ->
@@ -196,6 +196,21 @@ object DashboardModels {
      * passage. Sur une carte à trois cents mètres de portée, ce seuil effacerait la moitié
      * de ce qu'on regarde.
      */
+    /**
+     * Où se tient le coureur sur le tracé géométrique, en mètres depuis son départ.
+     *
+     * La distance le long de l'itinéraire que publie le Karoo n'est pas celle du tracé décodé :
+     * sa longueur diffère un peu de celle annoncée, et l'écart grandit au fil de la sortie. La
+     * reporter telle quelle sur le tracé posait les rayures de chemin des centaines de mètres
+     * devant le coureur, et hors de la zone de fond de carte chargée autour de lui : elles
+     * apparaissaient et disparaissaient. On l'accroche donc sur le tracé, comme la carte le fait
+     * pour sa marque ; la distance du Karoo ne sert qu'à départager deux passages sur une boucle.
+     */
+    private fun surTrace(route: Route?, position: GeoPoint?, along: Double?): Double? {
+        if (route == null || position == null || route.path.size < 2) return along
+        return Geo.anchorOnPath(route.path, position, along, TRAIL_ANCHOR_TOLERANCE_METERS)?.distanceAlongPath ?: along
+    }
+
     private fun trailPaths(
         route: Route?,
         along: Double?,
@@ -369,6 +384,9 @@ object DashboardModels {
 
     /** Part de la portée regardée en arrière du coureur pour les rayures de chemin. */
     private const val TRAIL_BEHIND_FRACTION = 0.5
+
+    /** Écart en deçà duquel deux passages du tracé se départagent par la distance du Karoo (m). */
+    private const val TRAIL_ANCHOR_TOLERANCE_METERS = 25.0
 
     /** Longueur en deçà de laquelle une portion de chemin est absorbée par sa voisine (m). */
     private const val TRAIL_MIN_RUN_METERS = 60.0
