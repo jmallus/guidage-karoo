@@ -24,7 +24,6 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.GeoPoint
-import io.github.jmallus.guidage.core.ZoomVirage
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.RideData
@@ -82,9 +81,6 @@ class DashboardDataType(
             // le disque, et startView s'exécute sur le fil qui sert le système.
             FieldReportStore(context).record(TYPE_ID, config)
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
-            // Un par champ ouvert, et pour toute sa vie : il se souvient du virage à peine passé.
-            val virage = ZoomVirage()
-
             combine(
                 guidanceProvider.snapshot,
                 if (config.preview) previewRide() else rideDataProvider.data,
@@ -97,7 +93,6 @@ class DashboardDataType(
                     settings = settings,
                     preview = config.preview && !snapshot.state.navigating,
                     roadSource = roadSource,
-                    virage = virage,
                 )
             }
                 .distinctUntilChanged()

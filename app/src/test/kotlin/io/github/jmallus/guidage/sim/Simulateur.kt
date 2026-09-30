@@ -15,7 +15,6 @@ import io.github.jmallus.guidage.core.Pacing
 import io.github.jmallus.guidage.core.RideLevel
 import io.github.jmallus.guidage.core.Sun
 import io.github.jmallus.guidage.core.Units
-import io.github.jmallus.guidage.core.ZoomVirage
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.DashboardModels
@@ -233,7 +232,6 @@ class Simulateur(
             grade = instant.pente,
             distance = instant.distance + detourMetres,
             distanceRemaining = instant.distanceRestante,
-            distanceToNextTurn = distanceAuVirage,
             arrivalTime = arrivee(instant, maintenant),
             drivetrain = instant.transmission,
             onRoute = !horsItineraire,
@@ -306,18 +304,8 @@ class Simulateur(
             preview = false,
             roadSource = source,
             nowMillis = maintenant,
-            virage = virage,
         )
     }
-
-    /**
-     * La distance au prochain virage, telle que le Karoo la publierait (m), ou null.
-     *
-     * La sortie fictive n'a pas de consignes de navigation : on la pose à la main pour voir
-     * le gros plan des virages, que la carte prend à cent cinquante mètres d'une bifurcation.
-     */
-    var distanceAuVirage: Double? = null
-    private val virage = ZoomVirage()
 
     /**
      * Ce que le coureur a roulé hors de l'itinéraire (m) : son compteur avance d'autant sur
