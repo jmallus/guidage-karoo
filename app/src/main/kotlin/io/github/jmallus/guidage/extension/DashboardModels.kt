@@ -15,7 +15,6 @@ import io.github.jmallus.guidage.core.SurfaceClass
 import io.github.jmallus.guidage.core.Surfaces
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.Zones
-import io.github.jmallus.guidage.core.ZoomVirage
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
@@ -72,11 +71,6 @@ object DashboardModels {
         preview: Boolean,
         roadSource: RoadSource,
         nowMillis: Long = System.currentTimeMillis(),
-        /**
-         * Le gros plan des virages, qui se souvient d'un virage à peine passé. Il doit vivre
-         * aussi longtemps que le champ : un neuf à chaque image oublierait le virage aussitôt.
-         */
-        virage: ZoomVirage? = null,
     ): DashboardModel {
         val state = if (preview) {
             GuidanceState(PreviewData.route, PreviewData.DISTANCE_ALONG_ROUTE, null, null)
@@ -90,8 +84,7 @@ object DashboardModels {
                 GuidanceZoneType.MAP -> GuidanceZone.Map(
                     mapModel(
                         context, snapshot, state, preview, rideData,
-                        virage?.portee(settings.mapZoom, rideData.distanceToNextTurn, rideData.distance)
-                            ?: PorteeCarte.of(settings.mapZoom),
+                        PorteeCarte.of(settings.mapZoom),
                         roadSource, nowMillis,
                     ),
                 )
