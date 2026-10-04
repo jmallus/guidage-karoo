@@ -25,7 +25,7 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 | --- | --- | --- |
 | **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. Les kilomètres du profil sont ceux du **compteur**, détours compris ; en **reroutage**, la portion de trace contournée y est masquée par un trait rouge. **Dans une côte**, le profil du bas passe en mode Climber, comme sur le Karoo : la côte entière du pied au sommet, aux couleurs de pente du Karoo, la part montée hachurée ; dessous, six cases donnent la pente des 600 m qui viennent, tronçon de 100 m par tronçon de 100 m, et une bande jaune pâle montre sur le profil la portion qu'elles détaillent. En tête, en blanc, la distance et le dénivelé jusqu'au sommet et le rang de la côte (« 2/3 »). Il revient à sa portée une fois le sommet passé. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Silhouette au jaune du Karoo, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
-| **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. |
+| **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. Les points d'intérêt que le Karoo annonce lui-même en bas d'écran, hors itinéraire, sont aussi posés sur le profil quand ils bordent la trace (250 m au plus). |
 
 S'y ajoutent **dix cases de bilan**, décrites plus bas : elles tiennent dans une case
 ordinaire, là où les précédents demandent une bande ou une page entière.
@@ -47,7 +47,7 @@ voyagent ensemble, et la case dit en plus ce que leur voisinage veut dire.
 | **FC moyenne** | fréquence moyenne | maximum de la sortie | aplat de la couleur de la zone où tombe la moyenne |
 | **Puissance moyenne** | moyenne | normalisée | le mot que leur écart forme : lisse, roulante ou hachée |
 | **Arrivée** | heure estimée | coucher du soleil | aplat vert, jaune ou rouge, et la marge en toutes lettres |
-| **Dénivelé** | déjà monté | restant | une barre qui montre la part faite |
+| **Dénivelé** | déjà monté | restant (celui du Karoo, ou celui du profil de l'itinéraire quand le Karoo répond zéro) | une barre qui montre la part faite |
 | **Intensité** | facteur d'intensité | TSS | le mot qui les nomme, coloré selon le niveau |
 | **Zones** | zone dominante | temps qu'on y a passé | la barre empilée des cinq zones, dans leur ordre |
 | **Réserve W′** | part restante | kilojoules | une jauge qui se vide, et la puissance critique retenue |

@@ -91,6 +91,24 @@ class ProfileRendererTest {
         }
 
     @Test
+    fun `sous les cases le profil prend leurs troncons de cent metres`() {
+        // Une côte de 3 km : 2 km à 4 %, puis 1 km à 9 %.
+        val profil = listOf(ProfilePoint(0.0, 0.0), ProfilePoint(2_000.0, 80.0), ProfilePoint(3_000.0, 170.0))
+        val cote = RouteClimb(0.0, 3_000.0, 5.7, 170.0)
+        val troncons = ProfileRenderer.tronconsDuProfil(cote, profil, 500.0, 1_800.0..2_400.0)
+
+        // Les cases couvrent 1 800 à 2 400 : la même découpe et les mêmes pentes qu'elles.
+        val detailles = troncons.filter { it.debut >= 1_800.0 && it.fin <= 2_400.0 }
+        assertEquals(6, detailles.size)
+        assertEquals(4.0, detailles.first().pente, 0.01)
+        assertEquals(9.0, detailles.last().pente, 0.01)
+        // Ailleurs, les tronçons longs, et rien ne manque ni ne se recouvre.
+        assertEquals(0.0, troncons.first().debut, 0.0)
+        assertEquals(3_000.0, troncons.last().fin, 0.0)
+        troncons.zipWithNext { a, b -> assertEquals(a.fin, b.debut, 0.001) }
+    }
+
+    @Test
     fun `une cote se decoupe par cent metres depuis son pied`() {
         val profil = listOf(ProfilePoint(0.0, 100.0), ProfilePoint(10_000.0, 700.0))
         val col = ProfileRenderer.troncons(RouteClimb(1_000.0, 6_530.0, 6.0, 390.0), profil)

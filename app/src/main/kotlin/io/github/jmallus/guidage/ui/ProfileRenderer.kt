@@ -329,7 +329,7 @@ object ProfileRenderer {
         val cote = model.climbZoom
         if (cote != null) {
             // Pas de crête : le Climber du Karoo n'en trace pas, la limite des aplats la dessine.
-            drawGradeFill(canvas, window, cote, scale, xs, ys, first, left, right, bottom, positionX)
+            drawGradeFill(canvas, window, cote, model.climbDetail, scale, xs, ys, first, left, right, bottom, positionX)
         } else {
             val aplat = Path(devant).apply {
                 lineTo(xs[columns - 1], bottom)
@@ -370,6 +370,7 @@ object ProfileRenderer {
         canvas: Canvas,
         window: ProfileWindow,
         climb: RouteClimb,
+        detail: ClosedFloatingPointRange<Double>?,
         scale: FisheyeScale,
         xs: FloatArray,
         ys: FloatArray,
@@ -397,7 +398,7 @@ object ProfileRenderer {
         // Les tronçons voisins de même couleur ne font qu'un aplat : peints un à un, ils
         // laissaient entre eux la couture d'un pixel que l'anticrénelage dessine au bord de
         // chaque forme, et le profil se lisait rayé de traits verticaux.
-        val aplats = troncons(climb, window.points, pas).fold(mutableListOf<Troncon>()) { acc, t ->
+        val aplats = tronconsDuProfil(climb, window.points, pas, detail).fold(mutableListOf<Troncon>()) { acc, t ->
             val dernier = acc.lastOrNull()
             if (dernier != null && climbColor(dernier.pente) == climbColor(t.pente)) {
                 acc[acc.lastIndex] = Troncon(dernier.debut, t.fin, t.pente)
@@ -437,6 +438,40 @@ object ProfileRenderer {
             canvas.drawPath(troncon, paint)
             canvas.restore()
         }
+    }
+
+    /**
+     * Les tronçons qui colorent le profil d'une côte : longs sur la côte entière, de cent mètres
+     * sur la portion que détaillent les cases.
+     *
+     * Sur le vélo, le profil d'un col se peignait par tronçons de cinq cents mètres et les cases
+     * dessous par cent mètres : une case à 8,0 se trouvait sous un aplat jaune à 6 %, et les deux
+     * se contredisaient. Sous la bande pâle des cases, le profil prend donc leurs tronçons à
+     * elles, et leurs couleurs ; au-delà, il garde les siens, pour ne pas redevenir mosaïque.
+     */
+    internal fun tronconsDuProfil(
+        climb: RouteClimb,
+        points: List<ProfilePoint>,
+        pas: Double,
+        detail: ClosedFloatingPointRange<Double>?,
+    ): List<Troncon> {
+        val larges = troncons(climb, points, pas)
+        if (detail == null || pas <= GRADE_SEGMENT_METERS) return larges
+        val fins = troncons(climb, points, GRADE_SEGMENT_METERS)
+            .filter { it.fin > detail.start && it.debut < detail.endInclusive }
+        if (fins.isEmpty()) return larges
+        val a = fins.first().debut
+        val b = fins.last().fin
+        val dehors = larges.flatMap { t ->
+            when {
+                t.fin <= a || t.debut >= b -> listOf(t)
+                else -> listOfNotNull(
+                    Troncon(t.debut, a, t.pente).takeIf { t.debut < a },
+                    Troncon(b, t.fin, t.pente).takeIf { t.fin > b },
+                )
+            }
+        }
+        return (dehors + fins).sortedBy { it.debut }
     }
 
     /** Un tronçon de côte : où il commence et finit, depuis le départ (m), et sa pente (%). */
@@ -553,10 +588,19 @@ object ProfileRenderer {
             canvas.drawRect(case, fond)
             canvas.drawRect(case, bord)
             val chiffre = String.format(Locale.getDefault(), "%.1f", troncon.pente)
-            // Le test se fait sur la case entière, non sur sa part visible.
-            if (text.measureText(chiffre) + corps * GRADE_LABEL_MARGIN > xb - xa) return@forEach
+            // Le test se fait sur la case entière, non sur sa part visible. Une case trop étroite
+            // pour le corps commun — le dernier tronçon d'une côte, souvent plus court que cent
+            // mètres — écrit sa pente plus petit, jusqu'au plancher de lisibilité, au lieu de
+            // rester vide : une case sans chiffre a été prise pour une panne.
+            val largeurUtile = xb - xa - corps * GRADE_LABEL_MARGIN
+            val largeurChiffre = text.measureText(chiffre)
+            val reduction = if (largeurChiffre > largeurUtile && largeurChiffre > 0f) largeurUtile / largeurChiffre else 1f
+            val corpsCase = max(corps * reduction, min(corps, Lisibilite.corpsPourCapitale()))
+            text.textSize = corpsCase
             text.color = climbInk(troncon.pente)
-            canvas.drawText(chiffre, (xa + xb) / 2f, ligne, text)
+            val ligneCase = if (corpsCase == corps) ligne else (haut + bas) / 2f - (text.descent() + text.ascent()) / 2f
+            canvas.drawText(chiffre, (xa + xb) / 2f, ligneCase, text)
+            text.textSize = corps
         }
         canvas.restore()
     }

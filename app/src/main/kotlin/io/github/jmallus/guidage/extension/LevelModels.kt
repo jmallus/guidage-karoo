@@ -265,7 +265,7 @@ object LevelModels {
     private fun denivele(context: Context, snapshot: GuidanceSnapshot, data: RideData): LevelFieldModel {
         val level = data.level
         val monte = level.elevationGain
-        val restant = level.elevationRemaining
+        val restant = restantJusquALArrivee(level.elevationRemaining, snapshot.state)
         val units = snapshot.units
         val total = (monte ?: 0.0) + (restant ?: 0.0)
         return LevelFieldModel(
@@ -284,6 +284,26 @@ object LevelModels {
             emptyMessage = if (monte == null) context.getString(R.string.field_level_no_ascent) else null,
         )
     }
+
+    /**
+     * Le dénivelé restant : celui du Karoo, sauf quand il dit zéro alors que le profil monte.
+     *
+     * Sur le vélo, le Karoo a publié « 0 m » toute une sortie de 608 m de montée, itinéraire
+     * chargé : son `ELEVATION_REMAINING` ne se calcule pas pour tous les parcours. Le profil
+     * de l'itinéraire, lui, est là — c'est celui qu'on dessine. Quand le Karoo répond zéro ou
+     * rien et que le profil compte encore plus de [RESTANT_MINI_METRES] de montée devant le
+     * coureur, c'est le profil qui parle. Le reste du temps, le chiffre du Karoo prime.
+     */
+    internal fun restantJusquALArrivee(duKaroo: Double?, state: GuidanceState): Double? {
+        if (duKaroo != null && duKaroo > 0.0) return duKaroo
+        val profil = state.route?.profile ?: return duKaroo
+        val ici = state.distanceAlongRoute ?: return duKaroo
+        val parProfil = profil.ascentBetween(ici, profil.totalDistance)
+        return if (parProfil > RESTANT_MINI_METRES) parProfil else duKaroo
+    }
+
+    /** En deçà, la montée lue sur le profil tient du bruit d'altitude, pas d'une côte. */
+    private const val RESTANT_MINI_METRES = 5.0
 
     /**
      * L'intensité : le facteur, la charge, et le mot qui les nomme.

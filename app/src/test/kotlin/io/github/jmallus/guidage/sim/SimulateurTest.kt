@@ -292,6 +292,12 @@ class SimulateurTest {
             pixelsDeCouleurDePente(dansLeCol) > 500,
         )
         ecrire(dansLeCol, File(dossier, "carte-cote.png"))
+        // Près du sommet, le dernier tronçon est plus court que cent mètres : sa case doit
+        // quand même porter sa pente, écrite plus petit.
+        ecrire(
+            simulateur.image(instantA(simulateur.sortie, col.endDistance - 280.0).secondes),
+            File(dossier, "carte-cote-sommet.png"),
+        )
 
         val apresLeCol = simulateur.image(instantA(simulateur.sortie, col.endDistance + 1_000.0).secondes)
         assertEquals(
