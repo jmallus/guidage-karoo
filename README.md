@@ -102,6 +102,7 @@ de l'arrivée, marquée d'un damier, et à mi-pente d'un col, le profil cadré s
     <td align="center"><img src="docs/captures/hors-itineraire.png" width="150" alt="Hors itinéraire"><br>Hors itinéraire</td>
     <td align="center"><img src="docs/captures/carte-arrivee.png" width="150" alt="Approche de l'arrivée"><br>Arrivée</td>
     <td align="center"><img src="docs/captures/carte-cote.png" width="150" alt="Profil cadré sur la côte en cours, en couleurs de pente"><br>Dans une côte</td>
+    <td align="center"><img src="docs/captures/carte-cote-sommet.png" width="150" alt="Fin de côte, les dernières cases de pente"><br>Près du sommet</td>
   </tr>
 </table>
 
