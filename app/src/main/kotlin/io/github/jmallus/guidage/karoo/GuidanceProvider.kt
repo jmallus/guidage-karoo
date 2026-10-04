@@ -14,6 +14,7 @@ import io.github.jmallus.guidage.core.SteadyHeading
 import io.github.jmallus.guidage.core.Units
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
+import io.hammerhead.karooext.models.OnGlobalPOIs
 import io.hammerhead.karooext.models.OnLocationChanged
 import io.hammerhead.karooext.models.OnNavigationState
 import io.hammerhead.karooext.models.OnNavigationState.NavigationState
@@ -120,6 +121,13 @@ class GuidanceProvider(
         val navigation = karooSystem.consumerFlow<OnNavigationState>()
             .map { it.state }
             .onStart { emit(NavigationState.Idle) }
+        // Les points d'intérêt « globaux » du Karoo — ceux qu'il annonce en bas d'écran
+        // (« restaurant à 4,9 km ») sans qu'ils appartiennent à l'itinéraire. Ils n'arrivent
+        // pas avec l'état de navigation : sans cet abonnement, le profil les ignorait.
+        val globalPois = karooSystem.consumerFlow<OnGlobalPOIs>()
+            .map { it.pois }
+            .onStart { emit(emptyList()) }
+        val navigationEtPois = combine(navigation, globalPois) { nav, pois -> nav to pois }
         // Ce type porte quatre champs (distance, état de navigation, reroutage, sur
         // l'itinéraire) : il faut nommer celui qu'on veut, sans quoi on lit l'un des autres.
         val remaining = karooSystem.streamFieldFlow(
@@ -143,15 +151,15 @@ class GuidanceProvider(
             .onStart { emit(null) }
 
         return combine(
-            navigation,
+            navigationEtPois,
             remaining,
             grade,
             units,
             location,
-        ) { nav, distanceRemaining, currentGrade, unitSystem, riderLocation ->
+        ) { (nav, pois), distanceRemaining, currentGrade, unitSystem, riderLocation ->
             GuidanceSnapshot(
                 state = steadied(
-                    buildState(nav, distanceRemaining, currentGrade, climbHistory),
+                    buildState(nav, distanceRemaining, currentGrade, climbHistory, pois),
                     System.currentTimeMillis(),
                 ),
                 units = unitSystem,
@@ -171,8 +179,9 @@ class GuidanceProvider(
             distanceRemaining: Double?,
             currentGrade: Double?,
             climbHistory: ClimbHistory? = null,
+            globalPois: List<Symbol.POI> = emptyList(),
         ): GuidanceState {
-            val reported = navigation.toRoute() ?: return GuidanceState.IDLE
+            val reported = navigation.toRoute()?.withGlobalPois(globalPois) ?: return GuidanceState.IDLE
             // Les côtes retenues sont confrontées au profil : celles qu'il ne porte pas ne
             // sont pas dessinées, et ne comptent pas non plus dans la numérotation.
             val route = (climbHistory?.remember(reported) ?: reported)
@@ -249,6 +258,21 @@ class GuidanceProvider(
          * Faute de distance annoncée, on la calcule : le point se pose sur le tracé, ce qui
          * est la même opération que celle du Karoo, faite de notre côté.
          */
+        /**
+         * Ajoute à l'itinéraire les points d'intérêt globaux qui le bordent.
+         *
+         * Ils sont posés sur le tracé comme ceux de l'itinéraire, à [POI_MAX_DEVIATION_METERS]
+         * au plus ; un point déjà porté par l'itinéraire n'est pas doublé.
+         */
+        fun Route.withGlobalPois(globalPois: List<Symbol.POI>): Route {
+            if (globalPois.isEmpty() || path.isEmpty()) return this
+            val connus = pois.map { it.id.substringBefore('#') }.toSet()
+            val ajoutes = globalPois
+                .filter { it.id !in connus }
+                .flatMap { it.toRoutePois(path, totalDistance) }
+            return if (ajoutes.isEmpty()) this else copy(pois = (pois + ajoutes).sortedBy { it.distanceAlongRoute })
+        }
+
         private fun Symbol.POI.toRoutePois(path: List<GeoPoint>, totalDistance: Double): List<RoutePoi> {
             val position = GeoPoint(lat, lng)
             val distances = distancesAlongRoute.ifEmpty {

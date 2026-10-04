@@ -92,4 +92,25 @@ class ClimbHistoryTest {
 
         assertTrue(merged.climbs.isEmpty())
     }
+
+    @Test
+    fun `une cote redecoupee par le Karoo ne compte pas deux fois`() {
+        val history = ClimbHistory()
+        history.remember(route(climb(10_000.0, length = 2_000.0)))
+
+        // Le pied recule de 300 m d'une mise à jour à l'autre : c'est la même côte.
+        val merged = history.remember(route(climb(9_700.0, length = 2_300.0)))
+
+        assertEquals(1, merged.climbs.size)
+        assertEquals(10_000.0, merged.climbs.single().startDistance, 0.0)
+        assertEquals(1, Guidance.climbStatus(merged, 10_500.0)!!.totalClimbs)
+    }
+
+    @Test
+    fun `deux cotes qui se touchent a peine restent deux`() {
+        val history = ClimbHistory()
+        val merged = history.remember(route(climb(10_000.0, length = 1_000.0), climb(10_900.0, length = 1_000.0)))
+
+        assertEquals(2, merged.climbs.size)
+    }
 }

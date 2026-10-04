@@ -37,7 +37,7 @@ class ClimbHistory {
             // mise à jour à l'autre ; on la reconnaît à la tolérance près plutôt que de la
             // compter deux fois. La première version rencontrée fait foi, pour que ni le
             // numéro ni le profil ne sautent en cours de montée.
-            if (known.none { abs(it.startDistance - climb.startDistance) <= SAME_CLIMB_TOLERANCE }) {
+            if (known.none { memeCote(it, climb) }) {
                 known += climb
             }
         }
@@ -45,7 +45,25 @@ class ClimbHistory {
         return route.copy(climbs = known.sortedBy { it.startDistance })
     }
 
+    /**
+     * Deux relevés désignent-ils la même côte ?
+     *
+     * Le pied seul ne suffisait pas. Sur le vélo, le Karoo a redécoupé une côte en cours de
+     * route — pied déplacé de plus de cinquante mètres —, et la mémoire en a gardé deux qui se
+     * chevauchaient : deux montées à la fois, et un total de côtes gonflé. Deux côtes qui se
+     * recouvrent sur plus de la moitié de la plus courte sont donc tenues pour une seule.
+     */
+    private fun memeCote(a: RouteClimb, b: RouteClimb): Boolean {
+        if (abs(a.startDistance - b.startDistance) <= SAME_CLIMB_TOLERANCE) return true
+        val recouvrement = minOf(a.endDistance, b.endDistance) - maxOf(a.startDistance, b.startDistance)
+        val plusCourte = minOf(a.length, b.length)
+        return plusCourte > 0.0 && recouvrement >= plusCourte * SAME_CLIMB_OVERLAP
+    }
+
     private companion object {
+        /** Part de la plus courte des deux côtes au-delà de laquelle leur recouvrement en fait une. */
+        const val SAME_CLIMB_OVERLAP = 0.5
+
         /** Écart en deçà duquel deux relevés désignent la même côte (m). */
         const val SAME_CLIMB_TOLERANCE = 50.0
     }
