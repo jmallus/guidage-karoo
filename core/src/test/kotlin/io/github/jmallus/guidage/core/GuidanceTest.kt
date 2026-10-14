@@ -51,6 +51,37 @@ class GuidanceTest {
     }
 
     @Test
+    fun `dans une cote, le bandeau se recale sur la progression du Karoo`() {
+        // Notre abscisse dit 2 400 m, soit 400 m dans la première côte ; le Karoo, lui, en
+        // est à 800 m du pied et 1 200 m du sommet — l'écart d'une sortie réelle.
+        val karoo = ClimbProgress(distanceFromBottom = 800.0, distanceToTop = 1_200.0, elevationToTop = 118.0)
+        val status = Guidance.climbStatus(route, 2_400.0, karoo)!!
+        assertTrue(status.onClimb)
+        assertEquals(1, status.number)
+        assertEquals(0.4, status.progress, 1e-9)
+        assertEquals(1_200.0, status.distanceToTop, 1e-9)
+        assertEquals(118.0, status.elevationToTop, 1e-9)
+    }
+
+    @Test
+    fun `le Karoo en cote quand notre abscisse est encore avant le pied`() {
+        val karoo = ClimbProgress(distanceFromBottom = 300.0, distanceToTop = 1_700.0, elevationToTop = 170.0)
+        val status = Guidance.climbStatus(route, 1_800.0, karoo)!!
+        assertTrue(status.onClimb)
+        assertEquals(2_000.0, status.climb.startDistance, 1e-9)
+        assertEquals(0.15, status.progress, 1e-9)
+    }
+
+    @Test
+    fun `sans cote suivie par le Karoo, notre calcul reste`() {
+        val status = Guidance.climbStatus(route, 3_000.0, ClimbProgress.NONE)!!
+        assertEquals(0.5, status.progress, 1e-9)
+        // Une côte du Karoo qu'aucune de l'itinéraire n'approche : notre calcul aussi.
+        val ailleurs = ClimbProgress(distanceFromBottom = 100.0, distanceToTop = 200.0)
+        assertFalse(Guidance.climbStatus(route, 6_500.0, ailleurs)!!.onClimb)
+    }
+
+    @Test
     fun `next climb before starting it`() {
         val status = Guidance.climbStatus(route, 500.0)!!
 

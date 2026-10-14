@@ -94,7 +94,7 @@ object DashboardModels {
             drivetrain = drivetrainModel(context, rideData),
             heartRateTile = heartRateTile(context, rideData),
             remainingTile = remainingTile(context, rideData, units),
-            profileBand = profileBand(context, snapshot, settings, preview, rideData.distance),
+            profileBand = profileBand(context, snapshot, settings, preview, rideData, nowMillis),
             palette = FieldPalette.of(context),
         )
     }
@@ -125,11 +125,18 @@ object DashboardModels {
         snapshot: GuidanceSnapshot,
         settings: GuidageSettings,
         preview: Boolean,
-        compteur: Double?,
+        rideData: RideData,
+        nowMillis: Long,
     ): ProfileFieldModel =
         // Jamais nul : sans profil, le bandeau garde sa place et porte son message, au lieu
         // de rendre sa hauteur au reste de l'écran le temps d'un reroutage.
-        FieldModels.profile(context, snapshot, settings, preview, zoom = settings.graphZoom, compteur = compteur)
+        FieldModels.profile(
+            context, snapshot, settings, preview,
+            zoom = settings.graphZoom,
+            compteur = rideData.distance,
+            nowMillis = nowMillis,
+            coteKaroo = rideData.climb,
+        )
 
     private fun mapModel(
         context: Context,
@@ -143,10 +150,11 @@ object DashboardModels {
     ): MapModel {
         val route = state.route
         val location = if (preview) PreviewData.location else snapshot.location
-        // Le point rapporté par le Karoo a déjà quelques secondes ; on le prolonge à la
-        // vitesse courante, sans quoi le coureur se voit derrière lui-même à l'approche
-        // du carrefour, là précisément où il regarde la carte.
-        val position = location?.extrapolated(nowMillis, rideData.speed)
+        // Le point rapporté par le Karoo a déjà quelques secondes ; on l'avance le long du
+        // tracé à la vitesse courante, sans quoi le coureur se voit derrière lui-même à
+        // l'approche du carrefour, là précisément où il regarde la carte.
+        val suivie = location?.suivie(route, state.distanceAlongRoute, nowMillis, rideData.speed)
+        val position = suivie?.point
         // On lit un peu au-delà du cadre : en cap en haut, la fenêtre tourne avec le coureur
         // et ses coins balaient plus loin que la portée annoncée.
         val roads = if (preview) {
@@ -162,7 +170,7 @@ object DashboardModels {
             rejoinPath = route?.rejoinPath.orEmpty(),
             trailPaths = trailPaths(route, surTrace(route, position, state.distanceAlongRoute), roads, portee.rangeMeters),
             position = position,
-            heading = location?.heading,
+            heading = suivie?.heading,
             pois = route?.pois.orEmpty().mapNotNull { poi ->
                 poi.position?.let { MapPoi(it, PoiLabels.label(context, poi)) }
             },

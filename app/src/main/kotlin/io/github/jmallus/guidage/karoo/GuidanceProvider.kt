@@ -7,10 +7,12 @@ import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.Polyline
+import io.github.jmallus.guidage.core.PositionSuivie
 import io.github.jmallus.guidage.core.Route
 import io.github.jmallus.guidage.core.RouteClimb
 import io.github.jmallus.guidage.core.RoutePoi
 import io.github.jmallus.guidage.core.SteadyHeading
+import io.github.jmallus.guidage.core.Suivi
 import io.github.jmallus.guidage.core.Units
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
@@ -39,23 +41,45 @@ data class RiderLocation(
     val receivedAtMillis: Long = 0L,
 ) {
     /**
-     * Position prolongée jusqu'à [nowMillis], à la vitesse donnée.
+     * Où montrer le coureur à [nowMillis] : posé sur le tracé et avancé le long de lui, du
+     * retard de la position, voir [Suivi].
      *
-     * Le point rapporté par le Karoo a déjà quelques secondes : affiché tel quel, le coureur
-     * se voit derrière lui-même, ce qui est franchement gênant à l'approche d'un carrefour.
-     * On prolonge donc son mouvement en ligne droite, dans la limite de [MAX_EXTRAPOLATION_MS] :
-     * au-delà, c'est que le point ne se rafraîchit plus, et inventer une trajectoire serait
-     * pire que d'avouer l'immobilité.
+     * Le retard à rattraper n'est pas seulement l'âge du point à sa réception. Le modèle du
+     * champ se reconstruit à l'arrivée même du point, de sorte que cet âge vaut à peu près
+     * zéro — et la marque restait derrière le coureur de tout le retard de la chaîne GPS et
+     * du dessin du champ, que rien ne mesurait. Une sortie l'a montré : quelques secondes,
+     * surtout visibles dans les virages. Ce retard fixe s'ajoute donc à l'âge du point.
+     *
+     * Hors de l'itinéraire, la ligne droite reste bornée à l'âge seul : sans la route pour
+     * guider la marque, la pousser plus loin l'enverrait dans les champs.
      */
-    fun extrapolated(nowMillis: Long, speedMetersPerSecond: Double?): GeoPoint {
-        if (heading == null || speedMetersPerSecond == null || speedMetersPerSecond <= 0.0) return position
-        if (receivedAtMillis <= 0L) return position
-        val elapsed = (nowMillis - receivedAtMillis).coerceIn(0L, MAX_EXTRAPOLATION_MS)
-        return Geo.advance(position, heading, speedMetersPerSecond * elapsed / 1_000.0)
+    fun suivie(route: Route?, distanceAlongRoute: Double?, nowMillis: Long, speedMetersPerSecond: Double?): PositionSuivie {
+        val age = if (receivedAtMillis > 0L) (nowMillis - receivedAtMillis).coerceAtLeast(0L) else 0L
+        return Suivi.position(
+            path = route?.path.orEmpty(),
+            totalDistance = route?.totalDistance,
+            position = position,
+            heading = heading,
+            distanceAlongRoute = distanceAlongRoute,
+            speedMetersPerSecond = speedMetersPerSecond,
+            secondesSurTrace = (age + RETARD_CHAINE_MS).coerceAtMost(MAX_SUR_TRACE_MS) / 1_000.0,
+            secondesHorsTrace = age.coerceAtMost(MAX_EXTRAPOLATION_MS) / 1_000.0,
+        )
     }
 
-    private companion object {
-        const val MAX_EXTRAPOLATION_MS = 4_000L
+    companion object {
+        /**
+         * Retard de la chaîne, du GPS à l'écran (ms) : la position arrive déjà vieille, puis
+         * le champ se dessine et passe par le système avant de s'afficher.
+         *
+         * Estimé, non mesuré : c'est l'écart qu'une sortie a montré entre la marque et le
+         * coureur. À ajuster si la marque se met à précéder le coureur.
+         */
+        const val RETARD_CHAINE_MS = 2_000L
+
+        /** Au-delà, le point ne se rafraîchit plus : inventer une trajectoire serait pire. */
+        private const val MAX_EXTRAPOLATION_MS = 4_000L
+        private const val MAX_SUR_TRACE_MS = 6_000L
     }
 }
 
@@ -64,6 +88,8 @@ data class GuidanceSnapshot(
     val state: GuidanceState = GuidanceState.IDLE,
     val units: Units = Units.METRIC,
     val location: RiderLocation? = null,
+    /** Vitesse lissée (m/s), qui dit de combien rattraper le retard de la position. */
+    val speed: Double? = null,
 )
 
 /**
@@ -136,9 +162,13 @@ class GuidanceProvider(
         ).onStart { emit(null) }
         val grade = karooSystem.streamValueFlow(DataType.Type.ELEVATION_GRADE)
             .onStart { emit(null) }
+        val speed = karooSystem.streamValueFlow(DataType.Type.SMOOTHED_3S_AVERAGE_SPEED)
+            .onStart { emit(null) }
         val units = karooSystem.consumerFlow<UserProfile>()
             .map { it.preferredUnit.distance.toUnits() }
             .onStart { emit(Units.METRIC) }
+        // Réunis pour tenir dans les cinq flux qu'accepte `combine` sous forme typée.
+        val unitsEtVitesse = combine(units, speed) { u, v -> u to v }
         val location = karooSystem.consumerFlow<OnLocationChanged>()
             .map<OnLocationChanged, RiderLocation?> {
                 val position = GeoPoint(it.lat, it.lng)
@@ -154,9 +184,9 @@ class GuidanceProvider(
             navigationEtPois,
             remaining,
             grade,
-            units,
+            unitsEtVitesse,
             location,
-        ) { (nav, pois), distanceRemaining, currentGrade, unitSystem, riderLocation ->
+        ) { (nav, pois), distanceRemaining, currentGrade, (unitSystem, vitesse), riderLocation ->
             GuidanceSnapshot(
                 state = steadied(
                     buildState(nav, distanceRemaining, currentGrade, climbHistory, pois),
@@ -164,6 +194,7 @@ class GuidanceProvider(
                 ),
                 units = unitSystem,
                 location = riderLocation,
+                speed = vitesse,
             )
         }.distinctUntilChanged()
     }

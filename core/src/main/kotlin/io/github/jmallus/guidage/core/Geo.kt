@@ -228,6 +228,37 @@ object Geo {
         return portion.takeIf { it.size >= 2 }.orEmpty()
     }
 
+    /** Longueur totale de [path] (m). */
+    fun length(path: List<GeoPoint>): Double =
+        (1 until path.size).sumOf { distance(path[it - 1], path[it]) }
+
+    /**
+     * Le point de [path] situé à [along] mètres de son départ, borné aux deux bouts.
+     *
+     * Rend null quand le tracé n'a pas de segment.
+     */
+    fun pointAt(path: List<GeoPoint>, along: Double): GeoPoint? {
+        if (path.size < 2) return null
+        if (along <= 0.0) return path.first()
+        var parcouru = 0.0
+        for (i in 1 until path.size) {
+            val segment = distance(path[i - 1], path[i])
+            if (segment <= 0.0) continue
+            if (parcouru + segment >= along) {
+                return interpolate(path[i - 1], path[i], (along - parcouru) / segment)
+            }
+            parcouru += segment
+        }
+        return path.last()
+    }
+
+    /** Le cap pour aller de [from] à [to], en degrés (0 = nord, 90 = est). */
+    fun bearing(from: GeoPoint, to: GeoPoint): Double {
+        val versCible = project(from, to)
+        val degres = Math.toDegrees(kotlin.math.atan2(versCible.x, versCible.y))
+        return (degres + 360.0) % 360.0
+    }
+
     /** Le point situé à la fraction [part] du segment allant de [from] à [to]. */
     private fun interpolate(from: GeoPoint, to: GeoPoint, part: Double): GeoPoint = GeoPoint(
         lat = from.lat + (to.lat - from.lat) * part,

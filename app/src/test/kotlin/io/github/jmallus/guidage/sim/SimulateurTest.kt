@@ -3,9 +3,11 @@ package io.github.jmallus.guidage.sim
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.extension.Bilan
+import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.KarooColors
 import io.github.jmallus.guidage.ui.PreviewData
@@ -343,6 +345,37 @@ class SimulateurTest {
                 ecrire(profil, File(dossier, "champ-profil.png"))
             }
         }
+    }
+
+    /**
+     * La marque de la carte suit le coureur, virages compris, malgré le retard du GPS.
+     *
+     * Le point rapporté a [RiderLocation.RETARD_CHAINE_MS] de retard. Prolongé en ligne
+     * droite, il filait hors de la route dans les virages ; avancé le long du tracé, il doit
+     * se tenir à quelques mètres du coureur tout au long de la sortie — et le profil, qui
+     * prend la même abscisse, avec lui.
+     */
+    @Test
+    fun `la marque rattrape le retard du GPS le long du trace`() {
+        val sortie = SortieSimulee(PreviewData.route)
+        val retard = RiderLocation.RETARD_CHAINE_MS / 1_000.0
+        var pireBrut = 0.0
+        var pireSuivi = 0.0
+        var pireAbscisse = 0.0
+        var secondes = retard
+        while (secondes <= sortie.duree) {
+            val vrai = sortie.a(secondes)
+            val rapporte = sortie.a(secondes - retard)
+            val suivie = RiderLocation(rapporte.position, rapporte.cap, receivedAtMillis = 1L)
+                .suivie(PreviewData.route, rapporte.distance, nowMillis = 1L, speedMetersPerSecond = rapporte.vitesse)
+            pireBrut = maxOf(pireBrut, Geo.distance(rapporte.position, vrai.position))
+            pireSuivi = maxOf(pireSuivi, Geo.distance(suivie.point, vrai.position))
+            pireAbscisse = maxOf(pireAbscisse, abs(suivie.distanceAlongRoute!! - vrai.distance))
+            secondes += 1.0
+        }
+        assertTrue("le point brut devrait avoir du retard ($pireBrut m)", pireBrut > 15.0)
+        assertTrue("la marque s'écarte de $pireSuivi m du coureur", pireSuivi < 8.0)
+        assertTrue("le profil s'écarte de $pireAbscisse m du coureur", pireAbscisse < 8.0)
     }
 
     /**

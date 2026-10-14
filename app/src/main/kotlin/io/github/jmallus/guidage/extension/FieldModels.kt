@@ -3,6 +3,7 @@ package io.github.jmallus.guidage.extension
 import android.content.Context
 import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.ArrivalEstimate
+import io.github.jmallus.guidage.core.ClimbProgress
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.GraphZoom
 import io.github.jmallus.guidage.core.Guidance
@@ -58,10 +59,13 @@ object FieldModels {
          * décalés de l'écart entre les deux.
          */
         compteur: Double? = null,
+        nowMillis: Long = System.currentTimeMillis(),
+        /** La côte que le Karoo suit, sur laquelle se recale le bandeau d'une côte. */
+        coteKaroo: ClimbProgress = ClimbProgress.NONE,
     ): ProfileFieldModel {
         val state = substituted(snapshot, preview)
         val route = state.route
-        val along = state.distanceAlongRoute
+        val along = positionSurProfil(snapshot, state, preview, nowMillis)
         if (route == null || along == null) {
             return ProfileFieldModel(
                 window = ProfileWindow(emptyList(), 0.0, 0.0, 0.0, 0.0),
@@ -93,16 +97,21 @@ object FieldModels {
         // portée une fois le sommet passé — le ClimbPro du Karoo. Le champ « Profil à venir »
         // n'en fait rien : il répond à « qu'est-ce qui reste », et une côte n'en est qu'une part.
         if (portee != null) {
-            val status = Guidance.climbStatus(route, quantized)?.takeIf { it.onClimb }
+            val status = (if (preview) Guidance.climbStatus(route, quantized) else Guidance.climbStatus(route, quantized, coteKaroo))
+                ?.takeIf { it.onClimb }
             if (status != null) {
                 val cote = status.climb
+                // Dans la côte, le coureur se place à la progression qu'annonce le Karoo, non à
+                // notre abscisse : c'est elle qui se décale, voir [Guidance.climbStatus].
+                val ici = ((cote.startDistance + status.progress * cote.length) / POSITION_STEP_METERS)
+                    .toInt() * POSITION_STEP_METERS
                 // Deux échelles. Le profil montre la côte entière, du pied au sommet : c'est sa
                 // forme qu'on regarde. Les cases de pente, dessous, détaillent les 600 m qui
                 // viennent, à leur échelle à elles : à celle de toute la côte, un col de six
                 // kilomètres ne laissait que trois chiffres lisibles. Elles partent du coureur,
                 // au bord gauche, comme sur le Climber : ce qu'on a derrière soi n'y a pas de
                 // place, et aucune marque n'a donc à dire où l'on est.
-                val debut = quantized.coerceIn(cote.startDistance, cote.endDistance)
+                val debut = ici.coerceIn(cote.startDistance, cote.endDistance)
                 val longueur = CLIMB_WINDOW_METERS
                 return ProfileFieldModel(
                     window = Guidance.profileWindow(route, cote.startDistance, cote.length),
@@ -116,7 +125,7 @@ object FieldModels {
                     // dessous, tronçon par tronçon, et c'est « combien en reste-t-il » que le
                     // rang dit — « 2/3 ».
                     rangeLabel = "${status.number}/${status.totalClimbs}",
-                    positionDistance = quantized,
+                    positionDistance = ici,
                     emptyMessage = context.getString(R.string.field_no_route),
                     compressed = false,
                     units = units,
@@ -183,6 +192,27 @@ object FieldModels {
     )
 
     /** Le parcours d'exemple, quand le champ est affiché hors sortie. */
+    /**
+     * Où le coureur se tient sur le profil : là où la carte le montre.
+     *
+     * La distance restante annoncée par le Karoo arrive en retard comme sa position, et ce
+     * retard ne se rattrapait que sur la carte : le profil montrait le coureur quelques
+     * dizaines de mètres derrière celui du Karoo, au même instant. Il prend désormais
+     * l'abscisse de la marque de la carte — accrochée au tracé, avancée du retard. Faute de
+     * position, ou hors de l'itinéraire, la distance du Karoo reste la référence.
+     */
+    private fun positionSurProfil(
+        snapshot: GuidanceSnapshot,
+        state: GuidanceState,
+        preview: Boolean,
+        nowMillis: Long,
+    ): Double? {
+        val annoncee = state.distanceAlongRoute ?: return null
+        if (preview) return annoncee
+        val suivie = snapshot.location?.suivie(state.route, annoncee, nowMillis, snapshot.speed)
+        return suivie?.takeIf { it.surLeTrace }?.distanceAlongRoute ?: annoncee
+    }
+
     private fun substituted(snapshot: GuidanceSnapshot, preview: Boolean): GuidanceState =
         if (preview && !snapshot.state.navigating) {
             GuidanceState(PreviewData.route, PreviewData.DISTANCE_ALONG_ROUTE, null, null)
