@@ -3,6 +3,7 @@ package io.github.jmallus.guidage.extension
 import android.content.Context
 import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.ArrivalEstimate
+import io.github.jmallus.guidage.core.ClimbProgress
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.GraphZoom
 import io.github.jmallus.guidage.core.Guidance
@@ -59,6 +60,8 @@ object FieldModels {
          */
         compteur: Double? = null,
         nowMillis: Long = System.currentTimeMillis(),
+        /** La côte que le Karoo suit, sur laquelle se recale le bandeau d'une côte. */
+        coteKaroo: ClimbProgress = ClimbProgress.NONE,
     ): ProfileFieldModel {
         val state = substituted(snapshot, preview)
         val route = state.route
@@ -94,16 +97,21 @@ object FieldModels {
         // portée une fois le sommet passé — le ClimbPro du Karoo. Le champ « Profil à venir »
         // n'en fait rien : il répond à « qu'est-ce qui reste », et une côte n'en est qu'une part.
         if (portee != null) {
-            val status = Guidance.climbStatus(route, quantized)?.takeIf { it.onClimb }
+            val status = (if (preview) Guidance.climbStatus(route, quantized) else Guidance.climbStatus(route, quantized, coteKaroo))
+                ?.takeIf { it.onClimb }
             if (status != null) {
                 val cote = status.climb
+                // Dans la côte, le coureur se place à la progression qu'annonce le Karoo, non à
+                // notre abscisse : c'est elle qui se décale, voir [Guidance.climbStatus].
+                val ici = ((cote.startDistance + status.progress * cote.length) / POSITION_STEP_METERS)
+                    .toInt() * POSITION_STEP_METERS
                 // Deux échelles. Le profil montre la côte entière, du pied au sommet : c'est sa
                 // forme qu'on regarde. Les cases de pente, dessous, détaillent les 600 m qui
                 // viennent, à leur échelle à elles : à celle de toute la côte, un col de six
                 // kilomètres ne laissait que trois chiffres lisibles. Elles partent du coureur,
                 // au bord gauche, comme sur le Climber : ce qu'on a derrière soi n'y a pas de
                 // place, et aucune marque n'a donc à dire où l'on est.
-                val debut = quantized.coerceIn(cote.startDistance, cote.endDistance)
+                val debut = ici.coerceIn(cote.startDistance, cote.endDistance)
                 val longueur = CLIMB_WINDOW_METERS
                 return ProfileFieldModel(
                     window = Guidance.profileWindow(route, cote.startDistance, cote.length),
@@ -117,7 +125,7 @@ object FieldModels {
                     // dessous, tronçon par tronçon, et c'est « combien en reste-t-il » que le
                     // rang dit — « 2/3 ».
                     rangeLabel = "${status.number}/${status.totalClimbs}",
-                    positionDistance = quantized,
+                    positionDistance = ici,
                     emptyMessage = context.getString(R.string.field_no_route),
                     compressed = false,
                     units = units,

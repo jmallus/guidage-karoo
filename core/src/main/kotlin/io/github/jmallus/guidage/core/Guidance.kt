@@ -1,5 +1,7 @@
 package io.github.jmallus.guidage.core
 
+import kotlin.math.abs
+
 /**
  * Calculs de guidage : côte en cours ou à venir, prochain POI, fenêtre de profil.
  *
@@ -80,6 +82,54 @@ object Guidance {
             progress = progress,
         )
     }
+
+    /**
+     * La côte en cours, recalée sur ce que le Karoo en dit quand il en suit une.
+     *
+     * Notre abscisse se décale : une sortie a montré notre bandeau annonçant le sommet à
+     * 2,1 km et +55 m, quand le ClimbPro du Karoo disait 1,68 km et 42 m au même endroit —
+     * quatre cents mètres d'écart sur une côte qu'ils dessinaient pourtant de la même longueur.
+     * Le Karoo, lui, sait où commence et où finit la côte qu'il suit ([karoo]). On retrouve
+     * cette côte parmi celles de l'itinéraire — celle dont le pied est le plus près de celui
+     * qu'il annonce, à longueur voisine — et on y place le coureur à **sa** progression, avec
+     * **ses** distance et dénivelé au sommet : notre bandeau dit alors la même chose que le sien.
+     *
+     * Sans côte suivie par le Karoo, ou sans côte de l'itinéraire qui lui corresponde, on
+     * revient à notre propre calcul.
+     */
+    fun climbStatus(route: Route, distanceAlongRoute: Double, karoo: ClimbProgress): ClimbStatus? {
+        val propre = climbStatus(route, distanceAlongRoute)
+        if (!karoo.onClimb) return propre
+        val depuisLePied = karoo.distanceFromBottom ?: return propre
+        val longueur = karoo.length ?: return propre
+        val pied = distanceAlongRoute - depuisLePied
+        val climbs = route.climbs.sortedBy { it.startDistance }
+        val index = climbs.indices
+            .filter { abs(climbs[it].startDistance - pied) <= KAROO_CLIMB_MATCH_METERS }
+            .minByOrNull { abs(climbs[it].startDistance - pied) + abs(climbs[it].length - longueur) }
+            ?: return propre
+        val climb = climbs[index]
+        val progress = karoo.progress
+        return ClimbStatus(
+            climb = climb,
+            number = index + 1,
+            totalClimbs = climbs.size,
+            onClimb = true,
+            distanceToStart = 0.0,
+            distanceToTop = karoo.distanceToTop ?: (climb.length * (1.0 - progress)),
+            elevationToTop = karoo.elevationToTop
+                ?: elevationToTop(route.profile, climb, climb.startDistance + progress * climb.length, true, progress),
+            progress = progress,
+        )
+    }
+
+    /**
+     * Écart toléré entre le pied annoncé par le Karoo et celui d'une côte de l'itinéraire (m).
+     *
+     * Assez large pour absorber le décalage de notre abscisse, qu'une sortie a montré à quatre
+     * cents mètres ; assez court pour ne pas confondre deux côtes qui se suivent.
+     */
+    const val KAROO_CLIMB_MATCH_METERS = 1_500.0
 
     private fun elevationToTop(
         profile: ElevationProfile?,
