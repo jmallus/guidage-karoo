@@ -155,19 +155,22 @@ class Simulateur(
     private fun instantane(secondes: Double): GuidanceSnapshot {
         val instant = sortie.a(secondes)
         val maintenant = departMillis + (secondes * 1_000).toLong()
+        // Ce que le Karoo rapporte arrive en retard : la position et la distance restante sont
+        // celles d'il y a [RiderLocation.RETARD_CHAINE_MS]. Le simulateur les retarde d'autant,
+        // de sorte que les champs montrent ce qu'ils montreront en roulant — et que le
+        // rattrapage le long du tracé ait, comme sur l'appareil, quelque chose à rattraper.
+        val rapporte = sortie.a((secondes - RiderLocation.RETARD_CHAINE_MS / 1_000.0).coerceAtLeast(0.0))
         val etat = GuidanceState(
             route = PreviewData.route.copy(rejoinPath = rejointe(instant)),
-            distanceAlongRoute = instant.distance + ecartTrace,
-            distanceRemaining = instant.distanceRestante,
+            distanceAlongRoute = rapporte.distance + ecartTrace,
+            distanceRemaining = rapporte.distanceRestante,
             currentGrade = instant.pente,
         )
-        // Le point est daté de l'instant courant : l'extrapolation qui rattrape le retard du
-        // GPS n'a donc rien à rattraper. C'est voulu — le simulateur montre la trajectoire
-        // telle qu'elle est, non telle qu'on la devine.
         return GuidanceSnapshot(
             state = etat,
             units = Units.METRIC,
-            location = RiderLocation(instant.position, instant.cap, receivedAtMillis = maintenant),
+            location = RiderLocation(rapporte.position, rapporte.cap, receivedAtMillis = maintenant),
+            speed = rapporte.vitesse,
         )
     }
 

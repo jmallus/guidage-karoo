@@ -58,10 +58,11 @@ object FieldModels {
          * décalés de l'écart entre les deux.
          */
         compteur: Double? = null,
+        nowMillis: Long = System.currentTimeMillis(),
     ): ProfileFieldModel {
         val state = substituted(snapshot, preview)
         val route = state.route
-        val along = state.distanceAlongRoute
+        val along = positionSurProfil(snapshot, state, preview, nowMillis)
         if (route == null || along == null) {
             return ProfileFieldModel(
                 window = ProfileWindow(emptyList(), 0.0, 0.0, 0.0, 0.0),
@@ -183,6 +184,27 @@ object FieldModels {
     )
 
     /** Le parcours d'exemple, quand le champ est affiché hors sortie. */
+    /**
+     * Où le coureur se tient sur le profil : là où la carte le montre.
+     *
+     * La distance restante annoncée par le Karoo arrive en retard comme sa position, et ce
+     * retard ne se rattrapait que sur la carte : le profil montrait le coureur quelques
+     * dizaines de mètres derrière celui du Karoo, au même instant. Il prend désormais
+     * l'abscisse de la marque de la carte — accrochée au tracé, avancée du retard. Faute de
+     * position, ou hors de l'itinéraire, la distance du Karoo reste la référence.
+     */
+    private fun positionSurProfil(
+        snapshot: GuidanceSnapshot,
+        state: GuidanceState,
+        preview: Boolean,
+        nowMillis: Long,
+    ): Double? {
+        val annoncee = state.distanceAlongRoute ?: return null
+        if (preview) return annoncee
+        val suivie = snapshot.location?.suivie(state.route, annoncee, nowMillis, snapshot.speed)
+        return suivie?.takeIf { it.surLeTrace }?.distanceAlongRoute ?: annoncee
+    }
+
     private fun substituted(snapshot: GuidanceSnapshot, preview: Boolean): GuidanceState =
         if (preview && !snapshot.state.navigating) {
             GuidanceState(PreviewData.route, PreviewData.DISTANCE_ALONG_ROUTE, null, null)
