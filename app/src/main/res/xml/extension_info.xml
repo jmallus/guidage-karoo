@@ -32,6 +32,31 @@
         icon="@drawable/ic_poi" />
 
     <!--
+      Le bandeau du bas du tableau de bord, seul, et deux paires de ses cases : de quoi
+      composer une page à soi avec les dessins du tableau de bord.
+    -->
+    <DataType
+        typeId="montee"
+        displayName="@string/field_climb_name"
+        description="@string/field_climb_description"
+        graphical="true"
+        icon="@drawable/ic_climb" />
+
+    <DataType
+        typeId="vitesse-transmission"
+        displayName="@string/field_speed_gears_name"
+        description="@string/field_speed_gears_description"
+        graphical="true"
+        icon="@drawable/ic_gears" />
+
+    <DataType
+        typeId="coeur-puissance"
+        displayName="@string/field_heart_power_name"
+        description="@string/field_heart_power_description"
+        graphical="true"
+        icon="@drawable/ic_heart_rate" />
+
+    <!--
       Les six cases de bilan. Elles tiennent dans une case ordinaire, et une page en porte
       dix : c'est pour cela qu'elles existent séparément plutôt qu'en une page unique.
     -->

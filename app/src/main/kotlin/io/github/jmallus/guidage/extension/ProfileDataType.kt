@@ -46,6 +46,7 @@ class ProfileDataType(
                 FieldModels.profile(context, snapshot, settings, config.preview)
             }
                 .distinctUntilChanged()
+                .auPlusUneFoisPar(PERIODE_RENDU_MS)
                 .map { model ->
                     val (width, height) = FieldSize.of(config)
                     ProfileRenderer.render(width, height, model, FieldPalette.of(context))

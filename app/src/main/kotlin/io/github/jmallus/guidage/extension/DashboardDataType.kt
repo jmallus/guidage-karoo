@@ -96,6 +96,7 @@ class DashboardDataType(
                 )
             }
                 .distinctUntilChanged()
+                .auPlusUneFoisPar(PERIODE_RENDU_MS)
                 .collect { model ->
                     val (width, height) = FieldSize.of(config)
                     val bitmap = DashboardRenderer.render(context, width, height, model)

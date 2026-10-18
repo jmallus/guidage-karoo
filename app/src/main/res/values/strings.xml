@@ -117,6 +117,12 @@
     <string name="unit_bpm"> bpm</string>
     <string name="unit_watt"> W</string>
 
+    <string name="field_climb_name">Profil de montée</string>
+    <string name="field_climb_description">Le bandeau du bas du tableau de bord, dans un champ à lui : ce qui arrive sur la portée réglée, et dans une côte la côte entière du pied au sommet, avec la distance et le dénivelé jusqu\'au sommet et la pente des 600 m qui viennent, comme le ClimbPro du Karoo.</string>
+    <string name="field_speed_gears_name">Vitesse + transmission</string>
+    <string name="field_speed_gears_description">La vitesse sur 3 s, à la couleur de son écart à la moyenne, et le rapport engagé en schéma, comme sur le tableau de bord. Côte à côte dans une case large, l\'une sur l\'autre dans une case haute.</string>
+    <string name="field_heart_power_name">FC + puissance</string>
+    <string name="field_heart_power_description">La fréquence cardiaque et la puissance sur 3 s, chacune sur l\'aplat de sa zone, comme sur le tableau de bord. Côte à côte dans une case large, l\'une sur l\'autre dans une case haute.</string>
     <string name="field_level_heart_name">Bilan · cœur</string>
     <string name="field_level_heart_description">La fréquence cardiaque moyenne de la sortie, avec le maximum atteint juste à côté, sur un aplat de la couleur de la zone où la moyenne tombe. Une moyenne seule ne dit rien : c\'est son écart au maximum qui dit si la sortie fut régulière ou faite de coups de force. Tient dans une case ordinaire.</string>
     <string name="field_level_heart_max">MAX</string>

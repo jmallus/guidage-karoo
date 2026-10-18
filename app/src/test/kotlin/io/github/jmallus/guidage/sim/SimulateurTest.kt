@@ -7,6 +7,7 @@ import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.extension.Bilan
+import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.KarooColors
@@ -379,6 +380,42 @@ class SimulateurTest {
     }
 
     /**
+     * Les champs détachés du tableau de bord : le profil de montée et les deux paires.
+     *
+     * Ils se contrôlent comme le reste, à chaque moment de la sortie, et les paires dans les
+     * deux formes de case — large, où elles se posent côte à côte, et haute, où elles
+     * s'empilent : une case qui n'a rien à montrer ne lève aucune exception.
+     */
+    @Test
+    fun `les champs detaches du tableau de bord se dessinent tout au long de la sortie`() {
+        val simulateur = Simulateur(context)
+        val dossier = File("build/simulateur").apply { mkdirs() }
+        // La première côte de l'itinéraire d'aperçu, à mi-pente : le bandeau y passe en Climber.
+        val cote = PreviewData.route.climbs.minBy { it.startDistance }
+        val dansLaCote = instantA(simulateur.sortie, cote.startDistance + cote.length / 2).secondes
+
+        for (secondes in PARTS_CONTROLEES.map { simulateur.sortie.duree * it } + dansLaCote) {
+            val montee = simulateur.imageMontee(secondes)
+            assertTrue("le profil de montée est vide à $secondes s", couleursDistinctes(montee) > 6)
+            for (paire in Paire.entries) {
+                for ((largeur, hauteur) in listOf(CASE_LARGE, CASE_HAUTE)) {
+                    val image = simulateur.imagePaire(paire, secondes, largeur, hauteur)
+                    assertTrue(
+                        "${paire.typeId} ($largeur × $hauteur) est vide à $secondes s",
+                        couleursDistinctes(image) > 4,
+                    )
+                }
+            }
+        }
+
+        ecrire(simulateur.imageMontee(dansLaCote), File(dossier, "champ-montee.png"))
+        for (paire in Paire.entries) {
+            val (largeur, hauteur) = CASE_LARGE
+            ecrire(simulateur.imagePaire(paire, dansLaCote, largeur, hauteur), File(dossier, "champ-${paire.typeId}.png"))
+        }
+    }
+
+    /**
      * Les cases de bilan, à la taille qu'elles ont sur une page qui en porte six.
      *
      * Elles se contrôlent aux mêmes moments que le reste, et pour la même raison : une case
@@ -636,6 +673,10 @@ class SimulateurTest {
     private companion object {
         /** Moments de la sortie où le rendu est contrôlé, en part de sa durée. */
         val PARTS_CONTROLEES = listOf(0.05, 0.25, 0.5, 0.75, 0.95)
+
+        /** Une case pleine largeur sur une page de six rangs, puis une demi-case de trois. */
+        val CASE_LARGE = 478 to 107
+        val CASE_HAUTE = 238 to 214
 
         /**
          * Le moment de la sortie que les captures montrent.

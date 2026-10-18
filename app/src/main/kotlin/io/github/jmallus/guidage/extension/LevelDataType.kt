@@ -78,6 +78,7 @@ class LevelDataType(
                 LevelModels.build(context, variante, snapshot, rideData, config.preview)
             }
                 .distinctUntilChanged()
+                .auPlusUneFoisPar(PERIODE_RENDU_MS)
                 .map { model ->
                     val (width, height) = FieldSize.of(config)
                     LevelRenderer.render(context, width, height, model, FieldPalette.of(context))

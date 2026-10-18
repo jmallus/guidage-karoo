@@ -113,6 +113,12 @@
     <string name="unit_bpm"> bpm</string>
     <string name="unit_watt"> W</string>
 
+    <string name="field_climb_name">Climb profile</string>
+    <string name="field_climb_description">The bottom band of the dashboard, in a field of its own: what is coming over the set range, and on a climb the whole climb from foot to summit, with distance and elevation to the top and the gradient of the next 600 m, like the Karoo ClimbPro.</string>
+    <string name="field_speed_gears_name">Speed + gears</string>
+    <string name="field_speed_gears_description">3 s speed, coloured by its gap to the average, and the gear engaged as a diagram, as on the dashboard. Side by side in a wide tile, stacked in a tall one.</string>
+    <string name="field_heart_power_name">HR + power</string>
+    <string name="field_heart_power_description">Heart rate and 3 s power, each on the colour of its zone, as on the dashboard. Side by side in a wide tile, stacked in a tall one.</string>
     <string name="field_level_heart_name">Summary · heart</string>
     <string name="field_level_heart_description">The ride\'s average heart rate, with the maximum reached right beside it, on a flat of the colour of the zone the average falls into. An average alone says nothing: it is its distance from the maximum that tells you whether the ride was steady or made of hard efforts. Fits in an ordinary tile.</string>
     <string name="field_level_heart_max">MAX</string>
