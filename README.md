@@ -25,6 +25,9 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 | --- | --- | --- |
 | **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. Les kilomètres du profil sont ceux du **compteur**, détours compris ; en **reroutage**, la portion de trace contournée y est masquée par un trait rouge. **Dans une côte**, le profil du bas passe en mode Climber, comme sur le Karoo : la côte entière du pied au sommet, aux couleurs de pente du Karoo, la part montée hachurée ; dessous, six cases donnent la pente des 600 m qui viennent, tronçon de 100 m par tronçon de 100 m, et une bande jaune pâle montre sur le profil la portion qu'elles détaillent. En tête, en blanc, la distance et le dénivelé jusqu'au sommet et le rang de la côte (« 2/3 »). Ces chiffres et la place du coureur dans la côte sont ceux que suit le ClimbPro du Karoo. Sur la carte comme sur le profil, le retard du GPS est rattrapé **le long du tracé**, virages compris : la marque ne file plus tout droit hors de la route. Il revient à sa portée une fois le sommet passé. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Silhouette au jaune du Karoo, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
+| **Profil de montée** | graphique | Le bandeau du bas du tableau de bord, seul : ce qui arrive sur la portée réglée, et **dans une côte** la côte entière du pied au sommet, recalée sur le ClimbPro du Karoo, avec la distance et le dénivelé jusqu'au sommet et la pente des 600 m qui viennent. |
+| **Vitesse + transmission** | graphique, case standard | La vitesse sur 3 s, à la couleur de son écart à la moyenne, et le rapport engagé en schéma, comme sur le tableau de bord. Côte à côte dans une case standard, l'une sur l'autre dans une case plus haute. |
+| **FC + puissance** | graphique, case standard | La fréquence cardiaque et la puissance sur 3 s, chacune sur l'aplat de sa zone, à la même taille de chiffres. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. Les points d'intérêt que le Karoo annonce lui-même en bas d'écran, hors itinéraire, sont aussi posés sur le profil quand ils bordent la trace (250 m au plus). |
 
 S'y ajoutent **dix cases de bilan**, décrites plus bas : elles tiennent dans une case
@@ -88,6 +91,12 @@ n'ont pas eu lieu, la charge n'a pas assez descendu pour qu'on lui connaisse une
 Le profil à venir, champ de bande qui se pose sur un rang d'une page ordinaire :
 
 <img src="docs/captures/champ-profil.png" width="300" alt="Profil à venir">
+
+Le profil de montée à mi-pente, puis les deux champs à deux données dans une case standard :
+
+<img src="docs/captures/champ-montee.png" width="300" alt="Profil de montée">
+<img src="docs/captures/champ-vitesse-transmission.png" width="150" alt="Vitesse + transmission">
+<img src="docs/captures/champ-coeur-puissance.png" width="150" alt="FC + puissance">
 
 Et le tableau de bord à trois de ses portées de carte, puis avec le profil à la place de
 la carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge —, à l'approche
