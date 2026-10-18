@@ -182,6 +182,14 @@ object DashboardRenderer {
         cases.forEachIndexed { i, case ->
             if (case !is Case.Schema) return@forEachIndexed
             val box = bounds[i]
+            // L'icône tombe quand le libellé ne tient pas avec elle, comme dans les cases
+            // chiffrées : dans une demi-case, elle débordait sur le bord du champ.
+            val ajustement = fitLabelSize(
+                label = case.drivetrain.label,
+                hasIcon = case.drivetrain.icon != null,
+                maxWidth = box.width() - EDGE_INSET * 2,
+                preferredSize = cellHeight * LABEL_HEIGHT_FRACTION,
+            )
             drawDrivetrain(
                 context = context,
                 canvas = canvas,
@@ -189,12 +197,8 @@ object DashboardRenderer {
                 model = case.drivetrain,
                 palette = palette,
                 valueSize = valueSize,
-                labelSize = fitLabelSize(
-                    label = case.drivetrain.label,
-                    hasIcon = case.drivetrain.icon != null,
-                    maxWidth = box.width() - EDGE_INSET * 2,
-                    preferredSize = cellHeight * LABEL_HEIGHT_FRACTION,
-                ).size,
+                labelSize = ajustement.size,
+                avecIcone = ajustement.avecIcone,
             )
         }
         return bitmap
@@ -599,6 +603,7 @@ object DashboardRenderer {
         palette: Palette,
         valueSize: Float,
         labelSize: Float,
+        avecIcone: Boolean = true,
     ) {
         val labelPaint = paint(labelSize, palette.textSecondary, LABEL_TYPEFACE)
         val labelHeight = labelPaint.descent() - labelPaint.ascent()
@@ -614,6 +619,7 @@ object DashboardRenderer {
             iconInk = palette.iconTint,
             top = top,
             labelSize = labelSize,
+            avecIcone = avecIcone,
         )
 
         // Le schéma prend toute la hauteur sous le titre, et non la seule bande d'un chiffre.
@@ -630,9 +636,15 @@ object DashboardRenderer {
         val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicBottom)
         if (area.width() <= 0 || area.height() <= 0) return
 
-        val teethSize = valueSize * TEETH_RATIO
-        val teethPaint = paint(teethSize, palette.textPrimary, VALUE_TYPEFACE)
         val teeth = teethLabel(model)
+        // Le rapport suit le corps des chiffres voisins, mais se réduit à la largeur de la case :
+        // dans la demi-case d'un champ à deux données, « 34×32 » au corps de la vitesse
+        // débordait, et le peigne n'en laissait rien voir.
+        val teethSize = (valueSize * TEETH_RATIO).let { voulu ->
+            val largeur = teeth?.let { paint(voulu, 0, VALUE_TYPEFACE).measureText(it) } ?: 0f
+            if (largeur > area.width()) voulu * area.width() / largeur else voulu
+        }
+        val teethPaint = paint(teethSize, palette.textPrimary, VALUE_TYPEFACE)
 
         // Les barres montent depuis le bas de cette bande et occupent toute sa largeur : elles
         // passent donc sous le titre et son icône, que rien ne décale plus sur le côté. Il

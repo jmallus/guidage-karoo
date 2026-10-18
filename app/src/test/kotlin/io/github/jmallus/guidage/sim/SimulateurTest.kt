@@ -398,7 +398,7 @@ class SimulateurTest {
             val montee = simulateur.imageMontee(secondes)
             assertTrue("le profil de montée est vide à $secondes s", couleursDistinctes(montee) > 6)
             for (paire in Paire.entries) {
-                for ((largeur, hauteur) in listOf(CASE_STANDARD, CASE_BASSE, CASE_LARGE)) {
+                for ((largeur, hauteur) in listOf(CASE_STANDARD, CASE_HAUTE, CASE_LARGE)) {
                     val image = simulateur.imagePaire(paire, secondes, largeur, hauteur)
                     assertTrue(
                         "${paire.typeId} ($largeur × $hauteur) est vide à $secondes s",
@@ -410,7 +410,7 @@ class SimulateurTest {
 
         ecrire(simulateur.imageMontee(dansLaCote), File(dossier, "champ-montee.png"))
         for (paire in Paire.entries) {
-            val image = simulateur.imagePaire(paire, dansLaCote, Simulateur.LARGEUR_BILAN, Simulateur.HAUTEUR_BILAN)
+            val image = simulateur.imagePaire(paire, dansLaCote, CASE_STANDARD.first, CASE_STANDARD.second)
             ecrire(image, File(dossier, "champ-${paire.typeId}.png"))
         }
     }
@@ -563,8 +563,8 @@ class SimulateurTest {
         champ("Bilan 1/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[0])),
         champ("Bilan 2/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[1])),
         champ("Profil de montée", simulateur.imageMontee(secondes)),
-        champ("Vitesse + transmission", simulateur.imagePaire(Paire.VITESSE_TRANSMISSION, secondes, Simulateur.LARGEUR_BILAN, Simulateur.HAUTEUR_BILAN)),
-        champ("FC + puissance", simulateur.imagePaire(Paire.COEUR_PUISSANCE, secondes, Simulateur.LARGEUR_BILAN, Simulateur.HAUTEUR_BILAN)),
+        champ("Vitesse + transmission", simulateur.imagePaire(Paire.VITESSE_TRANSMISSION, secondes, CASE_STANDARD.first, CASE_STANDARD.second)),
+        champ("FC + puissance", simulateur.imagePaire(Paire.COEUR_PUISSANCE, secondes, CASE_STANDARD.first, CASE_STANDARD.second)),
     )
 
     private fun champ(nom: String, image: Bitmap) =
@@ -678,12 +678,13 @@ class SimulateurTest {
         val PARTS_CONTROLEES = listOf(0.05, 0.25, 0.5, 0.75, 0.95)
 
         /**
-         * Les formes de case où les paires se contrôlent : la case standard, une demi-largeur
-         * sur un tiers de hauteur — celle des pages de bilan —, une demi-largeur plus basse,
-         * sur une page de huit, et une pleine largeur sur une page de six rangs.
+         * Les formes de case où les paires se contrôlent : la case standard du Karoo, une
+         * demi-largeur sur un quart de hauteur (30 × 15 sur la grille de 60), où les deux
+         * données se posent côte à côte ; la demi-case plus haute des pages de bilan, où elles
+         * s'empilent ; et une pleine largeur sur une page de six rangs.
          */
-        val CASE_STANDARD = Simulateur.LARGEUR_BILAN to Simulateur.HAUTEUR_BILAN
-        val CASE_BASSE = Simulateur.LARGEUR_BILAN to Simulateur.HAUTEUR / 4
+        val CASE_STANDARD = Simulateur.LARGEUR / 2 to Simulateur.HAUTEUR / 4
+        val CASE_HAUTE = Simulateur.LARGEUR_BILAN to Simulateur.HAUTEUR_BILAN
         val CASE_LARGE = Simulateur.LARGEUR to Simulateur.HAUTEUR / 6
 
         /**

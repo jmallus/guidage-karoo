@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.ui.unit.DpSize
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
+import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.RideData
@@ -45,7 +46,12 @@ enum class Paire(val typeId: String) {
     fun cases(context: Context, units: Units, rideData: RideData): List<Case> = when (this) {
         VITESSE_TRANSMISSION -> listOf(
             Case.Chiffre(DashboardModels.effortTiles(context, units, rideData)[0]),
-            Case.Schema(DashboardModels.drivetrainModel(context, rideData)),
+            // « RAPPORT » plutôt que « TRANSMISSION » : dans la demi-case d'un champ standard, le
+            // mot entier se coupait, et c'est bien le rapport engagé que le schéma montre.
+            Case.Schema(
+                DashboardModels.drivetrainModel(context, rideData)
+                    .copy(label = context.getString(R.string.pair_label_gear)),
+            ),
         )
         COEUR_PUISSANCE -> listOf(
             Case.Chiffre(DashboardModels.heartRateTile(context, rideData)),
