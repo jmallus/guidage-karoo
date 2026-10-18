@@ -398,7 +398,7 @@ class SimulateurTest {
             val montee = simulateur.imageMontee(secondes)
             assertTrue("le profil de montée est vide à $secondes s", couleursDistinctes(montee) > 6)
             for (paire in Paire.entries) {
-                for ((largeur, hauteur) in listOf(CASE_LARGE, CASE_HAUTE)) {
+                for ((largeur, hauteur) in listOf(CASE_STANDARD, CASE_BASSE, CASE_LARGE)) {
                     val image = simulateur.imagePaire(paire, secondes, largeur, hauteur)
                     assertTrue(
                         "${paire.typeId} ($largeur × $hauteur) est vide à $secondes s",
@@ -410,8 +410,8 @@ class SimulateurTest {
 
         ecrire(simulateur.imageMontee(dansLaCote), File(dossier, "champ-montee.png"))
         for (paire in Paire.entries) {
-            val (largeur, hauteur) = CASE_LARGE
-            ecrire(simulateur.imagePaire(paire, dansLaCote, largeur, hauteur), File(dossier, "champ-${paire.typeId}.png"))
+            val image = simulateur.imagePaire(paire, dansLaCote, Simulateur.LARGEUR_BILAN, Simulateur.HAUTEUR_BILAN)
+            ecrire(image, File(dossier, "champ-${paire.typeId}.png"))
         }
     }
 
@@ -562,6 +562,9 @@ class SimulateurTest {
         champ("Profil à venir", simulateur.imageProfil(secondes)),
         champ("Bilan 1/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[0])),
         champ("Bilan 2/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[1])),
+        champ("Profil de montée", simulateur.imageMontee(secondes)),
+        champ("Vitesse + transmission", simulateur.imagePaire(Paire.VITESSE_TRANSMISSION, secondes, Simulateur.LARGEUR_BILAN, Simulateur.HAUTEUR_BILAN)),
+        champ("FC + puissance", simulateur.imagePaire(Paire.COEUR_PUISSANCE, secondes, Simulateur.LARGEUR_BILAN, Simulateur.HAUTEUR_BILAN)),
     )
 
     private fun champ(nom: String, image: Bitmap) =
@@ -674,9 +677,14 @@ class SimulateurTest {
         /** Moments de la sortie où le rendu est contrôlé, en part de sa durée. */
         val PARTS_CONTROLEES = listOf(0.05, 0.25, 0.5, 0.75, 0.95)
 
-        /** Une case pleine largeur sur une page de six rangs, puis une demi-case de trois. */
-        val CASE_LARGE = 478 to 107
-        val CASE_HAUTE = 238 to 214
+        /**
+         * Les formes de case où les paires se contrôlent : la case standard, une demi-largeur
+         * sur un tiers de hauteur — celle des pages de bilan —, une demi-largeur plus basse,
+         * sur une page de huit, et une pleine largeur sur une page de six rangs.
+         */
+        val CASE_STANDARD = Simulateur.LARGEUR_BILAN to Simulateur.HAUTEUR_BILAN
+        val CASE_BASSE = Simulateur.LARGEUR_BILAN to Simulateur.HAUTEUR / 4
+        val CASE_LARGE = Simulateur.LARGEUR to Simulateur.HAUTEUR / 6
 
         /**
          * Le moment de la sortie que les captures montrent.
