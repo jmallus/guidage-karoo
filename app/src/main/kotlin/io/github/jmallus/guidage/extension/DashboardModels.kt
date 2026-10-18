@@ -120,7 +120,7 @@ object DashboardModels {
      * répondent chacun à sa question, et c'est le même modèle et le même rendu qui servent
      * les deux.
      */
-    private fun profileBand(
+    internal fun profileBand(
         context: Context,
         snapshot: GuidanceSnapshot,
         settings: GuidageSettings,
@@ -278,7 +278,7 @@ object DashboardModels {
      * ou rouge selon la moyenne de la sortie pour la première, couleur de zone Karoo pour
      * la seconde. La cadence n'a pas de zones et reste sur fond noir.
      */
-    private fun effortTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
+    internal fun effortTiles(context: Context, units: Units, rideData: RideData): List<Tile> = listOf(
         Tile(
             label = context.getString(R.string.dashboard_label_speed),
             value = rideData.speed?.let { Format.speed(it, units) } ?: PLACEHOLDER,
@@ -308,7 +308,7 @@ object DashboardModels {
      * la zone se lit sans quitter le nombre des yeux, et c'est ainsi que la vitesse et la
      * puissance l'annoncent en haut de l'écran.
      */
-    private fun heartRateTile(context: Context, rideData: RideData): Tile = Tile(
+    internal fun heartRateTile(context: Context, rideData: RideData): Tile = Tile(
         label = context.getString(R.string.dashboard_label_heart_rate),
         value = rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
         background = rideData.heartRate?.let { Zones.heartRateColor(it, rideData.heartRateZones) },
@@ -316,7 +316,7 @@ object DashboardModels {
     )
 
     /** La transmission, telle que la rapporte le groupe — vide s'il ne rapporte rien. */
-    private fun drivetrainModel(context: Context, rideData: RideData) = DrivetrainModel(
+    internal fun drivetrainModel(context: Context, rideData: RideData) = DrivetrainModel(
         label = context.getString(R.string.dashboard_label_gears),
         front = rideData.drivetrain.front,
         frontCount = rideData.drivetrain.frontCount,

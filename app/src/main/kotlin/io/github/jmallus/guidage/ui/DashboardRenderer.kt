@@ -125,7 +125,87 @@ data class DashboardModel(
     val palette: Palette,
 )
 
+/**
+ * Une case d'un champ à deux données : un chiffre, ou la transmission en schéma.
+ *
+ * Ce sont les cases mêmes du tableau de bord, détachées pour se poser dans une case ordinaire
+ * du Karoo : même dessin, mêmes couleurs de zone, de sorte qu'une page composée de ces champs
+ * se lit comme le tableau de bord.
+ */
+sealed interface Case {
+    data class Chiffre(val tile: Tile) : Case
+
+    data class Schema(val drivetrain: DrivetrainModel) : Case
+}
+
 object DashboardRenderer {
+
+    /**
+     * Un champ à deux données, côte à côte quand la case est large, l'une sur l'autre sinon.
+     *
+     * Les chiffres partagent une seule taille, comme sur le tableau de bord : deux valeurs
+     * voisines écrites à deux corps différents ne se comparent plus d'un coup d'œil. Le schéma
+     * de transmission prend, lui, toute la hauteur que sa moitié lui laisse.
+     */
+    fun renderPaire(context: Context, width: Int, height: Int, cases: List<Case>, palette: Palette): Bitmap {
+        val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
+        if (cases.isEmpty()) return bitmap
+        val canvas = Canvas(bitmap)
+        val padding = padding(width, height)
+        val coteACote = width >= height * PAIRE_COTE_A_COTE
+        val largeur = width - 2 * padding
+        val hauteur = height - 2 * padding
+        val bounds = cases.indices.map { i ->
+            if (coteACote) {
+                val pas = largeur / cases.size
+                RectF(padding + i * pas, padding, padding + (i + 1) * pas, height - padding)
+            } else {
+                val pas = hauteur / cases.size
+                RectF(padding, padding + i * pas, width - padding, padding + (i + 1) * pas)
+            }
+        }
+        val chiffres = cases.indices.filter { cases[it] is Case.Chiffre }
+        val cellHeight = bounds.minOf { it.height() }
+        val valueSize = if (chiffres.isEmpty()) {
+            cellHeight * VALUE_HEIGHT_FRACTION
+        } else {
+            drawTiles(
+                context = context,
+                canvas = canvas,
+                bounds = chiffres.map { bounds[it] },
+                tiles = chiffres.map { (cases[it] as Case.Chiffre).tile },
+                palette = palette,
+                valueFraction = VALUE_HEIGHT_FRACTION,
+                labelFraction = LABEL_HEIGHT_FRACTION,
+            )
+        }
+        cases.forEachIndexed { i, case ->
+            if (case !is Case.Schema) return@forEachIndexed
+            val box = bounds[i]
+            // L'icône tombe quand le libellé ne tient pas avec elle, comme dans les cases
+            // chiffrées : dans une demi-case, elle débordait sur le bord du champ.
+            val ajustement = fitLabelSize(
+                label = case.drivetrain.label,
+                hasIcon = case.drivetrain.icon != null,
+                maxWidth = box.width() - EDGE_INSET * 2,
+                preferredSize = cellHeight * LABEL_HEIGHT_FRACTION,
+            )
+            drawDrivetrain(
+                context = context,
+                canvas = canvas,
+                bounds = box,
+                model = case.drivetrain,
+                palette = palette,
+                valueSize = valueSize,
+                labelSize = ajustement.size,
+                avecIcone = ajustement.avecIcone,
+            )
+        }
+        return bitmap
+    }
+
+    /** Rapport largeur / hauteur à partir duquel les deux données se posent côte à côte. */
+    private const val PAIRE_COTE_A_COTE = 1.4f
 
     /** Largeur de la colonne de gauche. */
     private const val TILE_COLUMN_FRACTION = 0.5f
@@ -523,6 +603,7 @@ object DashboardRenderer {
         palette: Palette,
         valueSize: Float,
         labelSize: Float,
+        avecIcone: Boolean = true,
     ) {
         val labelPaint = paint(labelSize, palette.textSecondary, LABEL_TYPEFACE)
         val labelHeight = labelPaint.descent() - labelPaint.ascent()
@@ -538,6 +619,7 @@ object DashboardRenderer {
             iconInk = palette.iconTint,
             top = top,
             labelSize = labelSize,
+            avecIcone = avecIcone,
         )
 
         // Le schéma prend toute la hauteur sous le titre, et non la seule bande d'un chiffre.
@@ -554,9 +636,15 @@ object DashboardRenderer {
         val area = RectF(bounds.left + EDGE_INSET, schematicTop, right, schematicBottom)
         if (area.width() <= 0 || area.height() <= 0) return
 
-        val teethSize = valueSize * TEETH_RATIO
-        val teethPaint = paint(teethSize, palette.textPrimary, VALUE_TYPEFACE)
         val teeth = teethLabel(model)
+        // Le rapport suit le corps des chiffres voisins, mais se réduit à la largeur de la case :
+        // dans la demi-case d'un champ à deux données, « 34×32 » au corps de la vitesse
+        // débordait, et le peigne n'en laissait rien voir.
+        val teethSize = (valueSize * TEETH_RATIO).let { voulu ->
+            val largeur = teeth?.let { paint(voulu, 0, VALUE_TYPEFACE).measureText(it) } ?: 0f
+            if (largeur > area.width()) voulu * area.width() / largeur else voulu
+        }
+        val teethPaint = paint(teethSize, palette.textPrimary, VALUE_TYPEFACE)
 
         // Les barres montent depuis le bas de cette bande et occupent toute sa largeur : elles
         // passent donc sous le titre et son icône, que rien ne décale plus sur le côté. Il

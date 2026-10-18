@@ -19,6 +19,7 @@ import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.DashboardModels
 import io.github.jmallus.guidage.extension.FieldModels
+import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.extension.LevelModels
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
@@ -201,6 +202,30 @@ class Simulateur(
         FieldModels.profile(context, instantane(secondes), reglages(), preview = false),
         FieldPalette.of(context),
     )
+
+    /** Le champ « Profil de montée » : le bandeau du tableau de bord, seul. */
+    fun imageMontee(
+        secondes: Double,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR_PROFIL,
+    ): Bitmap = ProfileRenderer.render(
+        largeur,
+        hauteur,
+        DashboardModels.profileBand(
+            context, instantane(secondes), reglages(), preview = false,
+            rideData = releve(secondes),
+            nowMillis = departMillis + (secondes * 1_000).toLong(),
+        ),
+        FieldPalette.of(context),
+    )
+
+    /** Un champ à deux données, à la taille d'une case. */
+    fun imagePaire(paire: Paire, secondes: Double, largeur: Int, hauteur: Int): Bitmap =
+        DashboardRenderer.renderPaire(
+            context, largeur, hauteur,
+            paire.cases(context, Units.METRIC, releve(secondes)),
+            FieldPalette.of(context),
+        )
 
     /**
      * La côte en cours, telle que le Karoo la rapporterait.

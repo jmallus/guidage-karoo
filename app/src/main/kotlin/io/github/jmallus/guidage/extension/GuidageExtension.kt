@@ -46,7 +46,9 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
             DashboardDataType(provider, rideDataProvider, settingsRepository, roadMapRepository, extension),
             ProfileDataType(provider, settingsRepository, extension),
             PoiDataType(provider, extension),
-        ) + Bilan.entries.map { LevelDataType(it, provider, rideDataProvider, extension) }
+            MonteeDataType(provider, rideDataProvider, settingsRepository, extension),
+        ) + Paire.entries.map { PaireDataType(it, provider, rideDataProvider, extension) } +
+            Bilan.entries.map { LevelDataType(it, provider, rideDataProvider, extension) }
     }
 
     override fun onCreate() {
