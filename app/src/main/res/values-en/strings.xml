@@ -120,12 +120,6 @@
     <string name="field_heart_power_name">HR + power</string>
     <string name="field_heart_power_description">Heart rate and 3 s power, each on the colour of its zone, as on the dashboard. Side by side in a wide tile, stacked in a tall one.</string>
     <string name="pair_label_gear">GEAR</string>
-    <string name="field_number_speed_name">Number only · speed</string>
-    <string name="field_number_power_name">Number only · power</string>
-    <string name="field_number_heart_name">Number only · HR</string>
-    <string name="field_number_remaining_name">Number only · remaining</string>
-    <string name="field_number_gear_name">Number only · gear</string>
-    <string name="field_number_description">The value alone, large: no title, no icon, no colour block — the zone shows in the colour of the number, and the background stays the Karoo\'s. Made for the map page, where every pixel counts. Follows the alignment set for the field.</string>
     <string name="field_level_heart_name">Summary · heart</string>
     <string name="field_level_heart_description">The ride\'s average heart rate, with the maximum reached right beside it, on a flat of the colour of the zone the average falls into. An average alone says nothing: it is its distance from the maximum that tells you whether the ride was steady or made of hard efforts. Fits in an ordinary tile.</string>
     <string name="field_level_heart_max">MAX</string>

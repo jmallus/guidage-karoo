@@ -57,44 +57,6 @@
         icon="@drawable/ic_heart_rate" />
 
     <!--
-      Les chiffres seuls : la valeur, sans titre ni fond, pour la page carte du Karoo.
-    -->
-    <DataType
-        typeId="chiffre-vitesse"
-        displayName="@string/field_number_speed_name"
-        description="@string/field_number_description"
-        graphical="true"
-        icon="@drawable/ic_speed" />
-
-    <DataType
-        typeId="chiffre-puissance"
-        displayName="@string/field_number_power_name"
-        description="@string/field_number_description"
-        graphical="true"
-        icon="@drawable/ic_power" />
-
-    <DataType
-        typeId="chiffre-coeur"
-        displayName="@string/field_number_heart_name"
-        description="@string/field_number_description"
-        graphical="true"
-        icon="@drawable/ic_heart_rate" />
-
-    <DataType
-        typeId="chiffre-restant"
-        displayName="@string/field_number_remaining_name"
-        description="@string/field_number_description"
-        graphical="true"
-        icon="@drawable/ic_distance_remaining" />
-
-    <DataType
-        typeId="chiffre-rapport"
-        displayName="@string/field_number_gear_name"
-        description="@string/field_number_description"
-        graphical="true"
-        icon="@drawable/ic_gears" />
-
-    <!--
       Les six cases de bilan. Elles tiennent dans une case ordinaire, et une page en porte
       dix : c'est pour cela qu'elles existent séparément plutôt qu'en une page unique.
     -->

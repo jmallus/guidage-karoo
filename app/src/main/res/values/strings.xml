@@ -124,12 +124,6 @@
     <string name="field_heart_power_name">FC + puissance</string>
     <string name="field_heart_power_description">La fréquence cardiaque et la puissance sur 3 s, chacune sur l\'aplat de sa zone, comme sur le tableau de bord. Côte à côte dans une case large, l\'une sur l\'autre dans une case haute.</string>
     <string name="pair_label_gear">RAPPORT</string>
-    <string name="field_number_speed_name">Chiffre seul · vitesse</string>
-    <string name="field_number_power_name">Chiffre seul · puissance</string>
-    <string name="field_number_heart_name">Chiffre seul · FC</string>
-    <string name="field_number_remaining_name">Chiffre seul · restant</string>
-    <string name="field_number_gear_name">Chiffre seul · rapport</string>
-    <string name="field_number_description">La valeur seule, en grand : ni titre, ni icône, ni aplat — la zone se lit à la couleur du chiffre, et le fond reste celui du Karoo. Faite pour la page carte, où chaque point compte. Suit l\'alignement réglé pour le champ.</string>
     <string name="field_level_heart_name">Bilan · cœur</string>
     <string name="field_level_heart_description">La fréquence cardiaque moyenne de la sortie, avec le maximum atteint juste à côté, sur un aplat de la couleur de la zone où la moyenne tombe. Une moyenne seule ne dit rien : c\'est son écart au maximum qui dit si la sortie fut régulière ou faite de coups de force. Tient dans une case ordinaire.</string>
     <string name="field_level_heart_max">MAX</string>

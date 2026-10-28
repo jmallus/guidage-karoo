@@ -342,7 +342,7 @@ object DashboardModels {
      * monde ou pour personne — et c'est « RESTANT KM » qui privait la fréquence cardiaque de
      * la sienne. En raccourcissant, les deux cases retrouvent leur symbole.
      */
-    internal fun remainingTile(context: Context, rideData: RideData, units: Units): Tile = Tile(
+    private fun remainingTile(context: Context, rideData: RideData, units: Units): Tile = Tile(
         label = context.getString(R.string.dashboard_label_remaining),
         value = rideData.distanceRemaining?.let { remainingValue(it, units) } ?: PLACEHOLDER,
         icon = R.drawable.ic_distance_remaining,
