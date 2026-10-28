@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -85,18 +86,22 @@ class DashboardDataType(
                 guidanceProvider.snapshot,
                 if (config.preview) previewRide() else rideDataProvider.data,
                 settingsRepository.settings,
-            ) { snapshot, rideData, settings ->
-                DashboardModels.build(
-                    context = context,
-                    snapshot = snapshot,
-                    rideData = rideData,
-                    settings = settings,
-                    preview = config.preview && !snapshot.state.navigating,
-                    roadSource = roadSource,
-                )
-            }
-                .distinctUntilChanged()
+            ) { snapshot, rideData, settings -> Triple(snapshot, rideData, settings) }
+                // Les relevés se lisent au plus une fois par seconde, avant de bâtir le
+                // modèle : le bâtir à chaque valeur reçue — une vingtaine par seconde —
+                // coûtait plus que le dessin qu'on plafonnait déjà.
                 .auPlusUneFoisPar(PERIODE_RENDU_MS)
+                .map { (snapshot, rideData, settings) ->
+                    DashboardModels.build(
+                        context = context,
+                        snapshot = snapshot,
+                        rideData = rideData,
+                        settings = settings,
+                        preview = config.preview && !snapshot.state.navigating,
+                        roadSource = roadSource,
+                    )
+                }
+                .distinctUntilChanged()
                 .collect { model ->
                     val (width, height) = FieldSize.of(config)
                     val bitmap = DashboardRenderer.render(context, width, height, model)

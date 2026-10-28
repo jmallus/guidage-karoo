@@ -42,11 +42,13 @@ class ProfileDataType(
             FieldReportStore(context).record(TYPE_ID, config)
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
-            combine(provider.snapshot, settingsRepository.settings) { snapshot, settings ->
-                FieldModels.profile(context, snapshot, settings, config.preview)
-            }
-                .distinctUntilChanged()
+            combine(provider.snapshot, settingsRepository.settings) { snapshot, settings -> snapshot to settings }
+                // Les relevés se lisent au plus une fois par seconde, avant de bâtir le
+                // modèle : le bâtir à chaque valeur reçue — une vingtaine par seconde —
+                // coûtait plus que le dessin qu'on plafonnait déjà.
                 .auPlusUneFoisPar(PERIODE_RENDU_MS)
+                .map { (snapshot, settings) -> FieldModels.profile(context, snapshot, settings, config.preview) }
+                .distinctUntilChanged()
                 .map { model ->
                     val (width, height) = FieldSize.of(config)
                     ProfileRenderer.render(width, height, model, FieldPalette.of(context))
