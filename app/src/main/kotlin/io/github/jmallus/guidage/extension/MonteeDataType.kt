@@ -66,7 +66,7 @@ class MonteeDataType(
                 .distinctUntilChanged()
                 .map { model ->
                     val (width, height) = FieldSize.of(config)
-                    ProfileRenderer.render(width, height, model, FieldPalette.of(context))
+                    ProfileRenderer.render(width, height, model, FieldPalette.of(context), corpsTextes = CORPS_TEXTES)
                 }
                 .collect { bitmap ->
                     val composed = glance.compose(context, DpSize.Unspecified) { BitmapField(bitmap) }
@@ -78,5 +78,12 @@ class MonteeDataType(
 
     companion object {
         const val TYPE_ID = "montee"
+
+        /**
+         * Les textes du champ un sixième plus petits que ceux du bandeau : la silhouette y
+         * gagne un cinquième de hauteur (68 → 82 px dans une case de 160), demandé en roulant.
+         * Le bandeau du tableau de bord garde les siens.
+         */
+        const val CORPS_TEXTES = 0.83f
     }
 }

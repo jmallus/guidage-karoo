@@ -115,6 +115,8 @@ object ProfileRenderer {
         model: ProfileFieldModel,
         palette: Palette,
         encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+        /** Voir [draw]. */
+        corpsTextes: Float = 1f,
     ): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         draw(
@@ -123,6 +125,7 @@ object ProfileRenderer {
             model,
             palette,
             encreMinimaleMm,
+            corpsTextes = corpsTextes,
         )
         return bitmap
     }
@@ -140,6 +143,13 @@ object ProfileRenderer {
         model: ProfileFieldModel,
         palette: Palette,
         encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+        /**
+         * Le corps des textes — en-tête, graduations, cases de pente — en part de celui que
+         * donne la hauteur. Moins de texte, c'est plus de silhouette : le champ « Profil de
+         * montée » l'abaisse pour grandir le profil, sans jamais passer sous le plancher de
+         * lisibilité.
+         */
+        corpsTextes: Float = 1f,
     ) {
         val width = area.width()
         val height = area.height()
@@ -148,7 +158,7 @@ object ProfileRenderer {
         // lus, ou pas écrits du tout. Le corps se déduit de la hauteur d'encre voulue, jamais
         // de la place qui reste — c'est l'inversion de règle qui rendait le bandeau illisible.
         val corpsMinimal = Lisibilite.corpsPourCapitale(encreMinimaleMm)
-        val labelSize = max((height * 0.16f).coerceAtMost(26f), corpsMinimal)
+        val labelSize = max((height * 0.16f).coerceAtMost(26f) * corpsTextes, corpsMinimal)
         val tickSize = max(labelSize * TICK_TEXT_RATIO, corpsMinimal)
         // Les chiffres de l'axe ne s'écrivent que si la bande peut les porter à cette taille,
         // la silhouette gardant sa part. Sinon les traits restent seuls : ils disent la

@@ -21,6 +21,7 @@ import io.github.jmallus.guidage.extension.DashboardModels
 import io.github.jmallus.guidage.extension.FieldModels
 import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.extension.LevelModels
+import io.github.jmallus.guidage.extension.MonteeDataType
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
@@ -217,6 +218,7 @@ class Simulateur(
             nowMillis = departMillis + (secondes * 1_000).toLong(),
         ),
         FieldPalette.of(context),
+        corpsTextes = MonteeDataType.CORPS_TEXTES,
     )
 
     /** Un champ à deux données, à la taille d'une case. */
