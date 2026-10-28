@@ -28,7 +28,6 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 | **Profil de montée** | graphique | Le bandeau du bas du tableau de bord, seul : ce qui arrive sur la portée réglée, et **dans une côte** la côte entière du pied au sommet, recalée sur le ClimbPro du Karoo, avec la distance et le dénivelé jusqu'au sommet et la pente des 600 m qui viennent. |
 | **Vitesse + transmission** | graphique, case standard | La vitesse sur 3 s, à la couleur de son écart à la moyenne, et le rapport engagé en schéma, comme sur le tableau de bord. Côte à côte dans une case standard, l'une sur l'autre dans une case plus haute. |
 | **FC + puissance** | graphique, case standard | La fréquence cardiaque et la puissance sur 3 s, chacune sur l'aplat de sa zone, à la même taille de chiffres. |
-| **Chiffre seul** (vitesse, puissance, FC, restant, rapport) | graphique, case standard | La valeur seule, aussi grande que la case le permet : ni titre, ni icône, ni aplat. La zone se lit à la couleur du chiffre, cerné d'un liseré noir qui le détache de tout fond. Fait pour la page carte du Karoo, où chaque point compte ; suit l'alignement réglé pour le champ. |
 | **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. Les points d'intérêt que le Karoo annonce lui-même en bas d'écran, hors itinéraire, sont aussi posés sur le profil quand ils bordent la trace (250 m au plus). |
 
 S'y ajoutent **dix cases de bilan**, décrites plus bas : elles tiennent dans une case
@@ -98,14 +97,6 @@ Le profil de montée à mi-pente, puis les deux champs à deux données dans une
 <img src="docs/captures/champ-montee.png" width="300" alt="Profil de montée">
 <img src="docs/captures/champ-vitesse-transmission.png" width="150" alt="Vitesse + transmission">
 <img src="docs/captures/champ-coeur-puissance.png" width="150" alt="FC + puissance">
-
-Les chiffres seuls, posés ici sur la carte de l'extension pour juger de leur lecture :
-
-<img src="docs/captures/champ-chiffre-vitesse-sur-carte.png" width="150" alt="Chiffre seul · vitesse">
-<img src="docs/captures/champ-chiffre-puissance-sur-carte.png" width="150" alt="Chiffre seul · puissance">
-<img src="docs/captures/champ-chiffre-coeur-sur-carte.png" width="150" alt="Chiffre seul · FC">
-<img src="docs/captures/champ-chiffre-restant-sur-carte.png" width="150" alt="Chiffre seul · restant">
-<img src="docs/captures/champ-chiffre-rapport-sur-carte.png" width="150" alt="Chiffre seul · rapport">
 
 Et le tableau de bord à trois de ses portées de carte, puis avec le profil à la place de
 la carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge —, à l'approche

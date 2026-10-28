@@ -7,7 +7,6 @@ import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
 import io.github.jmallus.guidage.extension.Bilan
-import io.github.jmallus.guidage.extension.ChiffreSeul
 import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.ui.FieldPalette
@@ -417,33 +416,6 @@ class SimulateurTest {
     }
 
     /**
-     * Les chiffres seuls, dans une case standard, une case basse et une demi-bande : un
-     * chiffre qui ne s'écrit pas — vide, ou rogné par le bord — ne lève aucune exception.
-     */
-    @Test
-    fun `les chiffres seuls se dessinent tout au long de la sortie`() {
-        val simulateur = Simulateur(context)
-        val dossier = File("build/simulateur").apply { mkdirs() }
-        for (secondes in PARTS_CONTROLEES.map { simulateur.sortie.duree * it }) {
-            for (donnee in ChiffreSeul.entries) {
-                for ((largeur, hauteur) in listOf(CASE_STANDARD, CASE_HAUTE, Simulateur.LARGEUR / 2 to Simulateur.HAUTEUR / 6)) {
-                    val image = simulateur.imageChiffre(donnee, secondes, largeur, hauteur)
-                    assertTrue("${donnee.typeId} ($largeur × $hauteur) est vide à $secondes s", couleursDistinctes(image) > 2)
-                }
-            }
-        }
-        val secondes = simulateur.sortie.duree * PART_CAPTURE
-        for (donnee in ChiffreSeul.entries) {
-            val image = simulateur.imageChiffre(donnee, secondes, CASE_STANDARD.first, CASE_STANDARD.second)
-            ecrire(image, File(dossier, "champ-${donnee.typeId}.png"))
-            ecrire(
-                simulateur.imageChiffreSurCarte(donnee, secondes, CASE_STANDARD.first, CASE_STANDARD.second),
-                File(dossier, "champ-${donnee.typeId}-sur-carte.png"),
-            )
-        }
-    }
-
-    /**
      * Les cases de bilan, à la taille qu'elles ont sur une page qui en porte six.
      *
      * Elles se contrôlent aux mêmes moments que le reste, et pour la même raison : une case
@@ -593,13 +565,7 @@ class SimulateurTest {
         champ("Profil de montée", simulateur.imageMontee(secondes)),
         champ("Vitesse + transmission", simulateur.imagePaire(Paire.VITESSE_TRANSMISSION, secondes, CASE_STANDARD.first, CASE_STANDARD.second)),
         champ("FC + puissance", simulateur.imagePaire(Paire.COEUR_PUISSANCE, secondes, CASE_STANDARD.first, CASE_STANDARD.second)),
-    ) + ChiffreSeul.entries.flatMap { donnee ->
-        val (largeur, hauteur) = CASE_STANDARD
-        listOf(
-            champ("${donnee.typeId} · sur carte", simulateur.imageChiffreSurCarte(donnee, secondes, largeur, hauteur)),
-            champ(donnee.typeId, simulateur.imageChiffre(donnee, secondes, largeur, hauteur)),
-        )
-    }
+    )
 
     private fun champ(nom: String, image: Bitmap) =
         Champ(nom, pixelsDe(image), image.width, image.height)
