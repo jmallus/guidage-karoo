@@ -3,6 +3,7 @@ package io.github.jmallus.guidage.ui
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
@@ -224,7 +225,18 @@ object DashboardRenderer {
      * Rien d'autre n'est dessiné : ni titre, ni icône, ni aplat de zone. La zone se lit à la
      * couleur du chiffre, et tout le reste de la case montre ce que le Karoo met dessous.
      */
-    fun renderChiffre(width: Int, height: Int, chiffre: Chiffre, alignement: Alignement, palette: Palette): Bitmap {
+    fun renderChiffre(
+        width: Int,
+        height: Int,
+        chiffre: Chiffre,
+        alignement: Alignement,
+        palette: Palette,
+        /**
+         * Un liseré contrasté autour des chiffres, comme les étiquettes d'une carte : un
+         * chiffre blanc ou jaune se perd sur un fond clair, son liseré sombre le détache.
+         */
+        lisere: Boolean = false,
+    ): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val encre = chiffre.couleur ?: palette.textPrimary
@@ -252,16 +264,33 @@ object DashboardRenderer {
             Alignement.CENTRE -> (width - total) / 2f
             Alignement.DROITE -> width - marge - total
         }
-        canvas.drawText(chiffre.valeur, x, ligne, valeurPaint)
+        // Le liseré prend la teinte opposée à l'encre : sombre sous un chiffre clair, clair
+        // sous un chiffre sombre. Il est tracé d'abord, le chiffre se pose dessus.
+        val teinteLisere = if (Color.luminance(encre) > 0.4f) Color.argb(220, 0x16, 0x18, 0x1A) else Color.argb(220, 255, 255, 255)
+        fun ecrire(texte: String, tx: Float, ty: Float, p: Paint) {
+            if (lisere) {
+                canvas.drawText(texte, tx, ty, Paint(p).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = p.textSize * LISERE
+                    strokeJoin = Paint.Join.ROUND
+                    color = teinteLisere
+                })
+            }
+            canvas.drawText(texte, tx, ty, p)
+        }
+        ecrire(chiffre.valeur, x, ligne, valeurPaint)
         chiffre.decimale?.let { d ->
             val montee = decimalRise(chiffre.valeur, d, valeurPaint, decimalePaint)
-            canvas.drawText(d, x + valeurPaint.measureText(chiffre.valeur), ligne - montee, decimalePaint)
+            ecrire(d, x + valeurPaint.measureText(chiffre.valeur), ligne - montee, decimalePaint)
         }
         return bitmap
     }
 
     /** Part de la hauteur de la case que prennent les chiffres. */
     private const val CHIFFRE_HAUTEUR = 0.7f
+
+    /** Épaisseur du liseré, en part du corps. */
+    private const val LISERE = 0.09f
 
     /** Rapport largeur / hauteur à partir duquel les deux données se posent côte à côte. */
     private const val PAIRE_COTE_A_COTE = 1.4f

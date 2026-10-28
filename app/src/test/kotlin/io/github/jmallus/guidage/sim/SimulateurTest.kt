@@ -436,6 +436,10 @@ class SimulateurTest {
         for (donnee in ChiffreSeul.entries) {
             val image = simulateur.imageChiffre(donnee, secondes, CASE_STANDARD.first, CASE_STANDARD.second)
             ecrire(image, File(dossier, "champ-${donnee.typeId}.png"))
+            ecrire(
+                simulateur.imageChiffreSurCarte(donnee, secondes, CASE_STANDARD.first, CASE_STANDARD.second),
+                File(dossier, "champ-${donnee.typeId}-sur-carte.png"),
+            )
         }
     }
 
@@ -589,8 +593,12 @@ class SimulateurTest {
         champ("Profil de montée", simulateur.imageMontee(secondes)),
         champ("Vitesse + transmission", simulateur.imagePaire(Paire.VITESSE_TRANSMISSION, secondes, CASE_STANDARD.first, CASE_STANDARD.second)),
         champ("FC + puissance", simulateur.imagePaire(Paire.COEUR_PUISSANCE, secondes, CASE_STANDARD.first, CASE_STANDARD.second)),
-    ) + ChiffreSeul.entries.map { donnee ->
-        champ(donnee.typeId, simulateur.imageChiffre(donnee, secondes, CASE_STANDARD.first, CASE_STANDARD.second))
+    ) + ChiffreSeul.entries.flatMap { donnee ->
+        val (largeur, hauteur) = CASE_STANDARD
+        listOf(
+            champ("${donnee.typeId} · sur carte", simulateur.imageChiffreSurCarte(donnee, secondes, largeur, hauteur)),
+            champ("${donnee.typeId} · liseré", simulateur.imageChiffreSurCarte(donnee, secondes, largeur, hauteur, lisere = true)),
+        )
     }
 
     private fun champ(nom: String, image: Bitmap) =

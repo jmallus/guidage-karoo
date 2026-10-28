@@ -2,6 +2,8 @@ package io.github.jmallus.guidage.sim
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.RectF
 import io.github.jmallus.guidage.core.ClimbProgress
 import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
@@ -17,21 +19,23 @@ import io.github.jmallus.guidage.core.Sun
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.Bilan
+import io.github.jmallus.guidage.extension.ChiffreSeul
 import io.github.jmallus.guidage.extension.DashboardModels
 import io.github.jmallus.guidage.extension.FieldModels
-import io.github.jmallus.guidage.extension.ChiffreSeul
-import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.extension.LevelModels
+import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.settings.GuidageSettings
-import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.Alignement
+import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
+import io.github.jmallus.guidage.ui.GuidanceZone
 import io.github.jmallus.guidage.ui.LevelRenderer
+import io.github.jmallus.guidage.ui.MapRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
 
@@ -228,12 +232,40 @@ class Simulateur(
         largeur: Int,
         hauteur: Int,
         alignement: Alignement = Alignement.DROITE,
+        lisere: Boolean = false,
     ): Bitmap = DashboardRenderer.renderChiffre(
         largeur, hauteur,
         donnee.chiffre(context, Units.METRIC, releve(secondes)),
         alignement,
         FieldPalette.of(context),
+        lisere,
     )
+
+    /**
+     * Le même chiffre posé sur la carte du tableau de bord, à la même taille.
+     *
+     * Pour juger de sa lecture sur un fond de carte : sur le Karoo, le champ prend une case
+     * de la page et le fond est celui du Karoo, mais c'est sur une carte qu'on l'imagine.
+     */
+    fun imageChiffreSurCarte(
+        donnee: ChiffreSeul,
+        secondes: Double,
+        largeur: Int,
+        hauteur: Int,
+        alignement: Alignement = Alignement.DROITE,
+        lisere: Boolean = false,
+    ): Bitmap {
+        val image = Bitmap.createBitmap(largeur, hauteur, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(image)
+        val ancienne = zone
+        zone = GuidanceZoneType.MAP
+        (modele(secondes).guidance as? GuidanceZone.Map)?.let { carte ->
+            MapRenderer.draw(canvas, RectF(0f, 0f, largeur.toFloat(), hauteur.toFloat()), carte.model, FieldPalette.of(context))
+        }
+        zone = ancienne
+        canvas.drawBitmap(imageChiffre(donnee, secondes, largeur, hauteur, alignement, lisere), 0f, 0f, null)
+        return image
+    }
 
     /** Un champ à deux données, à la taille d'une case. */
     fun imagePaire(paire: Paire, secondes: Double, largeur: Int, hauteur: Int): Bitmap =
