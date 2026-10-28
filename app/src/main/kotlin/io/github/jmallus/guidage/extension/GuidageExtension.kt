@@ -48,6 +48,7 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
             PoiDataType(provider, extension),
             MonteeDataType(provider, rideDataProvider, settingsRepository, extension),
         ) + Paire.entries.map { PaireDataType(it, provider, rideDataProvider, extension) } +
+            ChiffreSeul.entries.map { ChiffreDataType(it, provider, rideDataProvider, extension) } +
             Bilan.entries.map { LevelDataType(it, provider, rideDataProvider, extension) }
     }
 
