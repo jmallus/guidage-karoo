@@ -50,16 +50,20 @@ class MonteeDataType(
                 provider.snapshot,
                 if (config.preview) flowOf(RideData()) else rideDataProvider.data,
                 settingsRepository.settings,
-            ) { snapshot, rideData, settings ->
-                DashboardModels.profileBand(
-                    context, snapshot, settings,
-                    preview = config.preview && !snapshot.state.navigating,
-                    rideData = rideData,
-                    nowMillis = System.currentTimeMillis(),
-                )
-            }
-                .distinctUntilChanged()
+            ) { snapshot, rideData, settings -> Triple(snapshot, rideData, settings) }
+                // Les relevés se lisent au plus une fois par seconde, avant de bâtir le
+                // modèle : le bâtir à chaque valeur reçue — une vingtaine par seconde —
+                // coûtait plus que le dessin qu'on plafonnait déjà.
                 .auPlusUneFoisPar(PERIODE_RENDU_MS)
+                .map { (snapshot, rideData, settings) ->
+                    DashboardModels.profileBand(
+                        context, snapshot, settings,
+                        preview = config.preview && !snapshot.state.navigating,
+                        rideData = rideData,
+                        nowMillis = System.currentTimeMillis(),
+                    )
+                }
+                .distinctUntilChanged()
                 .map { model ->
                     val (width, height) = FieldSize.of(config)
                     ProfileRenderer.render(width, height, model, FieldPalette.of(context))

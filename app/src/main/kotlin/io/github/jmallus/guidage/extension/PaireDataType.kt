@@ -77,9 +77,13 @@ class PaireDataType(
             combine(
                 guidanceProvider.snapshot,
                 if (config.preview) apercu() else rideDataProvider.data,
-            ) { snapshot, rideData -> paire.cases(context, snapshot.units, rideData) }
-                .distinctUntilChanged()
+            ) { snapshot, rideData -> snapshot.units to rideData }
+                // Les relevés se lisent au plus une fois par seconde, avant de bâtir le
+                // modèle : le bâtir à chaque valeur reçue — une vingtaine par seconde —
+                // coûtait plus que le dessin qu'on plafonnait déjà.
                 .auPlusUneFoisPar(PERIODE_RENDU_MS)
+                .map { (units, rideData) -> paire.cases(context, units, rideData) }
+                .distinctUntilChanged()
                 .map { cases ->
                     val (width, height) = FieldSize.of(config)
                     DashboardRenderer.renderPaire(context, width, height, cases, FieldPalette.of(context))

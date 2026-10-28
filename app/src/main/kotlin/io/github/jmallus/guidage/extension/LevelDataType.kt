@@ -74,11 +74,13 @@ class LevelDataType(
             FieldReportStore(context).record(dataTypeId, config)
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
-            combine(provider.snapshot, rideDataProvider.data) { snapshot, rideData ->
-                LevelModels.build(context, variante, snapshot, rideData, config.preview)
-            }
-                .distinctUntilChanged()
+            combine(provider.snapshot, rideDataProvider.data) { snapshot, rideData -> snapshot to rideData }
+                // Les relevés se lisent au plus une fois par seconde, avant de bâtir le
+                // modèle : le bâtir à chaque valeur reçue — une vingtaine par seconde —
+                // coûtait plus que le dessin qu'on plafonnait déjà.
                 .auPlusUneFoisPar(PERIODE_RENDU_MS)
+                .map { (snapshot, rideData) -> LevelModels.build(context, variante, snapshot, rideData, config.preview) }
+                .distinctUntilChanged()
                 .map { model ->
                     val (width, height) = FieldSize.of(config)
                     LevelRenderer.render(context, width, height, model, FieldPalette.of(context))

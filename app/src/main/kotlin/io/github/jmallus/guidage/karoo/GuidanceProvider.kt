@@ -153,7 +153,13 @@ class GuidanceProvider(
         val globalPois = karooSystem.consumerFlow<OnGlobalPOIs>()
             .map { it.pois }
             .onStart { emit(emptyList()) }
-        val navigationEtPois = combine(navigation, globalPois) { nav, pois -> nav to pois }
+        // L'itinéraire se décode ici, une fois par état de navigation : tracé, profil,
+        // côtes et points d'intérêt posés sur le tracé. Il se décodait dans la combinaison
+        // ci-dessous, c'est-à-dire à chaque distance, pente, vitesse ou position reçue —
+        // plusieurs fois par seconde, pour un itinéraire qui ne change qu'au départ ou à un
+        // reroutage. C'était le plus gros calcul de l'extension, et il tournait sans cesse.
+        val itineraire = combine(navigation, globalPois) { nav, pois -> itineraire(nav, climbHistory, pois) }
+            .distinctUntilChanged()
         // Ce type porte quatre champs (distance, état de navigation, reroutage, sur
         // l'itinéraire) : il faut nommer celui qu'on veut, sans quoi on lit l'un des autres.
         val remaining = karooSystem.streamFieldFlow(
@@ -181,15 +187,15 @@ class GuidanceProvider(
             .onStart { emit(null) }
 
         return combine(
-            navigationEtPois,
+            itineraire,
             remaining,
             grade,
             unitsEtVitesse,
             location,
-        ) { (nav, pois), distanceRemaining, currentGrade, (unitSystem, vitesse), riderLocation ->
+        ) { route, distanceRemaining, currentGrade, (unitSystem, vitesse), riderLocation ->
             GuidanceSnapshot(
                 state = steadied(
-                    buildState(nav, distanceRemaining, currentGrade, climbHistory, pois),
+                    etat(route, distanceRemaining, currentGrade),
                     System.currentTimeMillis(),
                 ),
                 units = unitSystem,
@@ -211,12 +217,27 @@ class GuidanceProvider(
             currentGrade: Double?,
             climbHistory: ClimbHistory? = null,
             globalPois: List<Symbol.POI> = emptyList(),
-        ): GuidanceState {
-            val reported = navigation.toRoute()?.withGlobalPois(globalPois) ?: return GuidanceState.IDLE
+        ): GuidanceState = etat(itineraire(navigation, climbHistory, globalPois), distanceRemaining, currentGrade)
+
+        /**
+         * L'itinéraire tel qu'il se dessine, décodé d'un état de navigation : la partie lourde
+         * du calcul, qui ne dépend que de lui et des points d'intérêt globaux.
+         */
+        fun itineraire(
+            navigation: NavigationState,
+            climbHistory: ClimbHistory? = null,
+            globalPois: List<Symbol.POI> = emptyList(),
+        ): Route? {
+            val reported = navigation.toRoute()?.withGlobalPois(globalPois) ?: return null
             // Les côtes retenues sont confrontées au profil : celles qu'il ne porte pas ne
             // sont pas dessinées, et ne comptent pas non plus dans la numérotation.
-            val route = (climbHistory?.remember(reported) ?: reported)
+            return (climbHistory?.remember(reported) ?: reported)
                 .let { it.copy(climbs = Guidance.climbsOnProfile(it)) }
+        }
+
+        /** L'état de guidage d'un itinéraire déjà décodé : quelques soustractions. */
+        fun etat(route: Route?, distanceRemaining: Double?, currentGrade: Double?): GuidanceState {
+            if (route == null) return GuidanceState.IDLE
             val along = distanceAlongRoute(route.totalDistance, distanceRemaining)
             return GuidanceState(
                 route = route,
