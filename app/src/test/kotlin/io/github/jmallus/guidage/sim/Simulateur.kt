@@ -232,7 +232,7 @@ class Simulateur(
         largeur: Int,
         hauteur: Int,
         alignement: Alignement = Alignement.DROITE,
-        lisere: Boolean = false,
+        lisere: Boolean = true,
     ): Bitmap = DashboardRenderer.renderChiffre(
         largeur, hauteur,
         donnee.chiffre(context, Units.METRIC, releve(secondes)),
@@ -253,7 +253,7 @@ class Simulateur(
         largeur: Int,
         hauteur: Int,
         alignement: Alignement = Alignement.DROITE,
-        lisere: Boolean = false,
+        lisere: Boolean = true,
     ): Bitmap {
         val image = Bitmap.createBitmap(largeur, hauteur, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(image)

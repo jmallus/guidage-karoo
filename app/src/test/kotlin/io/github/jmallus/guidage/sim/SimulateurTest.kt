@@ -597,7 +597,7 @@ class SimulateurTest {
         val (largeur, hauteur) = CASE_STANDARD
         listOf(
             champ("${donnee.typeId} · sur carte", simulateur.imageChiffreSurCarte(donnee, secondes, largeur, hauteur)),
-            champ("${donnee.typeId} · liseré", simulateur.imageChiffreSurCarte(donnee, secondes, largeur, hauteur, lisere = true)),
+            champ(donnee.typeId, simulateur.imageChiffre(donnee, secondes, largeur, hauteur)),
         )
     }
 

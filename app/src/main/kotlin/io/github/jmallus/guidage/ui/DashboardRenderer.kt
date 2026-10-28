@@ -232,10 +232,10 @@ object DashboardRenderer {
         alignement: Alignement,
         palette: Palette,
         /**
-         * Un liseré contrasté autour des chiffres, comme les étiquettes d'une carte : un
-         * chiffre blanc ou jaune se perd sur un fond clair, son liseré sombre le détache.
+         * Un liseré noir autour des chiffres, comme les étiquettes d'une carte : un chiffre
+         * blanc ou jaune se perd sur un fond clair, son liseré le détache.
          */
-        lisere: Boolean = false,
+        lisere: Boolean = true,
     ): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -264,9 +264,10 @@ object DashboardRenderer {
             Alignement.CENTRE -> (width - total) / 2f
             Alignement.DROITE -> width - marge - total
         }
-        // Le liseré prend la teinte opposée à l'encre : sombre sous un chiffre clair, clair
-        // sous un chiffre sombre. Il est tracé d'abord, le chiffre se pose dessus.
-        val teinteLisere = if (Color.luminance(encre) > 0.4f) Color.argb(220, 0x16, 0x18, 0x1A) else Color.argb(220, 255, 255, 255)
+        // Le liseré est noir, sous toutes les couleurs : retenu sur la planche, il détache le
+        // blanc et le jaune d'un fond clair sans changer d'aspect d'un chiffre à l'autre. Il
+        // est tracé d'abord, le chiffre se pose dessus.
+        val teinteLisere = Color.argb(230, 0, 0, 0)
         fun ecrire(texte: String, tx: Float, ty: Float, p: Paint) {
             if (lisere) {
                 canvas.drawText(texte, tx, ty, Paint(p).apply {
