@@ -19,6 +19,7 @@ import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.DashboardModels
 import io.github.jmallus.guidage.extension.FieldModels
+import io.github.jmallus.guidage.extension.ChiffreSeul
 import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.extension.LevelModels
 import io.github.jmallus.guidage.extension.RoadSource
@@ -27,6 +28,7 @@ import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.DashboardModel
+import io.github.jmallus.guidage.ui.Alignement
 import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.LevelRenderer
@@ -216,6 +218,20 @@ class Simulateur(
             rideData = releve(secondes),
             nowMillis = departMillis + (secondes * 1_000).toLong(),
         ),
+        FieldPalette.of(context),
+    )
+
+    /** Un champ « chiffre seul », à la taille d'une case. */
+    fun imageChiffre(
+        donnee: ChiffreSeul,
+        secondes: Double,
+        largeur: Int,
+        hauteur: Int,
+        alignement: Alignement = Alignement.DROITE,
+    ): Bitmap = DashboardRenderer.renderChiffre(
+        largeur, hauteur,
+        donnee.chiffre(context, Units.METRIC, releve(secondes)),
+        alignement,
         FieldPalette.of(context),
     )
 

@@ -138,6 +138,20 @@ sealed interface Case {
     data class Schema(val drivetrain: DrivetrainModel) : Case
 }
 
+/**
+ * Un chiffre seul : la valeur, sa décimale en exposant, et la couleur de sa zone portée
+ * par le chiffre lui-même — sans titre, sans icône, sans aplat.
+ */
+data class Chiffre(
+    val valeur: String,
+    val decimale: String? = null,
+    /** Couleur de la zone, ou null pour l'encre ordinaire. */
+    val couleur: Int? = null,
+)
+
+/** Où le chiffre se range dans sa case, comme le réglage d'alignement du Karoo. */
+enum class Alignement { GAUCHE, CENTRE, DROITE }
+
 object DashboardRenderer {
 
     /**
@@ -203,6 +217,51 @@ object DashboardRenderer {
         }
         return bitmap
     }
+
+    /**
+     * Un chiffre seul, aussi grand que la case le permet, sur un fond laissé transparent.
+     *
+     * Rien d'autre n'est dessiné : ni titre, ni icône, ni aplat de zone. La zone se lit à la
+     * couleur du chiffre, et tout le reste de la case montre ce que le Karoo met dessous.
+     */
+    fun renderChiffre(width: Int, height: Int, chiffre: Chiffre, alignement: Alignement, palette: Palette): Bitmap {
+        val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val encre = chiffre.couleur ?: palette.textPrimary
+        val marge = EDGE_INSET
+
+        // Le corps qui donne aux chiffres 70 % de la hauteur de la case, réduit s'ils sont
+        // trop larges : mesuré sur l'encre des chiffres, non sur ce que la fonte annonce.
+        var taille = height.toFloat()
+        val encreChiffres = Rect()
+        paint(taille, encre, VALUE_TYPEFACE).getTextBounds("0123456789", 0, 10, encreChiffres)
+        taille *= height * CHIFFRE_HAUTEUR / max(encreChiffres.height(), 1)
+        fun largeur(t: Float): Float =
+            paint(t, encre, VALUE_TYPEFACE).measureText(chiffre.valeur) +
+                (chiffre.decimale?.let { paint(t * SUFFIX_RATIO, encre, VALUE_TYPEFACE).measureText(it) } ?: 0f)
+        val dispo = width - 2 * marge
+        if (largeur(taille) > dispo) taille *= dispo / largeur(taille)
+
+        val valeurPaint = paint(taille, encre, VALUE_TYPEFACE)
+        val decimalePaint = paint(taille * SUFFIX_RATIO, encre, VALUE_TYPEFACE)
+        val hauteurChiffres = Rect().also { valeurPaint.getTextBounds("0", 0, 1, it) }.height()
+        val ligne = height / 2f + hauteurChiffres / 2f
+        val total = largeur(taille)
+        val x = when (alignement) {
+            Alignement.GAUCHE -> marge
+            Alignement.CENTRE -> (width - total) / 2f
+            Alignement.DROITE -> width - marge - total
+        }
+        canvas.drawText(chiffre.valeur, x, ligne, valeurPaint)
+        chiffre.decimale?.let { d ->
+            val montee = decimalRise(chiffre.valeur, d, valeurPaint, decimalePaint)
+            canvas.drawText(d, x + valeurPaint.measureText(chiffre.valeur), ligne - montee, decimalePaint)
+        }
+        return bitmap
+    }
+
+    /** Part de la hauteur de la case que prennent les chiffres. */
+    private const val CHIFFRE_HAUTEUR = 0.7f
 
     /** Rapport largeur / hauteur à partir duquel les deux données se posent côte à côte. */
     private const val PAIRE_COTE_A_COTE = 1.4f
