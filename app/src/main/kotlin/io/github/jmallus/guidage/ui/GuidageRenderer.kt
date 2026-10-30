@@ -355,7 +355,7 @@ object GuidageRenderer {
      * La carte, dessinée comme sur les maquettes plutôt que comme la minicarte du tableau de
      * bord : un fond crème, les bois et les champs dans les verts de la minicarte, les routes
      * en blanc d'autant plus larges qu'elles comptent, les chemins en beige, l'itinéraire en
-     * bleu et le coureur en pastille sombre. Ni rose des vents ni échelle — il ne s'agit pas de lire la région mais de voir où va la
+     * bleu et le coureur en pastille sombre, avec une boussole. Ni surfaces superflues ni échelle — il ne s'agit pas de lire la région mais de voir où va la
      * route, et le milieu de l'écran ne la montre que lorsque rien d'autre ne presse.
      */
     private fun carte(canvas: Canvas, zone: RectF, c: CentreGuidage.Carte, palette: Palette, k: Float) {
@@ -461,6 +461,42 @@ object GuidageRenderer {
 
         if (m.roads.isEmpty()) m.roadsMessage?.let { message(canvas, RectF(cadre.left, cadre.bottom - 50f * k, cadre.right, cadre.bottom), it, k) }
         c.suite?.let { etiquette(canvas, cadre.left + 10f * k, cadre.top + 8f * k, it, k) }
+        boussole(canvas, cadre.right - 32f * k, cadre.top + 32f * k, cap, k)
+    }
+
+    /**
+     * La boussole, en haut à droite : la carte tourne avec le cap du coureur, et c'est elle
+     * qui rend le nord. Une pastille sombre comme celle du coureur, une aiguille rouge vers le
+     * nord et blanche vers le sud.
+     */
+    private fun boussole(canvas: Canvas, cx: Float, cy: Float, cap: Double, k: Float) {
+        val rayon = 22f * k
+        canvas.drawCircle(cx, cy, rayon, plein(FOND))
+        canvas.drawCircle(cx, cy, rayon, trait(BLANC, 2.5f * k))
+        canvas.save()
+        // Cap en haut : le nord est à « −cap » de la verticale de l'écran.
+        canvas.rotate(-cap.toFloat(), cx, cy)
+        val longueur = rayon * 0.72f
+        val demi = rayon * 0.28f
+        canvas.drawPath(
+            Path().apply {
+                moveTo(cx, cy - longueur)
+                lineTo(cx + demi, cy)
+                lineTo(cx - demi, cy)
+                close()
+            },
+            plein(KarooColors.UI_RED).apply { pathEffect = android.graphics.CornerPathEffect(2f * k) },
+        )
+        canvas.drawPath(
+            Path().apply {
+                moveTo(cx, cy + longueur)
+                lineTo(cx + demi, cy)
+                lineTo(cx - demi, cy)
+                close()
+            },
+            plein(BLANC).apply { pathEffect = android.graphics.CornerPathEffect(2f * k) },
+        )
+        canvas.restore()
     }
 
     private fun message(canvas: Canvas, zone: RectF, texte: String, k: Float) {
