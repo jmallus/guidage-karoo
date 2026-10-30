@@ -3,12 +3,19 @@ package io.github.jmallus.guidage.sim
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import io.github.jmallus.guidage.core.ElevationProfile
 import io.github.jmallus.guidage.core.Geo
+import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.MapZoom
+import io.github.jmallus.guidage.core.ProfilePoint
+import io.github.jmallus.guidage.core.map.RoadKind
+import io.github.jmallus.guidage.core.map.RoadSegment
+import io.github.jmallus.guidage.core.map.RoadSurface
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.karoo.RiderLocation
+import io.github.jmallus.guidage.ui.CentreGuidage
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.KarooColors
 import io.github.jmallus.guidage.ui.PreviewData
@@ -416,6 +423,105 @@ class SimulateurTest {
     }
 
     /**
+     * Le tableau de guidage, dans chacun de ses quatre états.
+     *
+     * La carte et la côte se prennent sur la sortie fictive ; le carrefour et la descente en
+     * lacets sur des scènes posées à la main, parce que le décor engendré n'en produit pas
+     * à coup sûr. Les images partent dans `build/simulateur/guidage-*.png`, pour la planche.
+     */
+    @Test
+    fun `le tableau de guidage montre chacun de ses etats`() {
+        val simulateur = Simulateur(context)
+        val dossier = File("build/simulateur").apply { mkdirs() }
+
+        // Ce que la sortie fictive met au milieu de l'écran, toutes les vingt secondes.
+        val etats = (0 until (simulateur.sortie.duree / 20).toInt()).map { i ->
+            val secondes = i * 20.0
+            secondes to simulateur.modeleGuidage(secondes).centre
+        }
+        println("tableau de guidage sur la sortie : " + etats.groupingBy { it.second::class.simpleName }.eachCount())
+
+        val carte = etats.first { it.second is CentreGuidage.Carte }.first
+        ecrire(simulateur.imageGuidage(carte), File(dossier, "guidage-carte.png"))
+        val cote = PreviewData.route.climbs.minBy { it.startDistance }
+        val dansLaCote = instantA(simulateur.sortie, cote.startDistance + cote.length / 2).secondes
+        val montee = simulateur.modeleGuidage(dansLaCote).centre
+        assertTrue("à mi-côte, le milieu montre ${montee::class.simpleName}", montee is CentreGuidage.Montee || montee is CentreGuidage.Carrefour)
+        ecrire(simulateur.imageGuidage(dansLaCote), File(dossier, "guidage-montee.png"))
+        etats.firstOrNull { it.second is CentreGuidage.Carrefour }?.let {
+            ecrire(simulateur.imageGuidage(it.first), File(dossier, "guidage-carrefour-sortie.png"))
+        }
+
+        // Un carrefour : on laisse une voie à droite, on prend la suivante.
+        val carrefour = simulateur.imageScene(
+            path = listOf(m(0.0, 0.0), m(0.0, 400.0), m(400.0, 400.0)),
+            voies = listOf(
+                voie(RoadKind.SECONDARY, 0.0 to -200.0, 0.0 to 900.0),
+                voie(RoadKind.RESIDENTIAL, -250.0 to 150.0, 0.0 to 150.0),
+                voie(RoadKind.RESIDENTIAL, 0.0 to 250.0, 300.0 to 250.0),
+                voie(RoadKind.TERTIARY, -300.0 to 400.0, 0.0 to 400.0),
+                voie(RoadKind.TERTIARY, 0.0 to 400.0, 400.0 to 400.0),
+            ),
+            along = 170.0,
+            profil = ElevationProfile((0..80).map { ProfilePoint(it * 10.0, 120.0 + 18.0 * kotlin.math.sin(it / 9.0)) }),
+            pente = 1.0,
+            releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
+        )
+        ecrire(carrefour, File(dossier, "guidage-carrefour.png"))
+
+        // Une descente en lacets : une épingle, un virage serré, un virage moyen.
+        val lacets = lacets(longueurDroite = 120.0, rayons = listOf(9.0, 22.0, 45.0))
+        val longueur = Geo.length(lacets)
+        val descente = simulateur.imageScene(
+            path = lacets,
+            voies = emptyList(),
+            along = 40.0,
+            profil = ElevationProfile((0..(longueur / 10).toInt()).map { ProfilePoint(it * 10.0, 900.0 - it * 0.8) }),
+            pente = -8.0,
+            releve = simulateur.releveScene(vitesse = 11.0, puissance = 0.0, cardiaque = 128.0, pente = -8.0),
+        )
+        ecrire(descente, File(dossier, "guidage-descente.png"))
+
+        for (image in listOf(carrefour, descente)) {
+            assertTrue("une scène du tableau de guidage est vide", couleursDistinctes(image) > 6)
+        }
+    }
+
+    private val origineScene = GeoPoint(45.18, 5.72)
+
+    /** Un point de scène, en mètres est et nord depuis l'origine. */
+    private fun m(est: Double, nord: Double): GeoPoint =
+        Geo.advance(Geo.advance(origineScene, 90.0, est), 0.0, nord)
+
+    private fun voie(kind: RoadKind, vararg points: Pair<Double, Double>) = RoadSegment(
+        kind = kind,
+        surface = RoadSurface.PAVED,
+        latitudes = points.map { (m(it.first, it.second).lat * 1e6).toInt() }.toIntArray(),
+        longitudes = points.map { (m(it.first, it.second).lng * 1e6).toInt() }.toIntArray(),
+    )
+
+    /** Des lacets : une ligne droite, un demi-tour au rayon donné, et ainsi de suite. */
+    private fun lacets(longueurDroite: Double, rayons: List<Double>): List<GeoPoint> {
+        val points = mutableListOf(origineScene)
+        var ici = origineScene
+        var cap = 0.0
+        var cote = 1
+        for (rayon in rayons) {
+            ici = Geo.advance(ici, cap, longueurDroite)
+            points += ici
+            val centre = Geo.advance(ici, cap + cote * 90.0, rayon)
+            for (pas in 1..18) {
+                points += Geo.advance(centre, cap - cote * 90.0 + cote * pas * 10.0, rayon)
+            }
+            ici = points.last()
+            cap = (cap + 180.0) % 360.0
+            cote = -cote
+        }
+        points += Geo.advance(ici, cap, longueurDroite)
+        return points
+    }
+
+    /**
      * Les cases de bilan, à la taille qu'elles ont sur une page qui en porte six.
      *
      * Elles se contrôlent aux mêmes moments que le reste, et pour la même raison : une case
@@ -559,6 +665,7 @@ class SimulateurTest {
     private fun champs(simulateur: Simulateur, secondes: Double): List<Champ> = listOf(
         // Les pleines pages d'abord, chacune tenant sa colonne ; les champs de bande ensuite.
         champ("Tableau de bord", simulateur.image(secondes)),
+        champ("Tableau de guidage", simulateur.imageGuidage(secondes)),
         champ("Profil à venir", simulateur.imageProfil(secondes)),
         champ("Bilan 1/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[0])),
         champ("Bilan 2/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[1])),

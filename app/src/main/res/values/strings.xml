@@ -211,4 +211,27 @@
     <string name="field_level_arrival_label">ARRIVÉE</string>
     <string name="field_level_ascent_label">DÉNIVELÉ</string>
     <string name="field_level_intensity_label">INTENSITÉ</string>
+
+    <!-- Le tableau de guidage : l'écran qui suit la route. -->
+    <string name="field_route_name">Tableau de guidage</string>
+    <string name="field_route_description">Plein écran qui donne la priorité au guidage : trois chiffres en haut, la silhouette de ce qui vient en bas, et au milieu la chose la plus urgente — le prochain carrefour à moins de 300 m avec ses voies et des bips, sinon les virages serrés d\'une descente, sinon la côte, sinon la carte.</string>
+    <string name="route_label_speed">VITESSE</string>
+    <string name="route_label_power">PUISSANCE</string>
+    <string name="route_label_grade">PENTE</string>
+    <string name="route_label_vam">VAM %1$s</string>
+    <string name="route_label_to_top">AU SOMMET</string>
+    <string name="route_label_elevation_remaining">D+ RESTANT</string>
+    <string name="route_side_right">à droite</string>
+    <string name="route_side_left">à gauche</string>
+    <string name="route_turn">Tournez %1$s</string>
+    <string name="route_turn_slight">Légèrement %1$s</string>
+    <string name="route_turn_sharp">En épingle %1$s</string>
+    <string name="route_turn_rank">%1$de %2$s</string>
+    <string name="route_next_in">dans %1$s</string>
+    <string name="route_descent_title">Descente · virages</string>
+    <string name="route_bend_hairpin">épingle · R %1$d m</string>
+    <string name="route_bend_tight">serré · R %1$d m</string>
+    <string name="route_bend_radius">R %1$d m</string>
+    <string name="route_bend_speed">≤ %1$s %2$s</string>
+    <string name="route_descent_note">Vitesses indicatives, d\'après le rayon du tracé.\nAdhérence et dévers non connus.</string>
 </resources>

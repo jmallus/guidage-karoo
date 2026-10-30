@@ -19,6 +19,7 @@ import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.DashboardModels
 import io.github.jmallus.guidage.extension.FieldModels
+import io.github.jmallus.guidage.extension.GuidageModels
 import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.extension.LevelModels
 import io.github.jmallus.guidage.extension.RoadSource
@@ -29,6 +30,8 @@ import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.DashboardModel
 import io.github.jmallus.guidage.ui.DashboardRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
+import io.github.jmallus.guidage.ui.GuidageModel
+import io.github.jmallus.guidage.ui.GuidageRenderer
 import io.github.jmallus.guidage.ui.LevelRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.ProfileRenderer
@@ -258,6 +261,8 @@ class Simulateur(
             heartRate = instant.cardiaque,
             cadence = instant.cadence,
             grade = instant.pente,
+            // Ce que le Karoo moyenne sur trente secondes ; ici l'instant suffit à juger l'affichage.
+            verticalSpeed = instant.vitesse * instant.pente / 100.0,
             distance = instant.distance + detourMetres,
             distanceRemaining = instant.distanceRestante,
             arrivalTime = arrivee(instant, maintenant),
@@ -353,6 +358,77 @@ class Simulateur(
         largeur: Int = LARGEUR,
         hauteur: Int = HAUTEUR,
     ): Bitmap = DashboardRenderer.render(context, largeur, hauteur, modele(secondes))
+
+    /** Le tableau de guidage, au même instant que le tableau de bord. */
+    fun modeleGuidage(secondes: Double): GuidageModel = GuidageModels.build(
+        context = context,
+        snapshot = instantane(secondes),
+        rideData = releve(secondes),
+        settings = reglages(),
+        preview = false,
+        roadSource = source,
+        nowMillis = departMillis + (secondes * 1_000).toLong(),
+    )
+
+    fun imageGuidage(
+        secondes: Double,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR,
+    ): Bitmap = GuidageRenderer.render(largeur, hauteur, modeleGuidage(secondes))
+
+    /**
+     * Le tableau de guidage sur une scène posée à la main : un tracé et ses voies, le coureur
+     * à [along] mètres, la pente [pente].
+     *
+     * La sortie fictive suit un tracé dont le décor est engendré au hasard : ses carrefours
+     * tombent où ils peuvent, et ses descentes ne tournent pas en lacets. Pour juger le schéma
+     * d'un carrefour ou les cartes d'une descente, il faut les faire exister — c'est tout ce
+     * que fait la scène. Le modèle et le dessin restent les vrais.
+     */
+    fun imageScene(
+        path: List<GeoPoint>,
+        voies: List<RoadSegment>,
+        along: Double,
+        profil: io.github.jmallus.guidage.core.ElevationProfile?,
+        pente: Double?,
+        releve: RideData,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR,
+    ): Bitmap {
+        val longueur = Geo.length(path)
+        val route = io.github.jmallus.guidage.core.Route("scène", longueur, profil, path = path)
+        val ici = Geo.pointAt(path, along)!!
+        val cap = Geo.bearing(ici, Geo.pointAt(path, along + 10.0)!!)
+        val snapshot = GuidanceSnapshot(
+            state = GuidanceState(route, along, longueur - along, pente),
+            units = Units.METRIC,
+            // La marque est avancée du retard de la chaîne GPS, comme sur l'appareil : le
+            // coureur se trouve un peu au-delà de [along], d'autant plus qu'il va vite.
+            location = RiderLocation(ici, cap, receivedAtMillis = departMillis),
+            speed = releve.speed,
+        )
+        val scene = object : RoadSource {
+            override fun roads(position: GeoPoint?, radiusMeters: Double): List<RoadSegment> = voies
+            override fun notice(context: Context, position: GeoPoint?): String? = null
+        }
+        val modele = GuidageModels.build(
+            context, snapshot, releve, reglages(), preview = false,
+            roadSource = scene, nowMillis = departMillis,
+        )
+        return GuidageRenderer.render(largeur, hauteur, modele)
+    }
+
+    /** Des relevés plausibles, aux zones du coureur fictif. */
+    fun releveScene(vitesse: Double, puissance: Double, cardiaque: Double, pente: Double): RideData = RideData(
+        speed = vitesse,
+        averageSpeed = 7.5,
+        power = puissance,
+        heartRate = cardiaque,
+        grade = pente,
+        distanceRemaining = 42_600.0,
+        powerZones = zones.powerZones,
+        heartRateZones = zones.heartRateZones,
+    )
 
     /** Heure d'arrivée estimée : ce qui reste, à la moyenne tenue jusque-là. */
     private fun arrivee(instant: InstantSortie, maintenant: Long): Double {
