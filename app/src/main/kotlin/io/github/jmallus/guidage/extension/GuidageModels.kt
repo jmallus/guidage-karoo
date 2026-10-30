@@ -86,6 +86,7 @@ object GuidageModels {
                 suite = suite,
                 titre = Format.distance(cote.distanceToTop, units) + " · +" + Format.elevation(cote.elevationToTop, units),
                 rang = "${cote.number}/${cote.totalClimbs}",
+                rapport = rapport(DashboardModels.drivetrainModel(context, rideData)),
             )
             else -> CentreGuidage.Carte(
                 carte = DashboardModels.mapModel(
@@ -93,8 +94,7 @@ object GuidageModels {
                     PorteeCarte.of(settings.mapZoom), luesUneFois, nowMillis,
                 ),
                 suite = suite,
-                rapport = DashboardModels.drivetrainModel(context, rideData).let { rapport(it) },
-                transmission = DashboardModels.drivetrainModel(context, rideData),
+                rapport = rapport(DashboardModels.drivetrainModel(context, rideData)),
             )
         }
 

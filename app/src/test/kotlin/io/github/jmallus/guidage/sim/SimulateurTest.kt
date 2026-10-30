@@ -444,9 +444,6 @@ class SimulateurTest {
         val cartes = etats.filter { it.second is CentreGuidage.Carte }
         val carte = cartes[cartes.size / 2].first
         ecrire(simulateur.imageGuidage(carte), File(dossier, "guidage-carte.png"))
-        simulateur.monoPlateau = true
-        ecrire(simulateur.imageGuidage(carte), File(dossier, "guidage-carte-mono.png"))
-        simulateur.monoPlateau = false
         val cote = PreviewData.route.climbs.minBy { it.startDistance }
         val dansLaCote = instantA(simulateur.sortie, cote.startDistance + cote.length / 2).secondes
         val montee = simulateur.modeleGuidage(dansLaCote).centre
