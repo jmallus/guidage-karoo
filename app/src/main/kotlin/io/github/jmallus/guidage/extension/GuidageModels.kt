@@ -249,7 +249,10 @@ object GuidageModels {
         if (route == null || along == null) {
             return BandeauGuidage(ProfileWindow(emptyList(), 0.0, 0.0, 0.0, 0.0), null)
         }
-        val fenetre = Guidance.profileWindow(route, along, settings.graphZoom.lookaheadMeters)
+        // La fenêtre commence un peu avant le coureur, comme sur le tableau de bord : collée au
+        // bord gauche, sa marque se confondait avec le cadre.
+        val portee = settings.graphZoom.lookaheadMeters
+        val fenetre = Guidance.profileWindow(route, along, portee, lookbehind = portee * RECUL_FRACTION)
         val reste = rideData.distanceRemaining ?: state.distanceRemaining
         val montee = route.profile?.ascentBetween(along, route.totalDistance)
         val texte = listOfNotNull(
@@ -259,6 +262,7 @@ object GuidageModels {
         return BandeauGuidage(
             fenetre = fenetre,
             texte = texte,
+            position = along,
             compteur = (rideData.distance ?: along).let { Format.longDistanceValue(it, units) },
             pois = route.pois.map { it.distanceAlongRoute to PoiLabels.label(context, it) },
         )
@@ -352,4 +356,7 @@ object GuidageModels {
 
     /** Écart en deçà duquel deux passages du tracé se départagent par la distance du Karoo (m). */
     private const val ANCRAGE = 25.0
+
+    /** Part de la portée que le bandeau du bas montre derrière le coureur, comme le tableau de bord. */
+    private const val RECUL_FRACTION = 0.2
 }

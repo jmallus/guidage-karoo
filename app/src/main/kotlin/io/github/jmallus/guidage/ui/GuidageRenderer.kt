@@ -83,6 +83,8 @@ data class BandeauGuidage(
     val fenetre: ProfileWindow,
     val texte: String?,
     val cote: List<DonneeGuidage>? = null,
+    /** Où est le coureur, en distance le long de l'itinéraire ; à défaut, au bord gauche. */
+    val position: Double? = null,
     /** Le kilométrage au compteur, écrit au-dessus du coureur. */
     val compteur: String? = null,
     /** Les points d'intérêt de l'itinéraire : où, et leur nom. */
@@ -507,10 +509,12 @@ object GuidageRenderer {
             }
         }
 
-        // Le coureur, au bord gauche : la fenêtre commence sous ses roues. Son kilométrage
-        // au compteur au-dessus, dans la même pastille jaune que sur le profil de côte.
-        val px = x(points.first().distance) + 10f * k
-        val py = y(points.first().elevation)
+        // Le coureur, un cinquième de la portée après le bord gauche — au départ, la fenêtre
+        // ne peut pas reculer et il y revient. Son kilométrage au compteur au-dessus, dans la
+        // même pastille jaune que sur le profil de côte.
+        val ici = b.position ?: points.first().distance
+        val px = x(ici).coerceAtLeast(zone.left + 10f * k)
+        val py = y(altitudeA(points, ici))
         b.compteur?.let { km ->
             val corps = texte(20f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
             val l = corps.measureText(km) + 16f * k
