@@ -230,7 +230,6 @@ object GuidageModels {
             position = along,
             compteur = (rideData.distance ?: along).let { Format.longDistanceValue(it, units) },
             pois = route.pois.map { it.distanceAlongRoute to PoiLabels.label(context, it) },
-            rapport = rapport(DashboardModels.drivetrainModel(context, rideData)),
         )
     }
 

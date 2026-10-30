@@ -83,8 +83,6 @@ data class BandeauGuidage(
     val compteur: String? = null,
     /** Les points d'intérêt de l'itinéraire : où, et leur nom. */
     val pois: List<Pair<Double, String>> = emptyList(),
-    /** Le rapport engagé, écrit dans le coin du profil ; null quand le groupe ne dit rien. */
-    val rapport: String? = null,
 )
 
 data class GuidageModel(
@@ -493,12 +491,13 @@ object GuidageRenderer {
         if (m.roads.isEmpty()) m.roadsMessage?.let { message(canvas, RectF(cadre.left, cadre.bottom - 50f * k, cadre.right, cadre.bottom), it, k) }
         c.suite?.let { etiquette(canvas, cadre.left + 10f * k, cadre.top + 8f * k, it, k) }
         boussole(canvas, cadre.right - 32f * k, cadre.top + 32f * k, cap, k)
-        c.rapport?.let { cartoucheRapport(canvas, cadre.right - 12f * k, cadre.bottom - 34f * k, it, k) }
+        // Noir et chiffre jaune : sur le crème de la carte, c'est ce qui tranche le plus.
+        c.rapport?.let { cartoucheRapport(canvas, cadre.right - 12f * k, cadre.bottom - 34f * k, it, k, sombre = true) }
     }
 
     /**
      * Le rapport engagé, en surbrillance : un cartouche jaune et le chiffre en noir — ou, sur
-     * le jaune du profil, l'inverse : noir et chiffre jaune —, aligné à
+     * la carte, l'inverse : noir et chiffre jaune —, aligné à
      * droite sur [droite] et centré sur [milieu]. Rend son bord gauche, pour qui doit s'y
      * arrêter.
      */
@@ -658,10 +657,6 @@ object GuidageRenderer {
 
         canvas.drawCircle(px, py, 8f * k, plein(FOND))
         canvas.drawCircle(px, py, 8f * k, trait(BLANC, 3f * k))
-
-        // Le rapport, en bas à droite sur le profil : noir et jaune, à l'inverse du cartouche
-        // de la carte, pour trancher sur l'aplat jaune.
-        b.rapport?.let { cartoucheRapport(canvas, zone.right - 10f * k, zone.bottom - 30f * k, it, k, sombre = true) }
     }
 
     /** L'altitude à [d] sur une suite de points de profil, interpolée. */
