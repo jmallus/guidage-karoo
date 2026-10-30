@@ -491,18 +491,18 @@ object GuidageRenderer {
         if (m.roads.isEmpty()) m.roadsMessage?.let { message(canvas, RectF(cadre.left, cadre.bottom - 50f * k, cadre.right, cadre.bottom), it, k) }
         c.suite?.let { etiquette(canvas, cadre.left + 10f * k, cadre.top + 8f * k, it, k) }
         boussole(canvas, cadre.right - 32f * k, cadre.top + 32f * k, cap, k)
-        // Noir et chiffre jaune : sur le crème de la carte, c'est ce qui tranche le plus.
+        // Noir et chiffre blanc : sur le crème de la carte, c'est ce qui tranche le plus.
         c.rapport?.let { cartoucheRapport(canvas, cadre.right - 12f * k, cadre.bottom - 34f * k, it, k, sombre = true) }
     }
 
     /**
      * Le rapport engagé, en surbrillance : un cartouche jaune et le chiffre en noir — ou, sur
-     * la carte, l'inverse : noir et chiffre jaune —, aligné à
+     * la carte, noir et chiffre blanc —, aligné à
      * droite sur [droite] et centré sur [milieu]. Rend son bord gauche, pour qui doit s'y
      * arrêter.
      */
     private fun cartoucheRapport(canvas: Canvas, droite: Float, milieu: Float, texte: String, k: Float, sombre: Boolean = false): Float {
-        val corps = texte(30f * k, if (sombre) POSITION else FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+        val corps = texte(30f * k, if (sombre) BLANC else FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
         val largeur = corps.measureText(texte) + 24f * k
         val r = RectF(droite - largeur, milieu - 22f * k, droite, milieu + 22f * k)
         canvas.drawRoundRect(r, 12f * k, 12f * k, plein(if (sombre) TRACE_ROULE else POSITION))
