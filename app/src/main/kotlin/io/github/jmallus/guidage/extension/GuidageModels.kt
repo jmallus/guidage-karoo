@@ -95,8 +95,15 @@ object GuidageModels {
                 note = context.getString(R.string.route_descent_note),
             )
             cote?.onClimb == true -> CentreGuidage.Montee(
-                profil = DashboardModels.profileBand(context, snapshot, settings, preview, rideData, nowMillis),
+                profil = DashboardModels.profileBand(context, snapshot, settings, preview, rideData, nowMillis).let { p ->
+                    // Le kilométrage au compteur au-dessus du coureur, comme sur le bandeau du
+                    // tableau de bord à portée fixée : celui-ci ne l'écrit pas dans une côte.
+                    p.copy(positionLabel = p.positionLabel ?: (rideData.distance ?: p.positionDistance)?.let { Format.longDistanceValue(it, units) })
+                },
                 suite = suite,
+                titre = Format.distance(cote.distanceToTop, units) + " · +" + Format.elevation(cote.elevationToTop, units),
+                rang = "${cote.number}/${cote.totalClimbs}",
+                pois = route!!.pois.map { it.distanceAlongRoute to PoiLabels.label(context, it) },
             )
             else -> CentreGuidage.Carte(
                 carte = DashboardModels.mapModel(
@@ -114,7 +121,12 @@ object GuidageModels {
             // En côte, le profil est déjà au milieu de l'écran, en grand : le bandeau du bas
             // le redirait en petit. Il cède la place à ce que le profil ne dit pas en chiffres.
             bandeau = if (centre is CentreGuidage.Montee && cote != null) {
-                bandeau.copy(cote = chiffresDeCote(context, cote, grade, rideData, units))
+                bandeau.copy(
+                    cote = chiffresDeCote(
+                        context, cote, grade, rideData, units,
+                        restant = annoncee?.let { route?.profile?.ascentBetween(it, route.totalDistance) },
+                    ),
+                )
             } else {
                 bandeau
             },
@@ -148,13 +160,14 @@ object GuidageModels {
         ),
     )
 
-    /** Pente, VAM, distance et dénivelé jusqu'au sommet. */
+    /** Pente, VAM, distance jusqu'au sommet, et dénivelé restant jusqu'à l'arrivée. */
     private fun chiffresDeCote(
         context: Context,
         cote: ClimbStatus,
         pente: Double?,
         rideData: RideData,
         units: Units,
+        restant: Double?,
     ): List<DonneeGuidage> = listOf(
         DonneeGuidage(
             context.getString(R.string.route_label_grade),
@@ -166,7 +179,11 @@ object GuidageModels {
             rideData.verticalSpeed?.let { Format.elevation(it * 3_600.0, units).substringBefore(' ') } ?: PLACEHOLDER,
         ),
         DonneeGuidage(context.getString(R.string.route_label_to_top), Format.distance(cote.distanceToTop, units)),
-        DonneeGuidage(context.getString(R.string.route_label_elevation_to_top), "+" + Format.elevation(cote.elevationToTop, units)),
+        DonneeGuidage(
+            context.getString(R.string.route_label_elevation_remaining),
+            // Le D+ que le Karoo compte lui-même jusqu'à l'arrivée ; à défaut, celui du profil.
+            (rideData.level.elevationRemaining ?: restant)?.let { "+" + Format.elevation(it, units) } ?: PLACEHOLDER,
+        ),
     )
 
     private fun carrefour(context: Context, m: ManoeuvreAVenir, units: Units): CentreGuidage.Carrefour {

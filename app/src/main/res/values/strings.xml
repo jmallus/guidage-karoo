@@ -220,7 +220,7 @@
     <string name="route_label_grade">PENTE</string>
     <string name="route_label_vam">VAM %1$s</string>
     <string name="route_label_to_top">AU SOMMET</string>
-    <string name="route_label_elevation_to_top">D+ AU SOMMET</string>
+    <string name="route_label_elevation_remaining">D+ RESTANT</string>
     <string name="route_side_right">à droite</string>
     <string name="route_side_left">à gauche</string>
     <string name="route_turn">Tournez %1$s</string>
