@@ -83,6 +83,8 @@ data class BandeauGuidage(
     val compteur: String? = null,
     /** Les points d'intérêt de l'itinéraire : où, et leur nom. */
     val pois: List<Pair<Double, String>> = emptyList(),
+    /** Le rapport engagé, écrit dans le coin du profil ; null quand le groupe ne dit rien. */
+    val rapport: String? = null,
 )
 
 data class GuidageModel(
@@ -495,16 +497,17 @@ object GuidageRenderer {
     }
 
     /**
-     * Le rapport engagé, en surbrillance : un cartouche jaune et le chiffre en noir, aligné à
+     * Le rapport engagé, en surbrillance : un cartouche jaune et le chiffre en noir — ou, sur
+     * le jaune du profil, l'inverse : noir et chiffre jaune —, aligné à
      * droite sur [droite] et centré sur [milieu]. Rend son bord gauche, pour qui doit s'y
      * arrêter.
      */
-    private fun cartoucheRapport(canvas: Canvas, droite: Float, milieu: Float, texte: String, k: Float): Float {
-        val corps = texte(30f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+    private fun cartoucheRapport(canvas: Canvas, droite: Float, milieu: Float, texte: String, k: Float, sombre: Boolean = false): Float {
+        val corps = texte(30f * k, if (sombre) POSITION else FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
         val largeur = corps.measureText(texte) + 24f * k
         val r = RectF(droite - largeur, milieu - 22f * k, droite, milieu + 22f * k)
-        canvas.drawRoundRect(r, 12f * k, 12f * k, plein(POSITION))
-        canvas.drawRoundRect(r, 12f * k, 12f * k, trait(FOND, 2.5f * k))
+        canvas.drawRoundRect(r, 12f * k, 12f * k, plein(if (sombre) TRACE_ROULE else POSITION))
+        canvas.drawRoundRect(r, 12f * k, 12f * k, trait(if (sombre) BLANC else FOND, 2.5f * k))
         canvas.drawText(texte, r.centerX(), r.centerY() - (corps.descent() + corps.ascent()) / 2f, corps)
         return r.left
     }
@@ -655,6 +658,10 @@ object GuidageRenderer {
 
         canvas.drawCircle(px, py, 8f * k, plein(FOND))
         canvas.drawCircle(px, py, 8f * k, trait(BLANC, 3f * k))
+
+        // Le rapport, en bas à droite sur le profil : noir et jaune, à l'inverse du cartouche
+        // de la carte, pour trancher sur l'aplat jaune.
+        b.rapport?.let { cartoucheRapport(canvas, zone.right - 10f * k, zone.bottom - 30f * k, it, k, sombre = true) }
     }
 
     /** L'altitude à [d] sur une suite de points de profil, interpolée. */
