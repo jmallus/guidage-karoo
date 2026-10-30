@@ -254,7 +254,7 @@ object GuidageModels {
     private const val PLACEHOLDER = "--"
 
     /** Distance à laquelle le carrefour prend le milieu de l'écran (m). */
-    const val APPROCHE = 300.0
+    const val APPROCHE = 150.0
 
     /** Jusqu'où l'on annonce la manœuvre suivante en étiquette (m). */
     private const val PORTEE_SUITE = 1_000.0

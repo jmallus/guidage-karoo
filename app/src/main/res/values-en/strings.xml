@@ -210,7 +210,7 @@
 
     <!-- The guidance dashboard: the screen that follows the road. -->
     <string name="field_route_name">Guidance dashboard</string>
-    <string name="field_route_description">Full screen that puts guidance first: three numbers at the top, the shape of what is coming at the bottom, and in the middle the most urgent thing — the next junction within 300 m with its roads and beeps, else the climb, else the map. Tap the top to change the map scale, the bottom for the profile range.</string>
+    <string name="field_route_description">Full screen that puts guidance first: three numbers at the top, the shape of what is coming at the bottom, and in the middle the most urgent thing — the next junction within 150 m with its roads and beeps, else the climb, else the map. Tap the top to change the map scale, the bottom for the profile range.</string>
     <string name="route_label_speed">SPEED</string>
     <string name="route_label_power">POWER</string>
     <string name="route_label_grade">GRADE</string>

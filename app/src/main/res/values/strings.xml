@@ -214,7 +214,7 @@
 
     <!-- Le tableau de guidage : l'écran qui suit la route. -->
     <string name="field_route_name">Tableau de guidage</string>
-    <string name="field_route_description">Plein écran qui donne la priorité au guidage : trois chiffres en haut, la silhouette de ce qui vient en bas, et au milieu la chose la plus urgente — le prochain carrefour à moins de 300 m avec ses voies et des bips, sinon la côte, sinon la carte. Un appui en haut change l\'échelle de la carte, en bas la portée du profil.</string>
+    <string name="field_route_description">Plein écran qui donne la priorité au guidage : trois chiffres en haut, la silhouette de ce qui vient en bas, et au milieu la chose la plus urgente — le prochain carrefour à moins de 150 m avec ses voies et des bips, sinon la côte, sinon la carte. Un appui en haut change l\'échelle de la carte, en bas la portée du profil.</string>
     <string name="route_label_speed">VITESSE</string>
     <string name="route_label_power">PUISSANCE</string>
     <string name="route_label_grade">PENTE</string>

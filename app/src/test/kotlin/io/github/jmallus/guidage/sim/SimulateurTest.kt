@@ -457,11 +457,11 @@ class SimulateurTest {
             voies = listOf(
                 voie(RoadKind.SECONDARY, 0.0 to -200.0, 0.0 to 900.0),
                 voie(RoadKind.RESIDENTIAL, -250.0 to 150.0, 0.0 to 150.0),
-                voie(RoadKind.RESIDENTIAL, 0.0 to 250.0, 300.0 to 250.0),
+                voie(RoadKind.RESIDENTIAL, 0.0 to 340.0, 300.0 to 340.0),
                 voie(RoadKind.TERTIARY, -300.0 to 400.0, 0.0 to 400.0),
                 voie(RoadKind.TERTIARY, 0.0 to 400.0, 400.0 to 400.0),
             ),
-            along = 170.0,
+            along = 270.0,
             profil = ElevationProfile((0..80).map { ProfilePoint(it * 10.0, 120.0 + 18.0 * kotlin.math.sin(it / 9.0)) }),
             pente = 1.0,
             releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
