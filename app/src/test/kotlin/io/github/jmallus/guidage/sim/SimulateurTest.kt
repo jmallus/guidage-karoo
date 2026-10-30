@@ -440,7 +440,9 @@ class SimulateurTest {
         }
         println("tableau de guidage sur la sortie : " + etats.groupingBy { it.second::class.simpleName }.eachCount())
 
-        val carte = etats.first { it.second is CentreGuidage.Carte }.first
+        // En cours de sortie et non au départ : la carte doit montrer du tracé déjà roulé.
+        val cartes = etats.filter { it.second is CentreGuidage.Carte }
+        val carte = cartes[cartes.size / 2].first
         ecrire(simulateur.imageGuidage(carte), File(dossier, "guidage-carte.png"))
         val cote = PreviewData.route.climbs.minBy { it.startDistance }
         val dansLaCote = instantA(simulateur.sortie, cote.startDistance + cote.length / 2).secondes

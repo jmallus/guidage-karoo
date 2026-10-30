@@ -105,6 +105,10 @@ object GuidageRenderer {
     /** Le jaune de l'itinéraire dans la langue du Karoo : le profil est celui de l'itinéraire. */
     const val SILHOUETTE = KarooColors.LEMON_YELLOW
     const val CARTE_FOND = 0xFFECE9E1.toInt()
+    const val TRACE_ROULE = 0xFF111111.toInt()
+
+    /** Écart en deçà duquel deux passages du tracé se départagent par la distance du Karoo (m). */
+    private const val ANCRAGE_CARTE = 25.0
     const val MONTEE_FAITE = 0xFFC2410C.toInt()
     const val MONTEE_RESTE = 0xFF3F8F5F.toInt()
     const val POSITION = 0xFFFACC15.toInt()
@@ -417,7 +421,20 @@ object GuidageRenderer {
             trace(points)?.let { canvas.drawPath(it, trait(couleur, epaisseur * k).apply { strokeJoin = Paint.Join.ROUND }) }
         }
 
-        trace(m.path)?.let { canvas.drawPath(it, trait(ROUTE, 16f * k).apply { strokeJoin = Paint.Join.ROUND }) }
+        // L'itinéraire coupé à l'aplomb du coureur : noir derrière, ce qui est roulé ; bleu
+        // devant, ce qu'il reste à suivre. Sans la coupure, à un carrefour déjà passé deux
+        // fois, les deux branches bleues se ressemblaient.
+        val roule = Geo.anchorOnPath(m.path, position, m.distanceAlongRoute, ANCRAGE_CARTE)?.distanceAlongPath
+        if (roule != null) {
+            trace(Geo.pathBetween(m.path, 0.0, roule))?.let {
+                canvas.drawPath(it, trait(TRACE_ROULE, 12f * k).apply { strokeJoin = Paint.Join.ROUND })
+            }
+            trace(Geo.pathBetween(m.path, roule, Double.MAX_VALUE))?.let {
+                canvas.drawPath(it, trait(ROUTE, 16f * k).apply { strokeJoin = Paint.Join.ROUND })
+            }
+        } else {
+            trace(m.path)?.let { canvas.drawPath(it, trait(ROUTE, 16f * k).apply { strokeJoin = Paint.Join.ROUND }) }
+        }
         if (m.rejoinPath.size >= 2) {
             trace(m.rejoinPath)?.let { canvas.drawPath(it, trait(FieldPalette.REJOIN, 12f * k).apply { strokeJoin = Paint.Join.ROUND }) }
         }
@@ -513,13 +530,15 @@ object GuidageRenderer {
         // Le kilométrage au compteur, toujours en haut du bandeau à l'aplomb du coureur, relié
         // à lui par un fil jaune : il ne monte et ne descend plus avec le relief.
         b.compteur?.let { km ->
-            val corps = texte(20f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
-            val l = corps.measureText(km) + 16f * k
+            // Le corps du tableau de bord : celui de son bandeau, vingt-six points, agrandi d'un
+            // cinquième pour l'étiquette du coureur.
+            val corps = texte(31f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+            val l = corps.measureText(km) + 18f * k
             val cx = px.coerceAtLeast(zone.left + 6f * k + l / 2)
-            val r = RectF(cx - l / 2, zone.top + 8f * k, cx + l / 2, zone.top + 36f * k)
+            val r = RectF(cx - l / 2, zone.top + 4f * k, cx + l / 2, zone.top + 44f * k)
             canvas.drawLine(px, r.bottom, px, py, trait(POSITION, 3f * k).apply { strokeCap = Paint.Cap.BUTT })
-            canvas.drawRoundRect(r, 8f * k, 8f * k, plein(POSITION))
-            canvas.drawText(km, cx, r.bottom - 7f * k, corps)
+            canvas.drawRoundRect(r, 9f * k, 9f * k, plein(POSITION))
+            canvas.drawText(km, cx, r.bottom - 9f * k, corps)
             occupes += RectF(r.left - 4f * k, r.top, r.right + 4f * k, r.bottom)
         }
 
