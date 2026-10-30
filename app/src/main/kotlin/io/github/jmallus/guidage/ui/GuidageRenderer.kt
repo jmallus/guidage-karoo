@@ -553,7 +553,9 @@ object GuidageRenderer {
             if (d < ici || d > b.fenetre.end) continue
             val qx = x(d)
             val qy = y(altitudeA(points, d))
-            canvas.drawLine(qx, qy, qx, qy - 20f * k, trait(FieldPalette.POI, 3f * k))
+            // Le trait tombe jusqu'au pied du profil, comme sur le tableau de bord : il marque
+            // l'endroit sur toute la hauteur, et pas seulement sur la crête.
+            canvas.drawLine(qx, zone.bottom, qx, qy - 20f * k, trait(FieldPalette.POI, 3f * k).apply { strokeCap = Paint.Cap.BUTT })
             canvas.drawCircle(qx, qy - 24f * k, 7f * k, plein(FieldPalette.POI))
             canvas.drawCircle(qx, qy - 24f * k, 7f * k, trait(BLANC, 2.5f * k))
             val court = if (nom.length > 12) nom.take(11) + "…" else nom
