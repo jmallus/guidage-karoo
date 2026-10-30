@@ -55,8 +55,13 @@ sealed interface CentreGuidage {
         val rang: String? = null,
     ) : CentreGuidage
 
-    /** Rien d'urgent : la carte, et la prochaine manœuvre en étiquette. */
-    data class Carte(val carte: MapModel, val suite: Suite?) : CentreGuidage
+    /** Rien d'urgent : la carte, la prochaine manœuvre en étiquette, et le rapport engagé. */
+    data class Carte(
+        val carte: MapModel,
+        val suite: Suite?,
+        /** « 50×17 », ou « 2 · 7 » sans les dentures ; null quand le groupe ne dit rien. */
+        val rapport: String? = null,
+    ) : CentreGuidage
 }
 
 /** La prochaine manœuvre au loin : de quel côté, et dans combien. */
@@ -477,6 +482,21 @@ object GuidageRenderer {
         if (m.roads.isEmpty()) m.roadsMessage?.let { message(canvas, RectF(cadre.left, cadre.bottom - 50f * k, cadre.right, cadre.bottom), it, k) }
         c.suite?.let { etiquette(canvas, cadre.left + 10f * k, cadre.top + 8f * k, it, k) }
         boussole(canvas, cadre.right - 32f * k, cadre.top + 32f * k, cap, k)
+        c.rapport?.let { rapport(canvas, cadre, it, k) }
+    }
+
+    /**
+     * Le rapport engagé, en surbrillance en bas à droite de la carte : un cartouche jaune et
+     * le chiffre en noir, ce qui se repère d'un coup d'œil sur le crème sans rien cacher de
+     * la route, que le coureur occupe au milieu.
+     */
+    private fun rapport(canvas: Canvas, cadre: RectF, texte: String, k: Float) {
+        val corps = texte(30f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+        val largeur = corps.measureText(texte) + 24f * k
+        val r = RectF(cadre.right - 12f * k - largeur, cadre.bottom - 56f * k, cadre.right - 12f * k, cadre.bottom - 12f * k)
+        canvas.drawRoundRect(r, 12f * k, 12f * k, plein(POSITION))
+        canvas.drawRoundRect(r, 12f * k, 12f * k, trait(FOND, 2.5f * k))
+        canvas.drawText(texte, r.centerX(), r.centerY() - (corps.descent() + corps.ascent()) / 2f, corps)
     }
 
     /**

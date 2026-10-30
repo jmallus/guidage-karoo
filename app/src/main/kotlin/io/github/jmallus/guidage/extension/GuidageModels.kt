@@ -23,6 +23,7 @@ import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.BandeauGuidage
 import io.github.jmallus.guidage.ui.CentreGuidage
 import io.github.jmallus.guidage.ui.DonneeGuidage
+import io.github.jmallus.guidage.ui.DrivetrainModel
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.GuidageModel
 import io.github.jmallus.guidage.ui.PreviewData
@@ -92,6 +93,7 @@ object GuidageModels {
                     PorteeCarte.of(settings.mapZoom), luesUneFois, nowMillis,
                 ),
                 suite = suite,
+                rapport = rapport(DashboardModels.drivetrainModel(context, rideData)),
             )
         }
 
@@ -159,6 +161,22 @@ object GuidageModels {
             (rideData.level.elevationRemaining ?: restant)?.let { "+" + Format.elevation(it, units) } ?: PLACEHOLDER,
         ),
     )
+
+    /**
+     * Le rapport engagé, comme le tableau de bord l'écrit : « 50×17 » quand le groupe donne
+     * ses dentures, sinon les rangs — « 2 · 7 », plateau puis pignon —, et rien s'il se tait.
+     */
+    private fun rapport(t: DrivetrainModel): String? {
+        val avant = t.frontTeeth?.takeIf { it > 0 }
+        val arriere = t.rearTeeth?.takeIf { it > 0 }
+        return when {
+            avant != null && arriere != null -> "$avant×$arriere"
+            t.front != null && t.rear != null -> "${t.front} · ${t.rear}"
+            arriere != null -> "$arriere"
+            t.rear != null -> "${t.rear}"
+            else -> null
+        }
+    }
 
     private fun carrefour(context: Context, m: ManoeuvreAVenir, units: Units): CentreGuidage.Carrefour {
         val c = m.carrefour
