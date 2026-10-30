@@ -49,3 +49,19 @@ class ChangeProfileZoomAction : ActionCallback {
         repository.write(settings.copy(graphZoom = settings.graphZoom.next()))
     }
 }
+
+/**
+ * Appui sur le **haut** du tableau de guidage : l'échelle de sa carte.
+ *
+ * Toujours la carte, quel que soit le réglage de la zone de guidage du tableau de bord : ce
+ * champ-ci n'a pas de graphe de parcours, et un appui qui changerait la portée d'un graphe
+ * qu'on ne voit pas ne ferait, à l'écran, rien du tout.
+ */
+class ChangeMapZoomAction : ActionCallback {
+
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val repository = SettingsRepository(context)
+        val settings = repository.read()
+        repository.write(settings.copy(mapZoom = settings.mapZoom.next()))
+    }
+}

@@ -423,11 +423,10 @@ class SimulateurTest {
     }
 
     /**
-     * Le tableau de guidage, dans chacun de ses quatre états.
+     * Le tableau de guidage, dans chacun de ses trois états.
      *
-     * La carte et la côte se prennent sur la sortie fictive ; le carrefour et la descente en
-     * lacets sur des scènes posées à la main, parce que le décor engendré n'en produit pas
-     * à coup sûr. Les images partent dans `build/simulateur/guidage-*.png`, pour la planche.
+     * La carte et la côte se prennent sur la sortie fictive ; le carrefour sur une scène posée à la main,
+     * parce que le décor engendré n'en produit pas à coup sûr. Les images partent dans `build/simulateur/guidage-*.png`, pour la planche.
      */
     @Test
     fun `le tableau de guidage montre chacun de ses etats`() {
@@ -441,7 +440,9 @@ class SimulateurTest {
         }
         println("tableau de guidage sur la sortie : " + etats.groupingBy { it.second::class.simpleName }.eachCount())
 
-        val carte = etats.first { it.second is CentreGuidage.Carte }.first
+        // En cours de sortie et non au départ : la carte doit montrer du tracé déjà roulé.
+        val cartes = etats.filter { it.second is CentreGuidage.Carte }
+        val carte = cartes[cartes.size / 2].first
         ecrire(simulateur.imageGuidage(carte), File(dossier, "guidage-carte.png"))
         val cote = PreviewData.route.climbs.minBy { it.startDistance }
         val dansLaCote = instantA(simulateur.sortie, cote.startDistance + cote.length / 2).secondes
@@ -458,33 +459,18 @@ class SimulateurTest {
             voies = listOf(
                 voie(RoadKind.SECONDARY, 0.0 to -200.0, 0.0 to 900.0),
                 voie(RoadKind.RESIDENTIAL, -250.0 to 150.0, 0.0 to 150.0),
-                voie(RoadKind.RESIDENTIAL, 0.0 to 250.0, 300.0 to 250.0),
+                voie(RoadKind.RESIDENTIAL, 0.0 to 340.0, 300.0 to 340.0),
                 voie(RoadKind.TERTIARY, -300.0 to 400.0, 0.0 to 400.0),
                 voie(RoadKind.TERTIARY, 0.0 to 400.0, 400.0 to 400.0),
             ),
-            along = 170.0,
+            along = 270.0,
             profil = ElevationProfile((0..80).map { ProfilePoint(it * 10.0, 120.0 + 18.0 * kotlin.math.sin(it / 9.0)) }),
             pente = 1.0,
             releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
         )
         ecrire(carrefour, File(dossier, "guidage-carrefour.png"))
 
-        // Une descente en lacets : une épingle, un virage serré, un virage moyen.
-        val lacets = lacets(longueurDroite = 120.0, rayons = listOf(9.0, 22.0, 45.0))
-        val longueur = Geo.length(lacets)
-        val descente = simulateur.imageScene(
-            path = lacets,
-            voies = emptyList(),
-            along = 40.0,
-            profil = ElevationProfile((0..(longueur / 10).toInt()).map { ProfilePoint(it * 10.0, 900.0 - it * 0.8) }),
-            pente = -8.0,
-            releve = simulateur.releveScene(vitesse = 11.0, puissance = 0.0, cardiaque = 128.0, pente = -8.0),
-        )
-        ecrire(descente, File(dossier, "guidage-descente.png"))
-
-        for (image in listOf(carrefour, descente)) {
-            assertTrue("une scène du tableau de guidage est vide", couleursDistinctes(image) > 6)
-        }
+        assertTrue("la scène du carrefour est vide", couleursDistinctes(carrefour) > 6)
     }
 
     private val origineScene = GeoPoint(45.18, 5.72)
@@ -499,27 +485,6 @@ class SimulateurTest {
         latitudes = points.map { (m(it.first, it.second).lat * 1e6).toInt() }.toIntArray(),
         longitudes = points.map { (m(it.first, it.second).lng * 1e6).toInt() }.toIntArray(),
     )
-
-    /** Des lacets : une ligne droite, un demi-tour au rayon donné, et ainsi de suite. */
-    private fun lacets(longueurDroite: Double, rayons: List<Double>): List<GeoPoint> {
-        val points = mutableListOf(origineScene)
-        var ici = origineScene
-        var cap = 0.0
-        var cote = 1
-        for (rayon in rayons) {
-            ici = Geo.advance(ici, cap, longueurDroite)
-            points += ici
-            val centre = Geo.advance(ici, cap + cote * 90.0, rayon)
-            for (pas in 1..18) {
-                points += Geo.advance(centre, cap - cote * 90.0 + cote * pas * 10.0, rayon)
-            }
-            ici = points.last()
-            cap = (cap + 180.0) % 360.0
-            cote = -cote
-        }
-        points += Geo.advance(ici, cap, longueurDroite)
-        return points
-    }
 
     /**
      * Les cases de bilan, à la taille qu'elles ont sur une page qui en porte six.
