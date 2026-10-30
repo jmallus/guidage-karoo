@@ -83,6 +83,10 @@ data class BandeauGuidage(
     val fenetre: ProfileWindow,
     val texte: String?,
     val cote: List<DonneeGuidage>? = null,
+    /** Le kilométrage au compteur, écrit au-dessus du coureur. */
+    val compteur: String? = null,
+    /** Les points d'intérêt de l'itinéraire : où, et leur nom. */
+    val pois: List<Pair<Double, String>> = emptyList(),
 )
 
 data class GuidageModel(
@@ -447,33 +451,89 @@ object GuidageRenderer {
             return
         }
         val points = b.fenetre.points
-        val bas = zone.bottom - 6f * k
-        val haut = zone.top + 46f * k
-        if (points.size >= 2) {
-            val debut = b.fenetre.start
-            val etendue = (b.fenetre.end - debut).coerceAtLeast(1.0)
-            val altitudes = (b.fenetre.maxElevation - b.fenetre.minElevation).coerceAtLeast(1.0)
-            fun x(d: Double) = zone.left + ((d - debut) / etendue * zone.width()).toFloat()
-            fun y(e: Double) = bas - ((e - b.fenetre.minElevation) / altitudes * (bas - haut)).toFloat()
-            val ligne = Path()
-            points.forEachIndexed { i, p -> if (i == 0) ligne.moveTo(x(p.distance), y(p.elevation)) else ligne.lineTo(x(p.distance), y(p.elevation)) }
-            val aplat = Path(ligne).apply {
-                lineTo(x(points.last().distance), zone.bottom)
-                lineTo(x(points.first().distance), zone.bottom)
-                close()
-            }
-            canvas.drawPath(aplat, plein(SILHOUETTE))
-            canvas.drawPath(ligne, trait(BLANC, 3f * k).apply { strokeJoin = Paint.Join.ROUND })
-            // Le coureur, au bord gauche : la fenêtre commence sous ses roues.
-            val px = x(points.first().distance) + 8f * k
-            val py = y(points.first().elevation)
-            canvas.drawCircle(px, py, 8f * k, plein(FOND))
-            canvas.drawCircle(px, py, 8f * k, trait(BLANC, 3f * k))
-        }
+        // Assez haut pour que la pastille du coureur reste entière quand il est au point bas.
+        val bas = zone.bottom - 14f * k
+        // De la place au-dessus de la crête pour la pastille du compteur et celles des POI.
+        val haut = zone.top + 74f * k
         b.texte?.let {
-            val corps = texte(22f * k, BLANC, Typeface.DEFAULT_BOLD).apply { setShadowLayer(4f * k, 0f, 0f, FOND) }
-            canvas.drawText(it, zone.left + 20f * k, zone.top + 32f * k, corps)
+            val corps = texte(22f * k, BLANC, Typeface.DEFAULT_BOLD).apply {
+                textAlign = Paint.Align.RIGHT
+                setShadowLayer(4f * k, 0f, 0f, FOND)
+            }
+            canvas.drawText(it, zone.right - 20f * k, zone.top + 30f * k, corps)
         }
+        if (points.size < 2) return
+        val debut = b.fenetre.start
+        val etendue = (b.fenetre.end - debut).coerceAtLeast(1.0)
+        val altitudes = (b.fenetre.maxElevation - b.fenetre.minElevation).coerceAtLeast(1.0)
+        fun x(d: Double) = zone.left + ((d - debut) / etendue * zone.width()).toFloat()
+        fun y(e: Double) = bas - ((e - b.fenetre.minElevation) / altitudes * (bas - haut)).toFloat()
+        val ligne = Path()
+        points.forEachIndexed { i, p -> if (i == 0) ligne.moveTo(x(p.distance), y(p.elevation)) else ligne.lineTo(x(p.distance), y(p.elevation)) }
+        val aplat = Path(ligne).apply {
+            lineTo(x(points.last().distance), zone.bottom)
+            lineTo(x(points.first().distance), zone.bottom)
+            close()
+        }
+        canvas.drawPath(aplat, plein(SILHOUETTE))
+        canvas.drawPath(ligne, trait(BLANC, 3f * k).apply { strokeJoin = Paint.Join.ROUND })
+
+        // Les points d'intérêt, posés sur la crête comme sur le profil de côte.
+        val poiCorps = texte(14f * k, BLANC, Typeface.DEFAULT_BOLD).apply {
+            textAlign = Paint.Align.CENTER
+            setShadowLayer(4f * k, 0f, 0f, FOND)
+        }
+        // Un nom qui toucherait le précédent monte d'un cran ; s'il touche encore, il se tait
+        // et seule sa pastille reste.
+        val occupes = mutableListOf<RectF>()
+        for ((d, nom) in b.pois.sortedBy { it.first }) {
+            if (d <= debut || d > b.fenetre.end) continue
+            val px = x(d)
+            val py = y(altitudeA(points, d))
+            canvas.drawLine(px, py, px, py - 20f * k, trait(FieldPalette.POI, 3f * k))
+            canvas.drawCircle(px, py - 24f * k, 7f * k, plein(FieldPalette.POI))
+            canvas.drawCircle(px, py - 24f * k, 7f * k, trait(BLANC, 2.5f * k))
+            val court = if (nom.length > 12) nom.take(11) + "…" else nom
+            val demi = poiCorps.measureText(court) / 2 + 4f * k
+            val cx = px.coerceIn(zone.left + demi, zone.right - demi)
+            for (cran in 0..1) {
+                val base = py - 37f * k - cran * 17f * k
+                val place = RectF(cx - demi, base - 14f * k, cx + demi, base + 3f * k)
+                if (occupes.none { RectF.intersects(it, place) }) {
+                    occupes += place
+                    canvas.drawText(court, cx, base, poiCorps)
+                    break
+                }
+            }
+        }
+
+        // Le coureur, au bord gauche : la fenêtre commence sous ses roues. Son kilométrage
+        // au compteur au-dessus, dans la même pastille jaune que sur le profil de côte.
+        val px = x(points.first().distance) + 10f * k
+        val py = y(points.first().elevation)
+        b.compteur?.let { km ->
+            val corps = texte(20f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+            val l = corps.measureText(km) + 16f * k
+            val cx = px.coerceAtLeast(zone.left + 6f * k + l / 2)
+            val r = RectF(cx - l / 2, py - 46f * k, cx + l / 2, py - 18f * k)
+            canvas.drawLine(px, r.bottom, px, py, trait(POSITION, 4f * k))
+            canvas.drawRoundRect(r, 8f * k, 8f * k, plein(POSITION))
+            canvas.drawRoundRect(r, 8f * k, 8f * k, trait(FOND, 2f * k))
+            canvas.drawText(km, cx, r.bottom - 7f * k, corps)
+        }
+        canvas.drawCircle(px, py, 8f * k, plein(FOND))
+        canvas.drawCircle(px, py, 8f * k, trait(BLANC, 3f * k))
+    }
+
+    /** L'altitude à [d] sur une suite de points de profil, interpolée. */
+    private fun altitudeA(points: List<io.github.jmallus.guidage.core.ProfilePoint>, d: Double): Double {
+        val i = points.indexOfFirst { it.distance >= d }
+        if (i < 0) return points.last().elevation
+        if (i == 0) return points.first().elevation
+        val a = points[i - 1]
+        val b = points[i]
+        val t = if (b.distance > a.distance) (d - a.distance) / (b.distance - a.distance) else 0.0
+        return a.elevation + (b.elevation - a.elevation) * t
     }
 
     /** Les chiffres de la côte, deux par rang, sous un filet qui les sépare du profil. */

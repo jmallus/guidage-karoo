@@ -114,7 +114,7 @@ object GuidageModels {
             )
         }
 
-        val bandeau = bandeau(state, rideData, settings, units)
+        val bandeau = bandeau(context, state, rideData, settings, units)
         return GuidageModel(
             donnees = donnees(context, units, rideData, if (descente) grade else null),
             centre = centre,
@@ -239,10 +239,11 @@ object GuidageModels {
     }
 
     /**
-     * Le bandeau du bas : la portée réglée du profil, à échelle régulière, et ce qui reste de
-     * la journée en kilomètres et en dénivelé.
+     * Le bandeau du bas : la portée réglée du profil, à échelle régulière, avec le compteur
+     * au-dessus du coureur et les points d'intérêt, et ce qui reste de la journée en
+     * kilomètres et en dénivelé.
      */
-    private fun bandeau(state: GuidanceState, rideData: RideData, settings: GuidageSettings, units: Units): BandeauGuidage {
+    private fun bandeau(context: Context, state: GuidanceState, rideData: RideData, settings: GuidageSettings, units: Units): BandeauGuidage {
         val route = state.route
         val along = state.distanceAlongRoute
         if (route == null || along == null) {
@@ -255,7 +256,12 @@ object GuidageModels {
             reste?.let { Format.longDistance(it, units) },
             montee?.takeIf { it >= 1.0 }?.let { "+" + Format.elevation(it, units) },
         ).joinToString(" · ").ifEmpty { null }
-        return BandeauGuidage(fenetre, texte)
+        return BandeauGuidage(
+            fenetre = fenetre,
+            texte = texte,
+            compteur = (rideData.distance ?: along).let { Format.longDistanceValue(it, units) },
+            pois = route.pois.map { it.distanceAlongRoute to PoiLabels.label(context, it) },
+        )
     }
 
     private fun surTrace(route: Route?, position: GeoPoint?, along: Double?): Double? {
