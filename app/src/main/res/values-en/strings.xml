@@ -210,7 +210,7 @@
 
     <!-- The guidance dashboard: the screen that follows the road. -->
     <string name="field_route_name">Guidance dashboard</string>
-    <string name="field_route_description">Full screen that puts guidance first: three numbers at the top, the shape of what is coming at the bottom, and in the middle the most urgent thing — the next junction within 300 m with its roads and beeps, else the tight bends of a descent, else the climb, else the map.</string>
+    <string name="field_route_description">Full screen that puts guidance first: three numbers at the top, the shape of what is coming at the bottom, and in the middle the most urgent thing — the next junction within 300 m with its roads and beeps, else the climb, else the map. Tap the top to change the map scale, the bottom for the profile range.</string>
     <string name="route_label_speed">SPEED</string>
     <string name="route_label_power">POWER</string>
     <string name="route_label_grade">GRADE</string>
@@ -224,10 +224,4 @@
     <string name="route_turn_sharp">Sharp %1$s</string>
     <string name="route_turn_rank">Road %1$d on the %2$s</string>
     <string name="route_next_in">in %1$s</string>
-    <string name="route_descent_title">Descent · bends</string>
-    <string name="route_bend_hairpin">hairpin · R %1$d m</string>
-    <string name="route_bend_tight">tight · R %1$d m</string>
-    <string name="route_bend_radius">R %1$d m</string>
-    <string name="route_bend_speed">≤ %1$s %2$s</string>
-    <string name="route_descent_note">Indicative speeds, from the route radius.\nGrip and camber unknown.</string>
 </resources>

@@ -534,7 +534,7 @@ object ProfileRenderer {
      * sur la légende du Karoo. Pas de mesure de contraste ici : elle donnait du blanc sur le
      * vert, que le Karoo écrit en noir, et c'est à lui que la case doit ressembler.
      */
-    private fun climbInk(grade: Double): Int =
+    internal fun climbInk(grade: Double): Int =
         if (CLIMB_COLORS.indexOf(climbColor(grade)) >= CLIMB_WHITE_INK_FROM) 0xFFFFFFFF.toInt() else GRADE_TILE_INK
 
     /**
@@ -1056,7 +1056,7 @@ object ProfileRenderer {
     /**
      * La longueur d'un tronçon de pente sous le zoom de côte (m), celle du ClimbPro du Karoo.
      */
-    private const val GRADE_SEGMENT_METERS = 100.0
+    internal const val GRADE_SEGMENT_METERS = 100.0
 
     /** Blanc exigé de part et d'autre d'un pourcentage sous son tronçon, en corps. */
     private const val GRADE_LABEL_MARGIN = 0.1f
@@ -1078,15 +1078,15 @@ object ProfileRenderer {
     private const val GRADE_TILE_INK = 0xFF06141A.toInt()
 
     /** Les tronçons du profil de côte entière (m), et leur nombre maximal. */
-    private val PROFILE_GRADE_STEPS = listOf(100.0, 200.0, 250.0, 500.0, 1_000.0)
-    private const val MAX_PROFILE_SEGMENTS = 16
+    internal val PROFILE_GRADE_STEPS = listOf(100.0, 200.0, 250.0, 500.0, 1_000.0)
+    internal const val MAX_PROFILE_SEGMENTS = 16
 
     /**
      * La bande de la portion détaillée : un gris clair voilé. Elle a été jaune pâle, et se
      * confondait en roulant avec le trait de position et le jaune de pente : un repère
      * d'échelle ne doit pas porter une couleur qui a déjà un sens sur le bandeau.
      */
-    private const val DETAIL_BAND = 0x59D8DCE0
+    internal const val DETAIL_BAND = 0x59D8DCE0
 
 
     /**

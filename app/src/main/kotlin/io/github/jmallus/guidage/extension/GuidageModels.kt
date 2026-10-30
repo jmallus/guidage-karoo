@@ -2,8 +2,6 @@ package io.github.jmallus.guidage.extension
 
 import android.content.Context
 import io.github.jmallus.guidage.R
-import io.github.jmallus.guidage.core.BendStatus
-import io.github.jmallus.guidage.core.Bends
 import io.github.jmallus.guidage.core.Carrefour
 import io.github.jmallus.guidage.core.Carrefours
 import io.github.jmallus.guidage.core.ClimbStatus
@@ -16,7 +14,6 @@ import io.github.jmallus.guidage.core.ManoeuvreAVenir
 import io.github.jmallus.guidage.core.PorteeCarte
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.Route
-import io.github.jmallus.guidage.core.RouteBend
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.Zones
 import io.github.jmallus.guidage.core.map.RoadSegment
@@ -24,16 +21,13 @@ import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.BandeauGuidage
-import io.github.jmallus.guidage.ui.CarteVirage
 import io.github.jmallus.guidage.ui.CentreGuidage
 import io.github.jmallus.guidage.ui.DonneeGuidage
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.GuidageModel
-import io.github.jmallus.guidage.ui.GuidageRenderer
 import io.github.jmallus.guidage.ui.PreviewData
 import io.github.jmallus.guidage.ui.Suite
 import kotlin.math.abs
-import kotlin.math.sqrt
 
 /**
  * Ce que montre le tableau de guidage, construit à partir de l'état de la sortie.
@@ -42,9 +36,8 @@ import kotlin.math.sqrt
  * montre celui-ci est ce que montrera l'appareil.
  *
  * Le milieu de l'écran ne montre qu'une chose, la plus urgente — un carrefour à moins de
- * [APPROCHE] mètres, sinon une descente qui tourne serré, sinon la côte qu'on monte, sinon la
- * carte. L'ordre est celui du danger : rater un carrefour fait faire demi-tour, rater un virage
- * en descente fait tomber, et la côte se monte de toute façon.
+ * [APPROCHE] mètres, sinon la côte qu'on monte, sinon la carte. Rater un carrefour fait faire
+ * demi-tour ; la côte se monte de toute façon.
  */
 object GuidageModels {
 
@@ -76,34 +69,22 @@ object GuidageModels {
             override fun notice(context: Context, position: GeoPoint?): String? = roadSource.notice(context, position)
         }
 
-        // Les carrefours et les virages se comptent sur le tracé géométrique, pas sur
-        // l'abscisse du Karoo : les deux divergent au fil de la sortie.
+        // Les carrefours se comptent sur le tracé géométrique, pas sur l'abscisse du Karoo :
+        // les deux divergent au fil de la sortie.
         val surTrace = surTrace(route, position, state.distanceAlongRoute)
         val manoeuvre = if (route != null && surTrace != null) manoeuvre(route, roads, surTrace) else null
         val grade = state.currentGrade ?: rideData.grade
-        val descente = route != null && surTrace != null && grade != null && grade <= PENTE_DESCENTE
-        val virages = if (descente) virages(route!!, surTrace!!) else emptyList()
         val annoncee = state.distanceAlongRoute
         val cote = if (route != null && annoncee != null) Guidance.climbStatus(route, annoncee, rideData.climb) else null
 
         val suite = manoeuvre?.let { Suite(it.carrefour.virage, context.getString(R.string.route_next_in, Format.distance(it.distance, units))) }
         val centre = when {
             manoeuvre != null && manoeuvre.distance <= APPROCHE -> carrefour(context, manoeuvre, units)
-            virages.isNotEmpty() -> CentreGuidage.Descente(
-                titre = context.getString(R.string.route_descent_title),
-                cartes = virages.map { carteVirage(context, it, units) },
-                note = context.getString(R.string.route_descent_note),
-            )
             cote?.onClimb == true -> CentreGuidage.Montee(
-                profil = DashboardModels.profileBand(context, snapshot, settings, preview, rideData, nowMillis).let { p ->
-                    // Le kilométrage au compteur au-dessus du coureur, comme sur le bandeau du
-                    // tableau de bord à portée fixée : celui-ci ne l'écrit pas dans une côte.
-                    p.copy(positionLabel = p.positionLabel ?: (rideData.distance ?: p.positionDistance)?.let { Format.longDistanceValue(it, units) })
-                },
+                profil = DashboardModels.profileBand(context, snapshot, settings, preview, rideData, nowMillis),
                 suite = suite,
                 titre = Format.distance(cote.distanceToTop, units) + " · +" + Format.elevation(cote.elevationToTop, units),
                 rang = "${cote.number}/${cote.totalClimbs}",
-                pois = route!!.pois.map { it.distanceAlongRoute to PoiLabels.label(context, it) },
             )
             else -> CentreGuidage.Carte(
                 carte = DashboardModels.mapModel(
@@ -116,7 +97,7 @@ object GuidageModels {
 
         val bandeau = bandeau(context, state, rideData, settings, units)
         return GuidageModel(
-            donnees = donnees(context, units, rideData, if (descente) grade else null),
+            donnees = donnees(context, units, rideData),
             centre = centre,
             // En côte, le profil est déjà au milieu de l'écran, en grand : le bandeau du bas
             // le redirait en petit. Il cède la place à ce que le profil ne dit pas en chiffres.
@@ -134,25 +115,18 @@ object GuidageModels {
         )
     }
 
-    /**
-     * Vitesse, puissance et cœur, chacun à la couleur de sa zone. En descente, la puissance
-     * ne dit plus rien — on ne pédale pas — et cède sa place à la pente.
-     */
-    private fun donnees(context: Context, units: Units, rideData: RideData, pente: Double?): List<DonneeGuidage> = listOf(
+    /** Vitesse, puissance et cœur, chacun à la couleur de sa zone. */
+    private fun donnees(context: Context, units: Units, rideData: RideData): List<DonneeGuidage> = listOf(
         DonneeGuidage(
             context.getString(R.string.route_label_speed),
             rideData.speed?.let { Format.speed(it, units) } ?: PLACEHOLDER,
             rideData.speed?.let { Zones.speedColor(it, rideData.averageSpeed) },
         ),
-        if (pente != null) {
-            DonneeGuidage(context.getString(R.string.route_label_grade), Format.shortGrade(pente))
-        } else {
-            DonneeGuidage(
-                context.getString(R.string.route_label_power),
-                rideData.power?.toInt()?.toString() ?: PLACEHOLDER,
-                rideData.power?.let { Zones.powerColor(it, rideData.powerZones) },
-            )
-        },
+        DonneeGuidage(
+            context.getString(R.string.route_label_power),
+            rideData.power?.toInt()?.toString() ?: PLACEHOLDER,
+            rideData.power?.let { Zones.powerColor(it, rideData.powerZones) },
+        ),
         DonneeGuidage(
             context.getString(R.string.dashboard_label_heart_rate),
             rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
@@ -209,34 +183,6 @@ object GuidageModels {
 
     /** Part de l'approche déjà faite quand il reste [distance] mètres. */
     private fun part(distance: Double): Float = (1.0 - distance / APPROCHE).coerceIn(0.0, 1.0).toFloat()
-
-    /**
-     * Un virage sur sa carte, avec une vitesse indicative.
-     *
-     * La vitesse est celle à laquelle l'accélération latérale atteint [ACCELERATION_LATERALE]
-     * sur le rayon du tracé : v = √(a·R). Elle ne sait rien de l'adhérence ni du dévers, et le
-     * rayon vient d'un tracé simplifié — la note sous les cartes le dit.
-     */
-    private fun carteVirage(context: Context, statut: BendStatus, units: Units): CarteVirage {
-        val rayon = statut.bend.radius
-        val metres = rayon.toInt()
-        val vitesse = Format.speed(sqrt(ACCELERATION_LATERALE * rayon), units).substringBefore(',').substringBefore('.')
-        return CarteVirage(
-            direction = statut.bend.direction,
-            distance = Format.distance(statut.distance, units),
-            detail = when {
-                rayon < 15.0 -> context.getString(R.string.route_bend_hairpin, metres)
-                rayon < 30.0 -> context.getString(R.string.route_bend_tight, metres)
-                else -> context.getString(R.string.route_bend_radius, metres)
-            },
-            vitesse = context.getString(R.string.route_bend_speed, vitesse, Format.speedUnit(units)),
-            couleur = when {
-                rayon < 15.0 -> GuidageRenderer.CARTE_ROUGE
-                rayon < 30.0 -> GuidageRenderer.CARTE_AMBRE
-                else -> GuidageRenderer.CARTE_VERTE
-            },
-        )
-    }
 
     /**
      * Le bandeau du bas : la portée réglée du profil, à échelle régulière, avec le compteur
@@ -296,21 +242,6 @@ object GuidageModels {
         return Carrefours.parmi(gardes, along, PORTEE_SUITE)
     }
 
-    /** Les virages serrés des [PORTEE_VIRAGES] mètres qui viennent, du tracé entier calculé une fois. */
-    private fun virages(route: Route, along: Double): List<BendStatus> {
-        val tous = synchronized(this) {
-            val g = viragesGardes
-            if (g != null && g.first === route.path) {
-                g.second
-            } else {
-                Bends.of(route.path).also { viragesGardes = route.path to it }
-            }
-        }
-        return Bends.ahead(tous, along, PORTEE_VIRAGES)
-            .filter { it.bend.radius < RAYON_SERRE }
-            .take(3)
-    }
-
     private class CarrefoursGardes(
         val path: List<GeoPoint>,
         val roads: List<RoadSegment>,
@@ -319,7 +250,6 @@ object GuidageModels {
     )
 
     private var carrefoursGardes: CarrefoursGardes? = null
-    private var viragesGardes: Pair<List<GeoPoint>, List<RouteBend>>? = null
 
     private const val PLACEHOLDER = "--"
 
@@ -335,20 +265,9 @@ object GuidageModels {
     /** Rayon de lecture du fond de carte (m) : la portée de l'étiquette, et un peu plus. */
     private const val RAYON_VOIES = 1_300.0
 
-    /** Pente sous laquelle on est en descente (%). */
-    private const val PENTE_DESCENTE = -4.0
 
-    /** Rayon sous lequel un virage de descente mérite sa carte (m) — celui où l'on lève du gaz. */
-    private const val RAYON_SERRE = 60.0
 
-    /** Jusqu'où l'on regarde les virages en descente (m). */
-    private const val PORTEE_VIRAGES = 600.0
 
-    /**
-     * Accélération latérale des vitesses indicatives (m/s²), un peu plus d'un tiers de g :
-     * une allure prudente sur route sèche, loin de la limite d'adhérence d'un pneu de route.
-     */
-    private const val ACCELERATION_LATERALE = 3.5
 
     /** Angles au-delà desquels on tourne franchement, puis en épingle (degrés). */
     private const val FRANC = 45.0

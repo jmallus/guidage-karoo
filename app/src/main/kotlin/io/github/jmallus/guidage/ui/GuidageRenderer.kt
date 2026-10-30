@@ -10,6 +10,7 @@ import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.map.RoadKind
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
@@ -17,18 +18,6 @@ import kotlin.math.sin
 
 /** Une donnée du rang du haut : son libellé, sa valeur, et la couleur de sa zone. */
 data class DonneeGuidage(val libelle: String, val valeur: String, val couleur: Int? = null)
-
-/** Un virage de descente, sur sa carte. */
-data class CarteVirage(
-    /** −1 à gauche, +1 à droite. */
-    val direction: Int,
-    val distance: String,
-    /** « épingle · R 9 m ». */
-    val detail: String,
-    /** « ≤ 22 km/h ». */
-    val vitesse: String,
-    val couleur: Int,
-)
 
 /** Ce que montre le milieu de l'écran : une seule chose à la fois, la plus urgente. */
 sealed interface CentreGuidage {
@@ -50,8 +39,6 @@ sealed interface CentreGuidage {
         val repere: Double = 0.0,
     ) : CentreGuidage
 
-    /** Une descente à virages serrés : les trois prochains, chacun sur sa carte. */
-    data class Descente(val titre: String, val cartes: List<CarteVirage>, val note: String) : CentreGuidage
 
     /**
      * La côte qu'on monte, du pied au sommet : le même cadrage que le Climber du tableau de
@@ -64,8 +51,6 @@ sealed interface CentreGuidage {
         val titre: String = "",
         /** « 1/3 » : la côte parmi celles de l'itinéraire. */
         val rang: String? = null,
-        /** Les points d'intérêt de la côte : où, et leur nom. */
-        val pois: List<Pair<Double, String>> = emptyList(),
     ) : CentreGuidage
 
     /** Rien d'urgent : la carte, et la prochaine manœuvre en étiquette. */
@@ -102,8 +87,8 @@ data class GuidageModel(
  * Le tableau de guidage : l'écran qui suit la route.
  *
  * Trois étages. En haut trois chiffres, en bas la silhouette de ce qui vient, et au milieu
- * **une seule** chose, choisie par urgence : le carrefour qui approche, sinon la descente qui
- * tourne, sinon la côte, sinon la carte. L'œil n'a jamais à chercher où regarder — le milieu
+ * **une seule** chose, choisie par urgence : le carrefour qui approche, sinon la côte, sinon
+ * la carte. L'œil n'a jamais à chercher où regarder — le milieu
  * de l'écran est toujours la réponse à « qu'est-ce que je dois faire maintenant ».
  *
  * Le dessin reprend celui des maquettes validées : aplats francs, traits ronds et épais, un
@@ -127,13 +112,16 @@ object GuidageRenderer {
     const val CARTE_CHEMIN = 0xFFD1C9B5.toInt()
     const val CARTE_EAU = 0xFFA9C8E8.toInt()
     const val BLANC = 0xFFFFFFFF.toInt()
-    const val CARTE_ROUGE = 0xFF7F1D1D.toInt()
-    const val CARTE_AMBRE = 0xFF713F12.toInt()
-    const val CARTE_VERTE = 0xFF14532D.toInt()
 
     /** Part de la hauteur tenue par le rang des chiffres, et où commence le bandeau du bas. */
     private const val HAUT = 0.15f
     private const val BAS = 0.735f
+
+    /**
+     * Où commence le bandeau du bas (px) : la frontière entre les deux zones d'appui du champ,
+     * lue au même endroit par le dessin et par le découpage.
+     */
+    fun bandeauHaut(height: Int): Float = height * BAS
 
     fun render(width: Int, height: Int, model: GuidageModel): Bitmap {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
@@ -149,11 +137,10 @@ object GuidageRenderer {
         val centre = RectF(0f, h * HAUT, w, h * BAS)
         when (val c = model.centre) {
             is CentreGuidage.Carrefour -> carrefour(canvas, centre, c, k)
-            is CentreGuidage.Descente -> descente(canvas, centre, c, k)
             is CentreGuidage.Montee -> montee(canvas, centre, c, model.palette, k)
             is CentreGuidage.Carte -> carte(canvas, centre, c, model.palette, k)
         }
-        bandeau(canvas, RectF(0f, h * BAS, w, h), model.bandeau, k)
+        bandeau(canvas, RectF(0f, bandeauHaut(h.toInt()), w, h), model.bandeau, k)
     }
 
     private fun donnees(canvas: Canvas, zone: RectF, donnees: List<DonneeGuidage>, k: Float) {
@@ -225,43 +212,22 @@ object GuidageRenderer {
         if (rempli.width() > 0f) canvas.drawRoundRect(rempli, 5f * k, 5f * k, plein(ROUTE))
     }
 
-    private fun descente(canvas: Canvas, zone: RectF, c: CentreGuidage.Descente, k: Float) {
-        val marge = 20f * k
-        canvas.drawText(c.titre, zone.left + marge, zone.top + 40f * k, texte(30f * k, BLANC, Typeface.DEFAULT_BOLD))
-
-        val note = texte(15f * k, LIBELLE, Typeface.DEFAULT)
-        val lignes = c.note.split('\n')
-        val hautNote = zone.bottom - 10f * k - (lignes.size - 1) * 19f * k
-        lignes.forEachIndexed { i, l -> canvas.drawText(l, zone.left + marge, hautNote + i * 19f * k, note) }
-
-        val haut = zone.top + 56f * k
-        val bas = hautNote - 24f * k
-        val ecart = 10f * k
-        val hauteur = ((bas - haut) - ecart * 2) / 3
-        c.cartes.take(3).forEachIndexed { i, carte ->
-            val r = RectF(zone.left + marge, haut + i * (hauteur + ecart), zone.right - marge, haut + i * (hauteur + ecart) + hauteur)
-            canvas.drawRoundRect(r, 14f * k, 14f * k, plein(carte.couleur))
-            val milieu = r.centerY()
-            fleche(canvas, r.left + 34f * k, milieu, min(hauteur * 0.62f, 44f * k), carte.direction * 90.0, BLANC, k)
-            val grand = texte(min(32f * k, hauteur * 0.42f), BLANC, Typeface.DEFAULT_BOLD)
-            canvas.drawText(carte.distance, r.left + 68f * k, milieu + grand.textSize * 0.35f, grand)
-            val vitesse = texte(min(30f * k, hauteur * 0.4f), BLANC, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.RIGHT }
-            canvas.drawText(carte.vitesse, r.right - 16f * k, milieu - 2f * k, vitesse)
-            val detail = texte(min(17f * k, hauteur * 0.24f), 0xFFE5E7EB.toInt(), Typeface.DEFAULT).apply { textAlign = Paint.Align.RIGHT }
-            canvas.drawText(carte.detail, r.right - 16f * k, milieu + detail.textSize + 4f * k, detail)
-        }
-    }
-
     /**
-     * La côte, comme sur la maquette : la partie montée en orange, le reste en vert, un trait
-     * jaune à la place du coureur portant son kilométrage au compteur, les points d'intérêt en
-     * pastilles magenta, et dessous les cases de pente des six cents mètres qui viennent.
+     * La côte, sur le principe exact du Climber du tableau de bord, redessiné à main levée.
+     *
+     * Le profil de toute la côte, du pied au sommet, peint tronçon par tronçon aux couleurs de
+     * pente du Karoo ; derrière le coureur, les mêmes couleurs en hachures. Une bande pâle
+     * marque les six cents mètres que détaillent les cases du dessous ; un trait jaune dit où
+     * l'on est ; les points d'intérêt devant soi tombent en pointillés magenta sous leur
+     * triangle. Ce qui change est le trait : aplats francs, angles arrondis, hachures larges.
      */
     private fun montee(canvas: Canvas, zone: RectF, c: CentreGuidage.Montee, palette: Palette, k: Float) {
         val suite = c.suite
         val p = c.profil
         val fenetre = p.window
-        if (fenetre.points.size < 2 || p.positionDistance == null) {
+        val cote = p.climbZoom
+        val ici = p.positionDistance
+        if (fenetre.points.size < 2 || ici == null || cote == null) {
             val bas = if (suite != null) zone.bottom - 46f * k else zone.bottom
             ProfileRenderer.draw(canvas, RectF(zone.left, zone.top + 6f * k, zone.right, bas), p, palette)
             if (suite != null) etiquette(canvas, zone.left + 20f * k, zone.bottom - 40f * k, suite, k)
@@ -275,78 +241,107 @@ object GuidageRenderer {
 
         val basSuite = if (suite != null) 46f * k else 0f
         val casesHaut = zone.bottom - basSuite - 52f * k
-        val graphe = RectF(zone.left + marge, zone.top + 92f * k, zone.right - marge, casesHaut - 8f * k)
+        val graphe = RectF(zone.left + marge, zone.top + 62f * k, zone.right - marge, casesHaut - 8f * k)
+        val points = fenetre.points
         val debut = fenetre.start
         val etendue = (fenetre.end - debut).coerceAtLeast(1.0)
         val altitudes = (fenetre.maxElevation - fenetre.minElevation).coerceAtLeast(1.0)
-        fun x(d: Double) = graphe.left + ((d - debut) / etendue * graphe.width()).toFloat()
+        fun x(d: Double) = (graphe.left + ((d - debut) / etendue * graphe.width()).toFloat()).coerceIn(graphe.left, graphe.right)
         fun y(e: Double) = graphe.bottom - ((e - fenetre.minElevation) / altitudes * graphe.height()).toFloat()
-        fun altitude(d: Double): Double {
-            val pts = fenetre.points
-            val i = pts.indexOfFirst { it.distance >= d }
-            if (i <= 0) return pts.first().elevation.takeIf { i == 0 } ?: pts.last().elevation
-            val a = pts[i - 1]
-            val b = pts[i]
-            val t = if (b.distance > a.distance) (d - a.distance) / (b.distance - a.distance) else 0.0
-            return a.elevation + (b.elevation - a.elevation) * t
+        val px = x(ici)
+
+        // La portion que détaillent les cases, posée avant la silhouette : il n'en reste visible
+        // que le ciel, et c'est lui qui relie les deux échelles.
+        val detail = p.climbDetail ?: (cote.startDistance..cote.endDistance)
+        canvas.drawRoundRect(RectF(x(detail.start), graphe.top, x(detail.endInclusive), graphe.bottom), 6f * k, 6f * k, plein(ProfileRenderer.DETAIL_BAND))
+
+        // Les tronçons du Climber : leur longueur s'allonge avec la côte, ceux de même couleur
+        // ne font qu'un aplat, et sous la bande ce sont ceux des cases.
+        val pas = ProfileRenderer.PROFILE_GRADE_STEPS.firstOrNull { ceil(cote.length / it) <= ProfileRenderer.MAX_PROFILE_SEGMENTS }
+            ?: ProfileRenderer.PROFILE_GRADE_STEPS.last()
+        val aplats = ProfileRenderer.tronconsDuProfil(cote, points, pas, detail).fold(mutableListOf<ProfileRenderer.Troncon>()) { acc, t ->
+            val dernier = acc.lastOrNull()
+            if (dernier != null && ProfileRenderer.climbColor(dernier.pente) == ProfileRenderer.climbColor(t.pente)) {
+                acc[acc.lastIndex] = ProfileRenderer.Troncon(dernier.debut, t.fin, t.pente)
+            } else {
+                acc += t
+            }
+            acc
+        }
+        val hachure = trait(0, 5f * k).apply { strokeCap = Paint.Cap.BUTT }
+        for ((a, b, pente) in aplats) {
+            val xa = x(a)
+            val xb = x(b)
+            if (xb <= xa) continue
+            val troncon = Path().apply {
+                moveTo(xa, graphe.bottom)
+                lineTo(xa, y(altitudeA(points, a)))
+                points.filter { it.distance > a && it.distance < b }.forEach { lineTo(x(it.distance), y(it.elevation)) }
+                lineTo(xb, y(altitudeA(points, b)))
+                lineTo(xb, graphe.bottom)
+                close()
+            }
+            val couleur = ProfileRenderer.climbColor(pente)
+            // Derrière le coureur, des hachures de la couleur du tronçon ; devant, l'aplat.
+            canvas.save()
+            canvas.clipPath(troncon)
+            canvas.clipRect(graphe.left, graphe.top, px, graphe.bottom)
+            hachure.color = couleur
+            var t = xa - graphe.height()
+            while (t < xb) {
+                canvas.drawLine(t, graphe.bottom, t + graphe.height(), graphe.top, hachure)
+                t += 13f * k
+            }
+            canvas.restore()
+            canvas.save()
+            canvas.clipRect(px, graphe.top, graphe.right, graphe.bottom)
+            canvas.drawPath(troncon, plein(couleur))
+            canvas.restore()
         }
 
-        val silhouette = Path().apply {
-            moveTo(x(fenetre.points.first().distance), graphe.bottom)
-            fenetre.points.forEach { lineTo(x(it.distance), y(it.elevation)) }
-            lineTo(x(fenetre.points.last().distance), graphe.bottom)
-            close()
+        // Les points d'intérêt devant soi : un triangle magenta en haut, des pointillés jusqu'au pied.
+        val pointilles = trait(FieldPalette.POI, 4f * k).apply {
+            pathEffect = android.graphics.DashPathEffect(floatArrayOf(8f * k, 8f * k), 0f)
         }
-        val ici = x(p.positionDistance)
+        for (poi in p.pois) {
+            val d = poi.distanceAlongRoute
+            if (d < ici || d > fenetre.end) continue
+            val qx = x(d)
+            canvas.drawLine(qx, graphe.top + 14f * k, qx, graphe.bottom, pointilles)
+            canvas.drawPath(
+                Path().apply {
+                    moveTo(qx - 11f * k, graphe.top - 4f * k)
+                    lineTo(qx + 11f * k, graphe.top - 4f * k)
+                    lineTo(qx, graphe.top + 16f * k)
+                    close()
+                },
+                plein(FieldPalette.POI).apply { pathEffect = android.graphics.CornerPathEffect(3f * k) },
+            )
+        }
+
+        // Le coureur : le trait jaune, du ciel au pied.
+        canvas.drawLine(px, graphe.top - 4f * k, px, graphe.bottom, trait(KarooColors.LEMON_YELLOW, 5f * k).apply { strokeCap = Paint.Cap.BUTT })
+
+        // Les cases : un tronçon de cent mètres chacune, sur l'échelle de la bande pâle, à leur
+        // vraie place — celle qu'on a derrière soi sort à gauche avec sa pente.
+        val largeurDetail = (detail.endInclusive - detail.start).coerceAtLeast(1.0)
+        fun xc(d: Double) = graphe.left + ((d - detail.start) / largeurDetail * graphe.width()).toFloat()
+        val chiffre = texte(24f * k, 0, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
         canvas.save()
-        canvas.clipRect(graphe.left, graphe.top - 60f * k, ici, graphe.bottom)
-        canvas.drawPath(silhouette, plein(MONTEE_FAITE))
+        canvas.clipRect(graphe.left, casesHaut, graphe.right, casesHaut + 44f * k)
+        for ((a, b, pente) in ProfileRenderer.troncons(cote, points)) {
+            val xa = xc(a) + 2f * k
+            val xb = xc(b) - 2f * k
+            if (xb <= graphe.left || xa >= graphe.right || xb - xa < 4f * k) continue
+            val r = RectF(xa, casesHaut, xb, casesHaut + 44f * k)
+            canvas.drawRoundRect(r, 6f * k, 6f * k, plein(ProfileRenderer.climbColor(pente)))
+            val texteCase = String.format(java.util.Locale.getDefault(), "%.1f", pente)
+            chiffre.color = ProfileRenderer.climbInk(pente)
+            chiffre.textSize = 24f * k
+            ajuster(chiffre, texteCase, r.width() - 6f * k)
+            canvas.drawText(texteCase, r.centerX(), r.bottom - 13f * k, chiffre)
+        }
         canvas.restore()
-        canvas.save()
-        canvas.clipRect(ici, graphe.top - 60f * k, graphe.right, graphe.bottom)
-        canvas.drawPath(silhouette, plein(MONTEE_RESTE))
-        canvas.restore()
-
-        // Les points d'intérêt, posés sur la crête.
-        val poiCorps = texte(15f * k, BLANC, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
-        for ((d, nom) in c.pois) {
-            if (d < debut || d > fenetre.end) continue
-            val px = x(d)
-            val py = y(altitude(d))
-            canvas.drawLine(px, py, px, py - 26f * k, trait(FieldPalette.POI, 4f * k))
-            canvas.drawCircle(px, py - 30f * k, 9f * k, plein(FieldPalette.POI))
-            canvas.drawCircle(px, py - 30f * k, 9f * k, trait(BLANC, 3f * k))
-            val court = if (nom.length > 14) nom.take(13) + "…" else nom
-            canvas.drawText(court, px.coerceIn(graphe.left + 50f * k, graphe.right - 50f * k), py - 46f * k, poiCorps)
-        }
-
-        // Le coureur : le trait jaune, et son kilométrage au compteur dans une pastille.
-        canvas.drawLine(ici, graphe.top - 4f * k, ici, graphe.bottom, trait(POSITION, 5f * k).apply { strokeCap = Paint.Cap.BUTT })
-        p.positionLabel?.let { km ->
-            val corps = texte(20f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
-            val l = corps.measureText(km) + 16f * k
-            val cx = ici.coerceIn(graphe.left + l / 2, graphe.right - l / 2)
-            val r = RectF(cx - l / 2, graphe.top - 34f * k, cx + l / 2, graphe.top - 6f * k)
-            canvas.drawRoundRect(r, 8f * k, 8f * k, plein(POSITION))
-            canvas.drawText(km, cx, r.bottom - 7f * k, corps)
-        }
-
-        // Les cases de pente : six tronçons de cent mètres devant le coureur.
-        val detail = p.climbDetail ?: (p.positionDistance..(p.positionDistance + 600.0))
-        val troncons = 6
-        val pas = (detail.endInclusive - detail.start) / troncons
-        val largeur = (graphe.width() - (troncons - 1) * 4f * k) / troncons
-        val caseCorps = texte(26f * k, 0xFF111111.toInt(), Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
-        for (i in 0 until troncons) {
-            val a = detail.start + i * pas
-            val b = a + pas
-            if (a >= fenetre.end) break
-            val pente = (altitude(minOf(b, fenetre.end)) - altitude(a)) / (minOf(b, fenetre.end) - a) * 100.0
-            val gauche = graphe.left + i * (largeur + 4f * k)
-            val r = RectF(gauche, casesHaut, gauche + largeur, casesHaut + 44f * k)
-            canvas.drawRect(r, plein(FieldPalette.gradeColor(pente)))
-            canvas.drawText(String.format(java.util.Locale.getDefault(), "%.1f", pente), r.centerX(), r.bottom - 12f * k, caseCorps)
-        }
 
         if (suite != null) etiquette(canvas, zone.left + marge, zone.bottom - 40f * k, suite, k)
     }
@@ -457,12 +452,15 @@ object GuidageRenderer {
         val bas = zone.bottom - 14f * k
         // De la place au-dessus de la crête pour la pastille du compteur et celles des POI.
         val haut = zone.top + 74f * k
+        // Ce qui est écrit en haut du bandeau, que les noms de POI ne doivent pas recouvrir.
+        val occupes = mutableListOf<RectF>()
         b.texte?.let {
             val corps = texte(22f * k, BLANC, Typeface.DEFAULT_BOLD).apply {
                 textAlign = Paint.Align.RIGHT
                 setShadowLayer(4f * k, 0f, 0f, FOND)
             }
             canvas.drawText(it, zone.right - 20f * k, zone.top + 30f * k, corps)
+            occupes += RectF(zone.right - 24f * k - corps.measureText(it), zone.top + 8f * k, zone.right, zone.top + 36f * k)
         }
         if (points.size < 2) return
         val debut = b.fenetre.start
@@ -470,6 +468,14 @@ object GuidageRenderer {
         val altitudes = (b.fenetre.maxElevation - b.fenetre.minElevation).coerceAtLeast(1.0)
         fun x(d: Double) = zone.left + ((d - debut) / etendue * zone.width()).toFloat()
         fun y(e: Double) = bas - ((e - b.fenetre.minElevation) / altitudes * (bas - haut)).toFloat()
+        // Le coureur, un cinquième de la portée après le bord gauche — au départ, la fenêtre
+        // ne peut pas reculer et il y revient.
+        val ici = b.position ?: points.first().distance
+        val px = x(ici).coerceAtLeast(zone.left + 10f * k)
+        val py = y(altitudeA(points, ici))
+
+        // Comme sur le tableau de bord : derrière le coureur, la seule crête, sans aplat — ce
+        // qui est roulé n'a plus à peser ; devant, l'aplat jaune de ce qui vient.
         val ligne = Path()
         points.forEachIndexed { i, p -> if (i == 0) ligne.moveTo(x(p.distance), y(p.elevation)) else ligne.lineTo(x(p.distance), y(p.elevation)) }
         val aplat = Path(ligne).apply {
@@ -477,29 +483,44 @@ object GuidageRenderer {
             lineTo(x(points.first().distance), zone.bottom)
             close()
         }
+        canvas.save()
+        canvas.clipRect(px, zone.top, zone.right, zone.bottom)
         canvas.drawPath(aplat, plein(SILHOUETTE))
+        canvas.restore()
         canvas.drawPath(ligne, trait(BLANC, 3f * k).apply { strokeJoin = Paint.Join.ROUND })
 
-        // Les points d'intérêt, posés sur la crête comme sur le profil de côte.
+        // Le kilométrage au compteur, toujours en haut du bandeau à l'aplomb du coureur, relié
+        // à lui par un fil jaune : il ne monte et ne descend plus avec le relief.
+        b.compteur?.let { km ->
+            val corps = texte(20f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+            val l = corps.measureText(km) + 16f * k
+            val cx = px.coerceAtLeast(zone.left + 6f * k + l / 2)
+            val r = RectF(cx - l / 2, zone.top + 8f * k, cx + l / 2, zone.top + 36f * k)
+            canvas.drawLine(px, r.bottom, px, py, trait(POSITION, 3f * k).apply { strokeCap = Paint.Cap.BUTT })
+            canvas.drawRoundRect(r, 8f * k, 8f * k, plein(POSITION))
+            canvas.drawText(km, cx, r.bottom - 7f * k, corps)
+            occupes += RectF(r.left - 4f * k, r.top, r.right + 4f * k, r.bottom)
+        }
+
+        // Les points d'intérêt devant soi, posés sur la crête comme sur le profil de côte. Un
+        // nom qui toucherait un autre monte d'un cran ; s'il touche encore, il se tait et seule
+        // sa pastille reste.
         val poiCorps = texte(14f * k, BLANC, Typeface.DEFAULT_BOLD).apply {
             textAlign = Paint.Align.CENTER
             setShadowLayer(4f * k, 0f, 0f, FOND)
         }
-        // Un nom qui toucherait le précédent monte d'un cran ; s'il touche encore, il se tait
-        // et seule sa pastille reste.
-        val occupes = mutableListOf<RectF>()
         for ((d, nom) in b.pois.sortedBy { it.first }) {
-            if (d <= debut || d > b.fenetre.end) continue
-            val px = x(d)
-            val py = y(altitudeA(points, d))
-            canvas.drawLine(px, py, px, py - 20f * k, trait(FieldPalette.POI, 3f * k))
-            canvas.drawCircle(px, py - 24f * k, 7f * k, plein(FieldPalette.POI))
-            canvas.drawCircle(px, py - 24f * k, 7f * k, trait(BLANC, 2.5f * k))
+            if (d < ici || d > b.fenetre.end) continue
+            val qx = x(d)
+            val qy = y(altitudeA(points, d))
+            canvas.drawLine(qx, qy, qx, qy - 20f * k, trait(FieldPalette.POI, 3f * k))
+            canvas.drawCircle(qx, qy - 24f * k, 7f * k, plein(FieldPalette.POI))
+            canvas.drawCircle(qx, qy - 24f * k, 7f * k, trait(BLANC, 2.5f * k))
             val court = if (nom.length > 12) nom.take(11) + "…" else nom
             val demi = poiCorps.measureText(court) / 2 + 4f * k
-            val cx = px.coerceIn(zone.left + demi, zone.right - demi)
+            val cx = qx.coerceIn(zone.left + demi, zone.right - demi)
             for (cran in 0..1) {
-                val base = py - 37f * k - cran * 17f * k
+                val base = qy - 37f * k - cran * 17f * k
                 val place = RectF(cx - demi, base - 14f * k, cx + demi, base + 3f * k)
                 if (occupes.none { RectF.intersects(it, place) }) {
                     occupes += place
@@ -509,22 +530,6 @@ object GuidageRenderer {
             }
         }
 
-        // Le coureur, un cinquième de la portée après le bord gauche — au départ, la fenêtre
-        // ne peut pas reculer et il y revient. Son kilométrage au compteur au-dessus, dans la
-        // même pastille jaune que sur le profil de côte.
-        val ici = b.position ?: points.first().distance
-        val px = x(ici).coerceAtLeast(zone.left + 10f * k)
-        val py = y(altitudeA(points, ici))
-        b.compteur?.let { km ->
-            val corps = texte(20f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
-            val l = corps.measureText(km) + 16f * k
-            val cx = px.coerceAtLeast(zone.left + 6f * k + l / 2)
-            val r = RectF(cx - l / 2, py - 46f * k, cx + l / 2, py - 18f * k)
-            canvas.drawLine(px, r.bottom, px, py, trait(POSITION, 4f * k))
-            canvas.drawRoundRect(r, 8f * k, 8f * k, plein(POSITION))
-            canvas.drawRoundRect(r, 8f * k, 8f * k, trait(FOND, 2f * k))
-            canvas.drawText(km, cx, r.bottom - 7f * k, corps)
-        }
         canvas.drawCircle(px, py, 8f * k, plein(FOND))
         canvas.drawCircle(px, py, 8f * k, trait(BLANC, 3f * k))
     }

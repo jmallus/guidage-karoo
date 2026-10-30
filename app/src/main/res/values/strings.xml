@@ -214,7 +214,7 @@
 
     <!-- Le tableau de guidage : l'écran qui suit la route. -->
     <string name="field_route_name">Tableau de guidage</string>
-    <string name="field_route_description">Plein écran qui donne la priorité au guidage : trois chiffres en haut, la silhouette de ce qui vient en bas, et au milieu la chose la plus urgente — le prochain carrefour à moins de 300 m avec ses voies et des bips, sinon les virages serrés d\'une descente, sinon la côte, sinon la carte.</string>
+    <string name="field_route_description">Plein écran qui donne la priorité au guidage : trois chiffres en haut, la silhouette de ce qui vient en bas, et au milieu la chose la plus urgente — le prochain carrefour à moins de 300 m avec ses voies et des bips, sinon la côte, sinon la carte. Un appui en haut change l\'échelle de la carte, en bas la portée du profil.</string>
     <string name="route_label_speed">VITESSE</string>
     <string name="route_label_power">PUISSANCE</string>
     <string name="route_label_grade">PENTE</string>
@@ -228,10 +228,4 @@
     <string name="route_turn_sharp">En épingle %1$s</string>
     <string name="route_turn_rank">%1$de %2$s</string>
     <string name="route_next_in">dans %1$s</string>
-    <string name="route_descent_title">Descente · virages</string>
-    <string name="route_bend_hairpin">épingle · R %1$d m</string>
-    <string name="route_bend_tight">serré · R %1$d m</string>
-    <string name="route_bend_radius">R %1$d m</string>
-    <string name="route_bend_speed">≤ %1$s %2$s</string>
-    <string name="route_descent_note">Vitesses indicatives, d\'après le rayon du tracé.\nAdhérence et dévers non connus.</string>
 </resources>

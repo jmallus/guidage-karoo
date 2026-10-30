@@ -1,9 +1,26 @@
 package io.github.jmallus.guidage.extension
 
 import android.content.Context
+import android.graphics.Bitmap
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
+import androidx.glance.GlanceModifier
+import androidx.glance.Image
+import androidx.glance.ImageProvider
+import androidx.glance.action.Action
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
+import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
+import androidx.glance.layout.Column
+import androidx.glance.layout.ContentScale
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
 import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.map.RoadSegment
@@ -13,7 +30,6 @@ import io.github.jmallus.guidage.karoo.RideDataProvider
 import io.github.jmallus.guidage.karoo.RoadMapRepository
 import io.github.jmallus.guidage.karoo.RoadMapState
 import io.github.jmallus.guidage.settings.SettingsRepository
-import io.github.jmallus.guidage.ui.BitmapField
 import io.github.jmallus.guidage.ui.CentreGuidage
 import io.github.jmallus.guidage.ui.GuidageModel
 import io.github.jmallus.guidage.ui.GuidageRenderer
@@ -40,6 +56,9 @@ import kotlinx.coroutines.launch
  * Le second tableau de bord, à côté du premier et non à sa place : celui-ci donne la priorité
  * au guidage. Voir [GuidageModels] pour ce qui occupe le milieu de l'écran, et
  * [GuidageRenderer] pour son dessin.
+ *
+ * Un appui sur le haut de l'écran change l'échelle de la carte, un appui sur le bas la portée
+ * du profil, comme sur le tableau de bord.
  *
  * À l'approche d'un carrefour où il faut tourner, le champ bipe deux fois : à
  * [BIP_LOIN] mètres, puis à [BIP_PRES]. Les yeux sont sur la route à ce moment-là, et c'est
@@ -85,11 +104,42 @@ class GuidageDataType(
                     if (!config.preview) bips.annoncer(model)
                     val (width, height) = FieldSize.of(config)
                     val bitmap = GuidageRenderer.render(width, height, model)
-                    val composed = glance.compose(context, DpSize.Unspecified) { BitmapField(bitmap) }
+                    // Dessiné d'un seul tenant puis coupé en deux, comme le tableau de bord : le
+                    // haut change l'échelle de la carte, le bas la portée du profil.
+                    val coupure = GuidageRenderer.bandeauHaut(height).toInt().coerceIn(1, height - 1)
+                    val densite = context.resources.displayMetrics.density
+                    val composed = glance.compose(context, DpSize.Unspecified) {
+                        Column(modifier = GlanceModifier.fillMaxSize()) {
+                            Moitie(
+                                Bitmap.createBitmap(bitmap, 0, 0, width, coupure),
+                                (coupure / densite).dp,
+                                if (config.preview) null else actionRunCallback<ChangeMapZoomAction>(),
+                            )
+                            Moitie(
+                                Bitmap.createBitmap(bitmap, 0, coupure, width, height - coupure),
+                                ((height - coupure) / densite).dp,
+                                if (config.preview) null else actionRunCallback<ChangeProfileZoomAction>(),
+                            )
+                        }
+                    }
                     emitter.updateView(composed.remoteViews)
                 }
         }
         emitter.setCancellable { job.cancel() }
+    }
+
+    @Composable
+    private fun Moitie(bitmap: Bitmap, hauteur: Dp, onClick: Action?) {
+        var modifier = GlanceModifier.fillMaxWidth().height(hauteur)
+        if (onClick != null) modifier = modifier.clickable(onClick = onClick)
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            Image(
+                provider = ImageProvider(bitmap),
+                contentDescription = null,
+                modifier = GlanceModifier.fillMaxSize(),
+                contentScale = ContentScale.FillBounds,
+            )
+        }
     }
 
     /**
