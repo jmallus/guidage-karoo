@@ -138,7 +138,7 @@ object DashboardModels {
             coteKaroo = rideData.climb,
         )
 
-    private fun mapModel(
+    internal fun mapModel(
         context: Context,
         snapshot: GuidanceSnapshot,
         state: GuidanceState,

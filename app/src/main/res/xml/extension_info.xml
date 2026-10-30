@@ -17,6 +17,14 @@
         graphical="true"
         icon="@drawable/ic_guidage" />
 
+    <!-- Le second tableau de bord : le guidage d'abord, voir GuidageDataType. -->
+    <DataType
+        typeId="route"
+        displayName="@string/field_route_name"
+        description="@string/field_route_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
     <DataType
         typeId="profil"
         displayName="@string/field_profile_name"

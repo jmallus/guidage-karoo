@@ -44,6 +44,11 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
     override val types: List<DataTypeImpl> by lazy {
         listOf(
             DashboardDataType(provider, rideDataProvider, settingsRepository, roadMapRepository, extension),
+            GuidageDataType(
+                provider, rideDataProvider, settingsRepository, roadMapRepository,
+                dispatch = { karooSystem.dispatch(it) },
+                extension = extension,
+            ),
             ProfileDataType(provider, settingsRepository, extension),
             PoiDataType(provider, extension),
             MonteeDataType(provider, rideDataProvider, settingsRepository, extension),
