@@ -10,6 +10,7 @@ import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.ProfileWindow
 import io.github.jmallus.guidage.core.map.RoadKind
+import io.github.jmallus.guidage.core.map.RoadSurface
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
@@ -348,9 +349,9 @@ object GuidageRenderer {
 
     /**
      * La carte, dessinée comme sur les maquettes plutôt que comme la minicarte du tableau de
-     * bord : un fond crème, les routes en blanc d'autant plus larges qu'elles comptent, les
-     * chemins en beige, l'itinéraire en bleu et le coureur en pastille sombre. Ni surfaces, ni
-     * rose des vents, ni échelle — il ne s'agit pas de lire la région mais de voir où va la
+     * bord : un fond crème, les bois et les champs dans les verts de la minicarte, les routes
+     * en blanc d'autant plus larges qu'elles comptent, les chemins en beige, l'itinéraire en
+     * bleu et le coureur en pastille sombre. Ni rose des vents ni échelle — il ne s'agit pas de lire la région mais de voir où va la
      * route, et le milieu de l'écran ne la montre que lorsque rien d'autre ne presse.
      */
     private fun carte(canvas: Canvas, zone: RectF, c: CentreGuidage.Carte, palette: Palette, k: Float) {
@@ -381,6 +382,26 @@ object GuidageRenderer {
             return chemin
         }
         fun proche(points: List<GeoPoint>) = points.any { Geo.distance(position, it) < limite }
+
+        // Les surfaces d'abord, aux couleurs de la minicarte du tableau de bord — les verts
+        // des bois et des champs surtout, qui disent la campagne d'un coup d'œil. Une famille
+        // par chemin, de la plus étendue à la plus rare, pour que l'eau reste visible au bord
+        // d'un bois.
+        for (famille in listOf(RoadKind.FARMLAND, RoadKind.BUILT_UP, RoadKind.FOREST, RoadKind.WATER)) {
+            val surfaces = m.roads.filter { it.kind == famille }
+            if (surfaces.isEmpty()) continue
+            val aplat = Path().apply { fillType = Path.FillType.WINDING }
+            for (surface in surfaces) {
+                for (i in surface.latitudes.indices) {
+                    val plan = Geo.toTrackUpPlane(position, cap, GeoPoint(surface.latitudes[i] / 1e6, surface.longitudes[i] / 1e6))
+                    val x = cx + plan.x.toFloat() * echelle
+                    val y = cy - plan.y.toFloat() * echelle
+                    if (i == 0) aplat.moveTo(x, y) else aplat.lineTo(x, y)
+                }
+                aplat.close()
+            }
+            canvas.drawPath(aplat, plein(RoadStyle.color(famille, RoadSurface.UNKNOWN)))
+        }
 
         // Les petites voies d'abord, les grandes par-dessus, comme sur une carte routière.
         val voies = m.roads.filter { !it.kind.isArea }.sortedByDescending { it.kind.code }
