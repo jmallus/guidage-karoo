@@ -6,6 +6,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import io.github.jmallus.guidage.core.Contrast
 import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.ProfileWindow
@@ -148,18 +149,32 @@ object GuidageRenderer {
         bandeau(canvas, RectF(0f, bandeauHaut(h.toInt()), w, h), model.bandeau, k)
     }
 
+    /**
+     * Les trois chiffres du haut, sans titre : leur ordre ne change jamais — vitesse,
+     * puissance, cœur — et la place rendue par les titres va aux chiffres. Chacun sur une
+     * case arrondie à la couleur de sa zone, l'encre choisie pour se lire dessus ; sans zone,
+     * la case reste sombre et le chiffre blanc.
+     */
     private fun donnees(canvas: Canvas, zone: RectF, donnees: List<DonneeGuidage>, k: Float) {
         if (donnees.isEmpty()) return
-        val colonne = zone.width() / donnees.size
-        val libelle = texte(15f * k, LIBELLE, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+        val marge = 8f * k
+        val ecart = 8f * k
+        val largeur = (zone.width() - 2 * marge - ecart * (donnees.size - 1)) / donnees.size
+        val haut = zone.top + 6f * k
+        val bas = zone.bottom - 4f * k
         donnees.forEachIndexed { i, d ->
-            val x = zone.left + colonne * (i + 0.5f)
-            canvas.drawText(d.libelle, x, zone.top + 28f * k, libelle)
-            val valeur = texte(46f * k, d.couleur ?: BLANC, Typeface.DEFAULT_BOLD).apply {
+            val gauche = zone.left + marge + i * (largeur + ecart)
+            val case = RectF(gauche, haut, gauche + largeur, bas)
+            val fond = d.couleur ?: PISTE
+            canvas.drawRoundRect(case, 16f * k, 16f * k, plein(fond))
+            val encre = if (d.couleur != null) Contrast.bestTextColor(fond) else BLANC
+            val valeur = texte(case.height() * 0.78f, encre, Typeface.DEFAULT_BOLD).apply {
                 textAlign = Paint.Align.CENTER
-                ajuster(this, d.valeur, colonne - 12f * k)
+                ajuster(this, d.valeur, largeur - 14f * k)
             }
-            canvas.drawText(d.valeur, x, zone.top + 76f * k, valeur)
+            // Centré sur la hauteur des chiffres, et non sur la ligne de base.
+            val ligne = case.centerY() - (valeur.descent() + valeur.ascent()) / 2f
+            canvas.drawText(d.valeur, case.centerX(), ligne, valeur)
         }
     }
 
