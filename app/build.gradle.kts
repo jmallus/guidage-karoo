@@ -164,6 +164,9 @@ tasks.withType<Test>().configureEach {
         (project.findProperty("guidage.hauteur") as String?)?.let {
             systemProperty("guidage.hauteur", it)
         }
+        // Un groupe à un seul plateau, pour voir les schémas sans peigne avant.
+        //     ./gradlew :app:simulateur -Pguidage.mono=1
+        (project.findProperty("guidage.mono") as String?)?.let { systemProperty("guidage.mono", it) }
         // Le lanceur de tests tourne « sans écran », et le premier JFrame lève alors une
         // HeadlessException. Poser la propriété d'ici ne suffit pas : le plugin Android
         // repose la sienne, et l'ordre des deux ne se maîtrise pas. Le simulateur s'en

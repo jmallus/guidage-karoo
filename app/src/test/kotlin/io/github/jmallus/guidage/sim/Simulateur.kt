@@ -79,6 +79,12 @@ class Simulateur(
     /** Carte ou profil, comme le réglage de l'extension. */
     var zone: GuidanceZoneType = GuidanceZoneType.MAP
 
+    /**
+     * Un groupe à un seul plateau, comme la plupart des vélos de gravel : le peigne avant
+     * disparaît alors des schémas. `./gradlew :app:simulateur -Pguidage.mono=1`
+     */
+    var monoPlateau: Boolean = System.getProperty(PROPRIETE_MONO) != null
+
     /** Pour voir le chemin de rejointe, comme lorsque le Karoo décroche de l'itinéraire. */
     var horsItineraire: Boolean = false
 
@@ -266,7 +272,11 @@ class Simulateur(
             distance = instant.distance + detourMetres,
             distanceRemaining = instant.distanceRestante,
             arrivalTime = arrivee(instant, maintenant),
-            drivetrain = instant.transmission,
+            drivetrain = if (monoPlateau) {
+                instant.transmission.copy(front = 1, frontCount = 1, frontTeeth = MONO_PLATEAU_DENTS)
+            } else {
+                instant.transmission
+            },
             onRoute = !horsItineraire,
             powerZones = zones.powerZones,
             heartRateZones = zones.heartRateZones,
@@ -528,6 +538,11 @@ class Simulateur(
         const val CORPS_NATIF_SP = 96
 
         const val PROPRIETE_HAUTEUR = "guidage.hauteur"
+
+        const val PROPRIETE_MONO = "guidage.mono"
+
+        /** La denture du plateau unique simulé. */
+        private const val MONO_PLATEAU_DENTS = 40
 
         /**
          * Un mardi de septembre — l'instant est le matin, l'heure de départ s'en déduit le soir.
