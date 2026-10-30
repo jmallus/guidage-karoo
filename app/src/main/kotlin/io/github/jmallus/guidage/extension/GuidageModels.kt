@@ -93,7 +93,8 @@ object GuidageModels {
                     PorteeCarte.of(settings.mapZoom), luesUneFois, nowMillis,
                 ),
                 suite = suite,
-                rapport = rapport(DashboardModels.drivetrainModel(context, rideData)),
+                rapport = DashboardModels.drivetrainModel(context, rideData).let { rapport(it) },
+                transmission = DashboardModels.drivetrainModel(context, rideData),
             )
         }
 

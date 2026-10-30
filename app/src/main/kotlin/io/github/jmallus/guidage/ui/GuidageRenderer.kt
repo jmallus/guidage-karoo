@@ -61,6 +61,8 @@ sealed interface CentreGuidage {
         val suite: Suite?,
         /** « 50×17 », ou « 2 · 7 » sans les dentures ; null quand le groupe ne dit rien. */
         val rapport: String? = null,
+        /** La transmission, pour ses peignes de barres. */
+        val transmission: DrivetrainModel? = null,
     ) : CentreGuidage
 }
 
@@ -112,6 +114,9 @@ object GuidageRenderer {
     const val SILHOUETTE = KarooColors.LEMON_YELLOW
     const val CARTE_FOND = 0xFFECE9E1.toInt()
     const val TRACE_ROULE = 0xFF111111.toInt()
+
+    /** Le gris des rapports libres, celui du tableau de bord. */
+    private const val BARRE_LIBRE = 0xFF6B747C.toInt()
 
     /** Écart en deçà duquel deux passages du tracé se départagent par la distance du Karoo (m). */
     private const val ANCRAGE_CARTE = 25.0
@@ -482,21 +487,66 @@ object GuidageRenderer {
         if (m.roads.isEmpty()) m.roadsMessage?.let { message(canvas, RectF(cadre.left, cadre.bottom - 50f * k, cadre.right, cadre.bottom), it, k) }
         c.suite?.let { etiquette(canvas, cadre.left + 10f * k, cadre.top + 8f * k, it, k) }
         boussole(canvas, cadre.right - 32f * k, cadre.top + 32f * k, cap, k)
-        c.rapport?.let { rapport(canvas, cadre, it, k) }
+        c.rapport?.let { rapport(canvas, cadre, it, c.transmission, k) }
     }
 
     /**
-     * Le rapport engagé, en surbrillance en bas à droite de la carte : un cartouche jaune et
-     * le chiffre en noir, ce qui se repère d'un coup d'œil sur le crème sans rien cacher de
-     * la route, que le coureur occupe au milieu.
+     * Le rapport engagé, en bas à droite de la carte : sur une plaque sombre, les deux peignes
+     * du tableau de bord — une barre par plateau, une par pignon, hautes comme leur denture —,
+     * le rapport engagé allumé en jaune, et les dentures dessous. Sans le nombre de rapports,
+     * seul le chiffre reste, dans un cartouche jaune.
      */
-    private fun rapport(canvas: Canvas, cadre: RectF, texte: String, k: Float) {
-        val corps = texte(30f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
-        val largeur = corps.measureText(texte) + 24f * k
-        val r = RectF(cadre.right - 12f * k - largeur, cadre.bottom - 56f * k, cadre.right - 12f * k, cadre.bottom - 12f * k)
-        canvas.drawRoundRect(r, 12f * k, 12f * k, plein(POSITION))
-        canvas.drawRoundRect(r, 12f * k, 12f * k, trait(FOND, 2.5f * k))
-        canvas.drawText(texte, r.centerX(), r.centerY() - (corps.descent() + corps.ascent()) / 2f, corps)
+    private fun rapport(canvas: Canvas, cadre: RectF, texte: String, t: DrivetrainModel?, k: Float) {
+        val avant = peigne(t?.front, t?.frontCount)
+        val arriere = peigne(t?.rear, t?.rearCount)
+        if (arriere == null) {
+            val corps = texte(30f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+            val largeur = corps.measureText(texte) + 24f * k
+            val r = RectF(cadre.right - 12f * k - largeur, cadre.bottom - 56f * k, cadre.right - 12f * k, cadre.bottom - 12f * k)
+            canvas.drawRoundRect(r, 12f * k, 12f * k, plein(POSITION))
+            canvas.drawRoundRect(r, 12f * k, 12f * k, trait(FOND, 2.5f * k))
+            canvas.drawText(texte, r.centerX(), r.centerY() - (corps.descent() + corps.ascent()) / 2f, corps)
+            return
+        }
+        // Le pas d'une barre est le même pour les deux peignes : la cassette en compte onze ou
+        // douze, et c'est elle qui fixe la largeur de la plaque.
+        // Assez serré pour que la plaque ne touche pas la pastille du coureur, au milieu.
+        val pas = 10f * k
+        val ecart = if (avant != null) 12f * k else 0f
+        val largeurPeignes = ((avant?.second ?: 0) + arriere.second) * pas + ecart
+        val corps = texte(26f * k, POSITION, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+        val largeur = maxOf(largeurPeignes, corps.measureText(texte)) + 20f * k
+        val plaque = RectF(cadre.right - 12f * k - largeur, cadre.bottom - 104f * k, cadre.right - 12f * k, cadre.bottom - 12f * k)
+        canvas.drawRoundRect(plaque, 12f * k, 12f * k, plein(0xE6111315.toInt()))
+        val barres = RectF(plaque.centerX() - largeurPeignes / 2, plaque.top + 12f * k, plaque.centerX() + largeurPeignes / 2, plaque.top + 56f * k)
+        var gauche = barres.left
+        // Le plateau n° 1 est le petit : ce peigne monte. Le pignon n° 1 est le grand : celui-là
+        // descend, comme la cassette qu'on a sous les yeux.
+        avant?.let {
+            barresDe(canvas, RectF(gauche, barres.top, gauche + it.second * pas, barres.bottom), it, montant = true, k)
+            gauche += it.second * pas + ecart
+        }
+        barresDe(canvas, RectF(gauche, barres.top, gauche + arriere.second * pas, barres.bottom), arriere, montant = false, k)
+        canvas.drawText(texte, plaque.centerX(), plaque.bottom - 12f * k, corps)
+    }
+
+    /** Le rapport et le nombre de rapports, quand les deux sont connus ; un seul n'est pas un peigne. */
+    private fun peigne(rang: Int?, nombre: Int?): Pair<Int, Int>? {
+        if (nombre == null || nombre <= 1) return null
+        return (rang?.coerceIn(1, nombre) ?: return null) to nombre
+    }
+
+    private fun barresDe(canvas: Canvas, zone: RectF, peigne: Pair<Int, Int>, montant: Boolean, k: Float) {
+        val (engage, nombre) = peigne
+        val pas = zone.width() / nombre
+        val largeur = pas * 0.55f
+        for (i in 1..nombre) {
+            val part = if (nombre == 1) 1f else (i - 1).toFloat() / (nombre - 1)
+            val hauteur = zone.height() * (0.35f + 0.65f * (if (montant) part else 1f - part))
+            val gauche = zone.left + (i - 1) * pas + (pas - largeur) / 2f
+            val barre = RectF(gauche, zone.bottom - hauteur, gauche + largeur, zone.bottom)
+            canvas.drawRoundRect(barre, largeur / 2f, largeur / 2f, plein(if (i == engage) POSITION else BARRE_LIBRE))
+        }
     }
 
     /**
