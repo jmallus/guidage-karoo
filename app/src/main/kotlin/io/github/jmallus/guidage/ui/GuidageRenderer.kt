@@ -490,7 +490,7 @@ object GuidageRenderer {
 
         if (m.roads.isEmpty()) m.roadsMessage?.let { message(canvas, RectF(cadre.left, cadre.bottom - 50f * k, cadre.right, cadre.bottom), it, k) }
         c.suite?.let { etiquette(canvas, cadre.left + 10f * k, cadre.top + 8f * k, it, k) }
-        boussole(canvas, cadre.right - 32f * k, cadre.top + 32f * k, cap, k)
+        boussole(canvas, cadre.right - 46f * k, cadre.top + 46f * k, cap, k)
         // Noir et chiffre blanc : sur le crème de la carte, c'est ce qui tranche le plus.
         c.rapport?.let { cartoucheRapport(canvas, cadre.right - 12f * k, cadre.bottom - 43f * k, it, k, sombre = true) }
     }
@@ -520,9 +520,9 @@ object GuidageRenderer {
      * nord et blanche vers le sud.
      */
     private fun boussole(canvas: Canvas, cx: Float, cy: Float, cap: Double, k: Float) {
-        val rayon = 22f * k
+        val rayon = 34f * k
         canvas.drawCircle(cx, cy, rayon, plein(FOND))
-        canvas.drawCircle(cx, cy, rayon, trait(BLANC, 2.5f * k))
+        canvas.drawCircle(cx, cy, rayon, trait(BLANC, 3f * k))
         canvas.save()
         // Cap en haut : le nord est à « −cap » de la verticale de l'écran.
         canvas.rotate(-cap.toFloat(), cx, cy)
