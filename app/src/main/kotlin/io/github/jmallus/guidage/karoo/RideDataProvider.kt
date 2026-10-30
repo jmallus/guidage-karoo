@@ -58,6 +58,11 @@ data class RideData(
      * la puissance, et elle n'existe donc pas sans capteur.
      */
     val energyOutput: Double? = null,
+    /**
+     * Vitesse verticale moyenne sur 30 s, telle que le Karoo la calcule (m/s, comme toutes
+     * ses vitesses) : la VAM du tableau de guidage, une fois passée en mètres par heure.
+     */
+    val verticalSpeed: Double? = null,
     /** Distance parcourue depuis le départ (m). */
     val distance: Double? = null,
     val distanceRemaining: Double? = null,
@@ -176,6 +181,7 @@ class RideDataProvider(
             climb = climb,
             onRoute = values[9]?.let { it > 0.5 },
             energyOutput = values[10],
+            verticalSpeed = values[11],
             powerZones = profile.powerZones,
             heartRateZones = profile.heartRateZones,
             pace = paceLearner.pace,
@@ -227,6 +233,7 @@ class RideDataProvider(
             value(DataType.Type.TIME_OF_ARRIVAL),
             field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.ON_ROUTE),
             value(DataType.Type.ENERGY_OUTPUT),
+            value(DataType.Type.AVERAGE_VERTICAL_SPEED_30S),
         ),
     ) { it }
 

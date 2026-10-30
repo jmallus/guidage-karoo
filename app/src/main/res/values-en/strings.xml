@@ -214,6 +214,9 @@
     <string name="route_label_speed">SPEED</string>
     <string name="route_label_power">POWER</string>
     <string name="route_label_grade">GRADE</string>
+    <string name="route_label_vam">VAM %1$s</string>
+    <string name="route_label_to_top">TO TOP</string>
+    <string name="route_label_elevation_to_top">GAIN TO TOP</string>
     <string name="route_side_right">right</string>
     <string name="route_side_left">left</string>
     <string name="route_turn">Turn %1$s</string>

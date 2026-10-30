@@ -6,7 +6,10 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import io.github.jmallus.guidage.core.Geo
+import io.github.jmallus.guidage.core.GeoPoint
 import io.github.jmallus.guidage.core.ProfileWindow
+import io.github.jmallus.guidage.core.map.RoadKind
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
@@ -60,8 +63,15 @@ sealed interface CentreGuidage {
 /** La prochaine manœuvre au loin : de quel côté, et dans combien. */
 data class Suite(val virage: Double, val texte: String)
 
-/** Le bandeau du bas : la silhouette de ce qui vient, et ce qui reste. */
-data class BandeauGuidage(val fenetre: ProfileWindow, val texte: String?)
+/**
+ * Le bandeau du bas : la silhouette de ce qui vient, et ce qui reste — ou, en côte, les
+ * chiffres de la côte à la place de la silhouette.
+ */
+data class BandeauGuidage(
+    val fenetre: ProfileWindow,
+    val texte: String?,
+    val cote: List<DonneeGuidage>? = null,
+)
 
 data class GuidageModel(
     val donnees: List<DonneeGuidage>,
@@ -88,7 +98,13 @@ object GuidageRenderer {
     const val ROUTE = 0xFF2F80FF.toInt()
     const val VOIE = 0xFF4B5563.toInt()
     const val PISTE = 0xFF2A2E33.toInt()
-    const val SILHOUETTE = 0xFF3F8F5F.toInt()
+    /** Le jaune de l'itinéraire dans la langue du Karoo : le profil est celui de l'itinéraire. */
+    const val SILHOUETTE = KarooColors.LEMON_YELLOW
+    const val CARTE_FOND = 0xFFECE9E1.toInt()
+    const val CARTE_GRANDE_VOIE = 0xFFFFFFFF.toInt()
+    const val CARTE_PETITE_VOIE = 0xFFFFFFFF.toInt()
+    const val CARTE_CHEMIN = 0xFFD1C9B5.toInt()
+    const val CARTE_EAU = 0xFFA9C8E8.toInt()
     const val BLANC = 0xFFFFFFFF.toInt()
     const val CARTE_ROUGE = 0xFF7F1D1D.toInt()
     const val CARTE_AMBRE = 0xFF713F12.toInt()
@@ -222,9 +238,89 @@ object GuidageRenderer {
         if (suite != null) etiquette(canvas, zone.left + 20f * k, zone.bottom - 40f * k, suite, k)
     }
 
+    /**
+     * La carte, dessinée comme sur les maquettes plutôt que comme la minicarte du tableau de
+     * bord : un fond crème, les routes en blanc d'autant plus larges qu'elles comptent, les
+     * chemins en beige, l'itinéraire en bleu et le coureur en pastille sombre. Ni surfaces, ni
+     * rose des vents, ni échelle — il ne s'agit pas de lire la région mais de voir où va la
+     * route, et le milieu de l'écran ne la montre que lorsque rien d'autre ne presse.
+     */
     private fun carte(canvas: Canvas, zone: RectF, c: CentreGuidage.Carte, palette: Palette, k: Float) {
-        MapRenderer.draw(canvas, zone, c.carte, palette)
-        c.suite?.let { etiquette(canvas, zone.left + 14f * k, zone.top + 14f * k, it, k) }
+        val m = c.carte
+        val cadre = RectF(zone.left + 8f * k, zone.top, zone.right - 8f * k, zone.bottom - 4f * k)
+        canvas.drawRoundRect(cadre, 8f * k, 8f * k, plein(CARTE_FOND))
+        val position = m.position
+        if (position == null) {
+            m.emptyMessage?.let { message(canvas, cadre, it, k) }
+            return
+        }
+        canvas.save()
+        canvas.clipRect(cadre)
+        // Le coureur fixe aux quatre cinquièmes de la hauteur, la portée devant lui.
+        val cx = cadre.centerX()
+        val cy = cadre.top + cadre.height() * 0.8f
+        val echelle = (cy - cadre.top) / m.rangeMeters.toFloat()
+        val cap = m.heading ?: 0.0
+        val limite = m.rangeMeters * 1.6
+        fun trace(points: List<GeoPoint>): Path? {
+            var chemin: Path? = null
+            for (p in points) {
+                val plan = Geo.toTrackUpPlane(position, cap, p)
+                val x = cx + plan.x.toFloat() * echelle
+                val y = cy - plan.y.toFloat() * echelle
+                if (chemin == null) chemin = Path().apply { moveTo(x, y) } else chemin.lineTo(x, y)
+            }
+            return chemin
+        }
+        fun proche(points: List<GeoPoint>) = points.any { Geo.distance(position, it) < limite }
+
+        // Les petites voies d'abord, les grandes par-dessus, comme sur une carte routière.
+        val voies = m.roads.filter { !it.kind.isArea }.sortedByDescending { it.kind.code }
+        for (voie in voies) {
+            val points = voie.latitudes.indices.map { GeoPoint(voie.latitudes[it] / 1e6, voie.longitudes[it] / 1e6) }
+            if (!proche(points)) continue
+            val (couleur, epaisseur) = when {
+                voie.kind == RoadKind.STREAM -> CARTE_EAU to 5f
+                voie.kind.isTrail -> CARTE_CHEMIN to 8f
+                voie.kind.code <= RoadKind.TERTIARY.code -> CARTE_GRANDE_VOIE to 18f
+                else -> CARTE_PETITE_VOIE to 11f
+            }
+            trace(points)?.let { canvas.drawPath(it, trait(couleur, epaisseur * k).apply { strokeJoin = Paint.Join.ROUND }) }
+        }
+
+        trace(m.path)?.let { canvas.drawPath(it, trait(ROUTE, 16f * k).apply { strokeJoin = Paint.Join.ROUND }) }
+        if (m.rejoinPath.size >= 2) {
+            trace(m.rejoinPath)?.let { canvas.drawPath(it, trait(FieldPalette.REJOIN, 12f * k).apply { strokeJoin = Paint.Join.ROUND }) }
+        }
+        for (poi in m.pois) {
+            val plan = Geo.toTrackUpPlane(position, cap, poi.position)
+            val x = cx + plan.x.toFloat() * echelle
+            val y = cy - plan.y.toFloat() * echelle
+            canvas.drawCircle(x, y, 10f * k, plein(FieldPalette.POI))
+            canvas.drawCircle(x, y, 10f * k, trait(BLANC, 3f * k))
+        }
+
+        // Le coureur : une pastille sombre et une pointe blanche vers le haut — le cap.
+        canvas.drawCircle(cx, cy, 18f * k, plein(FOND))
+        canvas.drawPath(
+            Path().apply {
+                moveTo(cx, cy - 14f * k)
+                lineTo(cx - 10f * k, cy + 6f * k)
+                lineTo(cx + 10f * k, cy + 6f * k)
+                close()
+            },
+            plein(BLANC),
+        )
+        canvas.restore()
+
+        if (m.roads.isEmpty()) m.roadsMessage?.let { message(canvas, RectF(cadre.left, cadre.bottom - 50f * k, cadre.right, cadre.bottom), it, k) }
+        c.suite?.let { etiquette(canvas, cadre.left + 10f * k, cadre.top + 8f * k, it, k) }
+    }
+
+    private fun message(canvas: Canvas, zone: RectF, texte: String, k: Float) {
+        val corps = texte(18f * k, 0xFF4B5563.toInt(), Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+        ajuster(corps, texte, zone.width() - 24f * k)
+        canvas.drawText(texte, zone.centerX(), zone.centerY() + corps.textSize * 0.35f, corps)
     }
 
     /** « ↱ dans 2,3 km », dans un cartouche sombre qui se lit sur la carte comme sur le noir. */
@@ -239,6 +335,10 @@ object GuidageRenderer {
     }
 
     private fun bandeau(canvas: Canvas, zone: RectF, b: BandeauGuidage, k: Float) {
+        b.cote?.let {
+            chiffresDeCote(canvas, zone, it, k)
+            return
+        }
         val points = b.fenetre.points
         val bas = zone.bottom - 6f * k
         val haut = zone.top + 46f * k
@@ -258,11 +358,34 @@ object GuidageRenderer {
             canvas.drawPath(aplat, plein(SILHOUETTE))
             canvas.drawPath(ligne, trait(BLANC, 3f * k).apply { strokeJoin = Paint.Join.ROUND })
             // Le coureur, au bord gauche : la fenêtre commence sous ses roues.
-            canvas.drawCircle(x(points.first().distance) + 8f * k, y(points.first().elevation), 7f * k, plein(BLANC))
+            val px = x(points.first().distance) + 8f * k
+            val py = y(points.first().elevation)
+            canvas.drawCircle(px, py, 8f * k, plein(FOND))
+            canvas.drawCircle(px, py, 8f * k, trait(BLANC, 3f * k))
         }
         b.texte?.let {
             val corps = texte(22f * k, BLANC, Typeface.DEFAULT_BOLD).apply { setShadowLayer(4f * k, 0f, 0f, FOND) }
             canvas.drawText(it, zone.left + 20f * k, zone.top + 32f * k, corps)
+        }
+    }
+
+    /** Les chiffres de la côte, deux par rang, sous un filet qui les sépare du profil. */
+    private fun chiffresDeCote(canvas: Canvas, zone: RectF, donnees: List<DonneeGuidage>, k: Float) {
+        canvas.drawLine(zone.left + 20f * k, zone.top + 4f * k, zone.right - 20f * k, zone.top + 4f * k, trait(PISTE, 2f * k))
+        val colonnes = 2
+        val rangs = (donnees.size + colonnes - 1) / colonnes
+        val largeur = zone.width() / colonnes
+        val hauteur = (zone.height() - 8f * k) / rangs
+        val libelle = texte(15f * k, LIBELLE, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+        donnees.forEachIndexed { i, d ->
+            val x = zone.left + largeur * (i % colonnes + 0.5f)
+            val haut = zone.top + 8f * k + hauteur * (i / colonnes)
+            canvas.drawText(d.libelle, x, haut + 22f * k, libelle)
+            val valeur = texte(42f * k, d.couleur ?: BLANC, Typeface.DEFAULT_BOLD).apply {
+                textAlign = Paint.Align.CENTER
+                ajuster(this, d.valeur, largeur - 16f * k)
+            }
+            canvas.drawText(d.valeur, x, haut + 22f * k + valeur.textSize * 1.05f, valeur)
         }
     }
 

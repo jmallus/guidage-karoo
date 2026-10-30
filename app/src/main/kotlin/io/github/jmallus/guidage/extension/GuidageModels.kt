@@ -6,6 +6,7 @@ import io.github.jmallus.guidage.core.BendStatus
 import io.github.jmallus.guidage.core.Bends
 import io.github.jmallus.guidage.core.Carrefour
 import io.github.jmallus.guidage.core.Carrefours
+import io.github.jmallus.guidage.core.ClimbStatus
 import io.github.jmallus.guidage.core.Format
 import io.github.jmallus.guidage.core.Geo
 import io.github.jmallus.guidage.core.GeoPoint
@@ -106,10 +107,17 @@ object GuidageModels {
             )
         }
 
+        val bandeau = bandeau(state, rideData, settings, units)
         return GuidageModel(
             donnees = donnees(context, units, rideData, if (descente) grade else null),
             centre = centre,
-            bandeau = bandeau(state, rideData, settings, units),
+            // En côte, le profil est déjà au milieu de l'écran, en grand : le bandeau du bas
+            // le redirait en petit. Il cède la place à ce que le profil ne dit pas en chiffres.
+            bandeau = if (centre is CentreGuidage.Montee && cote != null) {
+                bandeau.copy(cote = chiffresDeCote(context, cote, grade, rideData, units))
+            } else {
+                bandeau
+            },
             palette = FieldPalette.of(context),
         )
     }
@@ -138,6 +146,27 @@ object GuidageModels {
             rideData.heartRate?.toInt()?.toString() ?: PLACEHOLDER,
             rideData.heartRate?.let { Zones.heartRateColor(it, rideData.heartRateZones) },
         ),
+    )
+
+    /** Pente, VAM, distance et dénivelé jusqu'au sommet. */
+    private fun chiffresDeCote(
+        context: Context,
+        cote: ClimbStatus,
+        pente: Double?,
+        rideData: RideData,
+        units: Units,
+    ): List<DonneeGuidage> = listOf(
+        DonneeGuidage(
+            context.getString(R.string.route_label_grade),
+            pente?.let { Format.grade(it) } ?: PLACEHOLDER,
+            pente?.let { Zones.gradeColor(it) },
+        ),
+        DonneeGuidage(
+            context.getString(R.string.route_label_vam, Format.elevation(0.0, units).substringAfter(' ') + "/h"),
+            rideData.verticalSpeed?.let { Format.elevation(it * 3_600.0, units).substringBefore(' ') } ?: PLACEHOLDER,
+        ),
+        DonneeGuidage(context.getString(R.string.route_label_to_top), Format.distance(cote.distanceToTop, units)),
+        DonneeGuidage(context.getString(R.string.route_label_elevation_to_top), "+" + Format.elevation(cote.elevationToTop, units)),
     )
 
     private fun carrefour(context: Context, m: ManoeuvreAVenir, units: Units): CentreGuidage.Carrefour {

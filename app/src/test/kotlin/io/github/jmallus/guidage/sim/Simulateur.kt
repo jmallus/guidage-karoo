@@ -261,6 +261,8 @@ class Simulateur(
             heartRate = instant.cardiaque,
             cadence = instant.cadence,
             grade = instant.pente,
+            // Ce que le Karoo moyenne sur trente secondes ; ici l'instant suffit à juger l'affichage.
+            verticalSpeed = instant.vitesse * instant.pente / 100.0,
             distance = instant.distance + detourMetres,
             distanceRemaining = instant.distanceRestante,
             arrivalTime = arrivee(instant, maintenant),
