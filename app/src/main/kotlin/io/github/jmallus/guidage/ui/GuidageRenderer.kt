@@ -613,17 +613,17 @@ object GuidageRenderer {
         canvas.restore()
         canvas.drawPath(ligne, trait(BLANC, 3f * k).apply { strokeJoin = Paint.Join.ROUND })
 
-        // Le kilométrage au compteur, toujours en haut du bandeau à l'aplomb du coureur, relié
-        // à lui par un fil jaune : il ne monte et ne descend plus avec le relief.
+        // Le kilométrage au compteur, toujours en haut du bandeau à l'aplomb du coureur, en noir
+        // sur blanc, relié à lui par un fil blanc : il ne monte et ne descend plus avec le relief.
         b.compteur?.let { km ->
             // Le corps du tableau de bord : celui de son bandeau, vingt-six points, agrandi d'un
             // cinquième pour l'étiquette du coureur.
-            val corps = texte(31f * k, FOND, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
+            val corps = texte(31f * k, TRACE_ROULE, Typeface.DEFAULT_BOLD).apply { textAlign = Paint.Align.CENTER }
             val l = corps.measureText(km) + 18f * k
             val cx = px.coerceAtLeast(zone.left + 6f * k + l / 2)
             val r = RectF(cx - l / 2, zone.top + 4f * k, cx + l / 2, zone.top + 44f * k)
-            canvas.drawLine(px, r.bottom, px, py, trait(POSITION, 3f * k).apply { strokeCap = Paint.Cap.BUTT })
-            canvas.drawRoundRect(r, 9f * k, 9f * k, plein(POSITION))
+            canvas.drawLine(px, r.bottom, px, py, trait(BLANC, 3f * k).apply { strokeCap = Paint.Cap.BUTT })
+            canvas.drawRoundRect(r, 9f * k, 9f * k, plein(BLANC))
             canvas.drawText(km, cx, r.bottom - 9f * k, corps)
             occupes += RectF(r.left - 4f * k, r.top, r.right + 4f * k, r.bottom)
         }
