@@ -205,8 +205,7 @@ object GuidageModels {
 
     /**
      * Le bandeau du bas : la portée réglée du profil, à échelle régulière, avec le compteur
-     * au-dessus du coureur et les points d'intérêt, et ce qui reste de la journée en
-     * kilomètres et en dénivelé.
+     * au-dessus du coureur et les points d'intérêt.
      */
     private fun bandeau(context: Context, state: GuidanceState, rideData: RideData, settings: GuidageSettings, units: Units): BandeauGuidage {
         val route = state.route
@@ -218,15 +217,11 @@ object GuidageModels {
         // bord gauche, sa marque se confondait avec le cadre.
         val portee = settings.graphZoom.lookaheadMeters
         val fenetre = Guidance.profileWindow(route, along, portee, lookbehind = portee * RECUL_FRACTION)
-        val reste = rideData.distanceRemaining ?: state.distanceRemaining
-        val montee = route.profile?.ascentBetween(along, route.totalDistance)
-        val texte = listOfNotNull(
-            reste?.let { Format.longDistance(it, units) },
-            montee?.takeIf { it >= 1.0 }?.let { "+" + Format.elevation(it, units) },
-        ).joinToString(" · ").ifEmpty { null }
+        // Ni distance ni dénivelé restants : le profil est laissé à la silhouette, au compteur
+        // et aux points d'intérêt, qui y gagnent la place de s'écrire en grand.
         return BandeauGuidage(
             fenetre = fenetre,
-            texte = texte,
+            texte = null,
             position = along,
             compteur = (rideData.distance ?: along).let { Format.longDistanceValue(it, units) },
             pois = route.pois.map { it.distanceAlongRoute to PoiLabels.label(context, it) },

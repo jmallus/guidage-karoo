@@ -631,7 +631,7 @@ object GuidageRenderer {
         // Les points d'intérêt devant soi, posés sur la crête comme sur le profil de côte. Un
         // nom qui toucherait un autre monte d'un cran ; s'il touche encore, il se tait et seule
         // sa pastille reste.
-        val poiCorps = texte(14f * k, BLANC, Typeface.DEFAULT_BOLD).apply {
+        val poiCorps = texte(20f * k, BLANC, Typeface.DEFAULT_BOLD).apply {
             textAlign = Paint.Align.CENTER
             setShadowLayer(4f * k, 0f, 0f, FOND)
         }
@@ -647,14 +647,18 @@ object GuidageRenderer {
             val court = if (nom.length > 12) nom.take(11) + "…" else nom
             val demi = poiCorps.measureText(court) / 2 + 4f * k
             val cx = qx.coerceIn(zone.left + demi, zone.right - demi)
-            for (cran in 0..1) {
-                val base = qy - 37f * k - cran * 17f * k
-                val place = RectF(cx - demi, base - 14f * k, cx + demi, base + 3f * k)
-                if (occupes.none { RectF.intersects(it, place) }) {
-                    occupes += place
-                    canvas.drawText(court, cx, base, poiCorps)
-                    break
-                }
+            // Au-dessus de sa pastille, ou un cran plus haut ; à défaut, glissé à droite de ce
+            // qui le gêne — la pastille du compteur, le plus souvent.
+            val bases = listOf(qy - 38f * k, qy - 61f * k)
+            val essais = bases.map { cx to it } + bases.flatMap { base ->
+                occupes.filter { it.bottom > base - 19f * k && it.top < base + 4f * k && it.right > cx - demi && it.left < cx + demi }
+                    .map { (it.right + demi + 4f * k).coerceAtMost(zone.right - demi) to base }
+            }
+            essais.firstOrNull { (x, base) ->
+                occupes.none { RectF.intersects(it, RectF(x - demi, base - 19f * k, x + demi, base + 4f * k)) }
+            }?.let { (x, base) ->
+                occupes += RectF(x - demi, base - 19f * k, x + demi, base + 4f * k)
+                canvas.drawText(court, x, base, poiCorps)
             }
         }
 
