@@ -1008,7 +1008,7 @@ object MapRenderer {
      * marque, pas le remplacer.
      */
     /** L'écart entre deux chevrons, à l'écran (px). */
-    private const val ESPACEMENT_CHEVRONS = 46f
+    private const val ESPACEMENT_CHEVRONS = 70f
     private const val CHEVRON_GAP_RATIO = 0.71f
     private const val CHEVRON_SIZE_RATIO = 0.95f
     private const val CHEVRON_STROKE_RATIO = 0.42f
