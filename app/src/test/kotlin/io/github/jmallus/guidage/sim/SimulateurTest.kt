@@ -469,6 +469,9 @@ class SimulateurTest {
             releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
         )
         ecrire(carrefour, File(dossier, "guidage-carrefour.png"))
+        ecrire(simulateur.imageGravel(carte), File(dossier, "gravel-carte.png"))
+        ecrire(simulateur.imageGravel(dansLaCote), File(dossier, "gravel-cote.png"))
+        assertTrue("le tableau gravel est vide", couleursDistinctes(simulateur.imageGravel(carte)) > 20)
 
         assertTrue("la scène du carrefour est vide", couleursDistinctes(carrefour) > 6)
     }
@@ -631,6 +634,7 @@ class SimulateurTest {
         // Les pleines pages d'abord, chacune tenant sa colonne ; les champs de bande ensuite.
         champ("Tableau de bord", simulateur.image(secondes)),
         champ("Tableau de guidage", simulateur.imageGuidage(secondes)),
+        champ("Tableau gravel", simulateur.imageGravel(secondes)),
         champ("Profil à venir", simulateur.imageProfil(secondes)),
         champ("Bilan 1/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[0])),
         champ("Bilan 2/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[1])),
@@ -670,22 +674,21 @@ class SimulateurTest {
     }
 
     /**
-     * Le ruban bleu se voit-il ?
+     * Le ruban jaune se voit-il ?
      *
      * On ne cherche pas la teinte exacte : elle est composée sur le fond, et l'antialiasing
-     * la nuance sur ses bords. Un bleu franc et dominant suffit à distinguer le tracé du
-     * décor, qui n'a que des gris très sombres et une pointe de bleu sur l'eau — trop
-     * sombre, elle, pour passer le seuil.
+     * la nuance sur ses bords. Un jaune franc suffit à distinguer le tracé du décor, qui n'a
+     * que des verts-de-gris, du mauve et du blanc.
      */
     private fun rubanVisible(image: Bitmap): Boolean {
-        var bleus = 0
+        var jaunes = 0
         for (pixel in pixelsDe(image)) {
             val rouge = (pixel shr 16) and 0xFF
             val vert = (pixel shr 8) and 0xFF
             val bleu = pixel and 0xFF
-            if (bleu > 170 && bleu - rouge > 60 && bleu - vert > 40) bleus++
+            if (rouge > 200 && vert > 170 && bleu < 110) jaunes++
         }
-        return bleus > 300
+        return jaunes > 300
     }
 
     private fun couleursDistinctes(image: Bitmap): Int = pixelsDe(image).toHashSet().size

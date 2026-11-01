@@ -123,6 +123,10 @@ data class DashboardModel(
      */
     val profileBand: ProfileFieldModel? = null,
     val palette: Palette,
+    /** Version gravel : la colonne de gauche — vitesse, puissance, cœur. */
+    val colonneGravel: List<Tile> = emptyList(),
+    /** Version gravel : le rapport engagé, écrit en haut à droite du profil. */
+    val rapport: String? = null,
 )
 
 /**
@@ -210,6 +214,13 @@ object DashboardRenderer {
     /** Largeur de la colonne de gauche. */
     private const val TILE_COLUMN_FRACTION = 0.5f
 
+    /** La maquette gravel : la colonne de gauche sur un tiers de la largeur. */
+    private const val GRAVEL_COLUMN_FRACTION = 159.3f / 478f
+
+    /** Corps des chiffres et des titres de la colonne gravel, en part de la hauteur d'une case. */
+    private const val GRAVEL_VALUE_FRACTION = 0.56f
+    private const val GRAVEL_LABEL_FRACTION = 0.15f
+
     /**
      * Hauteur d'un rang de chiffres, en part de la hauteur utile.
      *
@@ -268,6 +279,82 @@ object DashboardRenderer {
      * reste s'étirait sur l'écran, puis revenait. Une mise en page qui bouge est pire qu'un
      * bandeau vide : le bandeau garde sa place, et dit ce qu'il n'a pas.
      */
+    /**
+     * Le haut du profil de la version gravel : le même que celui du tableau de bord. La
+     * maquette (TB Gravel.dxf) le posait à 448 points sur 642 ; le coureur l'a voulu de la
+     * hauteur de celui du tableau de bord, et les trois cases de gauche se resserrent d'autant.
+     */
+    fun bandTopGravel(width: Int, height: Int): Float = bandTop(width, height)
+
+    /**
+     * La version gravel du tableau de bord, d'après la maquette du coureur : à gauche, sur un
+     * tiers de la largeur, la vitesse, la puissance et le cœur l'un sous l'autre ; à droite la
+     * carte, sur toute la hauteur ; en bas, sur toute la largeur, le profil, et le rapport
+     * engagé dans son coin haut droit. Les chiffres comptent moins qu'en route, la carte plus :
+     * sur un chemin, c'est elle qu'on regarde.
+     */
+    fun renderGravel(
+        context: Context,
+        width: Int,
+        height: Int,
+        model: DashboardModel,
+        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+    ): Bitmap {
+        val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val padding = padding(width, height)
+        val bandTop = bandTopGravel(width, height)
+        val colonne = width * GRAVEL_COLUMN_FRACTION
+
+        val tiles = model.colonneGravel
+        if (tiles.isNotEmpty()) {
+            val hauteur = (bandTop - padding) / tiles.size
+            drawTiles(
+                context = context,
+                canvas = canvas,
+                bounds = tiles.indices.map { RectF(padding, padding + it * hauteur, colonne, padding + (it + 1) * hauteur) },
+                tiles = tiles,
+                palette = model.palette,
+                valueFraction = GRAVEL_VALUE_FRACTION,
+                labelFraction = GRAVEL_LABEL_FRACTION,
+            )
+        }
+
+        val carte = RectF(colonne, padding, width - padding, bandTop)
+        when (val guidance = model.guidance) {
+            is GuidanceZone.Map -> MapRenderer.draw(canvas, carte, guidance.model, model.palette)
+            is GuidanceZone.Profile -> drawRouteGraph(canvas, carte, guidance.model, model.palette)
+        }
+
+        val bande = RectF(padding, bandTop, width - padding, height - padding)
+        // Le rapport prend le coin haut droit du profil, là où celui-ci écrit le rang d'une
+        // côte : le rang est alors retiré du profil et écrit à gauche du rapport.
+        val rang = model.profileBand?.rangeLabel?.takeIf { model.rapport != null }
+        model.profileBand?.let { band ->
+            ProfileRenderer.draw(
+                canvas = canvas,
+                area = bande,
+                model = if (rang != null) band.copy(rangeLabel = null) else band,
+                palette = model.palette,
+                encreMinimaleMm = encreMinimaleMm,
+            )
+        }
+        model.rapport?.let { rapport ->
+            // Aux dimensions de l'étiquette du compteur, sur le jaune de l'itinéraire.
+            val boite = ProfileRenderer.drawCornerLabel(canvas, bande, rapport, KarooColors.LEMON_YELLOW, encreMinimaleMm)
+            rang?.let {
+                val corps = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    textSize = boite.height()
+                    typeface = Typeface.DEFAULT_BOLD
+                    color = model.palette.textPrimary
+                    textAlign = Paint.Align.RIGHT
+                }
+                canvas.drawText(it, boite.left - boite.height() * 0.4f, boite.bottom - boite.height() * 0.2f, corps)
+            }
+        }
+        return bitmap
+    }
+
     fun bandTop(width: Int, height: Int): Float {
         val padding = padding(width, height)
         return padding + ROWS_ABOVE_BAND * (height - 2 * padding) * ROW_HEIGHT_FRACTION

@@ -167,7 +167,7 @@ object GuidageModels {
      * Le rapport engagé, comme le tableau de bord l'écrit : « 50×17 » quand le groupe donne
      * ses dentures, sinon les rangs — « 2 · 7 », plateau puis pignon —, et rien s'il se tait.
      */
-    private fun rapport(t: DrivetrainModel): String? {
+    internal fun rapport(t: DrivetrainModel): String? {
         val avant = t.frontTeeth?.takeIf { it > 0 }
         val arriere = t.rearTeeth?.takeIf { it > 0 }
         return when {
@@ -241,7 +241,7 @@ object GuidageModels {
      * changé, ou que le fond de carte a été relu : entre deux, il suffit d'y chercher le
      * premier devant soi.
      */
-    private fun manoeuvre(route: Route, roads: List<RoadSegment>, along: Double): ManoeuvreAVenir? {
+    internal fun manoeuvre(route: Route, roads: List<RoadSegment>, along: Double): ManoeuvreAVenir? {
         val gardes = synchronized(this) {
             val g = carrefoursGardes
             if (g != null && g.path === route.path && g.roads === roads && along in g.depuis..g.depuis + RECHERCHE_PAS) {

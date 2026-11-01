@@ -265,6 +265,38 @@ object ProfileRenderer {
         canvas.drawText(label, centre, boite.centerY() - (text.descent() + text.ascent()) / 2f, text)
     }
 
+    /**
+     * Une étiquette aux dimensions exactes de celle du coureur — même corps, même hauteur,
+     * mêmes marges et mêmes coins —, posée dans le coin haut droit du bandeau, sur [fond].
+     * Le tableau gravel y écrit le rapport engagé. Rend la boîte, pour qui doit s'y aligner.
+     */
+    internal fun drawCornerLabel(
+        canvas: Canvas,
+        area: RectF,
+        label: String,
+        fond: Int,
+        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+    ): RectF {
+        val height = area.height()
+        val padding = (min(area.width(), height) * 0.04f).coerceIn(2f, 8f)
+        val labelSize = max((height * 0.16f).coerceAtMost(26f), Lisibilite.corpsPourCapitale(encreMinimaleMm))
+        val hauteur = labelSize * POSITION_LABEL_SCALE
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = POSITION_LABEL_INK
+            textSize = hauteur * POSITION_LABEL_RATIO
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val demi = positionLabelHalfWidth(label, hauteur)
+        val droite = area.right - padding
+        val haut = area.top + padding
+        val boite = RectF(droite - 2 * demi, haut, droite, haut + hauteur)
+        val rayon = hauteur * POSITION_LABEL_CORNER
+        canvas.drawRoundRect(boite, rayon, rayon, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = fond })
+        canvas.drawText(label, boite.centerX(), boite.centerY() - (text.descent() + text.ascent()) / 2f, text)
+        return boite
+    }
+
     /** Demi-largeur de l'étiquette de position, le blanc autour du nombre compris. */
     private fun positionLabelHalfWidth(label: String, labelSize: Float): Float {
         val text = Paint().apply {

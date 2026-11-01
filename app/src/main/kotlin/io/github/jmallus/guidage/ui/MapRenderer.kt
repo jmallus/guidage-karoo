@@ -102,7 +102,7 @@ object MapRenderer {
         canvas.save()
         canvas.clipRect(area)
 
-        canvas.drawRect(area, Paint().apply { color = RoadStyle.BACKGROUND })
+        canvas.drawRect(area, Paint().apply { color = FOND_KAROO })
         val screenPath = model.path.map { projection.toScreen(it) }
         // Marque, jalons et coupure des deux bleus partent tous de l'aplomb du coureur sur le
         // tracé. Il se cherche sur la position, qui ne ment pas, et non sur la distance
@@ -129,11 +129,9 @@ object MapRenderer {
             area = area,
             width = routeWidth(model.rangeMeters),
             here = here,
-            chevronLimit = if (model.offRoute) {
-                Float.POSITIVE_INFINITY
-            } else {
-                (model.chevronRangeMeters * metersToPixels).toFloat()
-            },
+            // Tout le tracé visible est jalonné, comme sur la carte native : à écart fixe, les
+            // chevrons ne s'arrêtent plus à une distance qui changeait avec l'échelle.
+            chevronLimit = Float.POSITIVE_INFINITY,
         )
         // Le drapeau passe sous la flèche : à l'arrivée, c'est encore le coureur qu'on cherche
         // des yeux, et le damier se reconnaît même à moitié couvert.
@@ -142,7 +140,7 @@ object MapRenderer {
         // par-dessus, comme sur la carte native du Karoo.
         drawRider(canvas, riderX, riderY, area.height())
         drawPois(canvas, area, model, projection, palette)
-        drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, palette)
+        drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, riderY)
         drawCompass(canvas, area, heading)
 
         canvas.restore()
@@ -195,7 +193,7 @@ object MapRenderer {
             rayon,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.FILL
-                color = BADGE_COLOR
+                color = COMPASS_BADGE
             },
         )
         val anneau = rayon * RING_FRACTION
@@ -233,7 +231,11 @@ object MapRenderer {
 
         aiguille(-1f, COMPASS_SOUTH)
         aiguille(1f, COMPASS_NORTH)
+        canvas.drawCircle(cx, cy, demiBase * 0.55f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF111111.toInt() })
     }
+
+    /** Le bleu nuit de la boussole native. */
+    private const val COMPASS_BADGE = 0xFF1C2A5C.toInt()
 
     /**
      * Rayon de la rose, en part de la hauteur de la carte, et sa marge au coin.
@@ -263,7 +265,7 @@ object MapRenderer {
      * pixels, dans un coin, il ne peut pas se confondre avec un ruban devenu rouge : c'est la
      * forme qui parle, et une boussole rouge et blanche ne se lit pas autrement.
      */
-    private val COMPASS_NORTH = KarooColors.UI_RED
+    private const val COMPASS_NORTH = 0xFFE5566E.toInt()
     private const val COMPASS_SOUTH = 0xFFFFFFFF.toInt()
     private const val COMPASS_RING = 0xFFFFFFFF.toInt()
 
@@ -323,10 +325,22 @@ object MapRenderer {
                 path,
                 Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     style = Paint.Style.FILL
-                    color = RoadStyle.color(kind, RoadSurface.UNKNOWN)
+                    color = surfaceKaroo(kind)
                 },
             )
         }
+    }
+
+    /**
+     * Les surfaces de la carte native du Karoo, relevées sur une capture de l'appareil : le
+     * vert-de-gris de la campagne, un vert à peine plus soutenu pour les bois, le gris mauve
+     * du bâti, le bleu pâle de l'eau.
+     */
+    private fun surfaceKaroo(kind: RoadKind): Int = when (kind) {
+        RoadKind.FOREST -> 0xFFB2C6A8.toInt()
+        RoadKind.BUILT_UP -> 0xFFC6C7D6.toInt()
+        RoadKind.WATER -> 0xFFA7C6DC.toInt()
+        else -> 0xFFC8D4C4.toInt()
     }
 
     /** Du plus lointain au plus proche du regard : la campagne, le bâti, le bois, l'eau. */
@@ -346,26 +360,11 @@ object MapRenderer {
         projection: Projection,
         metersToPixels: Float,
     ) {
-        roads
+        val familles = roads
             .groupBy { Triple(it.kind, it.surface, RoadStyle.isDashed(it.kind, it.surface)) }
             .entries
             .sortedBy { RoadStyle.widthMeters(it.key.first) }
-            .forEach { (style, segments) ->
-                val (kind, surface, dashed) = style
-                val width = (RoadStyle.widthMeters(kind) * metersToPixels)
-                    .coerceIn(MIN_ROAD_WIDTH, MAX_ROAD_WIDTH)
-                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    this.style = Paint.Style.STROKE
-                    strokeWidth = width
-                    strokeCap = Paint.Cap.ROUND
-                    strokeJoin = Paint.Join.ROUND
-                    color = RoadStyle.color(kind, surface)
-                    if (dashed) {
-                        val dash = (width * 2.5f).coerceAtLeast(4f)
-                        pathEffect = DashPathEffect(floatArrayOf(dash, dash * 0.8f), 0f)
-                    }
-                }
-
+            .map { (style, segments) ->
                 val path = Path()
                 segments.forEach { segment ->
                     for (index in 0 until segment.size) {
@@ -376,9 +375,44 @@ object MapRenderer {
                         if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
                     }
                 }
-                canvas.drawPath(path, paint)
+                val width = (RoadStyle.widthMeters(style.first) * metersToPixels).coerceIn(MIN_ROAD_WIDTH, MAX_ROAD_WIDTH)
+                Triple(style, path, width)
             }
+        fun pinceau(width: Float, teinte: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.style = Paint.Style.STROKE
+            strokeWidth = width
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            color = teinte
+        }
+        // Comme sur la carte native : toutes les routes en blanc, cernées d'un gris fin qui
+        // les détache du fond clair ; les liserés d'abord, pour que les croisements restent
+        // blancs. Les chemins non revêtus en tirets sombres, les ruisseaux en bleu.
+        familles.filter { (style, _, _) -> !style.third && style.first != RoadKind.STREAM }
+            .forEach { (_, path, width) -> canvas.drawPath(path, pinceau(width + LISERE_ROUTE * 2, LISERE_ROUTE_COULEUR)) }
+        familles.forEach { (style, path, width) ->
+            val (kind, _, dashed) = style
+            val paint = when {
+                kind == RoadKind.STREAM -> pinceau(width, 0xFF7FAED0.toInt())
+                dashed -> pinceau(width.coerceAtLeast(2.5f), CHEMIN_KAROO).apply {
+                    strokeCap = Paint.Cap.BUTT
+                    val dash = (width * 2.5f).coerceAtLeast(6f)
+                    pathEffect = DashPathEffect(floatArrayOf(dash, dash * 0.8f), 0f)
+                }
+                else -> pinceau(width, ROUTE_KAROO_BLANC)
+            }
+            canvas.drawPath(path, paint)
+        }
     }
+
+    /** Le liseré gris des routes blanches (px de chaque côté), et sa teinte. */
+    private const val LISERE_ROUTE = 1.2f
+    private const val LISERE_ROUTE_COULEUR = 0xFF9AA49D.toInt()
+    private const val ROUTE_KAROO_BLANC = 0xFFFAFAF7.toInt()
+    private const val CHEMIN_KAROO = 0xFF4E5560.toInt()
+
+    /** Le fond de la carte native : un vert-de-gris pâle. */
+    private const val FOND_KAROO = 0xFFC8D4C4.toInt()
 
     private const val MIN_ROAD_WIDTH = 1f
     private const val MAX_ROAD_WIDTH = 26f
@@ -428,6 +462,14 @@ object MapRenderer {
         }
 
         val route = polyline(screenPath)
+        // Le cerne noir de la carte native, sous tout le ruban : c'est lui qui fait tenir le
+        // jaune sur un fond clair.
+        val cerne = Paint(paint).apply {
+            strokeWidth = width + ROUTE_CERNE * 2
+            color = ROUTE_CERNE_COULEUR
+        }
+        canvas.drawPath(route, cerne)
+        if (rejoinScreen.size >= 2) canvas.drawPath(polyline(rejoinScreen), cerne)
         if (model.offRoute) {
             // L'itinéraire d'un seul bleu : hors de lui, le partage entre le fait et le
             // restant se calculait sur le point le plus proche du coureur, qui peut être à
@@ -451,7 +493,9 @@ object MapRenderer {
             val tiret = width * TRAIL_DASH_RATIO
             val raye = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
-                strokeWidth = width
+                // Un pointillé fin au milieu du ruban jaune : des bandes noires sur toute sa
+                // largeur en faisaient une échelle qui criait plus fort que l'itinéraire.
+                strokeWidth = width * 0.3f
                 // Bouts droits : arrondis, chaque tiret déborde d'une demi-largeur de part et
                 // d'autre et les blancs se rejoignent presque, effaçant le bleu entre eux.
                 strokeCap = Paint.Cap.BUTT
@@ -476,20 +520,11 @@ object MapRenderer {
         // pendant que le seul trait utile — la rejointe, en rouge — n'en portait aucun. Le
         // relevé d'une sortie réelle l'a dit. Quand une rejointe existe, elle les prend.
         val suivi = if (rejointe) rejoinScreen else ahead
-        val gabarit = if (rejointe) polyline(rejoinScreen) else route
-        val portee = if (rejointe) Float.POSITIVE_INFINITY else chevronLimit
+                val portee = if (rejointe) Float.POSITIVE_INFINITY else chevronLimit
 
-        // Le ruban sert de gabarit aux chevrons. Leurs branches sont taillées à sa
-        // demi-largeur, si bien qu'elles s'arrêtent d'elles-mêmes au bord ; le gabarit ne fait
-        // que rogner ce que la courbure fait dépasser. Le ruban tourne, sa largeur
-        // perpendiculaire au chevron n'est pas tout à fait la sienne, et le coin du trait
-        // passait alors outre — mordant sur le fond et sur les voies que le tracé croise.
-        val ribbon = Path()
-        paint.getFillPath(gabarit, ribbon)
-        val clip = canvas.save()
-        canvas.clipPath(ribbon)
-        drawChevrons(canvas, area, suivi, width, portee)
-        canvas.restoreToCount(clip)
+        // Les chevrons de la carte native débordent du ruban : de grosses pointes jaunes
+        // cernées de noir, posées dessus et non taillées dedans.
+        drawChevrons(canvas, area, suivi, width, portee, if (rejointe) OFF_ROUTE_COLOR else ROUTE_COLOR)
     }
 
     /**
@@ -609,9 +644,12 @@ object MapRenderer {
         points: List<PlanePoint>,
         routeWidth: Float,
         limitPixels: Float,
+        teinte: Int,
     ) {
         if (limitPixels <= 0f || points.size < 2) return
-        val spacing = routeWidth * CHEVRON_SPACING_RATIO
+        // Un écart fixe à l'écran, quelle que soit l'échelle : proportionnel au ruban, il
+        // doublait aux portées courtes, où le ruban s'épaissit, et les chevrons s'y raréfiaient.
+        val spacing = ESPACEMENT_CHEVRONS
         val gap = routeWidth * CHEVRON_GAP_RATIO
         val size = routeWidth * CHEVRON_SIZE_RATIO
         val stroke = routeWidth * CHEVRON_STROKE_RATIO
@@ -655,33 +693,28 @@ object MapRenderer {
             )
         }
 
+        // Une seule pointe par pas, comme sur la carte native, plus large que le ruban.
         val chevrons = Path()
         var start = spacing
         while (start <= minOf(limitPixels, along.last())) {
-            // Les deux pointes d'une paire sont posées à l'abscisse curviligne, non le long
-            // du segment courant : autrement la seconde disparaissait dès qu'elle tombait
-            // au-delà d'un sommet, ce qui, sur un tracé de route, arrive une fois sur deux —
-            // et un double chevron qui se réduit à une pointe ne dit plus qu'un accident.
-            listOf(start, start + gap).forEach { distance ->
-                val at = locate(distance) ?: return@forEach
-                if (at[0] >= area.left - margin && at[0] <= area.right + margin &&
-                    at[1] >= area.top - margin && at[1] <= area.bottom + margin
-                ) {
-                    addChevron(chevrons, chevron(at, size))
-                }
+            val at = locate(start)
+            if (at != null &&
+                at[0] >= area.left - margin && at[0] <= area.right + margin &&
+                at[1] >= area.top - margin && at[1] <= area.bottom + margin
+            ) {
+                addChevron(chevrons, chevron(at, size))
             }
             start += spacing
         }
-        canvas.drawPath(
-            chevrons,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = stroke
-                strokeCap = Paint.Cap.BUTT
-                strokeJoin = Paint.Join.MITER
-                color = CHEVRON_COLOR
-            },
-        )
+        // Le cerne d'abord, la pointe jaune par-dessus, plus fine du double de l'épaisseur du
+        // cerne : il en reste un contour noir tout autour.
+        val trait = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.MITER
+        }
+        canvas.drawPath(chevrons, Paint(trait).apply { strokeWidth = stroke + ROUTE_CERNE * 2; color = CHEVRON_COLOR })
+        canvas.drawPath(chevrons, Paint(trait).apply { strokeWidth = stroke; color = teinte })
     }
 
     /**
@@ -702,53 +735,27 @@ object MapRenderer {
      * elle : rien à projeter, rien à orienter.
      */
     private fun drawRider(canvas: Canvas, x: Float, y: Float, height: Float) {
-        val rayon = (height * RIDER_HEIGHT_FRACTION).coerceIn(22f, 40f)
-        val anneau = rayon * RING_FRACTION
-
-        canvas.drawCircle(
-            x,
-            y,
-            rayon,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                color = BADGE_COLOR
-            },
-        )
-        // L'anneau se dessine sur la ligne médiane du trait : il faut donc rentrer son rayon
-        // d'une demi-épaisseur pour qu'il reste dans le disque au lieu de le déborder.
-        canvas.drawCircle(
-            x,
-            y,
-            rayon - anneau / 2f,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = anneau
-                color = ARROW_COLOR
-            },
-        )
-
-        // La flèche garde la silhouette d'avant — pointe large, base échancrée — réduite pour
-        // tenir dans l'anneau. Ses angles sont adoucis en épaississant le contour plutôt qu'en
-        // arrondissant le tracé point par point : une jointure ronde d'épaisseur *r* arrondit
-        // d'un rayon *r* les quatre sommets d'un coup.
-        val corps = rayon * ARROW_FRACTION
-        val adouci = corps * CORNER_RATIO
-        canvas.drawPath(
-            Path().apply {
-                moveTo(x, y - corps)
-                lineTo(x + corps * ARROW_HALF_WIDTH, y + corps * ARROW_BASE)
-                lineTo(x, y + corps * ARROW_NOTCH)
-                lineTo(x - corps * ARROW_HALF_WIDTH, y + corps * ARROW_BASE)
-                close()
-            },
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = ARROW_COLOR
-                style = Paint.Style.FILL_AND_STROKE
-                strokeWidth = adouci * 2
-                strokeJoin = Paint.Join.ROUND
-                strokeCap = Paint.Cap.ROUND
-            },
-        )
+        // Le triangle jaune cerné de noir de la carte native : la position y a la couleur de
+        // l'itinéraire, et c'est sa taille et sa forme qui la distinguent des chevrons.
+        val demi = (height * RIDER_HEIGHT_FRACTION * 0.7f).coerceIn(16f, 30f)
+        val triangle = Path().apply {
+            moveTo(x, y - demi * 1.15f)
+            lineTo(x + demi * 0.78f, y + demi * 0.75f)
+            lineTo(x - demi * 0.78f, y + demi * 0.75f)
+            close()
+        }
+        canvas.drawPath(triangle, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL_AND_STROKE
+            strokeWidth = ROUTE_CERNE * 2 + 2f
+            strokeJoin = Paint.Join.ROUND
+            color = ROUTE_CERNE_COULEUR
+        })
+        canvas.drawPath(triangle, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL_AND_STROKE
+            strokeWidth = 2f
+            strokeJoin = Paint.Join.ROUND
+            color = ROUTE_COLOR
+        })
     }
 
     /** Les trois sommets d'un chevron — bras, pointe, bras — en `[x, y, x, y, x, y]`. */
@@ -950,7 +957,11 @@ object MapRenderer {
      * pour qu'il tienne. Ce bleu franc s'y détache seul, et aucune classe de voie ne le porte :
      * une départementale orange ou un chemin brun ne peuvent pas être pris pour l'itinéraire.
      */
-    private const val ROUTE_COLOR = 0xFF2E8BFF.toInt()
+    private const val ROUTE_COLOR = KarooColors.LEMON_YELLOW
+
+    /** Le cerne noir du ruban et des chevrons, de chaque côté (px). */
+    private const val ROUTE_CERNE = 2.5f
+    private const val ROUTE_CERNE_COULEUR = 0xFF111111.toInt()
 
     /**
      * Blanc des rayures de chemin, et largeur d'une bande en largeurs de ruban.
@@ -960,7 +971,7 @@ object MapRenderer {
      * ruban. Resserrées, les rayures redeviennent une texture posée dessus — le trait reste
      * bleu, et il est hachuré.
      */
-    private const val TRAIL_STRIPE_COLOR = 0xFFFFFFFF.toInt()
+    private const val TRAIL_STRIPE_COLOR = 0xFF111111.toInt()
     private const val TRAIL_DASH_RATIO = 0.6f
 
     /**
@@ -970,7 +981,7 @@ object MapRenderer {
      * pour rester un ruban : c'est là que le dégradé d'autrefois échouait, en s'éteignant vers
      * le transparent jusqu'à laisser une branche fantôme le long de celle qui compte.
      */
-    private const val ROUTE_BEHIND_COLOR = 0xFF9CC7FF.toInt()
+    private const val ROUTE_BEHIND_COLOR = 0xFFE9DB7A.toInt()
 
     /**
      * Le double chevron, en part de l'épaisseur du ruban.
@@ -989,10 +1000,11 @@ object MapRenderer {
      * le bleu ne se voyait plus qu'entre deux paires. Une marque doit se poser sur ce qu'elle
      * marque, pas le remplacer.
      */
-    private const val CHEVRON_SPACING_RATIO = 3.88f
+    /** L'écart entre deux chevrons, à l'écran (px). */
+    private const val ESPACEMENT_CHEVRONS = 70f
     private const val CHEVRON_GAP_RATIO = 0.71f
-    private const val CHEVRON_SIZE_RATIO = 0.556f
-    private const val CHEVRON_STROKE_RATIO = 0.155f
+    private const val CHEVRON_SIZE_RATIO = 0.95f
+    private const val CHEVRON_STROKE_RATIO = 0.42f
 
     /** Recul des branches derrière la pointe, et leur écartement, en part de la taille. */
     private const val CHEVRON_SWEEP = 1.6f
@@ -1049,62 +1061,52 @@ object MapRenderer {
     private val OFF_ROUTE_COLOR = FieldPalette.REJOIN
 
     /** Épaisseur du tracé aux deux bouts de la plage de portées. */
-    private const val ROUTE_WIDTH_NEAR = 17.0
-    private const val ROUTE_WIDTH_FAR = 8.0
+    private const val ROUTE_WIDTH_NEAR = 14.0
+    private const val ROUTE_WIDTH_FAR = 6.5
 
     /** Bornes de la plage de portées, reprises de ZoomLevels. */
     private const val MIN_RANGE = 300.0
     private const val MAX_RANGE = 10_000.0
 
+    /**
+     * L'échelle de la carte native : une règle verticale au bord droit, qui part de la hauteur
+     * du coureur et monte, graduée en distances devant lui — « 200 m », « 500 m ». Elle se lit
+     * dans le sens où l'on regarde la carte : jusqu'où porte ce que je vois.
+     */
     private fun drawScaleBar(
         canvas: Canvas,
         area: RectF,
         rangeMeters: Double,
         metersToPixels: Float,
-        palette: Palette,
+        riderY: Float,
     ) {
-        // Le quart de la portée, et non la moitié. Au cran le plus court — trois cents
-        // mètres — la moitié donnait une règle de cent mètres, qui traversait la moitié de la
-        // carte et ne se rapportait à rien de ce qu'on y regarde. Le quart y donne cinquante
-        // mètres : la largeur d'un carrefour, l'échelle à laquelle on lit vraiment cette
-        // carte-là. Aux crans plus longs le comportement ne change pas d'un cran de l'échelle
-        // 1-2-5 — cent mètres à cinq cents, deux cents au kilomètre.
-        val scaleMeters = Geo.niceScale(rangeMeters / 4)
-        val barWidth = scaleMeters.toFloat() * metersToPixels
-        if (barWidth < 10f || barWidth > area.width()) return
-
-        val labelSize = (area.height() * 0.062f).coerceIn(11f, 20f)
-        val tick = labelSize * 0.34f
-        val y = area.bottom - tick - 2f
-        val left = area.left + 6f
-
-        val label = if (scaleMeters >= 1_000) "${(scaleMeters / 1_000).toInt()} km" else "${scaleMeters.toInt()} m"
+        val graduations = listOf(Geo.niceScale(rangeMeters * 0.3), Geo.niceScale(rangeMeters * 0.8)).distinct()
+            .filter { riderY - it.toFloat() * metersToPixels > area.top + 10f }
+        if (graduations.isEmpty()) return
+        val labelSize = (area.height() * 0.07f).coerceIn(12f, 22f)
+        val x = area.right - 10f
+        val haut = riderY - graduations.last().toFloat() * metersToPixels
         val texte = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize = labelSize
             typeface = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.RIGHT
         }
-
-        // Règle et étiquette sont cernées de la couleur du fond avant d'être encrées : la
-        // carte passe sous elles, et sur un bois sombre comme sur un champ clair une encre
-        // unique disparaît d'un côté ou de l'autre. Le cerne coûte deux traits et rend
-        // l'échelle lisible partout, ce qui est la moindre des choses pour une échelle.
-        listOf(
-            Triple(RoadStyle.BACKGROUND, 5f, 3f),
-            Triple(RoadStyle.INK, 3f, 0f),
-        ).forEach { (encre, epaisseur, halo) ->
-            val bar = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        listOf(Triple(0xFFFFFFFF.toInt(), 5f, 4f), Triple(RoadStyle.INK, 2.5f, 0f)).forEach { (encre, epaisseur, halo) ->
+            val trait = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = encre
                 strokeWidth = epaisseur
                 strokeCap = Paint.Cap.SQUARE
             }
-            canvas.drawLine(left, y, left + barWidth, y, bar)
-            canvas.drawLine(left, y - tick, left, y + tick, bar)
-            canvas.drawLine(left + barWidth, y - tick, left + barWidth, y + tick, bar)
-
-            texte.color = encre
-            texte.style = if (halo > 0f) Paint.Style.STROKE else Paint.Style.FILL
-            texte.strokeWidth = halo
-            canvas.drawText(label, left, y - tick - 3f, texte)
+            canvas.drawLine(x, riderY, x, haut, trait)
+            graduations.forEach { metres ->
+                val y = riderY - metres.toFloat() * metersToPixels
+                canvas.drawLine(x - labelSize * 2.2f, y, x, y, trait)
+                val label = if (metres >= 1_000) "${(metres / 1_000).toInt()} km" else "${metres.toInt()} m"
+                texte.color = encre
+                texte.style = if (halo > 0f) Paint.Style.STROKE else Paint.Style.FILL
+                texte.strokeWidth = halo
+                canvas.drawText(label, x - 4f, y + labelSize + 2f, texte)
+            }
         }
     }
 
