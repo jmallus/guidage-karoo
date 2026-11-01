@@ -87,7 +87,7 @@ class GuidageDataType(
                 if (config.preview) previewRide() else rideDataProvider.data,
                 settingsRepository.settings,
             ) { snapshot, rideData, settings -> Triple(snapshot, rideData, settings) }
-                // Au plus une fois par seconde, avant de bâtir le modèle : voir le tableau de bord.
+                // Au rythme de PERIODE_RENDU_MS, avant de bâtir le modèle : voir le tableau de bord.
                 .auPlusUneFoisPar(PERIODE_RENDU_MS)
                 .map { (snapshot, rideData, settings) ->
                     GuidageModels.build(
