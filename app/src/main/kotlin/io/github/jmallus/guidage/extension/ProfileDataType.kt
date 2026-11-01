@@ -43,9 +43,8 @@ class ProfileDataType(
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
 
             combine(provider.snapshot, settingsRepository.settings) { snapshot, settings -> snapshot to settings }
-                // Les relevés se lisent au plus une fois par seconde, avant de bâtir le
-                // modèle : le bâtir à chaque valeur reçue — une vingtaine par seconde —
-                // coûtait plus que le dessin qu'on plafonnait déjà.
+                // Les relevés se lisent au rythme de PERIODE_RENDU_MS, avant de bâtir le
+                // modèle, et un rendu en cours n'empile pas ceux qui arrivent.
                 .auPlusUneFoisPar(PERIODE_RENDU_MS)
                 .map { (snapshot, settings) -> FieldModels.profile(context, snapshot, settings, config.preview) }
                 .distinctUntilChanged()

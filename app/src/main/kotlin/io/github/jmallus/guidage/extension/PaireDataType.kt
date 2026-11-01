@@ -78,9 +78,8 @@ class PaireDataType(
                 guidanceProvider.snapshot,
                 if (config.preview) apercu() else rideDataProvider.data,
             ) { snapshot, rideData -> snapshot.units to rideData }
-                // Les relevés se lisent au plus une fois par seconde, avant de bâtir le
-                // modèle : le bâtir à chaque valeur reçue — une vingtaine par seconde —
-                // coûtait plus que le dessin qu'on plafonnait déjà.
+                // Les relevés se lisent au rythme de PERIODE_RENDU_MS, avant de bâtir le
+                // modèle, et un rendu en cours n'empile pas ceux qui arrivent.
                 .auPlusUneFoisPar(PERIODE_RENDU_MS)
                 .map { (units, rideData) -> paire.cases(context, units, rideData) }
                 .distinctUntilChanged()

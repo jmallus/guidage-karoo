@@ -25,5 +25,12 @@ fun <T> Flow<T>.auPlusUneFoisPar(periodeMs: Long): Flow<T> = conflate().transfor
     delay((periodeMs - (System.currentTimeMillis() - debut)).coerceAtLeast(0L))
 }
 
-/** Un rendu par seconde : le rythme des champs natifs du Karoo. */
-const val PERIODE_RENDU_MS = 1_000L
+/**
+ * Pas de plafond : un rendu dès qu'une valeur arrive, comme avant la version 1.3.8.
+ *
+ * Le plafond d'un rendu par seconde avait été posé pour la batterie — quinze pour cent à
+ * l'heure au lieu de dix sur une sortie. Le coureur a préféré l'écran plus vif. Les valeurs
+ * restent fusionnées (`conflate`) : un rendu encore en cours n'empile pas ceux qui arrivent,
+ * seule la dernière valeur est dessinée ensuite. Remettre 1 000 rétablit le plafond.
+ */
+const val PERIODE_RENDU_MS = 0L
