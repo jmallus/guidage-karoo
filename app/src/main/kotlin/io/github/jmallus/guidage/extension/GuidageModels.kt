@@ -241,7 +241,7 @@ object GuidageModels {
      * changé, ou que le fond de carte a été relu : entre deux, il suffit d'y chercher le
      * premier devant soi.
      */
-    private fun manoeuvre(route: Route, roads: List<RoadSegment>, along: Double): ManoeuvreAVenir? {
+    internal fun manoeuvre(route: Route, roads: List<RoadSegment>, along: Double): ManoeuvreAVenir? {
         val gardes = synchronized(this) {
             val g = carrefoursGardes
             if (g != null && g.path === route.path && g.roads === roads && along in g.depuis..g.depuis + RECHERCHE_PAS) {

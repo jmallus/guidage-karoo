@@ -404,6 +404,8 @@ class Simulateur(
         releve: RideData,
         largeur: Int = LARGEUR,
         hauteur: Int = HAUTEUR,
+        /** Vrai pour la scène sur le tableau de bord, faux pour le tableau de guidage. */
+        tableau: Boolean = false,
     ): Bitmap {
         val longueur = Geo.length(path)
         val route = io.github.jmallus.guidage.core.Route("scène", longueur, profil, path = path)
@@ -420,6 +422,12 @@ class Simulateur(
         val scene = object : RoadSource {
             override fun roads(position: GeoPoint?, radiusMeters: Double): List<RoadSegment> = voies
             override fun notice(context: Context, position: GeoPoint?): String? = null
+        }
+        if (tableau) {
+            return DashboardRenderer.render(
+                context, largeur, hauteur,
+                DashboardModels.build(context, snapshot, releve, reglages(), preview = false, roadSource = scene, nowMillis = departMillis),
+            )
         }
         val modele = GuidageModels.build(
             context, snapshot, releve, reglages(), preview = false,

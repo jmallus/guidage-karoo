@@ -162,7 +162,21 @@ object DashboardModels {
         } else {
             roadSource.roads(position, portee.rangeMeters * ROADS_RADIUS_FACTOR)
         }
+        // La prochaine manœuvre, pour la pastille du bas de la carte : cherchée sur le tracé
+        // géométrique, avec les voies déjà lues pour la dessiner.
+        val surLeTrace = if (route != null && position != null && route.path.size >= 2) {
+            Geo.anchorOnPath(route.path, position, state.distanceAlongRoute, TRAIL_ANCHOR_TOLERANCE_METERS)?.distanceAlongPath
+        } else {
+            null
+        }
+        val manoeuvre = if (route != null && surLeTrace != null && roads.isNotEmpty()) {
+            GuidageModels.manoeuvre(route, roads, surLeTrace)
+        } else {
+            null
+        }
         return MapModel(
+            virage = manoeuvre?.carrefour?.virage,
+            virageDistance = manoeuvre?.let { Format.distance(it.distance.coerceAtLeast(0.0), snapshot.units) },
             roads = roads,
             roadsMessage = if (roads.isEmpty() && !preview) roadSource.notice(context, position) else null,
             path = route?.path.orEmpty(),

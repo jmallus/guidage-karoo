@@ -69,13 +69,12 @@ class MapRendererTest {
     }
 
     /**
-     * La pastille de position, et elle seule, à la place du coureur.
+     * Le triangle de position, à la place du coureur.
      *
-     * Deux choses à tenir. Qu'elle existe — un anneau et une flèche se comptent en centaines
-     * de pixels, pas en dizaines. Et qu'elle reste **là où elle doit être** : le coureur est à
-     * l'ordonnée 320, et son blanc ne doit se trouver nulle part ailleurs. Cette carte-ci n'a
-     * ni voie ni point d'intérêt, de sorte que rien d'autre n'y est blanc ; sur un vrai fond,
-     * les voies le seraient aussi et le contrôle ne dirait plus rien.
+     * Il est du jaune de l'itinéraire, comme sur la carte native : le contrôle le cherche donc
+     * à sa largeur, bien plus grande que celle du ruban, autour de la ligne du coureur —
+     * l'ordonnée 320. Plus haut, les chevrons débordent aussi du ruban, de leur jaune : ils
+     * sont hors de la bande examinée.
      */
     @Test
     fun `la fleche de position se tient a la place du coureur`() {
@@ -84,32 +83,30 @@ class MapRendererTest {
         var blancs = 0
         var plusHaut = HAUTEUR
         var plusBas = 0
+        val largeurRuban = (0 until image.width).count { image.getPixel(it, 200) == KarooColors.LEMON_YELLOW }
         for ((index, pixel) in pixelsDe(image).withIndex()) {
-            if (pixel != BLANC_FLECHE) continue
+            if (pixel != KarooColors.LEMON_YELLOW) continue
             // Seuls la colonne du coureur et le bas de la carte sont examinés : la rose des
             // vents est blanche elle aussi, et large, mais elle vit dans le coin haut droit.
             val x = index % image.width
             val y = index / image.width
-            if (abs(x - MILIEU) > COLONNE || y < MOITIE_BASSE) continue
+            if (abs(x - MILIEU) > COLONNE || y < 270 || y > 365) continue
+            // Le ruban passe aussi par là : seul compte ce qui le déborde, la largeur du triangle.
+            if (abs(x - MILIEU) <= largeurRuban / 2 + 2) continue
             blancs++
             if (y < plusHaut) plusHaut = y
             if (y > plusBas) plusBas = y
         }
 
-        assertTrue("la flèche ne couvre que $blancs pixels", blancs > 50)
-        assertTrue(
-            "le blanc de la flèche traîne hors du coureur, des ordonnées $plusHaut à $plusBas",
-            plusHaut >= 270 && plusBas <= 365,
-        )
+        assertTrue("le triangle ne couvre que $blancs pixels, des ordonnées $plusHaut à $plusBas", blancs > 50)
     }
 
     /**
      * La rose des vents rend le nord, dans le coin haut droit.
      *
      * La carte tourne avec le coureur : elle est lisible en roulant, mais on y perd
-     * l'orientation absolue. L'aiguille la rend. Le contrôle la cherche à son rouge, que rien
-     * d'autre ne porte sur une carte dont on suit l'itinéraire — le ruban ne vire au rouge que
-     * lorsqu'on l'a quitté.
+     * l'orientation absolue. L'aiguille la rend. Le contrôle la cherche à son rose, que rien
+     * d'autre ne porte sur la carte.
      */
     @Test
     fun `la rose des vents se tient dans le coin haut droit`() {
@@ -118,14 +115,14 @@ class MapRendererTest {
         var rouges = 0
         var ailleurs = 0
         for ((index, pixel) in pixelsDe(image).withIndex()) {
-            if (pixel != KarooColors.UI_RED) continue
+            if (pixel != AIGUILLE_NORD) continue
             val x = index % image.width
             val y = index / image.width
             if (x > image.width / 2 && y < image.height / 3) rouges++ else ailleurs++
         }
 
         assertTrue("l'aiguille du nord ne couvre que $rouges pixels", rouges > 20)
-        assertEquals("du rouge se pose ailleurs que dans la rose", 0, ailleurs)
+        assertEquals("du rose se pose ailleurs que dans la rose", 0, ailleurs)
     }
 
     /**
@@ -249,4 +246,7 @@ class MapRendererTest {
             RoadKind.FOOTWAY,
         )
     }
+
+    /** Le rose de l'aiguille du nord, celui de la boussole native. */
+    private val AIGUILLE_NORD = 0xFFE5566E.toInt()
 }

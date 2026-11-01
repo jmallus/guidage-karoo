@@ -469,6 +469,27 @@ class SimulateurTest {
             releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
         )
         ecrire(carrefour, File(dossier, "guidage-carrefour.png"))
+        // La même scène sur la minicarte du tableau de bord, plus loin du carrefour : sa
+        // pastille du bas annonce le virage.
+        simulateur.portee = MapZoom.entries.first { it.rangeMeters >= 500.0 }
+        val carrefourTableau = simulateur.imageScene(
+            path = listOf(m(0.0, 0.0), m(0.0, 400.0), m(400.0, 400.0)),
+            voies = listOf(
+                voie(RoadKind.SECONDARY, 0.0 to -200.0, 0.0 to 900.0),
+                voie(RoadKind.RESIDENTIAL, -250.0 to 150.0, 0.0 to 150.0),
+                voie(RoadKind.RESIDENTIAL, 0.0 to 340.0, 300.0 to 340.0),
+                voie(RoadKind.TERTIARY, -300.0 to 400.0, 0.0 to 400.0),
+                voie(RoadKind.TERTIARY, 0.0 to 400.0, 400.0 to 400.0),
+                voie(RoadKind.TRACK, -200.0 to 250.0, -20.0 to 260.0),
+            ),
+            along = 200.0,
+            profil = ElevationProfile((0..80).map { ProfilePoint(it * 10.0, 120.0 + 18.0 * kotlin.math.sin(it / 9.0)) }),
+            pente = 1.0,
+            releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
+            tableau = true,
+        )
+        simulateur.portee = MapZoom.DEFAULT
+        ecrire(carrefourTableau, File(dossier, "carte-virage.png"))
 
         assertTrue("la scène du carrefour est vide", couleursDistinctes(carrefour) > 6)
     }
@@ -670,22 +691,21 @@ class SimulateurTest {
     }
 
     /**
-     * Le ruban bleu se voit-il ?
+     * Le ruban jaune se voit-il ?
      *
      * On ne cherche pas la teinte exacte : elle est composée sur le fond, et l'antialiasing
-     * la nuance sur ses bords. Un bleu franc et dominant suffit à distinguer le tracé du
-     * décor, qui n'a que des gris très sombres et une pointe de bleu sur l'eau — trop
-     * sombre, elle, pour passer le seuil.
+     * la nuance sur ses bords. Un jaune franc suffit à distinguer le tracé du décor, qui n'a
+     * que des verts-de-gris, du mauve et du blanc.
      */
     private fun rubanVisible(image: Bitmap): Boolean {
-        var bleus = 0
+        var jaunes = 0
         for (pixel in pixelsDe(image)) {
             val rouge = (pixel shr 16) and 0xFF
             val vert = (pixel shr 8) and 0xFF
             val bleu = pixel and 0xFF
-            if (bleu > 170 && bleu - rouge > 60 && bleu - vert > 40) bleus++
+            if (rouge > 200 && vert > 170 && bleu < 110) jaunes++
         }
-        return bleus > 300
+        return jaunes > 300
     }
 
     private fun couleursDistinctes(image: Bitmap): Int = pixelsDe(image).toHashSet().size
