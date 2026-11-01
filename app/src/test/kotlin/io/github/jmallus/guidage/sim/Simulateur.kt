@@ -369,6 +369,25 @@ class Simulateur(
         hauteur: Int = HAUTEUR,
     ): Bitmap = DashboardRenderer.render(context, largeur, hauteur, modele(secondes))
 
+    /** Le tableau de bord en version gravel, au même instant. */
+    fun imageGravel(
+        secondes: Double,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR,
+    ): Bitmap = DashboardRenderer.renderGravel(
+        context, largeur, hauteur,
+        DashboardModels.build(
+            context = context,
+            snapshot = instantane(secondes),
+            rideData = releve(secondes),
+            settings = reglages(),
+            preview = false,
+            roadSource = source,
+            nowMillis = departMillis + (secondes * 1_000).toLong(),
+            gravel = true,
+        ),
+    )
+
     /** Le tableau de guidage, au même instant que le tableau de bord. */
     fun modeleGuidage(secondes: Double): GuidageModel = GuidageModels.build(
         context = context,
@@ -406,6 +425,8 @@ class Simulateur(
         hauteur: Int = HAUTEUR,
         /** Vrai pour la scène sur le tableau de bord, faux pour le tableau de guidage. */
         tableau: Boolean = false,
+        /** Avec [tableau], la version gravel du tableau de bord. */
+        gravel: Boolean = false,
     ): Bitmap {
         val longueur = Geo.length(path)
         val route = io.github.jmallus.guidage.core.Route("scène", longueur, profil, path = path)
@@ -424,10 +445,14 @@ class Simulateur(
             override fun notice(context: Context, position: GeoPoint?): String? = null
         }
         if (tableau) {
-            return DashboardRenderer.render(
-                context, largeur, hauteur,
-                DashboardModels.build(context, snapshot, releve, reglages(), preview = false, roadSource = scene, nowMillis = departMillis),
+            val modele = DashboardModels.build(
+                context, snapshot, releve, reglages(), preview = false, roadSource = scene, nowMillis = departMillis, gravel = gravel,
             )
+            return if (gravel) {
+                DashboardRenderer.renderGravel(context, largeur, hauteur, modele)
+            } else {
+                DashboardRenderer.render(context, largeur, hauteur, modele)
+            }
         }
         val modele = GuidageModels.build(
             context, snapshot, releve, reglages(), preview = false,

@@ -60,7 +60,13 @@ class DashboardDataType(
     private val settingsRepository: SettingsRepository,
     private val roadMapRepository: RoadMapRepository,
     extension: String,
-) : DataTypeImpl(extension, TYPE_ID) {
+    /**
+     * La version gravel, d'après la maquette du coureur : colonne vitesse · puissance · cœur à
+     * gauche, carte à droite, profil en bas avec le rapport engagé. Même champ, autre mise en
+     * page, et un identifiant à elle pour se poser sur sa propre page.
+     */
+    private val gravel: Boolean = false,
+) : DataTypeImpl(extension, if (gravel) TYPE_ID_GRAVEL else TYPE_ID) {
 
     private val glance = GlanceRemoteViews()
 
@@ -80,7 +86,7 @@ class DashboardDataType(
         val job = CoroutineScope(Dispatchers.IO).launch {
             // Dans la coroutine, et non au-dessus : la première lecture des préférences touche
             // le disque, et startView s'exécute sur le fil qui sert le système.
-            FieldReportStore(context).record(TYPE_ID, config)
+            FieldReportStore(context).record(if (gravel) TYPE_ID_GRAVEL else TYPE_ID, config)
             emitter.onNext(UpdateGraphicConfig(showHeader = false))
             combine(
                 guidanceProvider.snapshot,
@@ -99,17 +105,21 @@ class DashboardDataType(
                         settings = settings,
                         preview = config.preview && !snapshot.state.navigating,
                         roadSource = roadSource,
+                        gravel = gravel,
                     )
                 }
                 .distinctUntilChanged()
                 .collect { model ->
                     val (width, height) = FieldSize.of(config)
-                    val bitmap = DashboardRenderer.render(context, width, height, model)
+                    val bitmap = if (gravel) {
+                        DashboardRenderer.renderGravel(context, width, height, model)
+                    } else {
+                        DashboardRenderer.render(context, width, height, model)
+                    }
                     // Le champ est dessiné d'un seul tenant puis coupé en deux : le dessin ne
                     // sait rien de ce découpage, et rien ne peut donc se décaler entre les
                     // deux moitiés. La frontière est celle que le rendu a lui-même employée.
-                    val coupure = DashboardRenderer
-                        .bandTop(width, height)
+                    val coupure = (if (gravel) DashboardRenderer.bandTopGravel(height) else DashboardRenderer.bandTop(width, height))
                         .toInt()
                         .coerceIn(1, height - 1)
                     val densite = context.resources.displayMetrics.density
@@ -161,7 +171,16 @@ class DashboardDataType(
     @Composable
     private fun Dashboard(haut: Bitmap, bas: Bitmap, hautDp: Dp, basDp: Dp, clickable: Boolean) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
-            Moitie(haut, hautDp, if (clickable) actionRunCallback<ChangeGuidanceZoomAction>() else null)
+            // En gravel, le haut est toujours la carte : l'appui change son échelle.
+            Moitie(
+                haut,
+                hautDp,
+                when {
+                    !clickable -> null
+                    gravel -> actionRunCallback<ChangeMapZoomAction>()
+                    else -> actionRunCallback<ChangeGuidanceZoomAction>()
+                },
+            )
             Moitie(bas, basDp, if (clickable) actionRunCallback<ChangeProfileZoomAction>() else null)
         }
     }
@@ -208,6 +227,7 @@ class DashboardDataType(
 
     companion object {
         const val TYPE_ID = "tableau"
+        const val TYPE_ID_GRAVEL = "gravel"
 
         /** Le même que celui de l'extension : une seule étiquette à filtrer dans logcat. */
         private const val TAG = "GuidageExtension"

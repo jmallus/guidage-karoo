@@ -71,6 +71,8 @@ object DashboardModels {
         preview: Boolean,
         roadSource: RoadSource,
         nowMillis: Long = System.currentTimeMillis(),
+        /** La version gravel : carte toujours, colonne vitesse · puissance · cœur, rapport. */
+        gravel: Boolean = false,
     ): DashboardModel {
         val state = if (preview) {
             GuidanceState(PreviewData.route, PreviewData.DISTANCE_ALONG_ROUTE, null, null)
@@ -80,7 +82,7 @@ object DashboardModels {
 
         val units = snapshot.units
         return DashboardModel(
-            guidance = when (settings.guidanceZone) {
+            guidance = when (if (gravel) GuidanceZoneType.MAP else settings.guidanceZone) {
                 GuidanceZoneType.MAP -> GuidanceZone.Map(
                     mapModel(
                         context, snapshot, state, preview, rideData,
@@ -96,6 +98,12 @@ object DashboardModels {
             remainingTile = remainingTile(context, rideData, units),
             profileBand = profileBand(context, snapshot, settings, preview, rideData, nowMillis),
             palette = FieldPalette.of(context),
+            colonneGravel = if (gravel) {
+                effortTiles(context, units, rideData).let { listOf(it[0], it[2]) } + heartRateTile(context, rideData)
+            } else {
+                emptyList()
+            },
+            rapport = if (gravel) GuidageModels.rapport(drivetrainModel(context, rideData)) else null,
         )
     }
 

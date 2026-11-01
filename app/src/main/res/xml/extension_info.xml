@@ -17,6 +17,14 @@
         graphical="true"
         icon="@drawable/ic_guidage" />
 
+    <!-- Le tableau de bord en version gravel, d'après la maquette du coureur. -->
+    <DataType
+        typeId="gravel"
+        displayName="@string/field_gravel_name"
+        description="@string/field_gravel_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
     <!-- Le second tableau de bord : le guidage d'abord, voir GuidageDataType. -->
     <DataType
         typeId="route"

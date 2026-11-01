@@ -488,8 +488,29 @@ class SimulateurTest {
             releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
             tableau = true,
         )
+        val carrefourGravel = simulateur.imageScene(
+            path = listOf(m(0.0, 0.0), m(0.0, 400.0), m(400.0, 400.0)),
+            voies = listOf(
+                voie(RoadKind.SECONDARY, 0.0 to -200.0, 0.0 to 900.0),
+                voie(RoadKind.RESIDENTIAL, -250.0 to 150.0, 0.0 to 150.0),
+                voie(RoadKind.RESIDENTIAL, 0.0 to 340.0, 300.0 to 340.0),
+                voie(RoadKind.TERTIARY, -300.0 to 400.0, 0.0 to 400.0),
+                voie(RoadKind.TERTIARY, 0.0 to 400.0, 400.0 to 400.0),
+                voie(RoadKind.TRACK, -200.0 to 250.0, -20.0 to 260.0),
+            ),
+            along = 200.0,
+            profil = ElevationProfile((0..80).map { ProfilePoint(it * 10.0, 120.0 + 18.0 * kotlin.math.sin(it / 9.0)) }),
+            pente = 1.0,
+            releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
+            tableau = true,
+            gravel = true,
+        )
         simulateur.portee = MapZoom.DEFAULT
         ecrire(carrefourTableau, File(dossier, "carte-virage.png"))
+        ecrire(carrefourGravel, File(dossier, "gravel-virage.png"))
+        ecrire(simulateur.imageGravel(carte), File(dossier, "gravel-carte.png"))
+        ecrire(simulateur.imageGravel(dansLaCote), File(dossier, "gravel-cote.png"))
+        assertTrue("le tableau gravel est vide", couleursDistinctes(simulateur.imageGravel(carte)) > 20)
 
         assertTrue("la scène du carrefour est vide", couleursDistinctes(carrefour) > 6)
     }
@@ -652,6 +673,7 @@ class SimulateurTest {
         // Les pleines pages d'abord, chacune tenant sa colonne ; les champs de bande ensuite.
         champ("Tableau de bord", simulateur.image(secondes)),
         champ("Tableau de guidage", simulateur.imageGuidage(secondes)),
+        champ("Tableau gravel", simulateur.imageGravel(secondes)),
         champ("Profil à venir", simulateur.imageProfil(secondes)),
         champ("Bilan 1/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[0])),
         champ("Bilan 2/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[1])),

@@ -213,6 +213,8 @@
     <string name="field_level_intensity_label">INTENSITÉ</string>
 
     <!-- Le tableau de guidage : l'écran qui suit la route. -->
+    <string name="field_gravel_name">Tableau gravel</string>
+    <string name="field_gravel_description">Le tableau de bord en version gravel : vitesse, puissance et fréquence cardiaque l\'une sous l\'autre à gauche, la carte à droite sur toute la hauteur, et en bas le profil de ce qui arrive avec le rapport engagé. Un appui en haut change l\'échelle de la carte, en bas la portée du profil.</string>
     <string name="field_route_name">Tableau de guidage</string>
     <string name="field_route_description">Plein écran qui donne la priorité au guidage : trois chiffres en haut, la silhouette de ce qui vient en bas, et au milieu la chose la plus urgente — le prochain carrefour à moins de 150 m avec ses voies et des bips, sinon la côte, sinon la carte. Un appui en haut change l\'échelle de la carte, en bas la portée du profil.</string>
     <string name="route_label_speed">VITESSE</string>

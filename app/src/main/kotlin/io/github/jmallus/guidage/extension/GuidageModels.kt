@@ -167,7 +167,7 @@ object GuidageModels {
      * Le rapport engagé, comme le tableau de bord l'écrit : « 50×17 » quand le groupe donne
      * ses dentures, sinon les rangs — « 2 · 7 », plateau puis pignon —, et rien s'il se tait.
      */
-    private fun rapport(t: DrivetrainModel): String? {
+    internal fun rapport(t: DrivetrainModel): String? {
         val avant = t.frontTeeth?.takeIf { it > 0 }
         val arriere = t.rearTeeth?.takeIf { it > 0 }
         return when {

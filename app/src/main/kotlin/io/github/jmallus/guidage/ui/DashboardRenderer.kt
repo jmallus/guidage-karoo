@@ -123,6 +123,10 @@ data class DashboardModel(
      */
     val profileBand: ProfileFieldModel? = null,
     val palette: Palette,
+    /** Version gravel : la colonne de gauche — vitesse, puissance, cœur. */
+    val colonneGravel: List<Tile> = emptyList(),
+    /** Version gravel : le rapport engagé, écrit en haut à droite du profil. */
+    val rapport: String? = null,
 )
 
 /**
@@ -210,6 +214,14 @@ object DashboardRenderer {
     /** Largeur de la colonne de gauche. */
     private const val TILE_COLUMN_FRACTION = 0.5f
 
+    /** La maquette gravel : la colonne de gauche sur un tiers, le profil à 448 / 642. */
+    private const val GRAVEL_COLUMN_FRACTION = 159.3f / 478f
+    private const val GRAVEL_BAND_TOP = 448f / 642f
+
+    /** Corps des chiffres et des titres de la colonne gravel, en part de la hauteur d'une case. */
+    private const val GRAVEL_VALUE_FRACTION = 0.56f
+    private const val GRAVEL_LABEL_FRACTION = 0.15f
+
     /**
      * Hauteur d'un rang de chiffres, en part de la hauteur utile.
      *
@@ -268,6 +280,106 @@ object DashboardRenderer {
      * reste s'étirait sur l'écran, puis revenait. Une mise en page qui bouge est pire qu'un
      * bandeau vide : le bandeau garde sa place, et dit ce qu'il n'a pas.
      */
+    /**
+     * Le haut du profil de la version gravel : à 448 points sur 642, comme sur la maquette
+     * dessinée par le coureur (TB Gravel.dxf) — trois cases de cent cinquante points dans la
+     * colonne de gauche, et le profil sur le tiers du bas.
+     */
+    fun bandTopGravel(height: Int): Float = height * GRAVEL_BAND_TOP
+
+    /**
+     * La version gravel du tableau de bord, d'après la maquette du coureur : à gauche, sur un
+     * tiers de la largeur, la vitesse, la puissance et le cœur l'un sous l'autre ; à droite la
+     * carte, sur toute la hauteur ; en bas, sur toute la largeur, le profil, et le rapport
+     * engagé dans son coin haut droit. Les chiffres comptent moins qu'en route, la carte plus :
+     * sur un chemin, c'est elle qu'on regarde.
+     */
+    fun renderGravel(
+        context: Context,
+        width: Int,
+        height: Int,
+        model: DashboardModel,
+        encreMinimaleMm: Float = Lisibilite.ENCRE_MINIMALE_MM,
+    ): Bitmap {
+        val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val padding = padding(width, height)
+        val bandTop = bandTopGravel(height)
+        val colonne = width * GRAVEL_COLUMN_FRACTION
+
+        val tiles = model.colonneGravel
+        if (tiles.isNotEmpty()) {
+            val hauteur = (bandTop - padding) / tiles.size
+            drawTiles(
+                context = context,
+                canvas = canvas,
+                bounds = tiles.indices.map { RectF(padding, padding + it * hauteur, colonne, padding + (it + 1) * hauteur) },
+                tiles = tiles,
+                palette = model.palette,
+                valueFraction = GRAVEL_VALUE_FRACTION,
+                labelFraction = GRAVEL_LABEL_FRACTION,
+            )
+        }
+
+        val carte = RectF(colonne, padding, width - padding, bandTop)
+        when (val guidance = model.guidance) {
+            is GuidanceZone.Map -> MapRenderer.draw(canvas, carte, guidance.model, model.palette)
+            is GuidanceZone.Profile -> drawRouteGraph(canvas, carte, guidance.model, model.palette)
+        }
+
+        val bande = RectF(padding, bandTop, width - padding, height - padding)
+        // Le rapport prend le coin haut droit du profil, là où celui-ci écrit le rang d'une
+        // côte : le rang est alors retiré du profil et écrit à gauche du rapport.
+        val rang = model.profileBand?.rangeLabel?.takeIf { model.rapport != null }
+        model.profileBand?.let { band ->
+            ProfileRenderer.draw(
+                canvas = canvas,
+                area = bande,
+                model = if (rang != null) band.copy(rangeLabel = null) else band,
+                palette = model.palette,
+                encreMinimaleMm = encreMinimaleMm,
+            )
+        }
+        model.rapport?.let { rapport ->
+            val gauche = drawRapport(canvas, bande, rapport)
+            rang?.let {
+                val corps = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    textSize = bande.height() * 0.15f
+                    typeface = Typeface.DEFAULT_BOLD
+                    color = model.palette.textPrimary
+                    textAlign = Paint.Align.RIGHT
+                }
+                canvas.drawText(it, gauche - corps.textSize * 0.5f, bande.top + 4f + corps.textSize * 1.2f, corps)
+            }
+        }
+        return bitmap
+    }
+
+    /**
+     * Le rapport engagé, en haut à droite du profil : un cartouche noir cerné de blanc et le
+     * chiffre en blanc, comme sur la carte du tableau de guidage. Rend son bord gauche.
+     */
+    private fun drawRapport(canvas: Canvas, bande: RectF, texte: String): Float {
+        val corps = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = bande.height() * 0.17f
+            typeface = Typeface.DEFAULT_BOLD
+            color = 0xFFFFFFFF.toInt()
+            textAlign = Paint.Align.CENTER
+        }
+        val largeur = corps.measureText(texte) + corps.textSize * 0.8f
+        val hauteur = corps.textSize * 1.45f
+        val r = RectF(bande.right - largeur, bande.top + 4f, bande.right, bande.top + 4f + hauteur)
+        val rayon = hauteur * 0.3f
+        canvas.drawRoundRect(r, rayon, rayon, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF111111.toInt() })
+        canvas.drawRoundRect(r, rayon, rayon, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+            color = 0xFFFFFFFF.toInt()
+        })
+        canvas.drawText(texte, r.centerX(), r.centerY() - (corps.descent() + corps.ascent()) / 2f, corps)
+        return r.left
+    }
+
     fun bandTop(width: Int, height: Int): Float {
         val padding = padding(width, height)
         return padding + ROWS_ABOVE_BAND * (height - 2 * padding) * ROW_HEIGHT_FRACTION
