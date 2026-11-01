@@ -119,7 +119,7 @@ class DashboardDataType(
                     // Le champ est dessiné d'un seul tenant puis coupé en deux : le dessin ne
                     // sait rien de ce découpage, et rien ne peut donc se décaler entre les
                     // deux moitiés. La frontière est celle que le rendu a lui-même employée.
-                    val coupure = (if (gravel) DashboardRenderer.bandTopGravel(height) else DashboardRenderer.bandTop(width, height))
+                    val coupure = (if (gravel) DashboardRenderer.bandTopGravel(width, height) else DashboardRenderer.bandTop(width, height))
                         .toInt()
                         .coerceIn(1, height - 1)
                     val densite = context.resources.displayMetrics.density

@@ -58,12 +58,6 @@ data class MapModel(
     /** Vrai quand le Karoo estime qu'on a quitté l'itinéraire. */
     val offRoute: Boolean = false,
     val emptyMessage: String? = null,
-    /**
-     * La prochaine manœuvre, comme la pastille du bas de la carte native : l'angle que prend
-     * l'itinéraire (degrés, positif à droite) et la distance écrite, ou null sans manœuvre.
-     */
-    val virage: Double? = null,
-    val virageDistance: String? = null,
 )
 
 /**
@@ -148,7 +142,6 @@ object MapRenderer {
         drawPois(canvas, area, model, projection, palette)
         drawScaleBar(canvas, area, model.rangeMeters, metersToPixels, riderY)
         drawCompass(canvas, area, heading)
-        drawProchainVirage(canvas, area, model)
 
         canvas.restore()
     }
@@ -1115,55 +1108,6 @@ object MapRenderer {
                 canvas.drawText(label, x - 4f, y + labelSize + 2f, texte)
             }
         }
-    }
-
-    /**
-     * La pastille du prochain virage, en bas au milieu comme sur la carte native : jaune
-     * cernée de noir, la flèche du virage et sa distance en noir.
-     */
-    private fun drawProchainVirage(canvas: Canvas, area: RectF, model: MapModel) {
-        val virage = model.virage ?: return
-        val distance = model.virageDistance ?: return
-        val hauteur = (area.height() * 0.15f).coerceIn(34f, 60f)
-        val corps = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = hauteur * 0.72f
-            typeface = Typeface.DEFAULT_BOLD
-            color = ROUTE_CERNE_COULEUR
-        }
-        val fleche = hauteur * 0.62f
-        val largeur = hauteur * 0.5f + fleche + hauteur * 0.25f + corps.measureText(distance) + hauteur * 0.5f
-        val r = RectF(area.centerX() - largeur / 2, area.bottom - hauteur - 4f, area.centerX() + largeur / 2, area.bottom - 4f)
-        canvas.drawRoundRect(r, hauteur / 2, hauteur / 2, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ROUTE_COLOR })
-        canvas.drawRoundRect(r, hauteur / 2, hauteur / 2, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 2.5f
-            color = ROUTE_CERNE_COULEUR
-        })
-        // La flèche : une hampe qui monte et part à l'angle du virage, avec sa pointe.
-        val fx = r.left + hauteur * 0.5f + fleche / 2
-        val bas = r.centerY() + fleche / 2
-        val coude = r.centerY() - fleche * 0.05f
-        val rad = Math.toRadians(virage)
-        val ux = sin(rad).toFloat()
-        val uy = (-cos(rad)).toFloat()
-        val bout = fleche * 0.45f
-        val ex = fx + ux * bout
-        val ey = coude + uy * bout
-        val epaisseur = fleche * 0.2f
-        canvas.drawPath(Path().apply { moveTo(fx, bas); lineTo(fx, coude); lineTo(ex, ey) }, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = epaisseur
-            strokeJoin = Paint.Join.MITER
-            color = ROUTE_CERNE_COULEUR
-        })
-        val pointe = epaisseur * 1.6f
-        canvas.drawPath(Path().apply {
-            moveTo(ex + ux * pointe, ey + uy * pointe)
-            lineTo(ex - uy * pointe, ey + ux * pointe)
-            lineTo(ex + uy * pointe, ey - ux * pointe)
-            close()
-        }, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ROUTE_CERNE_COULEUR })
-        canvas.drawText(distance, fx + fleche / 2 + hauteur * 0.25f, r.centerY() - (corps.descent() + corps.ascent()) / 2f, corps)
     }
 
     private fun drawMessage(canvas: Canvas, area: RectF, message: String?, palette: Palette) {

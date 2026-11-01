@@ -214,9 +214,8 @@ object DashboardRenderer {
     /** Largeur de la colonne de gauche. */
     private const val TILE_COLUMN_FRACTION = 0.5f
 
-    /** La maquette gravel : la colonne de gauche sur un tiers, le profil à 448 / 642. */
+    /** La maquette gravel : la colonne de gauche sur un tiers de la largeur. */
     private const val GRAVEL_COLUMN_FRACTION = 159.3f / 478f
-    private const val GRAVEL_BAND_TOP = 448f / 642f
 
     /** Corps des chiffres et des titres de la colonne gravel, en part de la hauteur d'une case. */
     private const val GRAVEL_VALUE_FRACTION = 0.56f
@@ -281,11 +280,11 @@ object DashboardRenderer {
      * bandeau vide : le bandeau garde sa place, et dit ce qu'il n'a pas.
      */
     /**
-     * Le haut du profil de la version gravel : à 448 points sur 642, comme sur la maquette
-     * dessinée par le coureur (TB Gravel.dxf) — trois cases de cent cinquante points dans la
-     * colonne de gauche, et le profil sur le tiers du bas.
+     * Le haut du profil de la version gravel : le même que celui du tableau de bord. La
+     * maquette (TB Gravel.dxf) le posait à 448 points sur 642 ; le coureur l'a voulu de la
+     * hauteur de celui du tableau de bord, et les trois cases de gauche se resserrent d'autant.
      */
-    fun bandTopGravel(height: Int): Float = height * GRAVEL_BAND_TOP
+    fun bandTopGravel(width: Int, height: Int): Float = bandTop(width, height)
 
     /**
      * La version gravel du tableau de bord, d'après la maquette du coureur : à gauche, sur un
@@ -304,7 +303,7 @@ object DashboardRenderer {
         val bitmap = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val padding = padding(width, height)
-        val bandTop = bandTopGravel(height)
+        val bandTop = bandTopGravel(width, height)
         val colonne = width * GRAVEL_COLUMN_FRACTION
 
         val tiles = model.colonneGravel

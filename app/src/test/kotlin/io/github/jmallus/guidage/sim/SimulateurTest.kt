@@ -469,45 +469,6 @@ class SimulateurTest {
             releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
         )
         ecrire(carrefour, File(dossier, "guidage-carrefour.png"))
-        // La même scène sur la minicarte du tableau de bord, plus loin du carrefour : sa
-        // pastille du bas annonce le virage.
-        simulateur.portee = MapZoom.entries.first { it.rangeMeters >= 500.0 }
-        val carrefourTableau = simulateur.imageScene(
-            path = listOf(m(0.0, 0.0), m(0.0, 400.0), m(400.0, 400.0)),
-            voies = listOf(
-                voie(RoadKind.SECONDARY, 0.0 to -200.0, 0.0 to 900.0),
-                voie(RoadKind.RESIDENTIAL, -250.0 to 150.0, 0.0 to 150.0),
-                voie(RoadKind.RESIDENTIAL, 0.0 to 340.0, 300.0 to 340.0),
-                voie(RoadKind.TERTIARY, -300.0 to 400.0, 0.0 to 400.0),
-                voie(RoadKind.TERTIARY, 0.0 to 400.0, 400.0 to 400.0),
-                voie(RoadKind.TRACK, -200.0 to 250.0, -20.0 to 260.0),
-            ),
-            along = 200.0,
-            profil = ElevationProfile((0..80).map { ProfilePoint(it * 10.0, 120.0 + 18.0 * kotlin.math.sin(it / 9.0)) }),
-            pente = 1.0,
-            releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
-            tableau = true,
-        )
-        val carrefourGravel = simulateur.imageScene(
-            path = listOf(m(0.0, 0.0), m(0.0, 400.0), m(400.0, 400.0)),
-            voies = listOf(
-                voie(RoadKind.SECONDARY, 0.0 to -200.0, 0.0 to 900.0),
-                voie(RoadKind.RESIDENTIAL, -250.0 to 150.0, 0.0 to 150.0),
-                voie(RoadKind.RESIDENTIAL, 0.0 to 340.0, 300.0 to 340.0),
-                voie(RoadKind.TERTIARY, -300.0 to 400.0, 0.0 to 400.0),
-                voie(RoadKind.TERTIARY, 0.0 to 400.0, 400.0 to 400.0),
-                voie(RoadKind.TRACK, -200.0 to 250.0, -20.0 to 260.0),
-            ),
-            along = 200.0,
-            profil = ElevationProfile((0..80).map { ProfilePoint(it * 10.0, 120.0 + 18.0 * kotlin.math.sin(it / 9.0)) }),
-            pente = 1.0,
-            releve = simulateur.releveScene(vitesse = 7.0, puissance = 190.0, cardiaque = 138.0, pente = 1.0),
-            tableau = true,
-            gravel = true,
-        )
-        simulateur.portee = MapZoom.DEFAULT
-        ecrire(carrefourTableau, File(dossier, "carte-virage.png"))
-        ecrire(carrefourGravel, File(dossier, "gravel-virage.png"))
         ecrire(simulateur.imageGravel(carte), File(dossier, "gravel-carte.png"))
         ecrire(simulateur.imageGravel(dansLaCote), File(dossier, "gravel-cote.png"))
         assertTrue("le tableau gravel est vide", couleursDistinctes(simulateur.imageGravel(carte)) > 20)
