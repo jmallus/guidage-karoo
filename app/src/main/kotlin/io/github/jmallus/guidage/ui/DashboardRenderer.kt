@@ -340,43 +340,19 @@ object DashboardRenderer {
             )
         }
         model.rapport?.let { rapport ->
-            val gauche = drawRapport(canvas, bande, rapport)
+            // Aux dimensions de l'étiquette du compteur, sur le jaune de l'itinéraire.
+            val boite = ProfileRenderer.drawCornerLabel(canvas, bande, rapport, KarooColors.LEMON_YELLOW, encreMinimaleMm)
             rang?.let {
                 val corps = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    textSize = bande.height() * 0.15f
+                    textSize = boite.height()
                     typeface = Typeface.DEFAULT_BOLD
                     color = model.palette.textPrimary
                     textAlign = Paint.Align.RIGHT
                 }
-                canvas.drawText(it, gauche - corps.textSize * 0.5f, bande.top + 4f + corps.textSize * 1.2f, corps)
+                canvas.drawText(it, boite.left - boite.height() * 0.4f, boite.bottom - boite.height() * 0.2f, corps)
             }
         }
         return bitmap
-    }
-
-    /**
-     * Le rapport engagé, en haut à droite du profil : un cartouche noir cerné de blanc et le
-     * chiffre en blanc, comme sur la carte du tableau de guidage. Rend son bord gauche.
-     */
-    private fun drawRapport(canvas: Canvas, bande: RectF, texte: String): Float {
-        val corps = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = bande.height() * 0.17f
-            typeface = Typeface.DEFAULT_BOLD
-            color = 0xFFFFFFFF.toInt()
-            textAlign = Paint.Align.CENTER
-        }
-        val largeur = corps.measureText(texte) + corps.textSize * 0.8f
-        val hauteur = corps.textSize * 1.45f
-        val r = RectF(bande.right - largeur, bande.top + 4f, bande.right, bande.top + 4f + hauteur)
-        val rayon = hauteur * 0.3f
-        canvas.drawRoundRect(r, rayon, rayon, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF111111.toInt() })
-        canvas.drawRoundRect(r, rayon, rayon, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 2f
-            color = 0xFFFFFFFF.toInt()
-        })
-        canvas.drawText(texte, r.centerX(), r.centerY() - (corps.descent() + corps.ascent()) / 2f, corps)
-        return r.left
     }
 
     fun bandTop(width: Int, height: Int): Float {
