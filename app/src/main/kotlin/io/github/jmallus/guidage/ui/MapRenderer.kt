@@ -135,11 +135,9 @@ object MapRenderer {
             area = area,
             width = routeWidth(model.rangeMeters),
             here = here,
-            chevronLimit = if (model.offRoute) {
-                Float.POSITIVE_INFINITY
-            } else {
-                (model.chevronRangeMeters * metersToPixels).toFloat()
-            },
+            // Tout le tracé visible est jalonné, comme sur la carte native : à écart fixe, les
+            // chevrons ne s'arrêtent plus à une distance qui changeait avec l'échelle.
+            chevronLimit = Float.POSITIVE_INFINITY,
         )
         // Le drapeau passe sous la flèche : à l'arrivée, c'est encore le coureur qu'on cherche
         // des yeux, et le damier se reconnaît même à moitié couvert.
@@ -656,7 +654,9 @@ object MapRenderer {
         teinte: Int,
     ) {
         if (limitPixels <= 0f || points.size < 2) return
-        val spacing = routeWidth * CHEVRON_SPACING_RATIO
+        // Un écart fixe à l'écran, quelle que soit l'échelle : proportionnel au ruban, il
+        // doublait aux portées courtes, où le ruban s'épaissit, et les chevrons s'y raréfiaient.
+        val spacing = ESPACEMENT_CHEVRONS
         val gap = routeWidth * CHEVRON_GAP_RATIO
         val size = routeWidth * CHEVRON_SIZE_RATIO
         val stroke = routeWidth * CHEVRON_STROKE_RATIO
@@ -1007,7 +1007,8 @@ object MapRenderer {
      * le bleu ne se voyait plus qu'entre deux paires. Une marque doit se poser sur ce qu'elle
      * marque, pas le remplacer.
      */
-    private const val CHEVRON_SPACING_RATIO = 7.5f
+    /** L'écart entre deux chevrons, à l'écran (px). */
+    private const val ESPACEMENT_CHEVRONS = 46f
     private const val CHEVRON_GAP_RATIO = 0.71f
     private const val CHEVRON_SIZE_RATIO = 0.95f
     private const val CHEVRON_STROKE_RATIO = 0.42f
@@ -1067,8 +1068,8 @@ object MapRenderer {
     private val OFF_ROUTE_COLOR = FieldPalette.REJOIN
 
     /** Épaisseur du tracé aux deux bouts de la plage de portées. */
-    private const val ROUTE_WIDTH_NEAR = 17.0
-    private const val ROUTE_WIDTH_FAR = 8.0
+    private const val ROUTE_WIDTH_NEAR = 14.0
+    private const val ROUTE_WIDTH_FAR = 6.5
 
     /** Bornes de la plage de portées, reprises de ZoomLevels. */
     private const val MIN_RANGE = 300.0
