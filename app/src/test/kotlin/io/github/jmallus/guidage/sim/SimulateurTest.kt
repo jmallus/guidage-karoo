@@ -674,21 +674,21 @@ class SimulateurTest {
     }
 
     /**
-     * Le ruban jaune se voit-il ?
+     * Le ruban bleu se voit-il ?
      *
      * On ne cherche pas la teinte exacte : elle est composée sur le fond, et l'antialiasing
-     * la nuance sur ses bords. Un jaune franc suffit à distinguer le tracé du décor, qui n'a
-     * que des verts-de-gris, du mauve et du blanc.
+     * la nuance sur ses bords. Un bleu franc suffit à distinguer le tracé du décor, dont
+     * l'eau et les ruisseaux n'ont qu'un bleu pâle ou grisé, sous le seuil.
      */
     private fun rubanVisible(image: Bitmap): Boolean {
-        var jaunes = 0
+        var bleus = 0
         for (pixel in pixelsDe(image)) {
             val rouge = (pixel shr 16) and 0xFF
             val vert = (pixel shr 8) and 0xFF
             val bleu = pixel and 0xFF
-            if (rouge > 200 && vert > 170 && bleu < 110) jaunes++
+            if (bleu > 170 && bleu - rouge > 60 && bleu - vert > 40) bleus++
         }
-        return jaunes > 300
+        return bleus > 300
     }
 
     private fun couleursDistinctes(image: Bitmap): Int = pixelsDe(image).toHashSet().size

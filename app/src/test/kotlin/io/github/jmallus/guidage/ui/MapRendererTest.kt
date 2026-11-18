@@ -71,9 +71,9 @@ class MapRendererTest {
     /**
      * Le triangle de position, à la place du coureur.
      *
-     * Il est du jaune de l'itinéraire, comme sur la carte native : le contrôle le cherche donc
+     * Il est du bleu de l'itinéraire : le contrôle le cherche donc
      * à sa largeur, bien plus grande que celle du ruban, autour de la ligne du coureur —
-     * l'ordonnée 320. Plus haut, les chevrons débordent aussi du ruban, de leur jaune : ils
+     * l'ordonnée 320. Plus haut, les chevrons débordent aussi du ruban, de leur bleu : ils
      * sont hors de la bande examinée.
      */
     @Test
@@ -83,9 +83,9 @@ class MapRendererTest {
         var blancs = 0
         var plusHaut = HAUTEUR
         var plusBas = 0
-        val largeurRuban = (0 until image.width).count { image.getPixel(it, 200) == KarooColors.LEMON_YELLOW }
+        val largeurRuban = (0 until image.width).count { image.getPixel(it, 200) == BLEU_TRACE }
         for ((index, pixel) in pixelsDe(image).withIndex()) {
-            if (pixel != KarooColors.LEMON_YELLOW) continue
+            if (pixel != BLEU_TRACE) continue
             // Seuls la colonne du coureur et le bas de la carte sont examinés : la rose des
             // vents est blanche elle aussi, et large, mais elle vit dans le coin haut droit.
             val x = index % image.width
@@ -249,4 +249,7 @@ class MapRendererTest {
 
     /** Le rose de l'aiguille du nord, celui de la boussole native. */
     private val AIGUILLE_NORD = 0xFFE5566E.toInt()
+
+    /** Le bleu du tracé, que porte aussi le triangle de position. */
+    private val BLEU_TRACE = 0xFF2E8BFF.toInt()
 }

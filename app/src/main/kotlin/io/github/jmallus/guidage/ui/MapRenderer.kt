@@ -463,7 +463,7 @@ object MapRenderer {
 
         val route = polyline(screenPath)
         // Le cerne noir de la carte native, sous tout le ruban : c'est lui qui fait tenir le
-        // jaune sur un fond clair.
+        // bleu sur un fond clair.
         val cerne = Paint(paint).apply {
             strokeWidth = width + ROUTE_CERNE * 2
             color = ROUTE_CERNE_COULEUR
@@ -493,7 +493,7 @@ object MapRenderer {
             val tiret = width * TRAIL_DASH_RATIO
             val raye = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
-                // Un pointillé fin au milieu du ruban jaune : des bandes noires sur toute sa
+                // Un pointillé fin au milieu du ruban bleu : des bandes blanches sur toute sa
                 // largeur en faisaient une échelle qui criait plus fort que l'itinéraire.
                 strokeWidth = width * 0.3f
                 // Bouts droits : arrondis, chaque tiret déborde d'une demi-largeur de part et
@@ -522,7 +522,7 @@ object MapRenderer {
         val suivi = if (rejointe) rejoinScreen else ahead
                 val portee = if (rejointe) Float.POSITIVE_INFINITY else chevronLimit
 
-        // Les chevrons de la carte native débordent du ruban : de grosses pointes jaunes
+        // Les chevrons de la carte native débordent du ruban : de grosses pointes bleues
         // cernées de noir, posées dessus et non taillées dedans.
         drawChevrons(canvas, area, suivi, width, portee, if (rejointe) OFF_ROUTE_COLOR else ROUTE_COLOR)
     }
@@ -706,7 +706,7 @@ object MapRenderer {
             }
             start += spacing
         }
-        // Le cerne d'abord, la pointe jaune par-dessus, plus fine du double de l'épaisseur du
+        // Le cerne d'abord, la pointe bleue par-dessus, plus fine du double de l'épaisseur du
         // cerne : il en reste un contour noir tout autour.
         val trait = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
@@ -728,14 +728,14 @@ object MapRenderer {
      *
      * Le disque est sombre et la flèche blanche, l'anneau blanc aussi. Un disque de couleur
      * serait plus voyant encore, mais toutes les couleurs sont prises : le rouge dit l'erreur,
-     * le jaune l'itinéraire, le vert la donnée vive, le violet les tours. Le sombre ne dit
+     * le bleu l'itinéraire, le vert la donnée vive, le violet les tours. Le sombre ne dit
      * rien, et c'est ce qu'on lui demande.
      *
      * Elle se pose à la place fixe du coureur et pointe vers le haut, la carte tournant sous
      * elle : rien à projeter, rien à orienter.
      */
     private fun drawRider(canvas: Canvas, x: Float, y: Float, height: Float) {
-        // Le triangle jaune cerné de noir de la carte native : la position y a la couleur de
+        // Un triangle cerné de noir, comme sur la carte native : la position y a la couleur de
         // l'itinéraire, et c'est sa taille et sa forme qui la distinguent des chevrons.
         val demi = (height * RIDER_HEIGHT_FRACTION * 0.7f).coerceIn(16f, 30f)
         val triangle = Path().apply {
@@ -956,8 +956,11 @@ object MapRenderer {
      * Le jaune d'avant s'est révélé faible sur le fond crème, où il fallait le cerner de noir
      * pour qu'il tienne. Ce bleu franc s'y détache seul, et aucune classe de voie ne le porte :
      * une départementale orange ou un chemin brun ne peuvent pas être pris pour l'itinéraire.
+     *
+     * La version 1.5 avait repris le jaune de la carte native avec son fond vert-de-gris ; le
+     * coureur a redemandé le bleu. Le fond et le cerne noir sont restés.
      */
-    private const val ROUTE_COLOR = KarooColors.LEMON_YELLOW
+    private const val ROUTE_COLOR = 0xFF2E8BFF.toInt()
 
     /** Le cerne noir du ruban et des chevrons, de chaque côté (px). */
     private const val ROUTE_CERNE = 2.5f
@@ -971,7 +974,7 @@ object MapRenderer {
      * ruban. Resserrées, les rayures redeviennent une texture posée dessus — le trait reste
      * bleu, et il est hachuré.
      */
-    private const val TRAIL_STRIPE_COLOR = 0xFF111111.toInt()
+    private const val TRAIL_STRIPE_COLOR = 0xFFFFFFFF.toInt()
     private const val TRAIL_DASH_RATIO = 0.6f
 
     /**
@@ -981,7 +984,7 @@ object MapRenderer {
      * pour rester un ruban : c'est là que le dégradé d'autrefois échouait, en s'éteignant vers
      * le transparent jusqu'à laisser une branche fantôme le long de celle qui compte.
      */
-    private const val ROUTE_BEHIND_COLOR = 0xFFE9DB7A.toInt()
+    private const val ROUTE_BEHIND_COLOR = 0xFF9CC7FF.toInt()
 
     /**
      * Le double chevron, en part de l'épaisseur du ruban.
