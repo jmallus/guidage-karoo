@@ -119,6 +119,14 @@ object FieldPalette {
     }
 
     /**
+     * Palette imposée, quel que soit le thème du Karoo.
+     *
+     * Pour les champs qui posent leur propre fond, comme le Tableau Edge : leur texte doit
+     * suivre ce fond-là, et non celui que le Karoo aurait mis dessous.
+     */
+    fun of(sombre: Boolean): Palette = if (sombre) DARK else LIGHT
+
+    /**
      * Couleur associée à une pente en %, celle du Karoo.
      *
      * Une descente n'a pas de couleur dans cette palette : elle prend le gris neutre, une

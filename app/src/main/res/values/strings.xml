@@ -213,6 +213,19 @@
     <string name="field_level_intensity_label">INTENSITÉ</string>
 
     <!-- Le tableau de guidage : l'écran qui suit la route. -->
+    <string name="field_edge_light_name">Tableau Edge clair</string>
+    <string name="field_edge_dark_name">Tableau Edge sombre</string>
+    <string name="field_edge_description">Le tableau de l\'Edge repris pour le Karoo : vitesse et sa moyenne, puissance 3 s et sa moyenne, fréquence cardiaque, cadence, puis distance, D+ restant, pente, restant, température et heure d\'arrivée. Dans une côte, le profil de montée remplace les six cases du bas.</string>
+    <string name="edge_label_speed">VITESSE</string>
+    <string name="edge_label_power">PUISS. 3S</string>
+    <string name="edge_label_heart_rate">FC</string>
+    <string name="edge_label_cadence">CAD</string>
+    <string name="edge_label_distance">DIST</string>
+    <string name="edge_label_elevation_remaining">D+ REST.</string>
+    <string name="edge_label_grade">PENTE</string>
+    <string name="edge_label_remaining">RESTE</string>
+    <string name="edge_label_temperature">TEMP</string>
+    <string name="edge_label_arrival">ARRIVÉE</string>
     <string name="field_gravel_name">Tableau gravel</string>
     <string name="field_gravel_description">Le tableau de bord en version gravel : vitesse, puissance et fréquence cardiaque l\'une sous l\'autre à gauche, la carte à droite sur toute la hauteur, et en bas le profil de ce qui arrive avec le rapport engagé. Un appui en haut change l\'échelle de la carte, en bas la portée du profil.</string>
     <string name="field_route_name">Tableau de guidage</string>

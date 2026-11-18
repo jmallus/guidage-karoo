@@ -25,6 +25,21 @@
         graphical="true"
         icon="@drawable/ic_guidage" />
 
+    <!-- Le champ « Écran Edge » du Garmin du coureur, en clair et en sombre. -->
+    <DataType
+        typeId="edge-clair"
+        displayName="@string/field_edge_light_name"
+        description="@string/field_edge_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
+    <DataType
+        typeId="edge-sombre"
+        displayName="@string/field_edge_dark_name"
+        description="@string/field_edge_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
     <!-- Le second tableau de bord : le guidage d'abord, voir GuidageDataType. -->
     <DataType
         typeId="route"

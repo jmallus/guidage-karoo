@@ -471,6 +471,17 @@ class SimulateurTest {
         ecrire(carrefour, File(dossier, "guidage-carrefour.png"))
         ecrire(simulateur.imageGravel(carte), File(dossier, "gravel-carte.png"))
         ecrire(simulateur.imageGravel(dansLaCote), File(dossier, "gravel-cote.png"))
+        for (sombre in listOf(false, true)) {
+            val style = if (sombre) "sombre" else "clair"
+            val plat = simulateur.imageEdge(carte, sombre)
+            val cote = simulateur.imageEdge(dansLaCote, sombre)
+            ecrire(plat, File(dossier, "edge-$style.png"))
+            ecrire(cote, File(dossier, "edge-$style-cote.png"))
+            assertTrue("le tableau Edge $style est vide", couleursDistinctes(plat) > 20)
+        }
+        // Dans la côte, le bas de l'écran est le profil de montée ; hors côte, les six cases.
+        assertTrue("le Tableau Edge n'a pas de profil dans la côte", simulateur.modeleEdge(dansLaCote).profilCote != null)
+        assertTrue("le Tableau Edge montre un profil hors côte", simulateur.modeleEdge(carte).profilCote == null)
         assertTrue("le tableau gravel est vide", couleursDistinctes(simulateur.imageGravel(carte)) > 20)
 
         assertTrue("la scène du carrefour est vide", couleursDistinctes(carrefour) > 6)
@@ -635,6 +646,8 @@ class SimulateurTest {
         champ("Tableau de bord", simulateur.image(secondes)),
         champ("Tableau de guidage", simulateur.imageGuidage(secondes)),
         champ("Tableau gravel", simulateur.imageGravel(secondes)),
+        champ("Tableau Edge clair", simulateur.imageEdge(secondes, sombre = false)),
+        champ("Tableau Edge sombre", simulateur.imageEdge(secondes, sombre = true)),
         champ("Profil à venir", simulateur.imageProfil(secondes)),
         champ("Bilan 1/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[0])),
         champ("Bilan 2/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[1])),

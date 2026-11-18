@@ -1,5 +1,8 @@
 package io.github.jmallus.guidage.sim
 
+import io.github.jmallus.guidage.ui.EdgeModel
+import io.github.jmallus.guidage.ui.EdgeRenderer
+import io.github.jmallus.guidage.extension.EdgeModels
 import android.content.Context
 import android.graphics.Bitmap
 import io.github.jmallus.guidage.core.ClimbProgress
@@ -272,6 +275,8 @@ class Simulateur(
             distance = instant.distance + detourMetres,
             distanceRemaining = instant.distanceRestante,
             arrivalTime = arrivee(instant, maintenant),
+            // Une matinée tempérée : seul le Tableau Edge l'affiche.
+            temperature = 18.0,
             drivetrain = if (monoPlateau) {
                 instant.transmission.copy(front = 1, frontCount = 1, frontTeeth = MONO_PLATEAU_DENTS)
             } else {
@@ -386,6 +391,23 @@ class Simulateur(
             nowMillis = departMillis + (secondes * 1_000).toLong(),
             gravel = true,
         ),
+    )
+
+    /** Le Tableau Edge, clair ou sombre, au même instant. */
+    fun imageEdge(
+        secondes: Double,
+        sombre: Boolean,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR,
+    ): Bitmap = EdgeRenderer.render(context, largeur, hauteur, modeleEdge(secondes), sombre)
+
+    fun modeleEdge(secondes: Double): EdgeModel = EdgeModels.build(
+        context = context,
+        snapshot = instantane(secondes),
+        rideData = releve(secondes),
+        settings = reglages(),
+        preview = false,
+        nowMillis = departMillis + (secondes * 1_000).toLong(),
     )
 
     /** Le tableau de guidage, au même instant que le tableau de bord. */
