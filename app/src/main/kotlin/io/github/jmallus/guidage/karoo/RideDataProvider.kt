@@ -67,6 +67,8 @@ data class RideData(
     val distance: Double? = null,
     val distanceRemaining: Double? = null,
     val arrivalTime: Double? = null,
+    /** Température relevée par l'appareil (°C), que seul le Tableau Edge affiche. */
+    val temperature: Double? = null,
     /** Rapport engagé, quand le groupe le rapporte. */
     val drivetrain: Drivetrain = Drivetrain.UNKNOWN,
     /** Côte en cours, telle que le Karoo la suit lui-même. */
@@ -177,6 +179,7 @@ class RideDataProvider(
             distance = values[6],
             distanceRemaining = values[7],
             arrivalTime = values[8],
+            temperature = values[12],
             drivetrain = drivetrain,
             climb = climb,
             onRoute = values[9]?.let { it > 0.5 },
@@ -234,6 +237,7 @@ class RideDataProvider(
             field(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Field.ON_ROUTE),
             value(DataType.Type.ENERGY_OUTPUT),
             value(DataType.Type.AVERAGE_VERTICAL_SPEED_30S),
+            value(DataType.Type.TEMPERATURE),
         ),
     ) { it }
 
