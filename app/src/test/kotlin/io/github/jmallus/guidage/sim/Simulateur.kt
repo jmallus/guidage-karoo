@@ -401,6 +401,11 @@ class Simulateur(
         hauteur: Int = HAUTEUR,
     ): Bitmap = EdgeRenderer.render(context, largeur, hauteur, modeleEdge(secondes), sombre)
 
+    /** Le Tableau Edge tel que le sélecteur de champs le fait défiler, un modèle par relevé. */
+    fun modelesEdgeApercu(): List<EdgeModel> = PreviewData.edgeSamples(departMillis).map {
+        EdgeModels.build(context, instantane(0.0), it, reglages(), preview = false, nowMillis = departMillis)
+    }
+
     fun modeleEdge(secondes: Double): EdgeModel = EdgeModels.build(
         context = context,
         snapshot = instantane(secondes),

@@ -479,6 +479,14 @@ class SimulateurTest {
             ecrire(cote, File(dossier, "edge-$style-cote.png"))
             assertTrue("le tableau Edge $style est vide", couleursDistinctes(plat) > 20)
         }
+        // L'aperçu du sélecteur de champs remplit toutes les cases, et ses valeurs défilent.
+        val apercu = simulateur.modelesEdgeApercu()
+        for (modele in apercu) {
+            val valeurs = listOf(modele.vitesse, modele.vitesseMoyenne, modele.puissanceMoyenne) +
+                (listOf(modele.puissance, modele.coeur, modele.cadence) + modele.bas).map { it.valeur }
+            assertTrue("une case de l'aperçu du Tableau Edge reste vide : $valeurs", "--" !in valeurs)
+        }
+        assertTrue("l'aperçu du Tableau Edge ne défile pas", apercu.map { it.vitesse }.toSet().size > 1)
         // Dans la côte, le bas de l'écran est le profil de montée ; hors côte, les six cases.
         assertTrue("le Tableau Edge n'a pas de profil dans la côte", simulateur.modeleEdge(dansLaCote).profilCote != null)
         assertTrue("le Tableau Edge montre un profil hors côte", simulateur.modeleEdge(carte).profilCote == null)

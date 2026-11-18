@@ -330,6 +330,18 @@ object PreviewData {
     }
 
     /**
+     * Valeurs qui défilent dans l'aperçu du Tableau Edge.
+     *
+     * Les relevés du tableau de bord, augmentés de ce que ses cases à lui demandent en plus :
+     * la moyenne de puissance et le D+ restant, qui viennent du bilan, et la température.
+     * Sans eux, la moitié de ses cases resterait sur « -- » dans le sélecteur de champs.
+     */
+    fun edgeSamples(nowMilliseconds: Long): List<RideData> =
+        rideSamples(nowMilliseconds).mapIndexed { index, releve ->
+            releve.copy(level = levelSample, temperature = 16.0 + index)
+        }
+
+    /**
      * Allure supposée déjà apprise, pour que l'aperçu montre la marge d'arrivée.
      *
      * Sans elle, l'aperçu retomberait sur l'heure fournie avec l'échantillon et le libellé

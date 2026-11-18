@@ -113,9 +113,12 @@ object FieldPalette {
      *
      * En cas de doute, le sombre est retenu : c'est le thème utilisé en sortie.
      */
-    fun of(context: Context): Palette {
+    fun of(context: Context): Palette = if (estSombre(context)) DARK else LIGHT
+
+    /** Vrai quand le Karoo est en thème sombre ; en cas de doute aussi, comme [of]. */
+    fun estSombre(context: Context): Boolean {
         val nightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return if (nightMode == Configuration.UI_MODE_NIGHT_NO) LIGHT else DARK
+        return nightMode != Configuration.UI_MODE_NIGHT_NO
     }
 
     /**
