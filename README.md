@@ -101,6 +101,14 @@ Le profil de montée à mi-pente, puis les deux champs à deux données dans une
 <img src="docs/captures/champ-vitesse-transmission.png" width="150" alt="Vitesse + transmission">
 <img src="docs/captures/champ-coeur-puissance.png" width="150" alt="FC + puissance">
 
+Le Tableau Edge, clair puis sombre, et le même dans une côte, où le profil de montée prend
+la place des six cases du bas :
+
+<img src="docs/captures/edge-clair.png" width="150" alt="Tableau Edge clair">
+<img src="docs/captures/edge-sombre.png" width="150" alt="Tableau Edge sombre">
+<img src="docs/captures/edge-clair-cote.png" width="150" alt="Tableau Edge clair dans une côte">
+<img src="docs/captures/edge-sombre-cote.png" width="150" alt="Tableau Edge sombre dans une côte">
+
 Et le tableau de bord à trois de ses portées de carte, puis avec le profil à la place de
 la carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge —, à l'approche
 de l'arrivée, marquée d'un damier, et à mi-pente d'un col, le profil cadré sur la côte :
