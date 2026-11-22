@@ -19,6 +19,7 @@ import io.github.jmallus.guidage.core.Zones
 import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
+import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.settings.GuidageSettings
 import io.github.jmallus.guidage.ui.BandeauGuidage
 import io.github.jmallus.guidage.ui.CentreGuidage
@@ -226,6 +227,27 @@ object GuidageModels {
             compteur = (rideData.distance ?: along).let { Format.longDistanceValue(it, units) },
             pois = route.pois.map { it.distanceAlongRoute to PoiLabels.label(context, it) },
         )
+    }
+
+    /**
+     * La prochaine manœuvre à moins de [PORTEE_SUITE] mètres, pour un champ qui n'a besoin que
+     * d'elle : le Tableau Edge l'écrit en chiffres, sans carte ni schéma.
+     *
+     * La recherche est celle du tableau de guidage — même position rattrapée le long du tracé,
+     * même rayon de fond de carte, mêmes carrefours gardés —, si bien que les deux champs
+     * annoncent le même virage à la même distance.
+     */
+    internal fun prochaineManoeuvre(
+        state: GuidanceState,
+        location: RiderLocation?,
+        speed: Double?,
+        roadSource: RoadSource,
+        nowMillis: Long,
+    ): ManoeuvreAVenir? {
+        val route = state.route ?: return null
+        val position = location?.suivie(route, state.distanceAlongRoute, nowMillis, speed)?.point ?: return null
+        val surTrace = surTrace(route, position, state.distanceAlongRoute) ?: return null
+        return manoeuvre(route, roadSource.roads(position, RAYON_VOIES), surTrace)
     }
 
     private fun surTrace(route: Route?, position: GeoPoint?, along: Double?): Double? {

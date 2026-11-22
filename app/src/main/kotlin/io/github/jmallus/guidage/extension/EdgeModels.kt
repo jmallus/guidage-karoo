@@ -29,6 +29,7 @@ object EdgeModels {
         rideData: RideData,
         settings: GuidageSettings,
         preview: Boolean,
+        roadSource: RoadSource,
         nowMillis: Long = System.currentTimeMillis(),
     ): EdgeModel {
         val units = snapshot.units
@@ -52,6 +53,15 @@ object EdgeModels {
 
         val puissance = rideData.power
         val coeur = rideData.heartRate
+        // L'aperçu montre un virage type : sans lui, la case resterait sur « -- » dans le
+        // sélecteur de champs, et le coureur ne verrait pas ce qu'elle donnera en roulant.
+        val virage = if (preview) {
+            VIRAGE_APERCU
+        } else {
+            GuidageModels.prochaineManoeuvre(state, snapshot.location, rideData.speed, roadSource, nowMillis)
+                ?.let { it.carrefour.virage to it.distance }
+        }
+        val distanceVirage = virage?.let { Format.distance(it.second.coerceAtLeast(0.0), units) }
         return EdgeModel(
             vitesse = rideData.speed?.let { Format.speed(it, units) } ?: VIDE,
             vitesseMoyenne = rideData.averageSpeed?.let { Format.speed(it, units) } ?: VIDE,
@@ -82,10 +92,13 @@ object EdgeModels {
                     unite = Format.longDistanceUnit(units),
                 ),
                 // Le D+ restant et non le D+ fait : le coureur l'a demandé à la place de
-                // celui de l'Edge, qui redit ce que le Karoo enregistre.
+                // celui de l'Edge, qui redit ce que le Karoo enregistre. Celui du Karoo vaut
+                // zéro sur certains itinéraires d'un bout à l'autre de la sortie : le profil
+                // prend alors le relais, comme dans la case de bilan du dénivelé.
                 EdgeCase(
                     libelle = context.getString(R.string.edge_label_elevation_remaining),
-                    valeur = rideData.level.elevationRemaining?.let { denivele(it, units) } ?: VIDE,
+                    valeur = LevelModels.restantJusquALArrivee(rideData.level.elevationRemaining, state)
+                        ?.let { denivele(it, units) } ?: VIDE,
                     unite = uniteDenivele(units),
                 ),
                 EdgeCase(
@@ -100,10 +113,15 @@ object EdgeModels {
                     valeur = rideData.distanceRemaining?.let { Format.longDistanceValue(it, units) } ?: VIDE,
                     unite = Format.longDistanceUnit(units),
                 ),
+                // À la place de la température : le coureur préfère savoir où tourner. Le Karoo
+                // ne donne pas ses instructions aux extensions ; le virage est celui que le
+                // tableau de guidage déduit du tracé et du fond de carte, à moins d'un
+                // kilomètre. Au-delà, ou hors de la zone couverte par la carte, « -- ».
                 EdgeCase(
-                    libelle = context.getString(R.string.edge_label_temperature),
-                    valeur = rideData.temperature?.let { temperature(it, units) } ?: VIDE,
-                    unite = if (units == Units.IMPERIAL) "°F" else "°C",
+                    libelle = context.getString(R.string.edge_label_turn),
+                    valeur = distanceVirage?.substringBeforeLast(' ') ?: VIDE,
+                    unite = distanceVirage?.substringAfterLast(' '),
+                    virage = virage?.first,
                 ),
                 // À la place du vent de l'Edge, que le Karoo ne publie pas.
                 EdgeCase(
@@ -126,11 +144,9 @@ object EdgeModels {
 
     private fun uniteDenivele(units: Units): String = if (units == Units.IMPERIAL) "ft" else "m"
 
-    private fun temperature(celsius: Double, units: Units): String = when (units) {
-        Units.METRIC -> celsius.roundToInt().toString()
-        Units.IMPERIAL -> (celsius * 9 / 5 + 32).roundToInt().toString()
-    }
-
     private const val VIDE = "--"
+
+    /** Le virage de l'aperçu : à droite, à 350 m. */
+    private val VIRAGE_APERCU = 90.0 to 350.0
     private const val METRES_PAR_PIED = 0.3048
 }
