@@ -118,18 +118,11 @@
     <string name="field_level_power_name">Average power</string>
     <string name="field_level_power_description">The ride\'s average power and, beside it, the normalized one — the one that counts surges for what they cost. Their ratio is spelled out: smooth, rolling or choppy. Needs a power meter. Fits in an ordinary tile.</string>
     <string name="field_level_power_normalized">NORMALIZED</string>
-    <string name="field_level_power_smooth">SMOOTH · VI %1$s</string>
-    <string name="field_level_power_rolling">ROLLING · VI %1$s</string>
-    <string name="field_level_power_choppy">CHOPPY · VI %1$s</string>
     <string name="field_level_no_power">No power meter</string>
 
     <string name="field_level_arrival_name">Arrival time</string>
     <string name="field_level_arrival_description">The estimated arrival time, the sunset time beside it, and a green, yellow or red flat depending on whether you get there before dark, only just, or after. Sunset is computed offline from your position. Needs a loaded route. Fits in an ordinary tile.</string>
     <string name="field_level_arrival_sunset">SUNSET</string>
-    <string name="field_level_arrival_ahead">%1$d MIN TO SPARE</string>
-    <string name="field_level_arrival_behind">%1$d MIN LATE</string>
-    <string name="field_level_arrival_ahead_hours">%1$d H %2$02d TO SPARE</string>
-    <string name="field_level_arrival_behind_hours">%1$d H %2$02d LATE</string>
 
     <string name="field_level_ascent_name">Elevation remaining</string>
     <string name="field_level_ascent_description">The elevation already climbed, what is left to the finish, and a bar showing the share done. Twelve hundred metres says nothing until you know whether it is a third or nine tenths. The remainder needs a loaded route. Fits in an ordinary tile.</string>
@@ -152,7 +145,6 @@
     <string name="field_level_reserve_label">W′ RESERVE</string>
     <string name="field_level_reserve_left">LEFT</string>
     <string name="field_level_reserve_kilojoules">%1$s kJ</string>
-    <string name="field_level_reserve_cp">CP %1$d W</string>
     <string name="field_level_no_reserve">No critical power known</string>
 
 
@@ -167,7 +159,6 @@
     <string name="field_level_battery_label">BATTERY</string>
     <string name="field_level_battery_at_arrival">AT FINISH</string>
     <string name="field_level_battery_percent">%1$d%%</string>
-    <string name="field_level_battery_rate">−%1$d%% PER HOUR</string>
     <string name="field_level_no_battery">Charge unknown</string>
 
     <string name="settings_section_reserve">Anaerobic reserve</string>

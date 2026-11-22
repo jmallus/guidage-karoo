@@ -50,18 +50,23 @@ Huit cases qui disent ce que la sortie **vaut depuis le départ**. Elles tiennen
 une case ordinaire — 238 × 126 sur le Karoo 3, deux par rangée — et c'est là toute leur raison d'être : le Karoo
 publie déjà la plupart de ces nombres, mais **un par champ**, si bien qu'une moyenne et son
 maximum coûtent deux emplacements et que le coureur fait la soustraction de tête. Ici les deux
-voyagent ensemble, et la case dit en plus ce que leur voisinage veut dire.
+voyagent ensemble.
 
-| Case | Grand chiffre | À côté | Ce que la case ajoute |
+| Case | Grand chiffre | À côté | Aplat |
 | --- | --- | --- | --- |
-| **Moyenne FC** | fréquence moyenne | maximum de la sortie | aplat de la couleur de la zone où tombe la moyenne |
-| **Moyenne Power** | moyenne | normalisée | le mot que leur écart forme : lisse, roulante ou hachée |
-| **Heure d'arrivée** | heure estimée | coucher du soleil | aplat vert, jaune ou rouge, et la marge en toutes lettres |
-| **Dénivelé restant** | déjà monté | restant (celui du Karoo, ou celui du profil de l'itinéraire quand le Karoo répond zéro) | une barre qui montre la part faite |
-| **Zones FC** | zone dominante | temps qu'on y a passé | la barre empilée des cinq zones, dans leur ordre |
-| **Réserve W′** | part restante | kilojoules | une jauge qui se vide, et la puissance critique retenue |
-| **Temps d'arrêt** | temps en selle | temps arrêté | la part perdue aux haltes, en barre |
-| **Batterie** | charge | charge projetée à l'arrivée | aplat vert, jaune ou rouge, et la décharge par heure |
+| **Moyenne FC** | fréquence moyenne | maximum de la sortie | couleur de la zone où tombe la moyenne |
+| **Moyenne Power** | moyenne | normalisée | — |
+| **Heure d'arrivée** | heure estimée | coucher du soleil | vert, jaune ou rouge selon qu'on arrive avant la nuit, tout juste, ou après |
+| **Dénivelé restant** | déjà monté | restant (celui du Karoo, ou celui du profil de l'itinéraire quand le Karoo répond zéro) | — |
+| **Zones FC** | zone dominante | temps qu'on y a passé | — |
+| **Réserve W′** | part restante | kilojoules | — |
+| **Temps d'arrêt** | temps en selle | temps arrêté | — |
+| **Batterie** | charge | charge projetée à l'arrivée | vert, jaune ou rouge selon ce qu'il restera à l'arrivée |
+
+Elles reprennent la police et la disposition de Ride + Climb : le libellé en haut à gauche,
+le grand chiffre en Saira Condensed ExtraBold, et le second sur la même ligne, son nom
+au-dessus. Rien d'autre — ni icône, ni mot, ni barre : à 238 × 126, la place qu'a une case
+sur le Karoo 3, tout cela écrasait le chiffre.
 
 Une d'entre elles n'est **pas** un nombre du Karoo rangé autrement, mais un calcul de
 l'extension, fait localement et sans réseau comme tout le reste :

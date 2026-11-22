@@ -122,18 +122,11 @@
     <string name="field_level_power_name">Moyenne Power</string>
     <string name="field_level_power_description">La puissance moyenne de la sortie et, à côté, la normalisée — celle qui compte les relances pour ce qu\'elles coûtent. Leur rapport est écrit en toutes lettres : lisse, roulante ou hachée. Demande un capteur de puissance. Tient dans une case ordinaire.</string>
     <string name="field_level_power_normalized">NORMALISÉE</string>
-    <string name="field_level_power_smooth">LISSE · IV %1$s</string>
-    <string name="field_level_power_rolling">ROULANTE · IV %1$s</string>
-    <string name="field_level_power_choppy">HACHÉE · IV %1$s</string>
     <string name="field_level_no_power">Pas de capteur de puissance</string>
 
     <string name="field_level_arrival_name">Heure d\'arrivée</string>
     <string name="field_level_arrival_description">L\'heure d\'arrivée estimée, l\'heure du coucher du soleil à côté, et un aplat vert, jaune ou rouge selon qu\'on arrive avant la nuit, tout juste, ou après. Le coucher est calculé hors ligne depuis la position. Demande un itinéraire chargé. Tient dans une case ordinaire.</string>
     <string name="field_level_arrival_sunset">COUCHER</string>
-    <string name="field_level_arrival_ahead">%1$d MIN D\'AVANCE</string>
-    <string name="field_level_arrival_behind">%1$d MIN DE RETARD</string>
-    <string name="field_level_arrival_ahead_hours">%1$d H %2$02d D\'AVANCE</string>
-    <string name="field_level_arrival_behind_hours">%1$d H %2$02d DE RETARD</string>
 
     <string name="field_level_ascent_name">Dénivelé restant</string>
     <string name="field_level_ascent_description">Le dénivelé déjà monté, celui qui reste jusqu\'à l\'arrivée, et une barre qui montre la part faite. Mille deux cents mètres ne disent rien tant qu\'on ne sait pas si c\'est le tiers ou les neuf dixièmes. Le restant demande un itinéraire chargé. Tient dans une case ordinaire.</string>
@@ -156,7 +149,6 @@
     <string name="field_level_reserve_label">RÉSERVE W′</string>
     <string name="field_level_reserve_left">RESTE</string>
     <string name="field_level_reserve_kilojoules">%1$s kJ</string>
-    <string name="field_level_reserve_cp">CP %1$d W</string>
     <string name="field_level_no_reserve">Pas de puissance critique connue</string>
 
 
@@ -171,7 +163,6 @@
     <string name="field_level_battery_label">BATTERIE</string>
     <string name="field_level_battery_at_arrival">À L\'ARRIVÉE</string>
     <string name="field_level_battery_percent">%1$d %%</string>
-    <string name="field_level_battery_rate">−%1$d %% PAR HEURE</string>
     <string name="field_level_no_battery">Charge inconnue</string>
 
     <string name="settings_section_reserve">Réserve anaérobie</string>

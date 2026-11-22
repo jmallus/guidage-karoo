@@ -7,13 +7,9 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
-import androidx.annotation.DrawableRes
 import io.github.jmallus.guidage.core.Contrast
 import kotlin.math.max
 import kotlin.math.min
-
-/** Une part de la barre des zones : sa couleur et ce qu'elle occupe, de 0 à 1. */
-data class LevelSlice(val share: Float, val color: Int)
 
 /**
  * Ce qu'affiche une case de bilan.
@@ -35,21 +31,8 @@ data class LevelFieldModel(
     val referenceValue: String? = null,
     /** Aplat de fond, quand il y a un verdict à porter. */
     val background: Int? = null,
-    /** La ligne du bas, quand la case a un mot à dire plutôt qu'un chiffre. */
-    val caption: String? = null,
-    /**
-     * L'encre de ce mot, quand il porte lui-même un verdict.
-     *
-     * Ignorée sur un aplat : le contraste y est mesuré contre le fond, et poser une teinte
-     * saturée sur une autre défait précisément ce que cette mesure garantit.
-     */
-    val captionColor: Int? = null,
-    /** La barre empilée, pour la répartition par zone. */
-    val slices: List<LevelSlice> = emptyList(),
     /** Message qui remplace tout quand rien n'est mesurable. */
     val emptyMessage: String? = null,
-    /** L'icône posée à droite du libellé, à son encre. */
-    @DrawableRes val icon: Int? = null,
 )
 
 /**

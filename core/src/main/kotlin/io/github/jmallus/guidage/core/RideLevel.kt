@@ -63,28 +63,6 @@ data class RideLevel(
             return (reste / taille).toFloat().coerceIn(0f, 1f)
         }
 
-    /**
-     * Le rapport de la normalisée à la moyenne, dit « indice de variabilité ».
-     *
-     * À un, la sortie s'est tenue à une puissance constante ; au-delà de 1,15, elle fut une
-     * succession de relances et de récupérations. C'est la seule des deux valeurs qui ne se
-     * lise pas seule, et c'est pourquoi elle est calculée ici plutôt qu'affichée.
-     */
-    val variability: Double?
-        get() {
-            val moyenne = averagePower?.takeIf { it > 0.0 } ?: return null
-            val normalisee = normalizedPower ?: return null
-            return normalisee / moyenne
-        }
-
-    /** Part de chaque zone dans le temps mesuré, ou liste vide si rien n'a été mesuré. */
-    val heartRateZoneShares: List<Float>
-        get() {
-            val total = heartRateZoneSeconds.sum()
-            if (total <= 0.0) return emptyList()
-            return heartRateZoneSeconds.map { (it / total).toFloat() }
-        }
-
     /** Rang de la zone la plus occupée (1 = zone 1), ou null si rien n'a été mesuré. */
     val dominantHeartRateZone: Int?
         get() = heartRateZoneSeconds
