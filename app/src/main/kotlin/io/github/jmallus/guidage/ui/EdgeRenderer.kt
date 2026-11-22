@@ -257,10 +257,10 @@ object EdgeRenderer {
         }
     }
 
-    /** La police des chiffres, chargée une fois : celle du champ Garmin. */
+    /** La police des chiffres, chargée une fois : celle du champ Garmin, reprise par les cases de bilan. */
     private var saira: Typeface? = null
 
-    private fun chiffres(context: Context): Typeface =
+    internal fun chiffres(context: Context): Typeface =
         saira ?: (runCatching { context.resources.getFont(R.font.saira_condensed_extrabold) }.getOrNull()
             ?: Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)).also { saira = it }
 
