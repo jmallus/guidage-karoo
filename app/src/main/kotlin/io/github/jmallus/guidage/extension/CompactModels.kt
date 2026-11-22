@@ -9,10 +9,10 @@ import io.github.jmallus.guidage.ui.CompactModel
 import io.github.jmallus.guidage.ui.EdgeCase
 
 /**
- * Ce qu'affiche Ride + Climb compact.
+ * Ce qu'affiche Ride compact.
  *
- * Les trois cases sont prises au modèle de Ride + Climb et le profil au champ « Profil à
- * venir » : deux constructions qui existent déjà, et qu'il ne faut pas laisser diverger.
+ * Les trois cases sont prises au modèle de Ride + Climb : une construction qui existe déjà, et
+ * qu'il ne faut pas laisser diverger.
  */
 object CompactModels {
 
@@ -35,7 +35,6 @@ object CompactModels {
             // La FC sans « bpm » pour la même raison : la rangée écrit ses trois chiffres au corps
             // du plus à l'étroit, et c'était elle.
             cases = listOf(vitesse, edge.puissance, edge.coeur.copy(unite = null)),
-            profil = FieldModels.profile(context, snapshot, settings, preview, nowMillis = nowMillis),
         )
     }
 }

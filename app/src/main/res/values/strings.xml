@@ -177,8 +177,8 @@
     <string name="field_level_ascent_label">DÉNIVELÉ</string>
 
     <!-- Le tableau de guidage : l'écran qui suit la route. -->
-    <string name="field_compact_name">Ride + Climb compact</string>
-    <string name="field_compact_description">Trois cases de Ride + Climb — vitesse, puissance 3 s et fréquence cardiaque, à la couleur de leur zone — et sous elles le profil à venir. Pour une bande de 478 × 300 sur une page, le reste de l\'écran restant à d\'autres champs.</string>
+    <string name="field_compact_name">Ride compact</string>
+    <string name="field_compact_description">Trois cases de Ride + Climb — vitesse, puissance 3 s et fréquence cardiaque, ces deux-là à la couleur de leur zone — écrites à la même taille. Pour une bande sur toute la largeur ; « Profil à venir » se pose dessous.</string>
     <string name="field_edge_name">Ride + Climb</string>
     <string name="field_edge_description">Le tableau de l\'Edge repris pour le Karoo, clair ou sombre selon le thème réglé sur l\'appareil : vitesse et sa moyenne, puissance 3 s et sa moyenne, fréquence cardiaque, cadence, puis distance, D+ restant, pente, restant, température et heure d\'arrivée. Dans une côte, le profil de montée remplace les six cases du bas.</string>
     <string name="edge_label_speed">VITESSE</string>

@@ -162,12 +162,16 @@ object EdgeRenderer {
     internal fun fond(sombre: Boolean): Int? = (if (sombre) SOMBRE else CLAIR).fond
 
     /**
-     * Une rangée de cases à la manière de ce champ, et le filet qui la sépare de ce qui suit.
+     * Une rangée de cases à la manière de ce champ, et le filet qui la sépare de ce qui suit
+     * quand [filetDessous] le demande.
      *
      * Pour les champs qui reprennent sa grammaire sans reprendre sa page : ils posent les mêmes
      * cases, au même dessin, et ne réécrivent rien.
      */
-    internal fun rangee(context: Context, canvas: Canvas, zone: RectF, cases: List<EdgeCase>, sombre: Boolean, k: Float) {
+    internal fun rangee(
+        context: Context, canvas: Canvas, zone: RectF, cases: List<EdgeCase>, sombre: Boolean, k: Float,
+        filetDessous: Boolean = true,
+    ) {
         if (cases.isEmpty()) return
         val d = Dessin(canvas, if (sombre) SOMBRE else CLAIR, chiffres(context), k)
         val gap = GAP * k
@@ -186,7 +190,7 @@ object EdgeRenderer {
             d.case(case, cadres[j], commun)
             if (j < cases.lastIndex) d.filetV(cadres[j].right, zone.top, zone.bottom)
         }
-        d.filetH(zone.bottom, zone.left, zone.right)
+        if (filetDessous) d.filetH(zone.bottom, zone.left, zone.right)
     }
 
     /** L'espace entre deux cases, filet au milieu, à l'échelle [k]. */
@@ -339,8 +343,13 @@ object EdgeRenderer {
     private const val INSET_Y = 6f
     private const val UNIT_GAP = 4f
 
-    /** Plafond des chiffres d'une rangée posée par un autre champ, à l'échelle 1. */
-    private const val TAILLE_RANGEE = 96f
+    /**
+     * Plafond des chiffres d'une rangée posée par un autre champ, à l'échelle 1.
+     *
+     * Celui de la vitesse vedette : sur une rangée qui a toute la hauteur d'un champ, c'est la
+     * largeur des cases qui borne les chiffres, non ce plafond.
+     */
+    private const val TAILLE_RANGEE = 156f
 
     /** Part de la largeur d'une case que la flèche de virage peut prendre, au plus. */
     private const val FLECHE_PART = 0.4f

@@ -173,8 +173,8 @@
     <string name="field_level_ascent_label">ASCENT</string>
 
     <!-- The guidance dashboard: the screen that follows the road. -->
-    <string name="field_compact_name">Ride + Climb compact</string>
-    <string name="field_compact_description">Three Ride + Climb cells — speed, 3 s power and heart rate, in their zone colour — with the route profile ahead below them. For a 478 × 300 band on a page, leaving the rest of the screen to other fields.</string>
+    <string name="field_compact_name">Ride compact</string>
+    <string name="field_compact_description">Three Ride + Climb cells — speed, 3 s power and heart rate, the latter two in their zone colour — all written at the same size. For a full-width band; place « Route profile ahead » below it.</string>
     <string name="field_edge_name">Ride + Climb</string>
     <string name="field_edge_description">The Edge dashboard brought to the Karoo, light or dark following the theme set on the device: speed and its average, 3 s power and its average, heart rate, cadence, then distance, elevation gain remaining, grade, distance remaining, temperature and arrival time. On a climb, the climb profile replaces the six bottom cells.</string>
     <string name="edge_label_speed">SPEED</string>

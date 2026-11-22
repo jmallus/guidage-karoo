@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
- * Champ « Ride + Climb compact », 478 × 300 : voir [CompactRenderer].
+ * Champ « Ride compact » : voir [CompactRenderer].
  *
  * Il se conduit comme Ride + Climb — même thème suivi, mêmes valeurs qui défilent dans le
  * sélecteur — puisqu'il en reprend les cases.
