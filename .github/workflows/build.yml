@@ -202,10 +202,10 @@ jobs:
             fi
             [ -n "${changements:-}" ] || changements="Première version publiée."
 
-            # Les captures du simulateur illustrent la fiche sur l'appareil. Trois, nommées
-            # une à une : le Tableau Edge, le profil à venir, le bilan de sortie. Prendre tous
-            # les champs faisait une planche-contact où le premier coup d'œil ne retenait
-            # rien — ces trois-là disent ce que l'extension apporte, et le Tableau Edge
+            # Les captures du simulateur illustrent la fiche sur l'appareil. Quatre, nommées
+            # une à une : le Tableau Edge, le profil de montée, le profil à venir, le bilan de
+            # sortie. Prendre tous les champs faisait une planche-contact où le premier coup
+            # d'œil ne retenait rien — ces quatre-là disent ce que l'extension apporte, et le Tableau Edge
             # d'abord, puisque c'est lui qu'on roule. Le tableau de bord, qui ouvrait la
             # fiche, est mis de côté avec le fond de carte.
             #
@@ -218,6 +218,7 @@ jobs:
             # publiée. Une capture manquante est sautée plutôt que de produire un lien mort.
             captures=$(
               for f in docs/captures/edge-sombre.png \
+                       docs/captures/champ-montee.png \
                        docs/captures/champ-profil.png \
                        docs/captures/champ-bilan-fin.png; do
                 [ -e "$f" ] || continue
