@@ -107,8 +107,15 @@ object PreviewData {
      *
      * Les douze premiers kilomètres n'ont pas bougé d'un mètre : les contrôles s'y réfèrent
      * par leurs distances, et le raidillon du troisième est toujours au troisième.
+     *
+     * Puis cent : sur trente-deux, le profil à venir n'avait presque rien à comprimer, et ne
+     * montrait pas ce que le coureur voit au départ d'une vraie sortie. Les trente-deux
+     * premiers kilomètres, eux non plus, n'ont pas bougé.
      */
-    private const val LONGUEUR = 32_000.0
+    private const val LONGUEUR = 100_000.0
+
+    /** La fin du parcours de trente-deux kilomètres, que l'allongement laisse intact. */
+    private const val FIN_PARCOURS_INITIAL = 32_000.0
 
     /**
      * Pas du tracé fictif, en mètres.
@@ -149,6 +156,34 @@ object PreviewData {
         ProfilePoint(28_000.0, 560.0),
         ProfilePoint(30_500.0, 350.0),
         ProfilePoint(32_000.0, 260.0),
+        // Au-delà, un pays de collines : des côtes de toutes pentes, des replats qui ne le
+        // sont pas tout à fait, et des descentes coupées de bosses.
+        ProfilePoint(35_000.0, 340.0),
+        ProfilePoint(37_000.0, 300.0),
+        ProfilePoint(40_000.0, 470.0),
+        ProfilePoint(42_000.0, 420.0),
+        ProfilePoint(45_000.0, 520.0),
+        ProfilePoint(48_000.0, 380.0),
+        ProfilePoint(51_000.0, 300.0),
+        ProfilePoint(53_000.0, 330.0),
+        ProfilePoint(55_000.0, 290.0),
+        ProfilePoint(58_000.0, 450.0),
+        ProfilePoint(60_000.0, 640.0),
+        ProfilePoint(62_000.0, 590.0),
+        ProfilePoint(66_000.0, 380.0),
+        ProfilePoint(69_000.0, 250.0),
+        ProfilePoint(72_000.0, 280.0),
+        ProfilePoint(74_000.0, 260.0),
+        ProfilePoint(77_000.0, 410.0),
+        ProfilePoint(79_000.0, 470.0),
+        ProfilePoint(81_000.0, 430.0),
+        ProfilePoint(84_000.0, 560.0),
+        ProfilePoint(86_000.0, 520.0),
+        ProfilePoint(89_000.0, 340.0),
+        ProfilePoint(92_000.0, 220.0),
+        ProfilePoint(95_000.0, 240.0),
+        ProfilePoint(97_000.0, 210.0),
+        ProfilePoint(100_000.0, 200.0),
     )
 
     /** Pas d'échantillonnage du profil, du même ordre que celui d'un relevé réel. */
@@ -194,7 +229,22 @@ object PreviewData {
         previewPath.getOrNull((distance / PAS_TRACE).toInt())
 
     private fun relief(distance: Double): Double =
-        5.0 * sin(distance / 300.0 + 0.6) + 1.8 * sin(distance / 95.0 + 2.3)
+        5.0 * sin(distance / 300.0 + 0.6) + 1.8 * sin(distance / 95.0 + 2.3) + collines(distance)
+
+    /**
+     * Le relief des collines, au-delà des trente-deux premiers kilomètres.
+     *
+     * Deux ondes de plus, de deux kilomètres et de sept cents mètres, qui cassent la droite
+     * entre deux sommets en bosses et en replats : un profil de cent kilomètres tracé au
+     * cordeau entre ses sommets ne ressemblait à aucun itinéraire réel. Elles entrent en
+     * douceur sur le premier kilomètre, sans marche, et laissent intact ce qui précède,
+     * auquel les contrôles se réfèrent par leurs distances.
+     */
+    private fun collines(distance: Double): Double {
+        val entree = ((distance - FIN_PARCOURS_INITIAL) / 1_000.0).coerceIn(0.0, 1.0)
+        if (entree <= 0.0) return 0.0
+        return entree * (14.0 * sin(distance / 330.0 + 0.4) + 6.0 * sin(distance / 115.0 + 1.7))
+    }
 
     val route: Route by lazy {
         Route(
@@ -205,6 +255,11 @@ object PreviewData {
                 RouteClimb(startDistance = 2_400.0, length = 2_600.0, grade = 6.5, totalElevation = 260.0),
                 RouteClimb(startDistance = 8_000.0, length = 2_000.0, grade = 2.5, totalElevation = 50.0),
                 RouteClimb(startDistance = 20_000.0, length = 6_500.0, grade = 5.5, totalElevation = 360.0),
+                RouteClimb(startDistance = 37_000.0, length = 3_000.0, grade = 5.7, totalElevation = 170.0),
+                RouteClimb(startDistance = 42_000.0, length = 3_000.0, grade = 3.3, totalElevation = 100.0),
+                RouteClimb(startDistance = 55_000.0, length = 5_000.0, grade = 7.0, totalElevation = 350.0),
+                RouteClimb(startDistance = 74_000.0, length = 5_000.0, grade = 4.2, totalElevation = 210.0),
+                RouteClimb(startDistance = 81_000.0, length = 3_000.0, grade = 4.3, totalElevation = 130.0),
             ),
             pois = listOf(
                 RoutePoi(
