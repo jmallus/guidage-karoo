@@ -28,7 +28,9 @@ import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceZoneType
 import io.github.jmallus.guidage.core.WPrimeSettings
 import io.github.jmallus.guidage.extension.Bilan
+import io.github.jmallus.guidage.extension.CompactDataType
 import io.github.jmallus.guidage.extension.DashboardDataType
+import io.github.jmallus.guidage.extension.EdgeDataType
 import io.github.jmallus.guidage.extension.FieldReport
 import io.github.jmallus.guidage.extension.ProfileDataType
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
@@ -225,6 +227,8 @@ private fun FieldReportCard(reports: List<FieldReport>) {
 @Composable
 private fun fieldName(typeId: String): String = when (typeId) {
     DashboardDataType.TYPE_ID -> stringResource(R.string.field_dashboard_name)
+    EdgeDataType.TYPE_ID -> stringResource(R.string.field_edge_name)
+    CompactDataType.TYPE_ID -> stringResource(R.string.field_compact_name)
     ProfileDataType.TYPE_ID -> stringResource(R.string.field_profile_name)
     Bilan.COEUR.typeId -> stringResource(R.string.field_level_heart_name)
     Bilan.PUISSANCE.typeId -> stringResource(R.string.field_level_power_name)

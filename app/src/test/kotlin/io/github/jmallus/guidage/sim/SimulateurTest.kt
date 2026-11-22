@@ -488,6 +488,10 @@ class SimulateurTest {
             ecrire(plat, File(dossier, "edge-$style.png"))
             ecrire(cote, File(dossier, "edge-$style-cote.png"))
             assertTrue("le tableau Edge $style est vide", couleursDistinctes(plat) > 20)
+            val compact = simulateur.imageCompact(carte, sombre)
+            ecrire(compact, File(dossier, "compact-$style.png"))
+            assertEquals(Simulateur.HAUTEUR_COMPACT, compact.height)
+            assertTrue("Ride + Climb compact $style est vide", couleursDistinctes(compact) > 20)
         }
         // L'aperçu du sélecteur de champs remplit toutes les cases, et ses valeurs défilent.
         val apercu = simulateur.modelesEdgeApercu()
@@ -682,6 +686,7 @@ class SimulateurTest {
         champ("Tableau gravel", simulateur.imageGravel(secondes)),
         champ("Tableau Edge clair", simulateur.imageEdge(secondes, sombre = false)),
         champ("Tableau Edge sombre", simulateur.imageEdge(secondes, sombre = true)),
+        champ("Ride + Climb compact", simulateur.imageCompact(secondes, sombre = true)),
         champ("Profil à venir", simulateur.imageProfil(secondes)),
         champ("Bilan 1/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[0])),
         champ("Bilan 2/2", pageDeBilan(simulateur, secondes, Simulateur.PAGES_BILAN[1])),

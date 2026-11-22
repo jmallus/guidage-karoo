@@ -45,6 +45,14 @@
         graphical="true"
         icon="@drawable/ic_guidage" />
 
+    <!-- Trois cases de Ride + Climb et le profil à venir, pour un champ de 478 × 300. -->
+    <DataType
+        typeId="edge-compact"
+        displayName="@string/field_compact_name"
+        description="@string/field_compact_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+
     <DataType
         typeId="profil"
         displayName="@string/field_profile_name"
