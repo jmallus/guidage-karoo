@@ -32,7 +32,9 @@ object CompactModels {
             valeur = edge.vitesse,
         )
         return CompactModel(
-            cases = listOf(vitesse, edge.puissance, edge.coeur),
+            // La FC sans « bpm » pour la même raison : la rangée écrit ses trois chiffres au corps
+            // du plus à l'étroit, et c'était elle.
+            cases = listOf(vitesse, edge.puissance, edge.coeur.copy(unite = null)),
             profil = FieldModels.profile(context, snapshot, settings, preview, nowMillis = nowMillis),
         )
     }
