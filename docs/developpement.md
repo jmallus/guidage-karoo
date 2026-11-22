@@ -217,9 +217,25 @@ appareil ou un autre gabarit de page :
 ./gradlew :app:simulateur -Pguidage.hauteur=600
 ```
 
-Seule la taille du plein écran est un relevé. Celles des autres champs se déduisent de la
-grille de soixante et restent donc des approximations, jusqu'à ce qu'on les pose sur une page
-et qu'on lise la carte « Place allouée au champ ».
+**Le Karoo impose la taille de chaque champ.** La page est une grille de 60 × 60 et chaque
+emplacement en occupe une part fixe, que ni l'extension ni le coureur ne choisissent :
+karoo-ext 1.1.9 — la dernière version — ne déclare aucune taille dans `DataType`, et
+l'éditeur de pages du Karoo ne permet pas d'étirer un champ. La taille en pixels suit la part
+de la grille : en roulant, 642 × rangées / 60. Un champ se dessine donc pour l'emplacement où
+il sera posé, jamais pour une taille souhaitée.
+
+Relevés sur le Karoo 3 du coureur :
+
+| Champ | Grille | En roulant | À l'édition |
+| --- | --- | --- | --- |
+| plein écran | 60 × 60 | 478 × 642 | — |
+| Ride compact | 60 × 18 | 478 × 192 | 474 × 167 |
+| case de bilan | 30 × 12 | 238 × 126 | — |
+
+L'éditeur dispose d'une page plus basse que la sortie, si bien qu'un même champ y est plus
+petit. Les autres tailles du simulateur — celle du profil à venir notamment — se déduisent de
+la grille et restent des approximations, jusqu'à ce qu'on les pose sur une page et qu'on lise
+la carte « Place allouée au champ ».
 
 ### La relever, sans rien brancher
 
