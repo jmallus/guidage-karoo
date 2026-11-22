@@ -8,7 +8,6 @@ import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideDataProvider
-import io.github.jmallus.guidage.karoo.RoadMapRepository
 import io.github.jmallus.guidage.karoo.consumerFlow
 import io.github.jmallus.guidage.settings.SettingsRepository
 import io.hammerhead.karooext.KarooSystemService
@@ -39,18 +38,15 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
     private lateinit var provider: GuidanceProvider
     private lateinit var rideDataProvider: RideDataProvider
     private lateinit var alertPresenter: AlertPresenter
-    private lateinit var roadMapRepository: RoadMapRepository
 
     override val types: List<DataTypeImpl> by lazy {
+        // Le Tableau de bord, sa variante Gravel et le Tableau de guidage sont mis de côté avec
+        // le fond de carte hors ligne, qu'ils dessinent ou dont ils tirent leurs carrefours :
+        // leur code reste, prêt à revenir, mais ils ne sont plus proposés. Pour les rendre,
+        // les réinscrire ici et dans res/xml/extension_info.xml, rétablir le RoadMapRepository
+        // et son déballage dans onCreate, et l'étape « Embarquer le fond de carte » du CI.
         listOf(
-            DashboardDataType(provider, rideDataProvider, settingsRepository, roadMapRepository, extension),
-            DashboardDataType(provider, rideDataProvider, settingsRepository, roadMapRepository, extension, gravel = true),
-            EdgeDataType(provider, rideDataProvider, settingsRepository, roadMapRepository, extension),
-            GuidageDataType(
-                provider, rideDataProvider, settingsRepository, roadMapRepository,
-                dispatch = { karooSystem.dispatch(it) },
-                extension = extension,
-            ),
+            EdgeDataType(provider, rideDataProvider, settingsRepository, extension),
             ProfileDataType(provider, settingsRepository, extension),
             PoiDataType(provider, extension),
             MonteeDataType(provider, rideDataProvider, settingsRepository, extension),
@@ -69,11 +65,6 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
             settingsRepository.settings.map { it.wPrime }.distinctUntilChanged(),
         )
         alertPresenter = AlertPresenter(this)
-        roadMapRepository = RoadMapRepository(this)
-
-        // Le déballage de la carte lit et réécrit une trentaine de méga-octets : hors du
-        // fil principal, et une seule fois dans la vie de l'installation.
-        scope.launch { roadMapRepository.unpackIfNeeded() }
 
         karooSystem.connect { connected ->
             Log.i(TAG, "Karoo system connected: $connected")

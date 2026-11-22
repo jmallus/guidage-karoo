@@ -28,7 +28,6 @@ object EdgeModels {
         rideData: RideData,
         settings: GuidageSettings,
         preview: Boolean,
-        roadSource: RoadSource,
         nowMillis: Long = System.currentTimeMillis(),
     ): EdgeModel {
         val units = snapshot.units
@@ -51,15 +50,6 @@ object EdgeModels {
 
         val puissance = rideData.power
         val coeur = rideData.heartRate
-        // L'aperçu montre un virage type : sans lui, la case resterait sur « -- » dans le
-        // sélecteur de champs, et le coureur ne verrait pas ce qu'elle donnera en roulant.
-        val virage = if (preview) {
-            VIRAGE_APERCU
-        } else {
-            GuidageModels.prochaineManoeuvre(state, snapshot.location, rideData.speed, roadSource, nowMillis)
-                ?.let { it.carrefour.virage to it.distance }
-        }
-        val distanceVirage = virage?.let { Format.distance(it.second.coerceAtLeast(0.0), units) }
         return EdgeModel(
             vitesse = rideData.speed?.let { Format.speed(it, units) } ?: VIDE,
             vitesseMoyenne = rideData.averageSpeed?.let { Format.speed(it, units) } ?: VIDE,
@@ -111,15 +101,12 @@ object EdgeModels {
                     valeur = rideData.distanceRemaining?.let { Format.longDistanceValue(it, units) } ?: VIDE,
                     unite = Format.longDistanceUnit(units),
                 ),
-                // À la place de la température : le coureur préfère savoir où tourner. Le Karoo
-                // ne donne pas ses instructions aux extensions ; le virage est celui que le
-                // tableau de guidage déduit du tracé et du fond de carte, à moins d'un
-                // kilomètre. Au-delà, ou hors de la zone couverte par la carte, « -- ».
+                // La case a porté un temps le prochain virage, déduit du fond de carte. La carte
+                // mise de côté, elle rend la température qu'elle montrait avant.
                 EdgeCase(
-                    libelle = context.getString(R.string.edge_label_turn),
-                    valeur = distanceVirage?.substringBeforeLast(' ') ?: VIDE,
-                    unite = distanceVirage?.substringAfterLast(' '),
-                    virage = virage?.first,
+                    libelle = context.getString(R.string.edge_label_temperature),
+                    valeur = rideData.temperature?.let { temperature(it, units) } ?: VIDE,
+                    unite = if (units == Units.IMPERIAL) "°F" else "°C",
                 ),
                 // À la place du vent de l'Edge, que le Karoo ne publie pas.
                 EdgeCase(
@@ -142,9 +129,11 @@ object EdgeModels {
 
     private fun uniteDenivele(units: Units): String = if (units == Units.IMPERIAL) "ft" else "m"
 
-    private const val VIDE = "--"
+    private fun temperature(celsius: Double, units: Units): String = when (units) {
+        Units.METRIC -> celsius.roundToInt().toString()
+        Units.IMPERIAL -> (celsius * 9 / 5 + 32).roundToInt().toString()
+    }
 
-    /** Le virage de l'aperçu : à droite, à 350 m. */
-    private val VIRAGE_APERCU = 90.0 to 350.0
+    private const val VIDE = "--"
     private const val METRES_PAR_PIED = 0.3048
 }

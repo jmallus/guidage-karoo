@@ -406,7 +406,7 @@ class Simulateur(
      * en aperçu, comme sur l'appareil quand aucun itinéraire n'est en cours.
      */
     fun modelesEdgeApercu(): List<EdgeModel> = PreviewData.edgeSamples(departMillis).map {
-        EdgeModels.build(context, GuidanceSnapshot(), it, reglages(), preview = true, roadSource = source, nowMillis = departMillis)
+        EdgeModels.build(context, GuidanceSnapshot(), it, reglages(), preview = true, nowMillis = departMillis)
     }
 
     /**
@@ -426,7 +426,6 @@ class Simulateur(
             rideData = releve,
             settings = reglages(),
             preview = false,
-            roadSource = source,
             nowMillis = departMillis + (secondes * 1_000).toLong(),
         )
     }

@@ -10,6 +10,11 @@
     icon="@drawable/ic_guidage"
     scansDevices="false">
 
+    <!--
+      Mis de côté avec le fond de carte hors ligne : le Tableau de bord et sa variante
+      Gravel (la minicarte), le Tableau de guidage (carte et carrefours). Leur code reste ;
+      voir GuidageExtension.types pour les rendre.
+
     <DataType
         typeId="tableau"
         displayName="@string/field_dashboard_name"
@@ -17,7 +22,6 @@
         graphical="true"
         icon="@drawable/ic_guidage" />
 
-    <!-- Le tableau de bord en version gravel, d'après la maquette du coureur. -->
     <DataType
         typeId="gravel"
         displayName="@string/field_gravel_name"
@@ -25,19 +29,19 @@
         graphical="true"
         icon="@drawable/ic_guidage" />
 
+    <DataType
+        typeId="route"
+        displayName="@string/field_route_name"
+        description="@string/field_route_description"
+        graphical="true"
+        icon="@drawable/ic_guidage" />
+    -->
+
     <!-- Le champ « Écran Edge » du Garmin du coureur, clair ou sombre selon le thème du Karoo. -->
     <DataType
         typeId="edge"
         displayName="@string/field_edge_name"
         description="@string/field_edge_description"
-        graphical="true"
-        icon="@drawable/ic_guidage" />
-
-    <!-- Le second tableau de bord : le guidage d'abord, voir GuidageDataType. -->
-    <DataType
-        typeId="route"
-        displayName="@string/field_route_name"
-        description="@string/field_route_description"
         graphical="true"
         icon="@drawable/ic_guidage" />
 

@@ -5,12 +5,9 @@ import androidx.compose.ui.unit.DpSize
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
 import androidx.glance.layout.ContentScale
-import io.github.jmallus.guidage.core.GeoPoint
-import io.github.jmallus.guidage.core.map.RoadSegment
 import io.github.jmallus.guidage.karoo.GuidanceProvider
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.karoo.RideDataProvider
-import io.github.jmallus.guidage.karoo.RoadMapRepository
 import io.github.jmallus.guidage.settings.SettingsRepository
 import io.github.jmallus.guidage.ui.BitmapField
 import io.github.jmallus.guidage.ui.EdgeRenderer
@@ -42,24 +39,10 @@ class EdgeDataType(
     private val provider: GuidanceProvider,
     private val rideDataProvider: RideDataProvider,
     private val settingsRepository: SettingsRepository,
-    private val roadMapRepository: RoadMapRepository,
     extension: String,
 ) : DataTypeImpl(extension, TYPE_ID) {
 
     private val glance = GlanceRemoteViews()
-
-    /**
-     * Le fond de carte installé, pour la case du prochain virage.
-     *
-     * Pas de mention quand il ne donne rien : le champ n'a pas de carte où l'écrire, et la
-     * case reste simplement sur « -- ».
-     */
-    private val roadSource = object : RoadSource {
-        override fun roads(position: GeoPoint?, radiusMeters: Double): List<RoadSegment> =
-            position?.let { roadMapRepository.roadsAround(it, radiusMeters) }.orEmpty()
-
-        override fun notice(context: Context, position: GeoPoint?): String? = null
-    }
 
     override fun startView(context: Context, config: ViewConfig, emitter: ViewEmitter) {
         val job = CoroutineScope(Dispatchers.IO).launch {
@@ -76,7 +59,6 @@ class EdgeDataType(
                     EdgeModels.build(
                         context, snapshot, rideData, settings,
                         preview = config.preview && !snapshot.state.navigating,
-                        roadSource = roadSource,
                     )
                 }
                 .distinctUntilChanged()

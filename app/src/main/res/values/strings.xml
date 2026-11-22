@@ -223,7 +223,7 @@
     <string name="edge_label_elevation_remaining">D+ REST.</string>
     <string name="edge_label_grade">PENTE</string>
     <string name="edge_label_remaining">RESTE</string>
-    <string name="edge_label_turn">VIRAGE</string>
+    <string name="edge_label_temperature">TEMP</string>
     <string name="edge_label_arrival">ARRIVÉE</string>
     <string name="field_gravel_name">Tableau gravel</string>
     <string name="field_gravel_description">Le tableau de bord en version gravel : vitesse, puissance et fréquence cardiaque l\'une sous l\'autre à gauche, la carte à droite sur toute la hauteur, et en bas le profil de ce qui arrive avec le rapport engagé. Un appui en haut change l\'échelle de la carte, en bas la portée du profil.</string>

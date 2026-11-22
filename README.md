@@ -1,14 +1,20 @@
 # Champs de données et guidage - Hammerhead Karoo
 
 Extension **Karoo 3** qui enrichit le **guidage d'itinéraire** : elle lit
-l'itinéraire chargé dans le Karoo et en tire **trois champs de données** — un tableau de bord
-plein écran avec minicarte sur fond de carte embarqué, le profil à venir, la distance au
-prochain point d'intérêt —, dix cases de bilan et des annonces à l'écran.
+l'itinéraire chargé dans le Karoo et en tire des champs de données — le Tableau Edge plein
+écran, le profil à venir, le profil de montée, la distance au prochain point d'intérêt —, dix
+cases de bilan et des annonces à l'écran.
+
+> **Le fond de carte hors ligne est mis de côté.** L'APK ne l'embarque plus, et les champs qui
+> s'en servent — le Tableau de bord, sa variante gravel et le Tableau de guidage — ne sont plus
+> proposés sur le Karoo. Leur code, leurs tests et leurs captures restent dans le dépôt, prêts à
+> revenir. Le profil de montée n'en dépend pas : il vient du profil de l'itinéraire et du
+> ClimbPro du Karoo.
 
 Tout est calculé **sur l'appareil**, à partir des données que Karoo OS fournit déjà :
 aucune connexion réseau, aucun compte, rien à synchroniser.
 
-<img src="docs/captures/carte-300m.png" alt="Le tableau de bord plein écran : effort en haut, transmission à gauche et minicarte à droite, fréquence cardiaque et distance restante côte à côte, profil de ce qui arrive sur tout le bas" width="300">
+<img src="docs/captures/edge-sombre.png" alt="Le Tableau Edge plein écran : vitesse en haut, puissance, fréquence cardiaque et cadence au milieu, six cases en bas" width="300">
 
 **Toutes les images de ce README sortent du rendu de l'appareil.** Elles ne sont pas des
 maquettes : le [simulateur](docs/developpement.md#le-simulateur) appelle les mêmes classes que
@@ -23,11 +29,11 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 
 | Champ | Type | Contenu |
 | --- | --- | --- |
-| **Tableau de bord** | graphique, plein écran | Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. Les kilomètres du profil sont ceux du **compteur**, détours compris ; en **reroutage**, la portion de trace contournée y est masquée par un trait rouge. **Dans une côte**, le profil du bas passe en mode Climber, comme sur le Karoo : la côte entière du pied au sommet, aux couleurs de pente du Karoo, la part montée hachurée ; dessous, six cases donnent la pente des 600 m qui viennent, tronçon de 100 m par tronçon de 100 m, et une bande jaune pâle montre sur le profil la portion qu'elles détaillent. En tête, en blanc, la distance et le dénivelé jusqu'au sommet et le rang de la côte (« 2/3 »). Ces chiffres et la place du coureur dans la côte sont ceux que suit le ClimbPro du Karoo. Sur la carte comme sur le profil, le retard du GPS est rattrapé **le long du tracé**, virages compris : la marque ne file plus tout droit hors de la route. Il revient à sa portée une fois le sommet passé. |
+| **Tableau de bord** | graphique, plein écran | *Mis de côté avec le fond de carte : plus proposé sur le Karoo.* Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. Les kilomètres du profil sont ceux du **compteur**, détours compris ; en **reroutage**, la portion de trace contournée y est masquée par un trait rouge. **Dans une côte**, le profil du bas passe en mode Climber, comme sur le Karoo : la côte entière du pied au sommet, aux couleurs de pente du Karoo, la part montée hachurée ; dessous, six cases donnent la pente des 600 m qui viennent, tronçon de 100 m par tronçon de 100 m, et une bande jaune pâle montre sur le profil la portion qu'elles détaillent. En tête, en blanc, la distance et le dénivelé jusqu'au sommet et le rang de la côte (« 2/3 »). Ces chiffres et la place du coureur dans la côte sont ceux que suit le ClimbPro du Karoo. Sur la carte comme sur le profil, le retard du GPS est rattrapé **le long du tracé**, virages compris : la marque ne file plus tout droit hors de la route. Il revient à sa portée une fois le sommet passé. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Silhouette au jaune du Karoo, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
-| **Tableau gravel** | graphique, plein écran | Le tableau de bord en version gravel, d'après une maquette du coureur : vitesse, puissance et fréquence cardiaque l'une sous l'autre sur le tiers gauche, à la couleur de leur zone ; la carte à droite sur toute la hauteur ; en bas, le profil de ce qui arrive, à la même hauteur que sur le tableau de bord (Climber dans une côte), avec le rapport engagé en haut à droite sur fond jaune. Un appui en **haut** change l'échelle de la carte, en **bas** la portée du profil. |
-| **Tableau Edge** | graphique, plein écran | Le champ « Écran Edge » que le coureur s'est fait sur son Garmin, repris pour le Karoo. Il suit le thème réglé sur l'appareil : clair, au fond blanc cassé de l'Edge, ou sombre, au fond du Karoo. Chiffres en Saira Condensed ExtraBold. Vitesse et sa moyenne ; puissance 3 s et sa moyenne, fréquence cardiaque et cadence, à la couleur de leur zone ; puis distance, D+ restant (celui du profil quand le Karoo répond zéro), pente, distance restante, **prochain virage** — flèche et distance, celui que le tableau de guidage déduit du fond de carte, à moins d'un kilomètre — et heure d'arrivée. Quand le ClimbPro du Karoo annonce une montée, le profil de montée remplace les six cases du bas ; une côte de l'itinéraire qu'il ne compte pas les laisse en place. |
-| **Tableau de guidage** | graphique, plein écran | Un second tableau de bord qui donne la **priorité au guidage**. En haut, vitesse, puissance et fréquence cardiaque à la couleur de leur zone ; en bas, le profil de la portée réglée, en jaune devant le coureur et en simple crête derrière lui, avec le kilométrage au compteur en haut du bandeau, les points d'intérêt. Au milieu, **une seule chose, la plus urgente** : un **carrefour** à moins de 150 m (schéma des voies, itinéraire en bleu, « 2e à droite », barre d'approche et deux bips, à 150 m puis à 40 m), sinon la **côte en cours** (le Climber du tableau de bord redessiné : profil du pied au sommet aux couleurs de pente, hachuré derrière soi, points d'intérêt, pente des 600 m qui viennent ; en bas, pente, VAM, distance au sommet et D+ restant), sinon la **carte**, dessinée simplement, avec la prochaine manœuvre en cartouche. Le Karoo ne donnant aucune instruction de virage aux extensions, les carrefours sont déduits du tracé croisé avec le fond de carte hors ligne : hors de la zone couverte, pas de vue carrefour, et les ronds-points ne sont pas traités à part. Un appui sur le **haut** change l'échelle de la carte, sur le **bas** la portée du profil. |
+| **Tableau gravel** | graphique, plein écran | *Mis de côté avec le fond de carte : plus proposé sur le Karoo.* Le tableau de bord en version gravel, d'après une maquette du coureur : vitesse, puissance et fréquence cardiaque l'une sous l'autre sur le tiers gauche, à la couleur de leur zone ; la carte à droite sur toute la hauteur ; en bas, le profil de ce qui arrive, à la même hauteur que sur le tableau de bord (Climber dans une côte), avec le rapport engagé en haut à droite sur fond jaune. Un appui en **haut** change l'échelle de la carte, en **bas** la portée du profil. |
+| **Tableau Edge** | graphique, plein écran | Le champ « Écran Edge » que le coureur s'est fait sur son Garmin, repris pour le Karoo. Il suit le thème réglé sur l'appareil : clair, au fond blanc cassé de l'Edge, ou sombre, au fond du Karoo. Chiffres en Saira Condensed ExtraBold. Vitesse et sa moyenne ; puissance 3 s et sa moyenne, fréquence cardiaque et cadence, à la couleur de leur zone ; puis distance, D+ restant (celui du profil quand le Karoo répond zéro), pente, distance restante, température et heure d'arrivée. Quand le ClimbPro du Karoo annonce une montée, le profil de montée remplace les six cases du bas ; une côte de l'itinéraire qu'il ne compte pas les laisse en place. |
+| **Tableau de guidage** | graphique, plein écran | *Mis de côté avec le fond de carte : plus proposé sur le Karoo.* Un second tableau de bord qui donne la **priorité au guidage**. En haut, vitesse, puissance et fréquence cardiaque à la couleur de leur zone ; en bas, le profil de la portée réglée, en jaune devant le coureur et en simple crête derrière lui, avec le kilométrage au compteur en haut du bandeau, les points d'intérêt. Au milieu, **une seule chose, la plus urgente** : un **carrefour** à moins de 150 m (schéma des voies, itinéraire en bleu, « 2e à droite », barre d'approche et deux bips, à 150 m puis à 40 m), sinon la **côte en cours** (le Climber du tableau de bord redessiné : profil du pied au sommet aux couleurs de pente, hachuré derrière soi, points d'intérêt, pente des 600 m qui viennent ; en bas, pente, VAM, distance au sommet et D+ restant), sinon la **carte**, dessinée simplement, avec la prochaine manœuvre en cartouche. Le Karoo ne donnant aucune instruction de virage aux extensions, les carrefours sont déduits du tracé croisé avec le fond de carte hors ligne : hors de la zone couverte, pas de vue carrefour, et les ronds-points ne sont pas traités à part. Un appui sur le **haut** change l'échelle de la carte, sur le **bas** la portée du profil. |
 | **Profil de montée** | graphique | Le bandeau du bas du tableau de bord, seul : ce qui arrive sur la portée réglée, et **dans une côte** la côte entière du pied au sommet, recalée sur le ClimbPro du Karoo, avec la distance et le dénivelé jusqu'au sommet et la pente des 600 m qui viennent. |
 | **Vitesse + transmission** | graphique, case standard | La vitesse sur 3 s, à la couleur de son écart à la moyenne, et le rapport engagé en schéma, comme sur le tableau de bord. Côte à côte dans une case standard, l'une sur l'autre dans une case plus haute. |
 | **FC + puissance** | graphique, case standard | La fréquence cardiaque et la puissance sur 3 s, chacune sur l'aplat de sa zone, à la même taille de chiffres. |
@@ -217,10 +223,6 @@ prochaine côte, prochain point), puis les réglages, rangés par ce qu'ils touc
 ligne nomme les champs concernés : un réglage dont on ne sait pas ce qu'il change se laisse
 dans son état d'usine, ce qui revient à ne pas l'avoir écrit.
 
-**Tableau de bord**
-
-- minicarte plutôt que profil dans la moitié haute.
-
 **Ravitaillement**
 
 - ne compter que les points d'eau. Décoché — c'est le défaut — commerces, stations-service,
@@ -257,7 +259,8 @@ par le CI et publié en Release.
 Après l'installation, les champs apparaissent dans **Profils → une page → ajouter un champ de
 données → extension Guidage**.
 
-Le fond de carte voyage **dans** l'APK et se déballe au premier démarrage : rien à copier sur
+L'APK n'embarque plus de fond de carte : il est mis de côté avec les champs qui s'en servent.
+Quand il l'embarquait, la carte se déballait au premier démarrage, sans rien à copier sur
 l'appareil.
 
 Ce chemin ne sert **qu'une fois** : les versions suivantes s'installent depuis le Karoo, par un
@@ -265,7 +268,8 @@ appui long sur l'icône de l'extension puis **Mise à jour**.
 
 ## Licence et attribution
 
-Le fond de carte embarqué dans l'APK est dérivé de données **OpenStreetMap** :
+Le fond de carte — mis de côté pour l'instant, l'APK ne l'embarque plus — est dérivé de
+données **OpenStreetMap** :
 
 > © les contributeurs OpenStreetMap — https://www.openstreetmap.org/copyright
 
