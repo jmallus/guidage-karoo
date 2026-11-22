@@ -55,18 +55,18 @@ voyagent ensemble.
 | Case | Grand chiffre | À côté | Aplat |
 | --- | --- | --- | --- |
 | **Moyenne FC** | fréquence moyenne | maximum de la sortie | couleur de la zone où tombe la moyenne |
-| **Moyenne Power** | moyenne | normalisée | — |
+| **Moyenne Power** | moyenne | normalisée | couleur de la zone de puissance où tombe la moyenne |
 | **Heure d'arrivée** | heure estimée | coucher du soleil | vert, jaune ou rouge selon qu'on arrive avant la nuit, tout juste, ou après |
 | **Dénivelé restant** | déjà monté | restant (celui du Karoo, ou celui du profil de l'itinéraire quand le Karoo répond zéro) | — |
-| **Zones FC** | zone dominante | temps qu'on y a passé | — |
+| **Zones FC** | zone dominante | temps qu'on y a passé | — ; en pied de case, la barre empilée des zones, dans leur ordre |
 | **Réserve W′** | part restante | kilojoules | — |
 | **Temps d'arrêt** | temps en selle | temps arrêté | — |
 | **Batterie** | charge | charge projetée à l'arrivée | vert, jaune ou rouge selon ce qu'il restera à l'arrivée |
 
 Elles reprennent la police et la disposition de Ride + Climb : le libellé en haut à gauche,
 le grand chiffre en Saira Condensed ExtraBold, et le second sur la même ligne, son nom
-au-dessus. Rien d'autre — ni icône, ni mot, ni barre : à 238 × 126, la place qu'a une case
-sur le Karoo 3, tout cela écrasait le chiffre.
+au-dessus. Ni icône ni mot du bas, et une seule barre, celle des zones de FC : à 238 × 126,
+la place qu'a une case sur le Karoo 3, le reste écrasait le chiffre.
 
 Une d'entre elles n'est **pas** un nombre du Karoo rangé autrement, mais un calcul de
 l'extension, fait localement et sans réseau comme tout le reste :

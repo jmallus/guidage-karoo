@@ -11,6 +11,9 @@ import io.github.jmallus.guidage.core.Contrast
 import kotlin.math.max
 import kotlin.math.min
 
+/** Une part de la barre des zones : sa couleur et ce qu'elle occupe, de 0 à 1. */
+data class LevelSlice(val share: Float, val color: Int)
+
 /**
  * Ce qu'affiche une case de bilan.
  *
@@ -31,6 +34,11 @@ data class LevelFieldModel(
     val referenceValue: String? = null,
     /** Aplat de fond, quand il y a un verdict à porter. */
     val background: Int? = null,
+    /**
+     * La barre empilée des zones de FC, en pied de case : la seule barre que le coureur ait
+     * gardée, parce que la place du gros de la barre dit le niveau de la sortie d'un coup d'œil.
+     */
+    val slices: List<LevelSlice> = emptyList(),
     /** Message qui remplace tout quand rien n'est mesurable. */
     val emptyMessage: String? = null,
 )
@@ -80,8 +88,13 @@ object LevelRenderer {
         canvas.drawText(model.label, left, ligneLibelle, libelle)
 
         val haut = ligneLibelle + ESPACE_SOUS_LIBELLE * k
-        val bas = area.bottom - INSET_Y * k
+        // La barre des zones prend le pied de la case, retirée avant de dimensionner le chiffre.
+        val hauteurBarre = if (model.slices.isEmpty() || model.emptyMessage != null) 0f else BARRE * k
+        val bas = area.bottom - INSET_Y * k - if (hauteurBarre > 0f) hauteurBarre + ESPACE_BARRE * k else 0f
         if (bas <= haut) return
+        if (hauteurBarre > 0f) {
+            dessinerBarre(canvas, model.slices, left, area.bottom - INSET_Y * k - hauteurBarre, right, area.bottom - INSET_Y * k)
+        }
 
         model.emptyMessage?.let { message ->
             val p = paint(corpsLibelle * 1.2f, encreLibelle, LIBELLE)
@@ -136,6 +149,22 @@ object LevelRenderer {
 
     private val bornes = Rect()
 
+    /** La barre empilée, dans l'ordre des zones : c'est la place du gros qui se lit. */
+    private fun dessinerBarre(canvas: Canvas, slices: List<LevelSlice>, left: Float, top: Float, right: Float, bottom: Float) {
+        val largeur = right - left
+        if (largeur <= 0f || bottom <= top) return
+        val fond = Paint(Paint.ANTI_ALIAS_FLAG)
+        var x = left
+        slices.forEach { part ->
+            val bout = x + largeur * part.share.coerceIn(0f, 1f)
+            if (bout - x >= PART_MINI) {
+                fond.color = part.color
+                canvas.drawRect(x, top, bout, bottom, fond)
+            }
+            x = bout
+        }
+    }
+
     private fun paint(size: Float, color: Int, typeface: Typeface) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = size
         this.color = color
@@ -161,6 +190,11 @@ object LevelRenderer {
     private const val UNIT_GAP = 3f
     private const val ECART = 14f
     private const val ESPACE_NOM = 5f
+    private const val BARRE = 14f
+    private const val ESPACE_BARRE = 6f
+
+    /** Une zone plus étroite que cela, en px, ne se dessine pas : ce serait un trait parasite. */
+    private const val PART_MINI = 2f
 
     /** Hauteur d'encre du second chiffre, en part de la place sous le libellé. */
     private const val PART_REFERENCE = 0.42f

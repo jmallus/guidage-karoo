@@ -12,6 +12,7 @@ import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideData
 import io.github.jmallus.guidage.ui.KarooColors
 import io.github.jmallus.guidage.ui.LevelFieldModel
+import io.github.jmallus.guidage.ui.LevelSlice
 import io.github.jmallus.guidage.ui.NightRenderer
 import io.github.jmallus.guidage.ui.NightVerdict
 import io.github.jmallus.guidage.ui.PreviewData
@@ -49,7 +50,7 @@ enum class Bilan(
     /** Dénivelé monté et restant. */
     DENIVELE("bilan-denivele"),
 
-    /** La zone où il s'est le plus passé de temps, et ce temps. */
+    /** La zone où il s'est le plus passé de temps, ce temps, et la barre des zones. */
     ZONES("bilan-zones"),
 
     /**
@@ -141,10 +142,11 @@ object LevelModels {
     }
 
     /**
-     * La puissance : la moyenne en grand, la normalisée à côté.
+     * La puissance : la moyenne en grand, la normalisée à côté, l'aplat de la zone de la moyenne.
      *
      * Leur écart dit si la sortie fut lisse ou hachée : il se lit d'un coup d'œil, les deux
-     * chiffres étant voisins sur la même ligne.
+     * chiffres étant voisins sur la même ligne. L'aplat est celui des zones de puissance du
+     * Karoo, comme le cœur porte celui des zones cardiaques.
      */
     private fun puissance(context: Context, data: RideData): LevelFieldModel {
         val level = data.level
@@ -155,6 +157,7 @@ object LevelModels {
             unit = context.getString(R.string.unit_watt),
             referenceLabel = context.getString(R.string.field_level_power_normalized),
             referenceValue = level.normalizedPower?.let { entier(it) },
+            background = moyenne?.let { Zones.powerColor(it, data.powerZones) },
             emptyMessage = if (moyenne == null) context.getString(R.string.field_level_no_power) else null,
         )
     }
@@ -267,8 +270,8 @@ object LevelModels {
     /**
      * Le temps par zone : la zone où il s'est le plus passé, et ce temps.
      *
-     * Elle a porté la barre empilée des cinq zones, illisible dans une case de 238 × 126 :
-     * il reste la zone dominante, qui dit seule le niveau de la sortie.
+     * La barre empilée des zones est en pied de case, dans leur ordre et non dans celui des
+     * durées : c'est la **place** du gros de la barre qui dit le niveau de la sortie.
      */
     private fun zones(context: Context, data: RideData): LevelFieldModel {
         val level = data.level
@@ -286,6 +289,9 @@ object LevelModels {
             value = context.getString(R.string.field_level_zones_value, dominante),
             referenceLabel = context.getString(R.string.field_level_zones_spent),
             referenceValue = duree(context, secondes),
+            slices = level.heartRateZoneShares.mapIndexed { index, part ->
+                LevelSlice(part, Zones.HEART_RATE_COLORS.getOrElse(index) { Zones.HEART_RATE_COLORS.last() })
+            },
         )
     }
 

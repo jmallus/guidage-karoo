@@ -12,6 +12,7 @@ class RideLevelTest {
     fun `la zone dominante est celle qui a le plus de temps`() {
         val niveau = RideLevel(heartRateZoneSeconds = listOf(300.0, 600.0, 100.0))
 
+        assertEquals(listOf(0.3f, 0.6f, 0.1f), niveau.heartRateZoneShares)
         assertEquals(2, niveau.dominantHeartRateZone)
     }
 
@@ -19,6 +20,7 @@ class RideLevelTest {
     fun `sans temps mesure il n'y a pas de zone dominante`() {
         val vide = RideLevel(heartRateZoneSeconds = listOf(0.0, 0.0))
 
+        assertEquals(emptyList<Float>(), vide.heartRateZoneShares)
         assertNull(vide.dominantHeartRateZone)
         assertNull(RideLevel.UNKNOWN.dominantHeartRateZone)
     }

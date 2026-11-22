@@ -63,6 +63,14 @@ data class RideLevel(
             return (reste / taille).toFloat().coerceIn(0f, 1f)
         }
 
+    /** Part de chaque zone dans le temps mesuré, ou liste vide si rien n'a été mesuré. */
+    val heartRateZoneShares: List<Float>
+        get() {
+            val total = heartRateZoneSeconds.sum()
+            if (total <= 0.0) return emptyList()
+            return heartRateZoneSeconds.map { (it / total).toFloat() }
+        }
+
     /** Rang de la zone la plus occupée (1 = zone 1), ou null si rien n'a été mesuré. */
     val dominantHeartRateZone: Int?
         get() = heartRateZoneSeconds
