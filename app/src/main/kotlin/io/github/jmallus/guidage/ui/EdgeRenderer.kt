@@ -216,11 +216,16 @@ object EdgeRenderer {
             val largeurUnite = unite?.let { texte.measureText(it) + UNIT_GAP * k } ?: 0f
             texte.typeface = police
             texte.textSize = 100f
-            texte.getTextBounds("0", 0, 1, bornes)
-            val encreParPoint = bornes.height() / 100f
+            // L'encre va du haut des chiffres au bas de la virgule, qui descend sous la ligne.
+            // Mesurée sur les chiffres seuls, une valeur qui remplit sa case — la vitesse, sur
+            // l'appareil — posait sa virgule sur le filet du dessous. La descente est réservée
+            // même sans virgule, pour que « 40 » et « 40,1 » restent à la même hauteur.
+            texte.getTextBounds(GABARIT, 0, GABARIT.length, bornes)
+            val hautParPoint = -bornes.top / 100f
+            val encreParPoint = (bornes.bottom - bornes.top) / 100f
             texte.textSize = min(tailleMax, zone.height() / encreParPoint)
             while (texte.textSize > 8f && texte.measureText(t) + largeurUnite > zone.width()) texte.textSize -= 1f
-            val ligne = zone.centerY() + texte.textSize * encreParPoint / 2
+            val ligne = zone.centerY() - texte.textSize * encreParPoint / 2 + texte.textSize * hautParPoint
             texte.color = if (t == VIDE) style.muet else couleur
             val largeurValeur = texte.measureText(t)
             val x = if (aDroite) zone.right - largeurUnite - largeurValeur else zone.left
@@ -278,4 +283,7 @@ object EdgeRenderer {
     private const val LIGNE_LIBELLE = 26f
     private const val MOY = "MOY"
     private const val VIDE = "--"
+
+    /** De quoi mesurer l'encre d'une valeur : la hauteur d'un chiffre, la descente d'une virgule. */
+    private const val GABARIT = "0,"
 }

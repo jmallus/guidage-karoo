@@ -16,6 +16,7 @@ import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.karoo.RiderLocation
 import io.github.jmallus.guidage.ui.CentreGuidage
+import io.github.jmallus.guidage.ui.EdgeRenderer
 import io.github.jmallus.guidage.ui.FieldPalette
 import io.github.jmallus.guidage.ui.KarooColors
 import io.github.jmallus.guidage.ui.PreviewData
@@ -227,6 +228,35 @@ class SimulateurTest {
         for (pixel in pixelsDe(image)) if (pixel == KarooColors.HIGH_VIS_GREEN) verts++
 
         assertEquals("le vert vif se pose sur $verts pixels", 0, verts)
+    }
+
+    /**
+     * La virgule de la vitesse ne descend pas sur le filet du dessous.
+     *
+     * Sur l'appareil, la vitesse remplit la hauteur de sa case, et la virgule — qui descend
+     * sous la ligne des chiffres — mordait sur le filet. À la taille de référence, la taille
+     * plafonnée des chiffres laissait de la marge et cachait le défaut : le contrôle passe
+     * donc aussi par des champs plus bas et plus larges, où la hauteur commande.
+     */
+    @Test
+    fun `la virgule de la vitesse reste dans sa case`() {
+        val simulateur = Simulateur(context)
+        val modele = simulateur.modeleEdge(simulateur.sortie.duree * 0.3).copy(vitesse = "47,1")
+        for ((w, h) in listOf(478 to 642, 478 to 560, 478 to 480, 600 to 642, 640 to 560)) {
+            // Clair : son fond est peint, l'encre noire s'y distingue sans ambiguïté.
+            val image = EdgeRenderer.render(context, w, h, modele, sombre = false)
+            val k = minOf(w / 478f, h / 642f)
+            val pad = 4f * k
+            val gap = 16f * k
+            val largeur = w - 2 * pad
+            val largeurVitesse = largeur - largeur * 38 / 100 - gap
+            val basCase = pad + (h - 2 * pad - 3 * gap) * 5 / 21
+            // Entre le bas de la case et le filet, qui est au milieu de l'espace.
+            val lignes = (basCase.toInt() + 1)..(basCase + gap / 2 - maxOf(2f * k, 1f)).toInt() - 1
+            val colonnes = pad.toInt()..(pad + largeurVitesse).toInt()
+            val encre = lignes.sumOf { y -> colonnes.count { x -> (image.getPixel(x, y) shr 16 and 0xFF) < 0x80 } }
+            assertEquals("en $w × $h, la vitesse déborde sur $encre pixels sous sa case", 0, encre)
+        }
     }
 
     /**
