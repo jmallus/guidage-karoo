@@ -17,7 +17,7 @@ relevés sur la légende que Hammerhead publie pour le Climber du Karoo ; ils ne
 pas de Barberfish, qui appliquait aux pentes la palette des zones de puissance. Les icônes
 des cases de bilan ic_bilan_* sont dessinées pour ce projet.
 
-Le « Tableau Edge » écrit ses chiffres en Saira Condensed ExtraBold
+Le champ « Ride + Climb » écrit ses chiffres en Saira Condensed ExtraBold
 (app/src/main/res/font/saira_condensed_extrabold.ttf), embarquée sans modification :
 Copyright 2016 The Saira Project Authors, nom de police réservé « Saira », distribuée sous
 SIL Open Font License 1.1. Le texte de la licence est dans licences/OFL-Saira.txt.

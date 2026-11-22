@@ -52,17 +52,7 @@
         graphical="true"
         icon="@drawable/ic_profile" />
 
-    <DataType
-        typeId="poi"
-        displayName="@string/field_poi_name"
-        description="@string/field_poi_description"
-        graphical="false"
-        icon="@drawable/ic_poi" />
-
-    <!--
-      Le bandeau du bas du tableau de bord, seul, et deux paires de ses cases : de quoi
-      composer une page à soi avec les dessins du tableau de bord.
-    -->
+    <!-- Le profil de montée seul, le même que celui du Tableau Edge dans une côte. -->
     <DataType
         typeId="montee"
         displayName="@string/field_climb_name"
@@ -70,23 +60,9 @@
         graphical="true"
         icon="@drawable/ic_climb" />
 
-    <DataType
-        typeId="vitesse-transmission"
-        displayName="@string/field_speed_gears_name"
-        description="@string/field_speed_gears_description"
-        graphical="true"
-        icon="@drawable/ic_gears" />
-
-    <DataType
-        typeId="coeur-puissance"
-        displayName="@string/field_heart_power_name"
-        description="@string/field_heart_power_description"
-        graphical="true"
-        icon="@drawable/ic_heart_rate" />
-
     <!--
-      Les six cases de bilan. Elles tiennent dans une case ordinaire, et une page en porte
-      dix : c'est pour cela qu'elles existent séparément plutôt qu'en une page unique.
+      Les cases de bilan. Elles tiennent dans une case ordinaire, et se posent une à une
+      sur une page : c'est pour cela qu'elles existent séparément plutôt qu'en une page unique.
     -->
     <DataType
         typeId="bilan-coeur"
@@ -117,13 +93,6 @@
         icon="@drawable/ic_bilan_denivele" />
 
     <DataType
-        typeId="bilan-intensite"
-        displayName="@string/field_level_intensity_name"
-        description="@string/field_level_intensity_description"
-        graphical="true"
-        icon="@drawable/ic_bilan_intensite" />
-
-    <DataType
         typeId="bilan-zones"
         displayName="@string/field_level_zones_name"
         description="@string/field_level_zones_description"
@@ -136,13 +105,6 @@
         description="@string/field_level_reserve_description"
         graphical="true"
         icon="@drawable/ic_bilan_reserve" />
-
-    <DataType
-        typeId="bilan-derive"
-        displayName="@string/field_level_drift_name"
-        description="@string/field_level_drift_description"
-        graphical="true"
-        icon="@drawable/ic_bilan_derive" />
 
     <DataType
         typeId="bilan-arrets"
@@ -158,7 +120,4 @@
         graphical="true"
         icon="@drawable/ic_bilan_batterie" />
 
-    <BonusAction
-        actionId="prochaine-cote"
-        displayName="@string/action_next_climb" />
 </ExtensionInfo>

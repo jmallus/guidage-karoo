@@ -230,13 +230,13 @@ jobs:
             # apostrophes, qu'un assemblage à la main casserait tôt ou tard.
             jq -n \
               --argjson captures "$captures" \
-              --arg label "Guidage" \
+              --arg label "Ride + Climb" \
               --arg paquet "io.github.jmallus.guidage" \
               --arg apk "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/guidage-karoo.apk" \
               --arg version "$version" \
               --argjson code "$(( 1 + GITHUB_RUN_NUMBER ))" \
               --arg dev "jmallus" \
-              --arg desc "Guidage d'itinéraire hors ligne pour Karoo : Tableau Edge plein écran, profil de montée, profil à venir à échelle comprimée, annonces de ravitaillement et dix cases de bilan de sortie. Aucun accès réseau." \
+              --arg desc "Guidage d'itinéraire hors ligne pour Karoo : Ride + Climb plein écran, profil de montée, profil à venir à échelle comprimée, annonces de ravitaillement et cases de bilan de sortie. Aucun accès réseau." \
               --arg notes "$changements" \
               '{label: $label, packageName: $paquet, latestApkUrl: $apk,
                 latestVersion: $version, latestVersionCode: $code,
@@ -246,7 +246,7 @@ jobs:
             cat manifest.json
 
             gh release create "$GITHUB_REF_NAME" guidage-karoo.apk manifest.json \
-              --title "Guidage $GITHUB_REF_NAME" --notes-file notes.md \
+              --title "Ride + Climb $GITHUB_REF_NAME" --notes-file notes.md \
               || gh release upload "$GITHUB_REF_NAME" guidage-karoo.apk manifest.json --clobber
           else
             # Release « latest » mise à jour en place : le lien ne change jamais, et on
@@ -258,7 +258,7 @@ jobs:
             else
               gh release create latest guidage-karoo.apk \
                 --target "$GITHUB_SHA" --prerelease \
-                --title "Guidage — dernière construction" --notes-file notes.md
+                --title "Ride + Climb — dernière construction" --notes-file notes.md
             fi
           fi
         env:

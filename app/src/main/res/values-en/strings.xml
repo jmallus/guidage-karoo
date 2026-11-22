@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Guidance</string>
-    <string name="extension_name">Guidance</string>
+    <string name="app_name">Ride + Climb</string>
+    <string name="extension_name">Ride + Climb</string>
 
     <!-- Data fields -->
     <string name="field_profile_name">Route profile ahead</string>
     <string name="field_profile_description">Elevation profile of the route ahead, in Karoo yellow, climbs annotated with their average gradient.</string>
-    <string name="field_poi_name">Next point of interest</string>
-    <string name="field_poi_description">Distance to the next point of interest on the route.</string>
 
     <string name="field_dashboard_name">Dashboard</string>
     <string name="field_dashboard_description">Full-screen field: route minimap oriented track-up, speed, power, heart rate, cadence, drivetrain, distance remaining, and across the whole bottom the profile of what is coming. Speed, power and heart rate take their zone colour. Tap the field to change the scale.</string>
@@ -33,13 +31,9 @@
     <string name="field_no_climb_ahead">No climb ahead</string>
 
     <!-- Alerts -->
-    <string name="alert_climb_title">Climb in %1$s</string>
-    <string name="alert_climb_detail">%1$s at %2$s • +%3$s</string>
-    <string name="alert_summit_title">Summit in %1$s</string>
     <string name="alert_poi_detail">In %1$s</string>
     <string name="alert_resupply_title">Last resupply</string>
     <string name="alert_resupply_detail">%1$s — nothing for %2$s</string>
-    <string name="action_next_climb">Announce next climb</string>
 
     <!-- Points of interest -->
     <string name="poi_generic">Point of interest</string>
@@ -114,18 +108,14 @@
     <string name="unit_watt"> W</string>
 
     <string name="field_climb_name">Climb profile</string>
-    <string name="field_climb_description">The bottom band of the dashboard, in a field of its own: what is coming over the set range, and on a climb the whole climb from foot to summit, with distance and elevation to the top and the gradient of the next 600 m, like the Karoo ClimbPro.</string>
-    <string name="field_speed_gears_name">Speed + gears</string>
-    <string name="field_speed_gears_description">3 s speed, coloured by its gap to the average, and the gear engaged as a diagram, as on the dashboard. Side by side in a wide tile, stacked in a tall one.</string>
-    <string name="field_heart_power_name">HR + power</string>
-    <string name="field_heart_power_description">Heart rate and 3 s power, each on the colour of its zone, as on the dashboard. Side by side in a wide tile, stacked in a tall one.</string>
+    <string name="field_climb_description">The climb profile on its own, the same one Ride + Climb shows on a climb: what is coming over the set range, and on a climb the whole climb from foot to summit, with distance and elevation to the top and the gradient of the next 600 m, like the Karoo ClimbPro.</string>
     <string name="pair_label_gear">GEAR</string>
-    <string name="field_level_heart_name">Summary · heart</string>
+    <string name="field_level_heart_name">Average HR</string>
     <string name="field_level_heart_description">The ride\'s average heart rate, with the maximum reached right beside it, on a flat of the colour of the zone the average falls into. An average alone says nothing: it is its distance from the maximum that tells you whether the ride was steady or made of hard efforts. Fits in an ordinary tile.</string>
     <string name="field_level_heart_max">MAX</string>
     <string name="field_level_no_heart">No heart rate monitor</string>
 
-    <string name="field_level_power_name">Summary · power</string>
+    <string name="field_level_power_name">Average power</string>
     <string name="field_level_power_description">The ride\'s average power and, beside it, the normalized one — the one that counts surges for what they cost. Their ratio is spelled out: smooth, rolling or choppy. Needs a power meter. Fits in an ordinary tile.</string>
     <string name="field_level_power_normalized">NORMALIZED</string>
     <string name="field_level_power_smooth">SMOOTH · VI %1$s</string>
@@ -133,7 +123,7 @@
     <string name="field_level_power_choppy">CHOPPY · VI %1$s</string>
     <string name="field_level_no_power">No power meter</string>
 
-    <string name="field_level_arrival_name">Summary · arrival</string>
+    <string name="field_level_arrival_name">Arrival time</string>
     <string name="field_level_arrival_description">The estimated arrival time, the sunset time beside it, and a green, yellow or red flat depending on whether you get there before dark, only just, or after. Sunset is computed offline from your position. Needs a loaded route. Fits in an ordinary tile.</string>
     <string name="field_level_arrival_sunset">SUNSET</string>
     <string name="field_level_arrival_ahead">%1$d MIN TO SPARE</string>
@@ -141,21 +131,13 @@
     <string name="field_level_arrival_ahead_hours">%1$d H %2$02d TO SPARE</string>
     <string name="field_level_arrival_behind_hours">%1$d H %2$02d LATE</string>
 
-    <string name="field_level_ascent_name">Summary · ascent</string>
+    <string name="field_level_ascent_name">Elevation remaining</string>
     <string name="field_level_ascent_description">The elevation already climbed, what is left to the finish, and a bar showing the share done. Twelve hundred metres says nothing until you know whether it is a third or nine tenths. The remainder needs a loaded route. Fits in an ordinary tile.</string>
     <string name="field_level_ascent_remaining">LEFT</string>
     <string name="field_level_no_ascent">Waiting for elevation</string>
 
-    <string name="field_level_intensity_name">Summary · intensity</string>
-    <string name="field_level_intensity_description">The ride\'s intensity factor and its training load, with the word that names them: endurance, tempo, threshold or race. Both numbers are the Karoo\'s own, nothing is recomputed. Needs a power meter and an FTP set. Fits in an ordinary tile.</string>
-    <string name="field_level_intensity_load">TSS</string>
-    <string name="field_level_intensity_endurance">ENDURANCE</string>
-    <string name="field_level_intensity_tempo">TEMPO</string>
-    <string name="field_level_intensity_threshold">THRESHOLD</string>
-    <string name="field_level_intensity_race">RACE</string>
-    <string name="field_level_no_intensity">Waiting for intensity</string>
 
-    <string name="field_level_zones_name">Summary · zones</string>
+    <string name="field_level_zones_name">HR zones</string>
     <string name="field_level_zones_description">Time spent in each heart rate zone since the start, as a stacked bar in zone order, with the dominant zone writ large. Where the bulk of the bar sits tells you the level of the ride faster than any number. Needs a heart rate monitor and zones set. Fits in an ordinary tile.</string>
     <string name="field_level_zones_label">TIME IN ZONE</string>
     <string name="field_level_zones_value">Z%1$d</string>
@@ -165,7 +147,7 @@
     <string name="field_level_no_zones">No zones measured</string>
 
     <string name="unit_percent"> %</string>
-    <string name="field_level_reserve_name">Summary · W′ reserve</string>
+    <string name="field_level_reserve_name">W′ reserve</string>
     <string name="field_level_reserve_description">What is left of the anaerobic reserve — the critical power model, computed by the extension and not published by the Karoo. Above critical power it drains; below, it recharges all the faster for being low. Critical power comes from the FTP set on the device and the reserve from your weight; both can be corrected in the app settings. Read it as a relative gauge, not as an exact number of joules. Needs a power meter. Fits in an ordinary tile.</string>
     <string name="field_level_reserve_label">W′ RESERVE</string>
     <string name="field_level_reserve_left">LEFT</string>
@@ -173,22 +155,14 @@
     <string name="field_level_reserve_cp">CP %1$d W</string>
     <string name="field_level_no_reserve">No critical power known</string>
 
-    <string name="field_level_drift_name">Summary · drift</string>
-    <string name="field_level_drift_description">What the same effort costs the heart late in the ride compared with early on: the power-to-heart-rate ratio of the second half against the first. If it takes more beats for the same watts, you are paying for it. No head unit shows this while riding — you find it afterwards, when it is too late to act on it. The extension computes it itself, over effort time only. Needs a power meter and a heart rate monitor, and stays quiet below half an hour of effort. Fits in an ordinary tile.</string>
-    <string name="field_level_drift_label">PW:HR DRIFT</string>
-    <string name="field_level_drift_over">OVER</string>
-    <string name="field_level_drift_solid">SOLID</string>
-    <string name="field_level_drift_drifting">DRIFTING</string>
-    <string name="field_level_drift_cooked">COOKED</string>
-    <string name="field_level_no_drift">Less than half an hour of effort</string>
 
-    <string name="field_level_stops_name">Summary · stops</string>
+    <string name="field_level_stops_name">Stop time</string>
     <string name="field_level_stops_description">Time spent riding, time left at stops beside it, and a bar showing the share. The Karoo publishes both durations, never their difference — and the difference is what decides a brevet. Nobody looks at it before the finish, where it is too late. Fits in an ordinary tile.</string>
     <string name="field_level_stops_label">RIDING</string>
     <string name="field_level_stops_stopped">STOPPED</string>
     <string name="field_level_no_stops">Ride not started</string>
 
-    <string name="field_level_battery_name">Summary · battery</string>
+    <string name="field_level_battery_name">Battery</string>
     <string name="field_level_battery_description">The device\'s charge, and what will be left of it at the finish given how fast it is going down. The level alone answers nothing: forty per cent is comfortable an hour out and hopeless six hours out. A green, yellow or red flat carries the verdict. The projection needs a loaded route; without one, the tile shows the charge and its slope. Fits in an ordinary tile.</string>
     <string name="field_level_battery_label">BATTERY</string>
     <string name="field_level_battery_at_arrival">AT FINISH</string>
@@ -206,10 +180,9 @@
     <string name="field_level_power_label">AVERAGE POWER</string>
     <string name="field_level_arrival_label">ARRIVAL</string>
     <string name="field_level_ascent_label">ASCENT</string>
-    <string name="field_level_intensity_label">INTENSITY</string>
 
     <!-- The guidance dashboard: the screen that follows the road. -->
-    <string name="field_edge_name">Edge dashboard</string>
+    <string name="field_edge_name">Ride + Climb</string>
     <string name="field_edge_description">The Edge dashboard brought to the Karoo, light or dark following the theme set on the device: speed and its average, 3 s power and its average, heart rate, cadence, then distance, elevation gain remaining, grade, distance remaining, temperature and arrival time. On a climb, the climb profile replaces the six bottom cells.</string>
     <string name="edge_label_speed">SPEED</string>
     <string name="edge_label_power">POWER 3S</string>

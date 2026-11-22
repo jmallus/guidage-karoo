@@ -1,12 +1,8 @@
 package io.github.jmallus.guidage.extension
 
 import android.util.Log
-import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.AlertEngine
-import io.github.jmallus.guidage.core.Format
-import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.karoo.GuidanceProvider
-import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.karoo.RideDataProvider
 import io.github.jmallus.guidage.karoo.consumerFlow
 import io.github.jmallus.guidage.settings.SettingsRepository
@@ -20,7 +16,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
@@ -48,10 +43,8 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
         listOf(
             EdgeDataType(provider, rideDataProvider, settingsRepository, extension),
             ProfileDataType(provider, settingsRepository, extension),
-            PoiDataType(provider, extension),
             MonteeDataType(provider, rideDataProvider, settingsRepository, extension),
-        ) + Paire.entries.map { PaireDataType(it, provider, rideDataProvider, extension) } +
-            Bilan.entries.map { LevelDataType(it, provider, rideDataProvider, extension) }
+        ) + Bilan.entries.map { LevelDataType(it, provider, rideDataProvider, extension) }
     }
 
     override fun onCreate() {
@@ -109,47 +102,9 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
         }
     }
 
-    /** Action assignable à un bouton : annonce à la demande la prochaine côte. */
-    override fun onBonusAction(actionId: String) {
-        if (actionId != ACTION_NEXT_CLIMB) {
-            Log.w(TAG, "Unknown bonus action $actionId")
-            return
-        }
-        scope.launch {
-            val snapshot: GuidanceSnapshot = provider.snapshot.first()
-            val route = snapshot.state.route
-            val along = snapshot.state.distanceAlongRoute
-            val status = if (route != null && along != null) Guidance.climbStatus(route, along) else null
-
-            val alert = if (status == null) {
-                alertPresenter.build(
-                    id = "guidage-next-climb",
-                    icon = R.drawable.ic_climb,
-                    title = getString(R.string.field_no_climb_ahead),
-                    detail = null,
-                    background = R.color.alert_summit,
-                )
-            } else {
-                val distance = if (status.onClimb) status.distanceToTop else status.distanceToStart
-                alertPresenter.build(
-                    id = "guidage-next-climb",
-                    icon = R.drawable.ic_climb,
-                    title = getString(
-                        if (status.onClimb) R.string.alert_summit_title else R.string.alert_climb_title,
-                        Format.distance(distance, snapshot.units),
-                    ),
-                    detail = alertPresenter.climbDetail(status, snapshot.units),
-                    background = R.color.alert_climb,
-                )
-            }
-            karooSystem.dispatch(alert)
-        }
-    }
-
     companion object {
         /** Doit correspondre à l'attribut `id` de res/xml/extension_info.xml. */
         const val EXTENSION_ID = "guidage"
-        const val ACTION_NEXT_CLIMB = "prochaine-cote"
         private const val VERSION = "1.0"
         private const val TAG = "GuidageExtension"
     }

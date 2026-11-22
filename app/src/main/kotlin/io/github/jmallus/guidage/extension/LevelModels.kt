@@ -59,27 +59,16 @@ enum class Bilan(
     /** Dénivelé monté, restant, et la part faite en barre. */
     DENIVELE("bilan-denivele", R.drawable.ic_bilan_denivele),
 
-    /** Facteur d'intensité, charge, et le mot qui les nomme. */
-    INTENSITE("bilan-intensite", R.drawable.ic_bilan_intensite),
-
     /** Le temps par zone en barre empilée, et la zone où il s'est le plus passé. */
     ZONES("bilan-zones", R.drawable.ic_bilan_zones),
 
     /**
      * Ce qu'il reste de la réserve anaérobie.
      *
-     * La seule des sept qui soit un calcul et non un nombre du Karoo rangé autrement : le
+     * La seule qui soit un calcul et non un nombre du Karoo rangé autrement : le
      * modèle de puissance critique, tenu par l'extension au fil de la sortie.
      */
     RESERVE("bilan-reserve-w", R.drawable.ic_bilan_reserve),
-
-    /**
-     * La dérive aérobie : ce que le même effort coûte au cœur, à la fin par rapport au début.
-     *
-     * Calculée elle aussi par l'extension. C'est la seule des huit qui dise où en est le
-     * coureur plutôt que ce qu'il a fait.
-     */
-    DERIVE("bilan-derive", R.drawable.ic_bilan_derive),
 
     /** Le temps passé en selle, et celui qu'on a laissé aux arrêts. */
     ARRETS("bilan-arrets", R.drawable.ic_bilan_arrets),
@@ -104,12 +93,10 @@ object LevelModels {
             Bilan.PUISSANCE -> level.averagePower
             Bilan.ARRIVEE -> NightModels.assessment(snapshot, rideData, nowMillis)?.marginSeconds
             Bilan.DENIVELE -> level.elevationGain
-            Bilan.INTENSITE -> level.intensityFactor
             Bilan.ZONES -> level.dominantHeartRateZone?.toDouble()
             // En joules, non en pourcentage : c'est ce qui s'enregistre et se compare d'une
             // sortie à l'autre, le pourcentage dépendant d'une échelle qui peut changer.
             Bilan.RESERVE -> level.wPrimeBalance
-            Bilan.DERIVE -> level.drift?.ratio?.let { it * 100.0 }
             Bilan.ARRETS -> level.stoppedSeconds
             Bilan.BATTERIE -> level.batteryPercent
         }
@@ -134,10 +121,8 @@ object LevelModels {
             Bilan.PUISSANCE -> puissance(context, data)
             Bilan.ARRIVEE -> arrivee(context, snapshot, data, preview, nowMillis)
             Bilan.DENIVELE -> denivele(context, snapshot, data)
-            Bilan.INTENSITE -> intensite(context, data)
             Bilan.ZONES -> zones(context, data)
             Bilan.RESERVE -> reserve(context, data)
-            Bilan.DERIVE -> derive(context, data)
             Bilan.ARRETS -> arrets(context, data)
             Bilan.BATTERIE -> batterie(context, snapshot, data, preview, nowMillis)
         }.copy(icon = bilan.icon)
@@ -306,30 +291,6 @@ object LevelModels {
     private const val RESTANT_MINI_METRES = 5.0
 
     /**
-     * L'intensité : le facteur, la charge, et le mot qui les nomme.
-     *
-     * Ces deux nombres-là sont ceux du Karoo, calculés par lui : rien n'est refait ici. Ce que
-     * la case ajoute est le mot — un facteur de 0,74 est une sortie d'endurance soutenue, et
-     * c'est cela qu'on veut savoir en roulant, pas le nombre.
-     */
-    private fun intensite(context: Context, data: RideData): LevelFieldModel {
-        val level = data.level
-        val facteur = level.intensityFactor
-        return LevelFieldModel(
-            label = context.getString(R.string.field_level_intensity_label),
-            value = facteur?.let { decimales(it, 2) } ?: "--",
-            referenceLabel = level.trainingStressScore?.let { context.getString(R.string.field_level_intensity_load) },
-            referenceValue = level.trainingStressScore?.let { entier(it) },
-            caption = facteur?.let { context.getString(motDIntensite(it)) },
-            // Le mot porte la couleur du niveau, comme un aplat de zone en porterait une :
-            // « seuil » se lit alors sans être lu, à la teinte, ce qui est tout l'intérêt
-            // d'avoir un mot plutôt qu'un nombre.
-            captionColor = facteur?.let { couleurDIntensite(it) },
-            emptyMessage = if (facteur == null) context.getString(R.string.field_level_no_intensity) else null,
-        )
-    }
-
-    /**
      * Le temps par zone : la barre, et la zone où il s'est le plus passé.
      *
      * La barre garde l'ordre des zones et non celui des poids : c'est la **place** du gros de
@@ -394,33 +355,6 @@ object LevelModels {
                 LevelSlice(part, couleurDeReserve(part)),
                 LevelSlice(1f - part, RESTANT),
             ),
-        )
-    }
-
-    /**
-     * La dérive : ce que le même effort coûte au cœur, à la fin par rapport au début.
-     *
-     * Le chiffre en grand parce que son signe compte autant que sa valeur — une dérive
-     * négative n'est pas une anomalie, c'est un coureur qui s'est installé après
-     * l'échauffement. Le temps sur lequel le verdict repose est écrit à côté : à une heure
-     * d'effort il ne vaut pas grand-chose, à cinq il vaut beaucoup, et rien d'autre ne le dit.
-     */
-    private fun derive(context: Context, data: RideData): LevelFieldModel {
-        val label = context.getString(R.string.field_level_drift_label)
-        val derive = data.level.drift
-            ?: return LevelFieldModel(
-                label = label,
-                value = "--",
-                emptyMessage = context.getString(R.string.field_level_no_drift),
-            )
-        val pourcent = derive.ratio * 100.0
-        return LevelFieldModel(
-            label = label,
-            value = (if (pourcent >= 0) "+" else "−") + decimales(abs(pourcent), 1),
-            unit = context.getString(R.string.unit_percent),
-            referenceLabel = context.getString(R.string.field_level_drift_over),
-            referenceValue = duree(context, derive.seconds),
-            caption = context.getString(motDeDerive(derive.ratio)),
         )
     }
 
@@ -526,18 +460,6 @@ object LevelModels {
         return (secondes / 3_600.0).takeIf { it > 0.0 }
     }
 
-    /**
-     * Le mot de la dérive, aux seuils de Friel.
-     *
-     * En deçà de cinq pour cent, le coureur tient son allure ; au-delà de dix, il la subit.
-     * Une dérive négative est comptée comme solide : elle veut dire qu'on s'est installé.
-     */
-    private fun motDeDerive(ratio: Double): Int = when {
-        ratio < 0.05 -> R.string.field_level_drift_solid
-        ratio < 0.10 -> R.string.field_level_drift_drifting
-        else -> R.string.field_level_drift_cooked
-    }
-
     /** L'aplat de la batterie, aux seuils où l'on commence à éteindre des choses. */
     private fun couleurDeBatterie(restante: Double): Int = when {
         restante >= 20.0 -> KarooColors.HIGH_VIS_GREEN
@@ -567,29 +489,6 @@ object LevelModels {
         indice < 1.05 -> R.string.field_level_power_smooth
         indice < 1.15 -> R.string.field_level_power_rolling
         else -> R.string.field_level_power_choppy
-    }
-
-    /** Les seuils habituels du facteur d'intensité : endurance, tempo, seuil, course. */
-    private fun motDIntensite(facteur: Double): Int = when {
-        facteur < 0.65 -> R.string.field_level_intensity_endurance
-        facteur < 0.80 -> R.string.field_level_intensity_tempo
-        facteur < 0.95 -> R.string.field_level_intensity_threshold
-        else -> R.string.field_level_intensity_race
-    }
-
-    /**
-     * La couleur du mot, prise dans la palette des zones de puissance du Karoo.
-     *
-     * Les quatre mots recouvrent à peu près les quatre premières zones — une sortie à 0,72
-     * s'est tenue en tempo — et reprendre leurs teintes fait que le vert veut dire la même
-     * chose ici que sur une case instantanée. Aux mêmes seuils que [motDIntensite], faute de
-     * quoi la teinte et le mot se contrediraient.
-     */
-    private fun couleurDIntensite(facteur: Double): Int = when {
-        facteur < 0.65 -> Zones.POWER_COLORS[1]
-        facteur < 0.80 -> Zones.POWER_COLORS[2]
-        facteur < 0.95 -> Zones.POWER_COLORS[3]
-        else -> Zones.POWER_COLORS[5]
     }
 
     /** « 28 MIN D'AVANCE », ou « 1 H 12 D'AVANCE » au-delà de l'heure. */

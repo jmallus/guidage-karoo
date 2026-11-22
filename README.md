@@ -1,9 +1,11 @@
-# Champs de données et guidage - Hammerhead Karoo
+# Ride + Climb - champs de données pour Hammerhead Karoo
 
 Extension **Karoo 3** qui enrichit le **guidage d'itinéraire** : elle lit
-l'itinéraire chargé dans le Karoo et en tire des champs de données — le Tableau Edge plein
-écran, le profil à venir, le profil de montée, la distance au prochain point d'intérêt —, dix
-cases de bilan et des annonces à l'écran.
+l'itinéraire chargé dans le Karoo et en tire des champs de données — Ride + Climb en plein
+écran, le profil à venir, le profil de montée —, huit cases de bilan et des annonces à l'écran.
+
+Le dépôt, le paquet Android et l'identifiant de l'extension gardent leur nom d'origine,
+« guidage » : les changer ferait perdre au Karoo la trace des champs déjà posés sur les pages.
 
 > **Le fond de carte hors ligne est mis de côté.** L'APK ne l'embarque plus, et les champs qui
 > s'en servent — le Tableau de bord, sa variante gravel et le Tableau de guidage — ne sont plus
@@ -14,7 +16,7 @@ cases de bilan et des annonces à l'écran.
 Tout est calculé **sur l'appareil**, à partir des données que Karoo OS fournit déjà :
 aucune connexion réseau, aucun compte, rien à synchroniser.
 
-<img src="docs/captures/edge-sombre.png" alt="Le Tableau Edge plein écran : vitesse en haut, puissance, fréquence cardiaque et cadence au milieu, six cases en bas" width="300">
+<img src="docs/captures/edge-sombre.png" alt="Ride + Climb plein écran : vitesse en haut, puissance, fréquence cardiaque et cadence au milieu, six cases en bas" width="300">
 
 **Toutes les images de ce README sortent du rendu de l'appareil.** Elles ne sont pas des
 maquettes : le [simulateur](docs/developpement.md#le-simulateur) appelle les mêmes classes que
@@ -32,23 +34,19 @@ Chaque champ est montré à **478 × 642 px**, la place que le Karoo 3 lui accor
 | **Tableau de bord** | graphique, plein écran | *Mis de côté avec le fond de carte : plus proposé sur le Karoo.* Une page tenant tout l'écran : vitesse, cadence et puissance sur 3 secondes, transmission en schéma, fréquence cardiaque, minicarte orientée cap en haut sur fond de carte hors ligne, distance restante à côté du cœur, et sur tout le bas de l'écran le profil de **ce qui arrive**, à échelle régulière et sur la portée réglée. Le verdict du soir a quitté cette page : il a sa propre case de bilan, où l'heure d'arrivée se lit en grand à côté du coucher. Vitesse, puissance et fréquence cardiaque prennent la couleur de leur zone. Une pression sur le **haut** change l'échelle de la carte, une pression sur le **bas** la portée du profil. Les kilomètres du profil sont ceux du **compteur**, détours compris ; en **reroutage**, la portion de trace contournée y est masquée par un trait rouge. **Dans une côte**, le profil du bas passe en mode Climber, comme sur le Karoo : la côte entière du pied au sommet, aux couleurs de pente du Karoo, la part montée hachurée ; dessous, six cases donnent la pente des 600 m qui viennent, tronçon de 100 m par tronçon de 100 m, et une bande jaune pâle montre sur le profil la portion qu'elles détaillent. En tête, en blanc, la distance et le dénivelé jusqu'au sommet et le rang de la côte (« 2/3 »). Ces chiffres et la place du coureur dans la côte sont ceux que suit le ClimbPro du Karoo. Sur la carte comme sur le profil, le retard du GPS est rattrapé **le long du tracé**, virages compris : la marque ne file plus tout droit hors de la route. Il revient à sa portée une fois le sommet passé. |
 | **Profil à venir** | graphique | Tout ce qui reste à parcourir, **à échelle comprimée au loin** : la rampe dans trois cents mètres et le col de la fin dans la même bande. Silhouette au jaune du Karoo, côtes surlignées avec leur pente moyenne, dénivelé positif restant. |
 | **Tableau gravel** | graphique, plein écran | *Mis de côté avec le fond de carte : plus proposé sur le Karoo.* Le tableau de bord en version gravel, d'après une maquette du coureur : vitesse, puissance et fréquence cardiaque l'une sous l'autre sur le tiers gauche, à la couleur de leur zone ; la carte à droite sur toute la hauteur ; en bas, le profil de ce qui arrive, à la même hauteur que sur le tableau de bord (Climber dans une côte), avec le rapport engagé en haut à droite sur fond jaune. Un appui en **haut** change l'échelle de la carte, en **bas** la portée du profil. |
-| **Tableau Edge** | graphique, plein écran | Le champ « Écran Edge » que le coureur s'est fait sur son Garmin, repris pour le Karoo. Il suit le thème réglé sur l'appareil : clair, au fond blanc cassé de l'Edge, ou sombre, au fond du Karoo. Chiffres en Saira Condensed ExtraBold. Vitesse et sa moyenne ; puissance 3 s et sa moyenne, fréquence cardiaque et cadence, à la couleur de leur zone ; puis distance, D+ restant (celui du profil quand le Karoo répond zéro), pente, distance restante, température et heure d'arrivée. Quand le ClimbPro du Karoo annonce une montée, le profil de montée remplace les six cases du bas ; une côte de l'itinéraire qu'il ne compte pas les laisse en place. |
+| **Ride + Climb** | graphique, plein écran | Le champ « Écran Edge » que le coureur s'est fait sur son Garmin, repris pour le Karoo. Il suit le thème réglé sur l'appareil : clair, au fond blanc cassé de l'Edge, ou sombre, au fond du Karoo. Chiffres en Saira Condensed ExtraBold. Vitesse et sa moyenne ; puissance 3 s et sa moyenne, fréquence cardiaque et cadence, à la couleur de leur zone ; puis distance, D+ restant (celui du profil quand le Karoo répond zéro), pente, distance restante, température et heure d'arrivée. Quand le ClimbPro du Karoo annonce une montée, le profil de montée remplace les six cases du bas ; une côte de l'itinéraire qu'il ne compte pas les laisse en place. |
 | **Tableau de guidage** | graphique, plein écran | *Mis de côté avec le fond de carte : plus proposé sur le Karoo.* Un second tableau de bord qui donne la **priorité au guidage**. En haut, vitesse, puissance et fréquence cardiaque à la couleur de leur zone ; en bas, le profil de la portée réglée, en jaune devant le coureur et en simple crête derrière lui, avec le kilométrage au compteur en haut du bandeau, les points d'intérêt. Au milieu, **une seule chose, la plus urgente** : un **carrefour** à moins de 150 m (schéma des voies, itinéraire en bleu, « 2e à droite », barre d'approche et deux bips, à 150 m puis à 40 m), sinon la **côte en cours** (le Climber du tableau de bord redessiné : profil du pied au sommet aux couleurs de pente, hachuré derrière soi, points d'intérêt, pente des 600 m qui viennent ; en bas, pente, VAM, distance au sommet et D+ restant), sinon la **carte**, dessinée simplement, avec la prochaine manœuvre en cartouche. Le Karoo ne donnant aucune instruction de virage aux extensions, les carrefours sont déduits du tracé croisé avec le fond de carte hors ligne : hors de la zone couverte, pas de vue carrefour, et les ronds-points ne sont pas traités à part. Un appui sur le **haut** change l'échelle de la carte, sur le **bas** la portée du profil. |
-| **Profil de montée** | graphique | Le profil de montée seul, le même que celui du Tableau Edge dans une côte : ce qui arrive sur la portée réglée, et **dans une côte** la côte entière du pied au sommet, recalée sur le ClimbPro du Karoo, avec la distance et le dénivelé jusqu'au sommet et la pente des 600 m qui viennent. |
-| **Vitesse + transmission** | graphique, case standard | La vitesse sur 3 s, à la couleur de son écart à la moyenne, et le rapport engagé en schéma, comme sur le tableau de bord. Côte à côte dans une case standard, l'une sur l'autre dans une case plus haute. |
-| **FC + puissance** | graphique, case standard | La fréquence cardiaque et la puissance sur 3 s, chacune sur l'aplat de sa zone, à la même taille de chiffres. |
-| **Prochain point d'intérêt** | numérique | Distance jusqu'au prochain POI de l'itinéraire (eau, ravitaillement, contrôle…), formatée dans vos unités. Les points d'intérêt que le Karoo annonce lui-même en bas d'écran, hors itinéraire, sont aussi posés sur le profil quand ils bordent la trace (250 m au plus). |
+| **Profil de montée** | graphique | Le profil de montée seul, le même que celui de Ride + Climb dans une côte : ce qui arrive sur la portée réglée, et **dans une côte** la côte entière du pied au sommet, recalée sur le ClimbPro du Karoo, avec la distance et le dénivelé jusqu'au sommet et la pente des 600 m qui viennent. |
 
-S'y ajoutent **dix cases de bilan**, décrites plus bas : elles tiennent dans une case
+S'y ajoutent **huit cases de bilan**, décrites plus bas : elles tiennent dans une case
 ordinaire, là où les précédents demandent une bande ou une page entière.
 
-Tous s'adaptent à la **taille** que le profil de page leur alloue. Les douze champs graphiques affichent un aperçu réaliste dans
-l'écran d'édition des pages — « Prochain point d'intérêt » n'en a pas besoin, c'est le Karoo
-qui le dessine.
+Tous s'adaptent à la **taille** que le profil de page leur alloue, et affichent un aperçu
+réaliste dans l'écran d'édition des pages.
 
 ### Le bilan de la sortie
 
-Dix cases qui disent ce que la sortie **vaut depuis le départ**. Elles tiennent chacune dans
+Huit cases qui disent ce que la sortie **vaut depuis le départ**. Elles tiennent chacune dans
 une case ordinaire — une page en porte six pour les lire en roulant — et c'est là toute leur raison d'être : le Karoo
 publie déjà la plupart de ces nombres, mais **un par champ**, si bien qu'une moyenne et son
 maximum coûtent deux emplacements et que le coureur fait la soustraction de tête. Ici les deux
@@ -56,29 +54,23 @@ voyagent ensemble, et la case dit en plus ce que leur voisinage veut dire.
 
 | Case | Grand chiffre | À côté | Ce que la case ajoute |
 | --- | --- | --- | --- |
-| **FC moyenne** | fréquence moyenne | maximum de la sortie | aplat de la couleur de la zone où tombe la moyenne |
-| **Puissance moyenne** | moyenne | normalisée | le mot que leur écart forme : lisse, roulante ou hachée |
-| **Arrivée** | heure estimée | coucher du soleil | aplat vert, jaune ou rouge, et la marge en toutes lettres |
-| **Dénivelé** | déjà monté | restant (celui du Karoo, ou celui du profil de l'itinéraire quand le Karoo répond zéro) | une barre qui montre la part faite |
-| **Intensité** | facteur d'intensité | TSS | le mot qui les nomme, coloré selon le niveau |
-| **Zones** | zone dominante | temps qu'on y a passé | la barre empilée des cinq zones, dans leur ordre |
+| **Moyenne FC** | fréquence moyenne | maximum de la sortie | aplat de la couleur de la zone où tombe la moyenne |
+| **Moyenne Power** | moyenne | normalisée | le mot que leur écart forme : lisse, roulante ou hachée |
+| **Heure d'arrivée** | heure estimée | coucher du soleil | aplat vert, jaune ou rouge, et la marge en toutes lettres |
+| **Dénivelé restant** | déjà monté | restant (celui du Karoo, ou celui du profil de l'itinéraire quand le Karoo répond zéro) | une barre qui montre la part faite |
+| **Zones FC** | zone dominante | temps qu'on y a passé | la barre empilée des cinq zones, dans leur ordre |
 | **Réserve W′** | part restante | kilojoules | une jauge qui se vide, et la puissance critique retenue |
-| **Dérive PW/FC** | dérive aérobie | temps d'effort mesuré | le verdict : solide, ça dérive, ou cuit |
-| **Arrêts** | temps en selle | temps arrêté | la part perdue aux haltes, en barre |
+| **Temps d'arrêt** | temps en selle | temps arrêté | la part perdue aux haltes, en barre |
 | **Batterie** | charge | charge projetée à l'arrivée | aplat vert, jaune ou rouge, et la décharge par heure |
 
-Deux d'entre elles ne sont **pas** des nombres du Karoo rangés autrement, mais des calculs de
-l'extension, faits localement et sans réseau comme tout le reste :
+Une d'entre elles n'est **pas** un nombre du Karoo rangé autrement, mais un calcul de
+l'extension, fait localement et sans réseau comme tout le reste :
 
 - **Réserve W′** applique le modèle de puissance critique dans sa forme différentielle
   (Froncioni ; Clarke et Skiba, 2013). La puissance critique vient de la FTP réglée sur
   l'appareil et la réserve du poids — 300 J/kg — et les deux se corrigent dans les réglages.
   À lire comme une jauge relative, non comme un nombre de joules exact : la FTP n'est pas la
   puissance critique, et 300 J/kg est une moyenne de population.
-- **Dérive PW/FC** compare le rapport puissance / fréquence cardiaque de la seconde moitié de
-  la sortie à celui de la première. S'il faut plus de battements pour les mêmes watts, ça se
-  paie. Aucun compteur ne l'affiche en roulant. Elle se calcule sur le temps d'effort seul et
-  se tait sous une heure.
 
 Les dix, posées six par page sur deux pages — au quart de la sortie simulée, puis à son
 terme. Trois d'entre elles n'existent pas encore au quart : la dérive se tait, les haltes
@@ -101,19 +93,17 @@ Le profil à venir, champ de bande qui se pose sur un rang d'une page ordinaire 
 
 <img src="docs/captures/champ-profil.png" width="300" alt="Profil à venir">
 
-Le profil de montée à mi-pente, puis les deux champs à deux données dans une case standard :
+Le profil de montée à mi-pente :
 
 <img src="docs/captures/champ-montee.png" width="300" alt="Profil de montée">
-<img src="docs/captures/champ-vitesse-transmission.png" width="150" alt="Vitesse + transmission">
-<img src="docs/captures/champ-coeur-puissance.png" width="150" alt="FC + puissance">
 
-Le Tableau Edge en thème clair puis sombre, et le même dans une côte, où le profil de montée prend
+Ride + Climb en thème clair puis sombre, et le même dans une côte, où le profil de montée prend
 la place des six cases du bas :
 
-<img src="docs/captures/edge-clair.png" width="150" alt="Tableau Edge clair">
-<img src="docs/captures/edge-sombre.png" width="150" alt="Tableau Edge sombre">
-<img src="docs/captures/edge-clair-cote.png" width="150" alt="Tableau Edge clair dans une côte">
-<img src="docs/captures/edge-sombre-cote.png" width="150" alt="Tableau Edge sombre dans une côte">
+<img src="docs/captures/edge-clair.png" width="150" alt="Ride + Climb clair">
+<img src="docs/captures/edge-sombre.png" width="150" alt="Ride + Climb sombre">
+<img src="docs/captures/edge-clair-cote.png" width="150" alt="Ride + Climb clair dans une côte">
+<img src="docs/captures/edge-sombre-cote.png" width="150" alt="Ride + Climb sombre dans une côte">
 
 Et le tableau de bord à trois de ses portées de carte, puis avec le profil à la place de
 la carte, puis hors itinéraire — le chemin de rejointe s'écrit en rouge —, à l'approche
@@ -211,14 +201,9 @@ l'écran au moment précis où l'on regarde le bandeau de profil pour savoir ce 
 monter. La bande est là en permanence et porte déjà le rang de la côte et la distance au
 sommet : l'annonce ne dirait rien de plus, elle le dirait par-dessus.
 
-### Action bonus
-
-L'action **« Annoncer la prochaine côte »** peut être assignée à un bouton de commande
-(via les réglages Karoo) pour afficher à la demande le résumé de la côte suivante.
-
 ## Réglages
 
-L'application « Guidage » du launcher affiche l'état courant (itinéraire, distance restante,
+L'application « Ride + Climb » du launcher affiche l'état courant (itinéraire, distance restante,
 prochaine côte, prochain point), puis les réglages, rangés par ce qu'ils touchent. Chaque
 ligne nomme les champs concernés : un réglage dont on ne sait pas ce qu'il change se laisse
 dans son état d'usine, ce qui revient à ne pas l'avoir écrit.
@@ -231,7 +216,7 @@ dans son état d'usine, ce qui revient à ne pas l'avoir écrit.
 **Réserve anaérobie**
 
 - déduire la puissance critique et la réserve W′ de la FTP et du poids réglés sur le Karoo.
-  C'est le défaut, et la case « Bilan · réserve W′ » marche donc sans qu'on touche à rien.
+  C'est le défaut, et la case « Réserve W′ » marche donc sans qu'on touche à rien.
   Décoché, deux curseurs prennent le relais, pour qui a mesuré les siens — un test de
   puissance critique en donne de bien meilleurs que la règle du pouce.
 
@@ -257,7 +242,7 @@ par le CI et publié en Release.
    s'affiche sur le Karoo.
 
 Après l'installation, les champs apparaissent dans **Profils → une page → ajouter un champ de
-données → extension Guidage**.
+données → extension Ride + Climb**.
 
 L'APK n'embarque plus de fond de carte : il est mis de côté avec les champs qui s'en servent.
 Quand il l'embarquait, la carte se déballait au premier démarrage, sans rien à copier sur

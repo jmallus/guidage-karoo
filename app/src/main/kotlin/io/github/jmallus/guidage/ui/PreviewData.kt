@@ -1,6 +1,5 @@
 package io.github.jmallus.guidage.ui
 
-import io.github.jmallus.guidage.core.AerobicDrift
 import io.github.jmallus.guidage.core.Drivetrain
 import io.github.jmallus.guidage.core.ElevationProfile
 import io.github.jmallus.guidage.core.GeoPoint
@@ -387,8 +386,6 @@ object PreviewData {
         normalizedPower = 218.0,
         elevationGain = 1_240.0,
         elevationRemaining = 460.0,
-        intensityFactor = 0.74,
-        trainingStressScore = 138.0,
         heartRateZoneSeconds = listOf(720.0, 3_600.0, 2_940.0, 1_380.0, 240.0),
         // Une réserve aux deux tiers : assez entamée pour que la jauge se voie, assez pleine
         // pour qu'elle ne soit pas rouge — l'aperçu doit montrer le champ, pas une alarme.
@@ -398,7 +395,6 @@ object PreviewData {
         // Le temps en selle est celui des zones ; un quart d'heure d'arrêts s'y ajoute.
         movingSeconds = 8_880.0,
         totalSeconds = 9_840.0,
-        drift = AerobicDrift(ratio = 0.042, seconds = 7_200.0),
         batteryPercent = 64.0,
         batteryPerHour = 9.0,
     )

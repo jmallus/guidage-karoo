@@ -23,7 +23,6 @@ import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.DashboardModels
 import io.github.jmallus.guidage.extension.FieldModels
 import io.github.jmallus.guidage.extension.GuidageModels
-import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.extension.LevelModels
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
@@ -230,14 +229,6 @@ class Simulateur(
         ),
         FieldPalette.of(context),
     )
-
-    /** Un champ à deux données, à la taille d'une case. */
-    fun imagePaire(paire: Paire, secondes: Double, largeur: Int, hauteur: Int): Bitmap =
-        DashboardRenderer.renderPaire(
-            context, largeur, hauteur,
-            paire.cases(context, Units.METRIC, releve(secondes)),
-            FieldPalette.of(context),
-        )
 
     /**
      * La côte en cours, telle que le Karoo la rapporterait.
