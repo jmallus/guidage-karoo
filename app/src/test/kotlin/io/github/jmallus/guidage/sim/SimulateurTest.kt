@@ -533,14 +533,9 @@ class SimulateurTest {
             "le Tableau Edge recopie le D+ restant nul du Karoo à mi-côte : $deniveleMuet",
             deniveleMuet != "0" && deniveleMuet != "--",
         )
-        // Là où le tableau de guidage montre un carrefour, le Tableau Edge en donne la distance.
-        etats.firstOrNull { it.second is CentreGuidage.Carrefour }?.let { (secondes, _) ->
-            val virage = simulateur.modeleEdge(secondes).bas[4]
-            assertTrue(
-                "le Tableau Edge ne voit pas le carrefour du tableau de guidage : ${virage.valeur}",
-                virage.virage != null && virage.valeur != "--",
-            )
-        }
+        // La case du virage, qui lisait le fond de carte, est redevenue la température.
+        val temperature = simulateur.modeleEdge(carte).bas[4]
+        assertTrue("le Tableau Edge n'affiche pas la température : ${temperature.valeur}", temperature.valeur != "--")
         assertTrue("le tableau gravel est vide", couleursDistinctes(simulateur.imageGravel(carte)) > 20)
 
         assertTrue("la scène du carrefour est vide", couleursDistinctes(carrefour) > 6)

@@ -267,22 +267,26 @@ private fun SettingsCard(
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            SectionTitle(R.string.settings_section_dashboard)
+            // Ce réglage ne sert qu'au Tableau de bord, mis de côté avec le fond de carte.
+            if (CHAMPS_A_CARTE) {
+                SectionTitle(R.string.settings_section_dashboard)
 
-            // Le réglage de portée du profil a disparu : l'échelle du champ est désormais
-            // comprimée au loin, et montre tout ce qui reste sans qu'on ait à choisir.
-            SwitchRow(
-                label = stringResource(R.string.settings_guidance_map),
-                hint = stringResource(R.string.settings_guidance_map_hint),
-                checked = settings.guidanceZone == GuidanceZoneType.MAP,
-                onCheckedChange = { useMap ->
-                    onChange(
-                        settings.copy(
-                            guidanceZone = if (useMap) GuidanceZoneType.MAP else GuidanceZoneType.PROFILE,
-                        ),
-                    )
-                },
-            )
+                // Le réglage de portée du profil a disparu : l'échelle du champ est désormais
+                // comprimée au loin, et montre tout ce qui reste sans qu'on ait à choisir.
+                SwitchRow(
+                    label = stringResource(R.string.settings_guidance_map),
+                    hint = stringResource(R.string.settings_guidance_map_hint),
+                    checked = settings.guidanceZone == GuidanceZoneType.MAP,
+                    onCheckedChange = { useMap ->
+                        onChange(
+                            settings.copy(
+                                guidanceZone = if (useMap) GuidanceZoneType.MAP else GuidanceZoneType.PROFILE,
+                            ),
+                        )
+                    },
+                )
+
+            }
 
             SectionTitle(R.string.settings_section_resupply)
 
@@ -445,3 +449,6 @@ private fun SliderRow(
  */
 private const val DEFAUT_CP_AFFICHE = 250
 private const val DEFAUT_RESERVE_AFFICHEE = 21_000
+
+/** Faux tant que le Tableau de bord et le Tableau de guidage sont mis de côté avec la carte. */
+private const val CHAMPS_A_CARTE = false

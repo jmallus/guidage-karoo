@@ -1,5 +1,6 @@
-Le fond de carte (carte.gkmap) est déposé ici par la construction, à partir de la
+Le fond de carte (carte.gkmap) était déposé ici par la construction, à partir de la
 Release « carte » du dépôt. Il n'est pas versionné : trente méga-octets n'ont rien à
 faire dans un historique Git.
 
-Sans lui, l'extension fonctionne — la minicarte affiche alors le tracé seul.
+Il est mis de côté pour l'instant : l'étape « Embarquer le fond de carte » du CI est
+désactivée, et les champs qui s'en servent ne sont plus proposés.
