@@ -394,7 +394,7 @@ class Simulateur(
         hauteur: Int = HAUTEUR,
     ): Bitmap = EdgeRenderer.render(context, largeur, hauteur, modeleEdge(secondes), sombre)
 
-    /** Ride + Climb compact, à [secondes] de la sortie, à sa taille de 478 × 300. */
+    /** Ride compact, à [secondes] de la sortie, à la taille de son emplacement. */
     fun imageCompact(
         secondes: Double,
         sombre: Boolean,
@@ -589,8 +589,11 @@ class Simulateur(
          */
         val HAUTEUR_PROFIL: Int = HAUTEUR / 4
 
-        /** La hauteur de Ride + Climb compact, voulue par le coureur : une bande de 478 × 300. */
-        const val HAUTEUR_COMPACT: Int = 300
+        /**
+         * La hauteur de Ride compact : 478 × 192, relevée sur le Karoo 3 du coureur, en roulant,
+         * pour un emplacement de 60 × 18 sur la grille. Le Karoo impose cette taille.
+         */
+        const val HAUTEUR_COMPACT: Int = 192
 
         /**
          * Une case de bilan, à la taille relevée sur le Karoo 3 du coureur : 238 × 126.

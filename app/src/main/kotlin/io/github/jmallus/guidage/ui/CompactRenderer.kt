@@ -6,21 +6,22 @@ import android.graphics.Canvas
 import android.graphics.RectF
 import kotlin.math.max
 
-/** Ce qu'affiche Ride + Climb compact : trois cases, puis le profil à venir. */
+/** Ce qu'affiche Ride compact : vitesse, puissance 3 s et fréquence cardiaque. */
 data class CompactModel(
-    /** Vitesse, puissance 3 s, fréquence cardiaque : les cases mêmes de Ride + Climb. */
+    /** Les cases mêmes de Ride + Climb. */
     val cases: List<EdgeCase>,
-    /** Le profil du champ « Profil à venir », à l'identique. */
-    val profil: ProfileFieldModel,
 )
 
 /**
- * Ride + Climb compact : une rangée de trois cases de Ride + Climb, et le profil à venir dessous.
+ * Ride compact : une rangée de trois cases de Ride + Climb, sur toute la hauteur du champ.
  *
- * Fait pour un champ de 478 × 300, qui laisse le reste de la page à d'autres champs. Les
- * chiffres prennent les deux cinquièmes de la hauteur, le profil le reste : à moins, ses
- * côtes se lisaient mal. Rien n'est redessiné ici — les cases viennent de [EdgeRenderer], le
- * profil de [ProfileRenderer] — si bien que le champ ne peut pas dériver des deux autres.
+ * Il portait aussi le profil à venir, sur les trois cinquièmes du bas. Mais le Karoo impose la
+ * taille des emplacements, et celui où le coureur le posait ne faisait que 478 × 192 : chiffres
+ * et profil y étaient tous deux trop serrés. Le profil est donc rendu au champ « Profil à
+ * venir », à poser dans l'emplacement voisin, et celui-ci garde les chiffres.
+ *
+ * Rien n'est redessiné ici : les cases viennent de [EdgeRenderer], qui écrit les trois chiffres
+ * à un seul corps.
  */
 object CompactRenderer {
 
@@ -32,25 +33,12 @@ object CompactRenderer {
 
     fun draw(context: Context, canvas: Canvas, w: Float, h: Float, model: CompactModel, sombre: Boolean) {
         EdgeRenderer.fond(sombre)?.let { canvas.drawColor(it) }
-        // L'échelle se règle sur la largeur, que le champ partage avec Ride + Climb : sur sa
-        // hauteur, trois fois moindre, les libellés seraient tombés sous le lisible.
+        // L'échelle se règle sur la largeur, que le champ partage avec Ride + Climb.
         val k = w / LARGEUR_REF
         val pad = PAD * k
-        // Le filet tombe à quarante pour cent de la hauteur, et le profil part juste dessous :
-        // l'espace entre les cases et le filet appartient aux cases, non au profil, qui
-        // perdait sinon une quarantaine de pixels sur les cent quatre-vingts promis.
-        val separation = h * PART_CASES
-        val cases = RectF(pad, pad, w - pad, separation - EdgeRenderer.espace(k) / 2)
-        EdgeRenderer.rangee(context, canvas, cases, model.cases, sombre, k)
-        val hautProfil = separation + EdgeRenderer.filet(k) / 2
-        if (h - pad > hautProfil) {
-            ProfileRenderer.draw(canvas, RectF(0f, hautProfil, w, h - pad), model.profil, FieldPalette.of(sombre))
-        }
+        EdgeRenderer.rangee(context, canvas, RectF(pad, pad, w - pad, h - pad), model.cases, sombre, k, filetDessous = false)
     }
 
     private const val LARGEUR_REF = 478f
     private const val PAD = 4f
-
-    /** Part de la hauteur laissée aux chiffres, filet compris ; le profil prend le reste. */
-    private const val PART_CASES = 0.4f
 }
