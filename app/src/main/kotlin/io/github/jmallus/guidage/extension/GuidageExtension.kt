@@ -42,6 +42,7 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
         // et son déballage dans onCreate, et l'étape « Embarquer le fond de carte » du CI.
         listOf(
             EdgeDataType(provider, rideDataProvider, settingsRepository, extension),
+            CompactDataType(provider, rideDataProvider, settingsRepository, extension),
             ProfileDataType(provider, settingsRepository, extension),
             MonteeDataType(provider, rideDataProvider, settingsRepository, extension),
         ) + Bilan.entries.map { LevelDataType(it, provider, rideDataProvider, extension) }

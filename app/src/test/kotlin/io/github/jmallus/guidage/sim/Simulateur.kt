@@ -1,7 +1,9 @@
 package io.github.jmallus.guidage.sim
 
+import io.github.jmallus.guidage.ui.CompactRenderer
 import io.github.jmallus.guidage.ui.EdgeModel
 import io.github.jmallus.guidage.ui.EdgeRenderer
+import io.github.jmallus.guidage.extension.CompactModels
 import io.github.jmallus.guidage.extension.EdgeModels
 import android.content.Context
 import android.graphics.Bitmap
@@ -392,6 +394,25 @@ class Simulateur(
         hauteur: Int = HAUTEUR,
     ): Bitmap = EdgeRenderer.render(context, largeur, hauteur, modeleEdge(secondes), sombre)
 
+    /** Ride + Climb compact, à [secondes] de la sortie, à sa taille de 478 × 300. */
+    fun imageCompact(
+        secondes: Double,
+        sombre: Boolean,
+        largeur: Int = LARGEUR,
+        hauteur: Int = HAUTEUR_COMPACT,
+    ): Bitmap = CompactRenderer.render(
+        context, largeur, hauteur,
+        CompactModels.build(
+            context = context,
+            snapshot = instantane(secondes),
+            rideData = releve(secondes),
+            settings = reglages(),
+            preview = false,
+            nowMillis = departMillis + (secondes * 1_000).toLong(),
+        ),
+        sombre,
+    )
+
     /**
      * Le Tableau Edge tel que le sélecteur de champs le fait défiler, un modèle par relevé :
      * en aperçu, comme sur l'appareil quand aucun itinéraire n'est en cours.
@@ -567,6 +588,9 @@ class Simulateur(
          * séparément.
          */
         val HAUTEUR_PROFIL: Int = HAUTEUR / 4
+
+        /** La hauteur de Ride + Climb compact, voulue par le coureur : une bande de 478 × 300. */
+        const val HAUTEUR_COMPACT: Int = 300
 
         /**
          * Une case de bilan, à la taille relevée sur le Karoo 3 du coureur : 238 × 126.
