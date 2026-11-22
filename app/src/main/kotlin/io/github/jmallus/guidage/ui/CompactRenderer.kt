@@ -36,10 +36,13 @@ object CompactRenderer {
         // hauteur, trois fois moindre, les libellés seraient tombés sous le lisible.
         val k = w / LARGEUR_REF
         val pad = PAD * k
-        val hauteurCases = (h - 2 * pad) * PART_CASES
-        val cases = RectF(pad, pad, w - pad, pad + hauteurCases)
+        // Le filet tombe à quarante pour cent de la hauteur, et le profil part juste dessous :
+        // l'espace entre les cases et le filet appartient aux cases, non au profil, qui
+        // perdait sinon une quarantaine de pixels sur les cent quatre-vingts promis.
+        val separation = h * PART_CASES
+        val cases = RectF(pad, pad, w - pad, separation - EdgeRenderer.espace(k) / 2)
         EdgeRenderer.rangee(context, canvas, cases, model.cases, sombre, k)
-        val hautProfil = cases.bottom + EdgeRenderer.espace(k)
+        val hautProfil = separation + EdgeRenderer.filet(k) / 2
         if (h - pad > hautProfil) {
             ProfileRenderer.draw(canvas, RectF(0f, hautProfil, w, h - pad), model.profil, FieldPalette.of(sombre))
         }
@@ -48,6 +51,6 @@ object CompactRenderer {
     private const val LARGEUR_REF = 478f
     private const val PAD = 4f
 
-    /** Part de la hauteur laissée aux chiffres ; le profil prend le reste. */
+    /** Part de la hauteur laissée aux chiffres, filet compris ; le profil prend le reste. */
     private const val PART_CASES = 0.4f
 }

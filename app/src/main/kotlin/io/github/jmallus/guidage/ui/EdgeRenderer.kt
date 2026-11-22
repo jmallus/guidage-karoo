@@ -172,16 +172,28 @@ object EdgeRenderer {
         val d = Dessin(canvas, if (sombre) SOMBRE else CLAIR, chiffres(context), k)
         val gap = GAP * k
         val largeurCase = (zone.width() - gap * (cases.size - 1)) / cases.size
-        cases.forEachIndexed { j, case ->
+        val cadres = cases.indices.map { j ->
             val x = zone.left + j * (largeurCase + gap)
-            d.case(case, RectF(x, zone.top, if (j == cases.lastIndex) zone.right else x + largeurCase, zone.bottom), TAILLE_RANGEE * k)
-            if (j < cases.lastIndex) d.filetV(x + largeurCase, zone.top, zone.bottom)
+            RectF(x, zone.top, if (j == cases.lastIndex) zone.right else x + largeurCase, zone.bottom)
+        }
+        // Un seul corps pour toute la rangée : celui de la valeur la plus à l'étroit. Chaque
+        // case prenant le plus gros qui lui tienne, « 31,4 », « 175 » et « 159 bpm » s'écrivaient
+        // à trois tailles, et la rangée ne se lisait plus comme une ligne.
+        val commun = cases.indices.minOf { j ->
+            d.taille(cases[j].valeur, d.zoneValeur(cases[j], cadres[j]), TAILLE_RANGEE * k, cases[j].unite)
+        }
+        cases.forEachIndexed { j, case ->
+            d.case(case, cadres[j], commun)
+            if (j < cases.lastIndex) d.filetV(cadres[j].right, zone.top, zone.bottom)
         }
         d.filetH(zone.bottom, zone.left, zone.right)
     }
 
     /** L'espace entre deux cases, filet au milieu, à l'échelle [k]. */
     internal fun espace(k: Float): Float = GAP * k
+
+    /** L'épaisseur d'un filet, à l'échelle [k]. */
+    internal fun filet(k: Float): Float = max(FILET * k, 1f)
 
     private class Dessin(val canvas: Canvas, val style: Style, val police: Typeface, val k: Float) {
 
@@ -232,6 +244,23 @@ object EdgeRenderer {
          * La valeur la plus grande qui tienne dans [zone], centrée en hauteur, sans dépasser
          * [tailleMax] : une case haute ne grossit pas ses chiffres au-delà de la planche.
          */
+        /**
+         * Le corps que prendrait la valeur [t] dans [zone] : le plus gros qui y tienne, unité
+         * comprise, sans dépasser [tailleMax]. Rien n'est dessiné.
+         */
+        fun taille(t: String, zone: RectF, tailleMax: Float, unite: String? = null): Float {
+            texte.typeface = LIBELLE
+            texte.textSize = TAILLE_LIBELLE * k
+            val largeurUnite = unite?.let { texte.measureText(it) + UNIT_GAP * k } ?: 0f
+            texte.typeface = police
+            texte.textSize = 100f
+            texte.getTextBounds(GABARIT, 0, GABARIT.length, bornes)
+            val encreParPoint = (bornes.bottom - bornes.top) / 100f
+            texte.textSize = min(tailleMax, zone.height() / encreParPoint)
+            while (texte.textSize > 8f && texte.measureText(t) + largeurUnite > zone.width()) texte.textSize -= 1f
+            return texte.textSize
+        }
+
         fun valeur(
             t: String, zone: RectF, tailleMax: Float, couleur: Int, aDroite: Boolean,
             unite: String? = null,
@@ -257,6 +286,14 @@ object EdgeRenderer {
             canvas.drawText(t, x, ligne, texte)
             if (unite != null) libelle(unite, x + largeurValeur + UNIT_GAP * k, ligne, couleur)
             return ligne
+        }
+
+        /** Où s'écrit la valeur de la case [c] posée dans [r] : sous le libellé, après la flèche. */
+        fun zoneValeur(c: EdgeCase, r: RectF, reserveBas: Float = 0f): RectF {
+            val zone = RectF(r.left + INSET_X * k, r.top + LIGNE_LIBELLE * k + 8f * k, r.right - INSET_X * k, r.bottom - INSET_Y * k - reserveBas)
+            if (c.virage == null) return zone
+            val cote = min(zone.height(), zone.width() * FLECHE_PART)
+            return RectF(zone.left + cote + UNIT_GAP * k, zone.top, zone.right, zone.bottom)
         }
 
         /** Une case entière : aplat, libellé et badge, valeur et unité. */
