@@ -3,7 +3,6 @@ package io.github.jmallus.guidage.extension
 import android.content.Context
 import io.github.jmallus.guidage.R
 import io.github.jmallus.guidage.core.Format
-import io.github.jmallus.guidage.core.Guidance
 import io.github.jmallus.guidage.core.GuidanceState
 import io.github.jmallus.guidage.core.Units
 import io.github.jmallus.guidage.core.Zones
@@ -39,13 +38,12 @@ object EdgeModels {
             snapshot.state
         }
 
-        // Dans une côte, les six cases du bas cèdent la place au profil de montée. La côte
-        // est reconnue comme au tableau de guidage — la nôtre, recalée sur le ClimbPro du
-        // Karoo — pour que les deux écrans basculent au même mètre.
-        val route = state.route
-        val along = state.distanceAlongRoute
-        val cote = if (route != null && along != null) Guidance.climbStatus(route, along, rideData.climb) else null
-        val profil = if (cote?.onClimb == true) {
+        // Dans une côte, les six cases du bas cèdent la place au profil de montée — mais
+        // seulement quand le ClimbPro du Karoo l'annonce. Notre propre repérage des côtes de
+        // l'itinéraire, qui suffit au tableau de guidage, faisait basculer l'écran sur des
+        // bosses que le Karoo ne compte pas : le coureur perdait ses six cases sans que rien
+        // sur l'appareil ne dise qu'une montée commençait.
+        val profil = if (rideData.climb.onClimb) {
             DashboardModels.profileBand(context, snapshot, settings, preview, rideData, nowMillis)
         } else {
             null
