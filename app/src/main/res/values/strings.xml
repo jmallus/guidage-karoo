@@ -214,7 +214,7 @@
 
     <!-- Le tableau de guidage : l'écran qui suit la route. -->
     <string name="field_edge_name">Tableau Edge</string>
-    <string name="field_edge_description">Le tableau de l\'Edge repris pour le Karoo, clair ou sombre selon le thème réglé sur l\'appareil : vitesse et sa moyenne, puissance 3 s et sa moyenne, fréquence cardiaque, cadence, puis distance, D+ restant, pente, restant, prochain virage et heure d\'arrivée. Dans une côte, le profil de montée remplace les six cases du bas.</string>
+    <string name="field_edge_description">Le tableau de l\'Edge repris pour le Karoo, clair ou sombre selon le thème réglé sur l\'appareil : vitesse et sa moyenne, puissance 3 s et sa moyenne, fréquence cardiaque, cadence, puis distance, D+ restant, pente, restant, température et heure d\'arrivée. Dans une côte, le profil de montée remplace les six cases du bas.</string>
     <string name="edge_label_speed">VITESSE</string>
     <string name="edge_label_power">PUISS. 3S</string>
     <string name="edge_label_heart_rate">FC</string>

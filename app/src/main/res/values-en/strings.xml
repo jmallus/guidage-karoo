@@ -210,7 +210,7 @@
 
     <!-- The guidance dashboard: the screen that follows the road. -->
     <string name="field_edge_name">Edge dashboard</string>
-    <string name="field_edge_description">The Edge dashboard brought to the Karoo, light or dark following the theme set on the device: speed and its average, 3 s power and its average, heart rate, cadence, then distance, elevation gain remaining, grade, distance remaining, next turn and arrival time. On a climb, the climb profile replaces the six bottom cells.</string>
+    <string name="field_edge_description">The Edge dashboard brought to the Karoo, light or dark following the theme set on the device: speed and its average, 3 s power and its average, heart rate, cadence, then distance, elevation gain remaining, grade, distance remaining, temperature and arrival time. On a climb, the climb profile replaces the six bottom cells.</string>
     <string name="edge_label_speed">SPEED</string>
     <string name="edge_label_power">POWER 3S</string>
     <string name="edge_label_heart_rate">HR</string>
