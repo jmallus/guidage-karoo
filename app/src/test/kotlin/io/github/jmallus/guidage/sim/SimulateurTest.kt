@@ -588,7 +588,7 @@ class SimulateurTest {
     private fun pageDeBilan(simulateur: Simulateur, secondes: Double, cases: List<Bilan>): Bitmap {
         val largeur = Simulateur.LARGEUR_BILAN
         val hauteur = Simulateur.HAUTEUR_BILAN
-        val rangs = 3
+        val rangs = (cases.size + 1) / 2
         val page = Bitmap.createBitmap(largeur * 2, hauteur * rangs, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(page)
         cases.forEachIndexed { index, variante ->

@@ -47,7 +47,7 @@ réaliste dans l'écran d'édition des pages.
 ### Le bilan de la sortie
 
 Huit cases qui disent ce que la sortie **vaut depuis le départ**. Elles tiennent chacune dans
-une case ordinaire — une page en porte six pour les lire en roulant — et c'est là toute leur raison d'être : le Karoo
+une case ordinaire — 238 × 126 sur le Karoo 3, deux par rangée — et c'est là toute leur raison d'être : le Karoo
 publie déjà la plupart de ces nombres, mais **un par champ**, si bien qu'une moyenne et son
 maximum coûtent deux emplacements et que le coureur fait la soustraction de tête. Ici les deux
 voyagent ensemble, et la case dit en plus ce que leur voisinage veut dire.
