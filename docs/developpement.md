@@ -402,7 +402,24 @@ déclenche. En parler dans un message de commit demande donc une périphrase.
 
 **Si la carte doit changer, lancer d'abord le workflow `fond-de-carte`** et attendre sa fin :
 le job `apk` télécharge la carte au début de son exécution, et démarrer trop tôt embarquerait
-l'ancienne sans rien signaler.
+l'ancienne sans rien signaler. Tant que le fond de carte est mis de côté, l'étape qui
+l'embarque est désactivée et la question ne se pose pas.
+
+### Fusionner des pull requests empilées
+
+Quand une PR part de la branche d'une autre, **la reporter sur `main` avant de supprimer la
+branche d'en dessous.** Fusionner la première avec suppression de sa branche fait fermer la
+suivante par GitHub, sa base n'existant plus — sans la reporter sur `main`, quoi qu'en dise la
+documentation. C'est arrivé à la v1.9 : il a fallu repousser la branche supprimée, rouvrir la
+PR, puis la reporter.
+
+L'ordre sûr, PR par PR, de bas en haut :
+
+```bash
+gh pr edit <suivante> --base main
+gh pr merge <courante> --merge
+git push origin --delete <branche de la courante>
+```
 
 ### Ce que la Release porte, et ce que le Karoo lit
 
