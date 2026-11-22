@@ -490,6 +490,12 @@ class SimulateurTest {
         // Dans la côte, le bas de l'écran est le profil de montée ; hors côte, les six cases.
         assertTrue("le Tableau Edge n'a pas de profil dans la côte", simulateur.modeleEdge(dansLaCote).profilCote != null)
         assertTrue("le Tableau Edge montre un profil hors côte", simulateur.modeleEdge(carte).profilCote == null)
+        // Seul le ClimbPro du Karoo fait basculer l'écran : une côte de l'itinéraire qu'il
+        // n'annonce pas laisse les six cases en place.
+        assertTrue(
+            "le Tableau Edge bascule sur une côte que le Karoo n'annonce pas",
+            simulateur.modeleEdge(dansLaCote, sansClimbPro = true).profilCote == null,
+        )
         // Le Karoo publie un D+ restant nul sur certains itinéraires : à mi-côte, le profil
         // monte encore, et c'est lui que la case doit donner.
         val deniveleMuet = simulateur.modeleEdge(dansLaCote, deniveleDuKaroo = 0.0).bas[1].valeur

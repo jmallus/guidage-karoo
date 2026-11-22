@@ -414,11 +414,12 @@ class Simulateur(
      *
      * [deniveleDuKaroo] remplace le D+ restant que publie le Karoo : il le donne à zéro sur
      * certains itinéraires, toute la sortie durant, et c'est ce cas-là qu'il faut pouvoir rejouer.
+     * [sansClimbPro] fait taire le ClimbPro du Karoo : une côte de l'itinéraire qu'il n'annonce pas.
      */
-    fun modeleEdge(secondes: Double, deniveleDuKaroo: Double? = null): EdgeModel {
+    fun modeleEdge(secondes: Double, deniveleDuKaroo: Double? = null, sansClimbPro: Boolean = false): EdgeModel {
         val releve = releve(secondes).let { r ->
             if (deniveleDuKaroo == null) r else r.copy(level = r.level.copy(elevationRemaining = deniveleDuKaroo))
-        }
+        }.let { r -> if (sansClimbPro) r.copy(climb = ClimbProgress.NONE) else r }
         return EdgeModels.build(
             context = context,
             snapshot = instantane(secondes),
