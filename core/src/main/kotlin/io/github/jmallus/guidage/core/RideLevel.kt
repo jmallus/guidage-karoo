@@ -20,8 +20,6 @@ data class RideLevel(
     val elevationGain: Double? = null,
     /** Dénivelé positif restant jusqu'à l'arrivée (m), quand un itinéraire est chargé. */
     val elevationRemaining: Double? = null,
-    val intensityFactor: Double? = null,
-    val trainingStressScore: Double? = null,
     /**
      * Secondes passées dans chaque zone de fréquence cardiaque, la première case étant la
      * zone 1. Vide tant qu'aucune zone n'est réglée ou qu'aucun cœur n'est rapporté.
@@ -45,8 +43,6 @@ data class RideLevel(
      */
     val totalSeconds: Double? = null,
     val movingSeconds: Double? = null,
-    /** La dérive aérobie, que l'extension calcule elle-même — voir [DriftTracker]. */
-    val drift: AerobicDrift? = null,
     /** Charge de l'appareil (%) et vitesse à laquelle elle descend (points par heure). */
     val batteryPercent: Double? = null,
     val batteryPerHour: Double? = null,
@@ -65,20 +61,6 @@ data class RideLevel(
             val taille = wPrimeCapacity?.takeIf { it > 0.0 } ?: return null
             val reste = wPrimeBalance ?: return null
             return (reste / taille).toFloat().coerceIn(0f, 1f)
-        }
-
-    /**
-     * Le rapport de la normalisée à la moyenne, dit « indice de variabilité ».
-     *
-     * À un, la sortie s'est tenue à une puissance constante ; au-delà de 1,15, elle fut une
-     * succession de relances et de récupérations. C'est la seule des deux valeurs qui ne se
-     * lise pas seule, et c'est pourquoi elle est calculée ici plutôt qu'affichée.
-     */
-    val variability: Double?
-        get() {
-            val moyenne = averagePower?.takeIf { it > 0.0 } ?: return null
-            val normalisee = normalizedPower ?: return null
-            return normalisee / moyenne
         }
 
     /** Part de chaque zone dans le temps mesuré, ou liste vide si rien n'a été mesuré. */

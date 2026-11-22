@@ -45,21 +45,7 @@ class AlertPresenter(private val context: Context) {
         }
     }
 
-    /**
-     * Description d'une côte, pour l'action bonus.
-     *
-     * Elle servait aussi à l'annonce automatique du pied de côte, qui n'existe plus. L'action
-     * bonus, elle, reste : demandée d'un bouton, elle arrive quand le coureur la veut et non
-     * au milieu de ce qu'il regardait.
-     */
-    fun climbDetail(climb: ClimbStatus, units: Units): String = context.getString(
-        R.string.alert_climb_detail,
-        Format.distance(climb.climb.length, units),
-        Format.grade(climb.climb.grade),
-        Format.elevation(climb.climb.totalElevation, units),
-    )
-
-    fun build(id: String, icon: Int, title: String, detail: String?, background: Int) = InRideAlert(
+    private fun build(id: String, icon: Int, title: String, detail: String?, background: Int) = InRideAlert(
         id = id,
         icon = icon,
         title = title,

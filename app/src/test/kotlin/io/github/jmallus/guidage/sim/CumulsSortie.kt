@@ -1,7 +1,6 @@
 package io.github.jmallus.guidage.sim
 
 import io.github.jmallus.guidage.core.BatteryDrain
-import io.github.jmallus.guidage.core.DriftTracker
 import io.github.jmallus.guidage.core.RideLevel
 import io.github.jmallus.guidage.core.WPrime
 import io.github.jmallus.guidage.core.WPrimeTracker
@@ -20,7 +19,7 @@ import kotlin.math.pow
  *
  * Les formules sont celles de la littérature, et le sont **volontairement** de façon
  * approchée : ce qu'on juge sur les planches est la mise en page des cases de bilan, non
- * l'exactitude d'un facteur d'intensité. Une valeur plausible suffit ; une valeur juste ne
+ * l'exactitude d'une puissance normalisée. Une valeur plausible suffit ; une valeur juste ne
  * changerait rien à ce qu'on regarde.
  */
 class CumulsSortie {
@@ -52,17 +51,12 @@ class CumulsSortie {
     private val reserve = WPrimeTracker()
 
     /**
-     * La dérive et la décharge, elles aussi tenues par le code de l'appareil.
+     * La décharge, elle aussi tenue par le code de l'appareil.
      *
-     * La dérive a besoin d'un cœur qui monte à effort constant, ce que la sortie fictive
-     * produit toute seule : sa fréquence rejoint sa cible avec retard, et les côtes de la
-     * seconde moitié la trouvent plus haute qu'au départ.
-     *
-     * La décharge, elle, n'a rien à quoi se raccrocher — le banc d'essai n'a pas de batterie.
+     * Elle n'a rien à quoi se raccrocher — le banc d'essai n'a pas de batterie.
      * On lui en invente une qui se vide à [DECHARGE_PAR_HEURE], ce qui est l'ordre de grandeur
      * d'un Karoo écran allumé, carte affichée.
      */
-    private val derive = DriftTracker()
     private val batterie = BatteryDrain()
 
     fun reset() {
@@ -77,7 +71,6 @@ class CumulsSortie {
         horloge.reset()
         horlogeMillis = 0L
         reserve.reset()
-        derive.reset()
         batterie.reset()
     }
 
@@ -101,7 +94,6 @@ class CumulsSortie {
         horlogeMillis += (pas * 1_000).toLong()
         horloge.observe(horlogeMillis, Zones.zoneOf(instant.cardiaque, zonesCardiaques))
         reserve.observe(horlogeMillis, instant.puissance, FTP_SIMULEE, RESERVE_SIMULEE)
-        derive.observe(horlogeMillis, instant.puissance, instant.cardiaque)
         batterie.observe(
             horlogeMillis,
             CHARGE_AU_DEPART - DECHARGE_PAR_HEURE * horlogeMillis / 3_600_000.0,
@@ -116,7 +108,6 @@ class CumulsSortie {
         } else {
             (sommeQuatriemes / echantillonsQuatriemes).pow(0.25)
         }
-        val facteur = normalisee / FTP_SIMULEE
         return RideLevel(
             averageHeartRate = sommeCardiaque / secondesCumulees,
             maxHeartRate = maximumCardiaque,
@@ -124,8 +115,6 @@ class CumulsSortie {
             normalizedPower = normalisee,
             elevationGain = elevationGain,
             elevationRemaining = elevationRemaining,
-            intensityFactor = facteur,
-            trainingStressScore = secondesCumulees * normalisee * facteur / (FTP_SIMULEE * 36.0),
             heartRateZoneSeconds = horloge.elapsed.take(ZONES_CARDIAQUES),
             wPrimeBalance = reserve.balance,
             wPrimeCapacity = reserve.size,
@@ -134,7 +123,6 @@ class CumulsSortie {
             // fictive roulant sans jamais s'arrêter.
             totalSeconds = secondesCumulees + arretsCumules(),
             movingSeconds = secondesCumulees,
-            drift = derive.drift(),
             batteryPercent = batterie.percent,
             batteryPerHour = batterie.perHour,
         )

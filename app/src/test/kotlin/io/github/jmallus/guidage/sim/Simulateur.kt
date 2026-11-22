@@ -23,7 +23,6 @@ import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.DashboardModels
 import io.github.jmallus.guidage.extension.FieldModels
 import io.github.jmallus.guidage.extension.GuidageModels
-import io.github.jmallus.guidage.extension.Paire
 import io.github.jmallus.guidage.extension.LevelModels
 import io.github.jmallus.guidage.extension.RoadSource
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
@@ -230,14 +229,6 @@ class Simulateur(
         ),
         FieldPalette.of(context),
     )
-
-    /** Un champ à deux données, à la taille d'une case. */
-    fun imagePaire(paire: Paire, secondes: Double, largeur: Int, hauteur: Int): Bitmap =
-        DashboardRenderer.renderPaire(
-            context, largeur, hauteur,
-            paire.cases(context, Units.METRIC, releve(secondes)),
-            FieldPalette.of(context),
-        )
 
     /**
      * La côte en cours, telle que le Karoo la rapporterait.
@@ -578,14 +569,15 @@ class Simulateur(
         val HAUTEUR_PROFIL: Int = HAUTEUR / 4
 
         /**
-         * Une case de bilan sur une page qui en porte six : 30 × 20 sur la grille.
+         * Une case de bilan, à la taille relevée sur le Karoo 3 du coureur : 238 × 126.
          *
-         * C'était une page de dix, et les cases y étaient illisibles en roulant ; le coureur
-         * les a passées à six par page, sur deux pages, et c'est à cette taille qu'elles se
-         * jugent désormais.
+         * Elle était estimée à une demi-largeur sur un tiers de hauteur, 239 × 214, presque
+         * carrée : le Karoo ne donne jamais cette forme à un champ, et les cases composées
+         * pour elle étaient illisibles une fois posées sur l'appareil. La carte « Place
+         * allouée au champ » de l'application a donné la vraie.
          */
-        val LARGEUR_BILAN: Int = LARGEUR / 2
-        val HAUTEUR_BILAN: Int = HAUTEUR / 3
+        const val LARGEUR_BILAN: Int = 238
+        const val HAUTEUR_BILAN: Int = 126
 
         /** Les cases de chaque page de bilan, dans l'ordre où le coureur les a posées. */
         val PAGES_BILAN: List<List<Bilan>> = Bilan.entries.chunked(6)

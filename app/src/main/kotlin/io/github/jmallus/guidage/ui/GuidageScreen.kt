@@ -30,7 +30,6 @@ import io.github.jmallus.guidage.core.WPrimeSettings
 import io.github.jmallus.guidage.extension.Bilan
 import io.github.jmallus.guidage.extension.DashboardDataType
 import io.github.jmallus.guidage.extension.FieldReport
-import io.github.jmallus.guidage.extension.PoiDataType
 import io.github.jmallus.guidage.extension.ProfileDataType
 import io.github.jmallus.guidage.karoo.GuidanceSnapshot
 import io.github.jmallus.guidage.settings.GuidageSettings
@@ -220,22 +219,19 @@ private fun FieldReportCard(reports: List<FieldReport>) {
  * distinguer quel champ a été posé — en affirmant chaque fois le même, faux six fois sur neuf.
  *
  * Le `when` est donc exhaustif sur les identifiants connus et le dernier cas rend
- * l'identifiant brut plutôt qu'un nom : un champ ajouté et oublié ici s'affichera « bilan-derive »,
+ * l'identifiant brut plutôt qu'un nom : un champ ajouté et oublié ici s'affichera « bilan-zones »,
  * ce qui est laid mais vrai, au lieu de se déguiser en un autre.
  */
 @Composable
 private fun fieldName(typeId: String): String = when (typeId) {
     DashboardDataType.TYPE_ID -> stringResource(R.string.field_dashboard_name)
     ProfileDataType.TYPE_ID -> stringResource(R.string.field_profile_name)
-    PoiDataType.TYPE_ID -> stringResource(R.string.field_poi_name)
     Bilan.COEUR.typeId -> stringResource(R.string.field_level_heart_name)
     Bilan.PUISSANCE.typeId -> stringResource(R.string.field_level_power_name)
     Bilan.ARRIVEE.typeId -> stringResource(R.string.field_level_arrival_name)
     Bilan.DENIVELE.typeId -> stringResource(R.string.field_level_ascent_name)
-    Bilan.INTENSITE.typeId -> stringResource(R.string.field_level_intensity_name)
     Bilan.ZONES.typeId -> stringResource(R.string.field_level_zones_name)
     Bilan.RESERVE.typeId -> stringResource(R.string.field_level_reserve_name)
-    Bilan.DERIVE.typeId -> stringResource(R.string.field_level_drift_name)
     Bilan.ARRETS.typeId -> stringResource(R.string.field_level_stops_name)
     Bilan.BATTERIE.typeId -> stringResource(R.string.field_level_battery_name)
     else -> typeId

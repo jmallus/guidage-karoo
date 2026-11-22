@@ -9,21 +9,7 @@ import org.junit.Test
 class RideLevelTest {
 
     @Test
-    fun `la variabilite est le rapport de la normalisee a la moyenne`() {
-        assertEquals(1.15, RideLevel(averagePower = 200.0, normalizedPower = 230.0).variability!!, 1e-9)
-        assertEquals(1.0, RideLevel(averagePower = 200.0, normalizedPower = 200.0).variability!!, 1e-9)
-    }
-
-    /** Sans capteur, ou à l'arrêt, il n'y a pas de rapport à former. */
-    @Test
-    fun `la variabilite se tait sans les deux puissances`() {
-        assertNull(RideLevel(averagePower = 200.0).variability)
-        assertNull(RideLevel(normalizedPower = 230.0).variability)
-        assertNull(RideLevel(averagePower = 0.0, normalizedPower = 230.0).variability)
-    }
-
-    @Test
-    fun `les parts de zone se rapportent au temps mesure`() {
+    fun `la zone dominante est celle qui a le plus de temps`() {
         val niveau = RideLevel(heartRateZoneSeconds = listOf(300.0, 600.0, 100.0))
 
         assertEquals(listOf(0.3f, 0.6f, 0.1f), niveau.heartRateZoneShares)
@@ -31,7 +17,7 @@ class RideLevelTest {
     }
 
     @Test
-    fun `sans temps mesure il n'y a ni parts ni zone dominante`() {
+    fun `sans temps mesure il n'y a pas de zone dominante`() {
         val vide = RideLevel(heartRateZoneSeconds = listOf(0.0, 0.0))
 
         assertEquals(emptyList<Float>(), vide.heartRateZoneShares)

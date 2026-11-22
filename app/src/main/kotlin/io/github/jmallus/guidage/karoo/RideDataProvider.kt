@@ -2,7 +2,6 @@ package io.github.jmallus.guidage.karoo
 
 import io.github.jmallus.guidage.core.BatteryDrain
 import io.github.jmallus.guidage.core.ClimbProgress
-import io.github.jmallus.guidage.core.DriftTracker
 import io.github.jmallus.guidage.core.Drivetrain
 import io.github.jmallus.guidage.core.LearnedPace
 import io.github.jmallus.guidage.core.PaceLearner
@@ -141,8 +140,7 @@ class RideDataProvider(
     /** La réserve anaérobie, pour la même raison : elle se vide et se remplit sur la sortie. */
     private val wPrime = WPrimeTracker()
 
-    /** La dérive aérobie et la décharge de l'appareil, deux cumuls de plus que rien ne publie. */
-    private val drift = DriftTracker()
+    /** La décharge de l'appareil, un cumul de plus que rien ne publie. */
     private val battery = BatteryDrain()
 
     val data: StateFlow<RideData> = combine(
@@ -165,10 +163,7 @@ class RideDataProvider(
             capacityJoules = reglages.capacityJoules?.toDouble()
                 ?: profile.weightKilograms?.let { WPrime.defaultCapacity(it) },
         )
-        // La puissance est prise lissée et le cœur brut : le cœur l'est déjà par nature, il
-        // met une demi-minute à répondre, là où la puissance saute à chaque coup de pédale.
-        drift.observe(clock(), powerWatts = values[2], heartRate = values[3])
-        battery.observe(clock(), summary[8])
+        battery.observe(clock(), summary[6])
         RideData(
             speed = values[0],
             averageSpeed = values[1],
@@ -195,8 +190,6 @@ class RideDataProvider(
                 normalizedPower = summary[3],
                 elevationGain = summary[4],
                 elevationRemaining = summary[5],
-                intensityFactor = summary[6],
-                trainingStressScore = summary[7],
                 // Coupé au nombre de zones réglées : l'horloge en tient sept, l'appareil en
                 // règle cinq pour le cœur, et deux cases toujours vides feraient croire à
                 // deux zones où l'on n'est jamais monté.
@@ -206,9 +199,8 @@ class RideDataProvider(
                 criticalPower = (reglages.criticalPower ?: profile.ftp)?.toDouble(),
                 // L'appareil publie ces deux temps en millisecondes, sans le dire : une
                 // sortie d'une heure neuf s'est lue « 1148 h 20 » sur la case.
-                totalSeconds = summary[9]?.let { it / 1_000.0 },
-                movingSeconds = summary[10]?.let { it / 1_000.0 },
-                drift = drift.drift(),
+                totalSeconds = summary[7]?.let { it / 1_000.0 },
+                movingSeconds = summary[8]?.let { it / 1_000.0 },
                 batteryPercent = battery.percent,
                 batteryPerHour = battery.perHour,
             ),
@@ -244,7 +236,7 @@ class RideDataProvider(
     /**
      * Les cumuls de la sortie, que le Karoo tient lui-même.
      *
-     * Rien n'est recalculé ici : ces huit valeurs sont celles de l'enregistrement, et les
+     * Rien n'est recalculé ici : ces valeurs sont celles de l'enregistrement, et les
      * reconstruire de notre côté les ferait diverger de ce que le fichier de sortie
      * contiendra. Le seul cumul que nous tenons est le temps par zone, que l'appareil ne
      * publie pas.
@@ -257,8 +249,6 @@ class RideDataProvider(
             value(DataType.Type.NORMALIZED_POWER),
             value(DataType.Type.ELEVATION_GAIN),
             value(DataType.Type.ELEVATION_REMAINING),
-            value(DataType.Type.INTENSITY_FACTOR),
-            value(DataType.Type.TRAINING_STRESS_SCORE),
             value(DataType.Type.BATTERY_PERCENT),
             // Les noms du Karoo sont trompeurs et se lisent à l'envers de l'intuition :
             // « RIDE_TIME » est le temps total, pauses comprises, et « ELAPSED_TIME » celui
@@ -350,7 +340,6 @@ class RideDataProvider(
                 // zone repart de zéro en même temps que l'allure apprise.
                 zoneClock.reset()
                 wPrime.reset()
-                drift.reset()
                 battery.reset()
                 lastObservationMillis = null
             }
