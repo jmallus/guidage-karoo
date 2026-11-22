@@ -699,9 +699,10 @@ object GuidageRenderer {
 
     /**
      * Une flèche de direction : une hampe qui monte, puis part à [angle] avec sa pointe.
-     * C'est la même que celle du schéma de carrefour, en petit.
+     * C'est la même que celle du schéma de carrefour, en petit ; le Tableau Edge la reprend
+     * pour sa case de virage.
      */
-    private fun fleche(canvas: Canvas, cx: Float, cy: Float, taille: Float, angle: Double, couleur: Int, k: Float) {
+    internal fun fleche(canvas: Canvas, cx: Float, cy: Float, taille: Float, angle: Double, couleur: Int, k: Float) {
         val epaisseur = max(4f * k, taille * 0.16f)
         val bas = cy + taille / 2
         val coude = cy + taille * 0.08f

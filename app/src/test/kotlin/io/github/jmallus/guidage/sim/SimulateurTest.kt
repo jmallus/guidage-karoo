@@ -490,6 +490,21 @@ class SimulateurTest {
         // Dans la côte, le bas de l'écran est le profil de montée ; hors côte, les six cases.
         assertTrue("le Tableau Edge n'a pas de profil dans la côte", simulateur.modeleEdge(dansLaCote).profilCote != null)
         assertTrue("le Tableau Edge montre un profil hors côte", simulateur.modeleEdge(carte).profilCote == null)
+        // Le Karoo publie un D+ restant nul sur certains itinéraires : à mi-côte, le profil
+        // monte encore, et c'est lui que la case doit donner.
+        val deniveleMuet = simulateur.modeleEdge(dansLaCote, deniveleDuKaroo = 0.0).bas[1].valeur
+        assertTrue(
+            "le Tableau Edge recopie le D+ restant nul du Karoo à mi-côte : $deniveleMuet",
+            deniveleMuet != "0" && deniveleMuet != "--",
+        )
+        // Là où le tableau de guidage montre un carrefour, le Tableau Edge en donne la distance.
+        etats.firstOrNull { it.second is CentreGuidage.Carrefour }?.let { (secondes, _) ->
+            val virage = simulateur.modeleEdge(secondes).bas[4]
+            assertTrue(
+                "le Tableau Edge ne voit pas le carrefour du tableau de guidage : ${virage.valeur}",
+                virage.virage != null && virage.valeur != "--",
+            )
+        }
         assertTrue("le tableau gravel est vide", couleursDistinctes(simulateur.imageGravel(carte)) > 20)
 
         assertTrue("la scène du carrefour est vide", couleursDistinctes(carrefour) > 6)

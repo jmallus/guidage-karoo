@@ -12,9 +12,13 @@ import androidx.glance.layout.fillMaxSize
 
 /**
  * Enveloppe Glance minimale : le champ est dessiné dans un bitmap puis affiché en pleine surface.
+ *
+ * [cadrage] vaut Fit par défaut, sans danger pour un champ transparent : la marge qu'il laisse
+ * quand la place réelle diffère de celle annoncée ne se voit pas. Un champ qui pose son propre
+ * fond demande FillBounds, sans quoi cette marge apparaît en bandes de part et d'autre.
  */
 @Composable
-fun BitmapField(bitmap: Bitmap) {
+fun BitmapField(bitmap: Bitmap, cadrage: ContentScale = ContentScale.Fit) {
     Box(
         modifier = GlanceModifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -23,7 +27,7 @@ fun BitmapField(bitmap: Bitmap) {
             provider = ImageProvider(bitmap),
             contentDescription = null,
             modifier = GlanceModifier.fillMaxSize(),
-            contentScale = ContentScale.Fit,
+            contentScale = cadrage,
         )
     }
 }

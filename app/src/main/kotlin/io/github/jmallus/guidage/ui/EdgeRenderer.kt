@@ -23,6 +23,8 @@ data class EdgeCase(
     val badge: String? = null,
     /** Valeur calée à droite, comme la pente en bout de rangée sur l'Edge. */
     val aDroite: Boolean = false,
+    /** Angle du virage à venir (0 tout droit, positif à droite) : une flèche avant la valeur. */
+    val virage: Double? = null,
 )
 
 data class EdgeModel(
@@ -33,7 +35,7 @@ data class EdgeModel(
     val puissanceMoyenne: String,
     val coeur: EdgeCase,
     val cadence: EdgeCase,
-    /** Distance, D+ restant, pente ; restant, température, arrivée. */
+    /** Distance, D+ restant, pente ; restant, prochain virage, arrivée. */
     val bas: List<EdgeCase>,
     /** Non nul dans une côte : le profil de montée prend la place des six cases du bas. */
     val profilCote: ProfileFieldModel?,
@@ -50,12 +52,15 @@ data class EdgeModel(
  * ExtraBold, la police embarquée par le champ Garmin ; les couleurs de zone sont celles du
  * reste de l'extension.
  *
- * Deux styles : clair, le fond blanc cassé de l'Edge, et sombre, le fond du Karoo. Chacun
- * pose son propre fond, puisque ses encres en dépendent.
+ * Deux styles : clair, le fond blanc cassé de l'Edge, et sombre, le fond du Karoo. Le clair
+ * pose son propre fond, puisque ses encres en dépendent. Le sombre n'en pose aucun et laisse
+ * le Karoo mettre le sien, comme tous les autres champs : peint ici, son gris ne tombait pas
+ * sur le noir de l'appareil, et le champ se détachait de l'écran comme une carte posée dessus.
  */
 object EdgeRenderer {
 
-    private class Style(val fond: Int, val encre: Int, val libelle: Int, val filet: Int, val muet: Int)
+    /** [fond] null : le champ reste transparent, le Karoo pose le sien. */
+    private class Style(val fond: Int?, val encre: Int, val libelle: Int, val filet: Int, val muet: Int)
 
     private val CLAIR = Style(
         fond = 0xFFE8E8E0.toInt(),
@@ -66,7 +71,7 @@ object EdgeRenderer {
     )
 
     private val SOMBRE = Style(
-        fond = 0xFF202224.toInt(),
+        fond = null,
         encre = 0xFFFFFFFF.toInt(),
         libelle = KarooColors.POWDER_BLUE,
         filet = 0xFF4A5459.toInt(),
@@ -82,7 +87,7 @@ object EdgeRenderer {
     fun draw(context: Context, canvas: Canvas, w: Float, h: Float, model: EdgeModel, sombre: Boolean) {
         val style = if (sombre) SOMBRE else CLAIR
         val d = Dessin(canvas, style, chiffres(context), min(w / LARGEUR_REF, h / HAUTEUR_REF))
-        canvas.drawColor(style.fond)
+        style.fond?.let { canvas.drawColor(it) }
 
         val k = d.k
         val pad = PAD * k
@@ -235,7 +240,14 @@ object EdgeRenderer {
             val ligneLibelle = r.top + LIGNE_LIBELLE * k
             libelle(c.libelle, gauche, ligneLibelle, encreLibelle)
             c.badge?.let { libelle(it, droite, ligneLibelle, encreLibelle, aDroite = true) }
-            val zone = RectF(gauche, ligneLibelle + 8f * k, droite, r.bottom - INSET_Y * k - reserveBas)
+            var zone = RectF(gauche, ligneLibelle + 8f * k, droite, r.bottom - INSET_Y * k - reserveBas)
+            c.virage?.let { angle ->
+                // La flèche du tableau de guidage, à la hauteur des chiffres, puis la distance
+                // dans ce qui reste de la case.
+                val cote = min(zone.height(), zone.width() * FLECHE_PART)
+                GuidageRenderer.fleche(canvas, zone.left + cote / 2, zone.centerY(), cote * 0.9f, angle, encre, k)
+                zone = RectF(zone.left + cote + UNIT_GAP * k, zone.top, zone.right, zone.bottom)
+            }
             valeur(c.valeur, zone, tailleMax, encre, c.aDroite, c.unite)
         }
     }
@@ -259,6 +271,9 @@ object EdgeRenderer {
     private const val INSET_X = 12f
     private const val INSET_Y = 6f
     private const val UNIT_GAP = 4f
+
+    /** Part de la largeur d'une case que la flèche de virage peut prendre, au plus. */
+    private const val FLECHE_PART = 0.4f
     private const val TAILLE_LIBELLE = 20f
     private const val LIGNE_LIBELLE = 26f
     private const val MOY = "MOY"

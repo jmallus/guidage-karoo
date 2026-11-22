@@ -401,19 +401,34 @@ class Simulateur(
         hauteur: Int = HAUTEUR,
     ): Bitmap = EdgeRenderer.render(context, largeur, hauteur, modeleEdge(secondes), sombre)
 
-    /** Le Tableau Edge tel que le sélecteur de champs le fait défiler, un modèle par relevé. */
+    /**
+     * Le Tableau Edge tel que le sélecteur de champs le fait défiler, un modèle par relevé :
+     * en aperçu, comme sur l'appareil quand aucun itinéraire n'est en cours.
+     */
     fun modelesEdgeApercu(): List<EdgeModel> = PreviewData.edgeSamples(departMillis).map {
-        EdgeModels.build(context, instantane(0.0), it, reglages(), preview = false, nowMillis = departMillis)
+        EdgeModels.build(context, GuidanceSnapshot(), it, reglages(), preview = true, roadSource = source, nowMillis = departMillis)
     }
 
-    fun modeleEdge(secondes: Double): EdgeModel = EdgeModels.build(
-        context = context,
-        snapshot = instantane(secondes),
-        rideData = releve(secondes),
-        settings = reglages(),
-        preview = false,
-        nowMillis = departMillis + (secondes * 1_000).toLong(),
-    )
+    /**
+     * Le Tableau Edge à [secondes] de la sortie.
+     *
+     * [deniveleDuKaroo] remplace le D+ restant que publie le Karoo : il le donne à zéro sur
+     * certains itinéraires, toute la sortie durant, et c'est ce cas-là qu'il faut pouvoir rejouer.
+     */
+    fun modeleEdge(secondes: Double, deniveleDuKaroo: Double? = null): EdgeModel {
+        val releve = releve(secondes).let { r ->
+            if (deniveleDuKaroo == null) r else r.copy(level = r.level.copy(elevationRemaining = deniveleDuKaroo))
+        }
+        return EdgeModels.build(
+            context = context,
+            snapshot = instantane(secondes),
+            rideData = releve,
+            settings = reglages(),
+            preview = false,
+            roadSource = source,
+            nowMillis = departMillis + (secondes * 1_000).toLong(),
+        )
+    }
 
     /** Le tableau de guidage, au même instant que le tableau de bord. */
     fun modeleGuidage(secondes: Double): GuidageModel = GuidageModels.build(

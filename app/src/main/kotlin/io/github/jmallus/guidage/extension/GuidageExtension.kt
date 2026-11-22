@@ -45,7 +45,7 @@ class GuidageExtension : KarooExtension(EXTENSION_ID, VERSION) {
         listOf(
             DashboardDataType(provider, rideDataProvider, settingsRepository, roadMapRepository, extension),
             DashboardDataType(provider, rideDataProvider, settingsRepository, roadMapRepository, extension, gravel = true),
-            EdgeDataType(provider, rideDataProvider, settingsRepository, extension),
+            EdgeDataType(provider, rideDataProvider, settingsRepository, roadMapRepository, extension),
             GuidageDataType(
                 provider, rideDataProvider, settingsRepository, roadMapRepository,
                 dispatch = { karooSystem.dispatch(it) },
